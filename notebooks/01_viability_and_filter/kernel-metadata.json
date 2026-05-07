@@ -1,0 +1,13 @@
+{
+  "id": "alexhuaracha/01-viability-and-filter",
+  "title": "01 Viability and Filter",
+  "code_file": "01_viability_and_filter.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": ["alexhuaracha/multibus-headway-forecast-raw"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
