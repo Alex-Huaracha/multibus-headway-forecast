@@ -12,9 +12,11 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# Data (lives in Kaggle, not Git)
-data/raw/
-data/processed/
+# Data (lives in Kaggle, not Git) - ignore contents but keep dataset-metadata.json
+data/raw/*
+data/processed/*
+!data/raw/dataset-metadata.json
+!data/processed/dataset-metadata.json
 *.csv
 *.parquet
 *.feather
