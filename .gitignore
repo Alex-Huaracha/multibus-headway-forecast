@@ -1,0 +1,39 @@
+# Credentials
+kaggle.json
+.kaggle/
+access_token
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Data (lives in Kaggle, not Git)
+data/raw/
+data/processed/
+*.csv
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.pkl
+
+# Models & experiment outputs
+*.pt
+*.pth
+*.onnx
+runs/
+wandb/
+mlruns/
+checkpoints/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
