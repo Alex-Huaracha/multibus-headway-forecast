@@ -24,10 +24,25 @@ docs/             Propuesta y notas
 
 ## Setup
 
+Gestión de Python y dependencias con [`uv`](https://docs.astral.sh/uv/). Versión de Python pinneada en `.python-version` (3.12).
+
+Instalar `uv` (una sola vez):
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Token de Kaggle en `~/.kaggle/access_token` (chmod 600).
+Reproducir el entorno del proyecto:
+
+```bash
+uv sync                    # crea .venv con Python 3.12 + deps del lockfile
+uv run jupyter lab         # abre notebooks
+uv run python src/...      # corre cualquier script
+uv add <paquete>            # agregar dependencias
+```
+
+Token de Kaggle en `~/.kaggle/access_token` (chmod 600). En Windows: `%USERPROFILE%\.kaggle\access_token`.
