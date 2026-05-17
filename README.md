@@ -6,7 +6,7 @@ Publicación objetivo: IJACSA. Propuesta completa en [`docs/propuesta.md`](docs/
 
 ## Convenciones del proyecto
 
-- **Clave compuesta**: siempre `(empresaid, unidadid)` — los `unidadid` se reutilizan entre empresas (28 de 126 aparecen en 3+ empresas). Nunca usar `unidadid` solo.
+- **Clave compuesta**: siempre `(empresaid, unidadid)` — los `unidadid` se reutilizan entre empresas (34 de 150 aparecen en 3+ empresas). Nunca usar `unidadid` solo.
 - **Corredores incluidos**: empresas 2, 4, 58, 59. El resto fue descartado por viabilidad (ver propuesta sección 4.3).
 - **Formato de datos procesados**: Parquet. Nada de CSV en el pipeline interno.
 - **Datos no van a Git** — viven en Kaggle Datasets (versionados allá) y localmente bajo `data/` (gitignored).

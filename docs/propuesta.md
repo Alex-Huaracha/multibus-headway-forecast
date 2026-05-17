@@ -20,9 +20,9 @@ El análisis reveló hallazgos que obligaron a reformular el alcance y el enfoqu
 
 Se analizó la geometría de cada ruta mediante PCA (sobre puntos en movimiento, no estacionados) y se contó cuántos buses circulan simultáneamente por corredor (sobre datos deduplicados con clave compuesta). 6 empresas pasan los umbrales de linealidad y flota simultánea (1, 2, 4, 55, 58, 59). El presente trabajo se acota a 4 corredores como caso de estudio: empresas 2, 4, 58 y 59, cubriendo un rango de flotas simultáneas de 6 a 20 buses. Las empresas restantes con corredores viables (1 y 55) quedan fuera del alcance y se reservan para validación posterior.
 
-**Hallazgo 2: Acotamiento por tamaño manejable de flota**
+**Hallazgo 2: Alcance acotado a 4 empresas**
 
-La empresa 1 tiene la flota más grande del SIT (~30 buses simultáneos en hora pico), bastante por encima del resto. Aunque sus datos cumplen los criterios de viabilidad, se deja fuera del alcance inicial: una flota tan densa puede traer dinámicas operacionales atípicas (más interacción bus-a-bus) que conviene estudiar por separado. El trabajo se enfoca en corredores de tamaño medio.
+De las 6 empresas viables, el presente trabajo se acota a 4 (2, 4, 58, 59) por restricciones de tiempo del proyecto. Este subconjunto cubre un rango amplio de flotas simultáneas (6, 9, 16 y 20 buses en mediana) sobre cuatro empresas operativamente independientes, suficiente para evaluar la generalización del método sobre contextos heterogéneos. Las empresas 1 y 55, también viables, quedan reservadas para validación posterior bajo la misma metodología.
 
 **Hallazgo 3: El sistema no es BRT estrictamente**
 
@@ -30,7 +30,7 @@ El SIT Arequipa es transporte público urbano integrado, sin vías segregadas ex
 
 **Hallazgo 4: Los identificadores de unidad se reutilizan entre empresas**
 
-34 de 150 identificadores de unidad aparecen en 3 o más empresas (124 se reúsan al menos en 2). Esto obliga a usar la clave compuesta (empresaid, unidadid) en todo el procesamiento para evitar mezclar datos de buses de empresas distintas.
+34 de 150 identificadores de unidad aparecen en 3 o más empresas. Esto obliga a usar la clave compuesta (empresaid, unidadid) en todo el procesamiento para evitar mezclar datos de buses de empresas distintas.
 
 **Hallazgo 5: La sugerencia del docente fortalece el paper**
 
@@ -121,13 +121,13 @@ Esta es una diferencia fundamental con el paper anterior, que dependía exclusiv
 
 | Empresa | Motivo |
 | ----- | ----- |
-| Empresa 1 | Viable (PCA=4.87, mediana=30). Fuera del alcance inicial por tamaño de flota muy superior al resto; reservada para validación posterior. |
+| Empresa 1 | Viable (PCA=4.87, mediana=30). Fuera del alcance por restricciones de tiempo. Se reserva para validación posterior. |
 | Empresa 12 | No viable: PCA=1.69 (zigzag), mediana=3 buses simultáneos. |
 | Empresa 19 | No viable: PCA=1.90 (no lineal). |
 | Empresa 22 | No viable: mediana=4 buses simultáneos. |
 | Empresa 27 | No viable: dataset casi vacío (6 registros). |
 | Empresa 45 | No viable: mediana=4 buses simultáneos. |
-| Empresa 55 | Viable (PCA=5.14, mediana=6). Fuera del alcance inicial; reservada para validación posterior. |
+| Empresa 55 | Viable (PCA=5.14, mediana=6). Fuera del alcance por restricciones de tiempo; el rango de flota pequeña ya está cubierto por la empresa 58 (mediana=6). |
 | Empresa 56 | No viable: una sola unidad. |
 
 **5\. La Inteligencia Artificial**
@@ -176,7 +176,7 @@ Predicción ingenua: “el headway futuro será igual al actual” y promedio m�
 
 **3\. Anticipación de anomalías colectivas.** Bunching, gaps y congestión se detectan como consecuencia natural de la predicción de headways, antes de que ocurran.
 
-**4\. Validación sobre corredores reales con flotas de diferente tamaño.** 4 corredores, desde 6 hasta 22 buses simultáneos, usando solo GPS básico. Viable para economías emergentes.
+**4\. Validación sobre corredores reales con flotas de diferente tamaño.** 4 corredores, desde 6 hasta 20 buses simultáneos (mediana), usando solo GPS básico. Viable para economías emergentes.
 
 **7\. Comparación con el paper anterior**
 

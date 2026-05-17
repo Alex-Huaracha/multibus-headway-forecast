@@ -51,7 +51,7 @@ These criteria justify selecting empresas **2, 4, 58, 59** and excluding the oth
 
 ## Composite key reminder
 
-`unidadid` values are reused across empresas (28 of 126 appear in 3+ empresas).
+`unidadid` values are reused across empresas (34 of 150 appear in 3+ empresas).
 Every per-bus aggregation in this notebook uses the composite key
 `(empresaid, unidadid)`.
 """)
@@ -133,7 +133,7 @@ dup_check = (
 n_dups = dup_check["dup_rows"][0]
 print(f"Filas duplicadas con clave (empresaid, unidadid, time): {n_dups}")
 
-# How many unidadid are reused in 3 or more empresas? (Proposal claim: 28.)
+# How many unidadid are reused in 3 or more empresas? (Proposal claim: 34.)
 reuse_3plus = (
     lf.group_by("unidadid")
     .agg(pl.col("empresaid").n_unique().alias("n_empresas"))

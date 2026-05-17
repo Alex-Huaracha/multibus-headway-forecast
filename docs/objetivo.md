@@ -29,7 +29,7 @@ El proyecto se considera exitoso cuando se cumplen, simultáneamente:
 La novedad del paper es **aplicada**, no metodológica:
 
 - El problema (predicción del vector completo de headways en corredores reales).
-- El dataset (71M registros GPS, 5 meses, 4 corredores reales con flotas de tamaño variado).
+- El dataset (~99M registros GPS tras deduplicación, 5 meses, 4 corredores reales con flotas de tamaño variado).
 - La comparativa rigurosa entre enfoques con y sin modelado espacial entre buses.
 
 No se reclama una arquitectura nueva. Se aplica y adapta arquitecturas existentes al problema, lo cual encaja con el perfil de IJACSA.
