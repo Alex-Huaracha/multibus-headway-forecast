@@ -16,13 +16,13 @@ La propuesta inicial planteaba trabajar con 10 corredores BRT y detectar anomal�
 
 El análisis reveló hallazgos que obligaron a reformular el alcance y el enfoque:
 
-**Hallazgo 1: Solo 4 de 10 empresas tienen corredores lineales con flota suficiente**
+**Hallazgo 1: 6 empresas cumplen los criterios de viabilidad; el trabajo se acota a 4**
 
-Se analizó la geometría de cada ruta mediante PCA y se contó cuántos buses circulan simultáneamente por corredor. El resultado: solo las empresas 2, 4, 58 y 59 tienen rutas con linealidad suficiente y buses simultáneos suficientes para que la predicción de headways tenga sentido. Las otras 6 empresas operan rutas dispersas por la ciudad o tienen 1-3 buses simultáneos, lo cual es insuficiente.
+Se analizó la geometría de cada ruta mediante PCA (sobre puntos en movimiento, no estacionados) y se contó cuántos buses circulan simultáneamente por corredor (sobre datos deduplicados con clave compuesta). 6 empresas pasan los umbrales de linealidad y flota simultánea (1, 2, 4, 55, 58, 59). El presente trabajo se acota a 4 corredores como caso de estudio: empresas 2, 4, 58 y 59, cubriendo un rango de flotas simultáneas de 6 a 20 buses. Las empresas restantes con corredores viables (1 y 55) quedan fuera del alcance y se reservan para validación posterior.
 
-**Hallazgo 2: La Empresa 1 no es un corredor**
+**Hallazgo 2: Acotamiento por tamaño manejable de flota**
 
-La empresa con mayor flota (69 unidades, 22 simultáneas en hora pico) resultó tener una ruta que cubre toda Arequipa de forma dispersa, no un corredor lineal. Forzar la formulación sobre estos datos degradaría los resultados.
+La empresa 1 tiene la flota más grande del SIT (~30 buses simultáneos en hora pico), bastante por encima del resto. Aunque sus datos cumplen los criterios de viabilidad, se deja fuera del alcance inicial: una flota tan densa puede traer dinámicas operacionales atípicas (más interacción bus-a-bus) que conviene estudiar por separado. El trabajo se enfoca en corredores de tamaño medio.
 
 **Hallazgo 3: El sistema no es BRT estrictamente**
 
@@ -30,7 +30,7 @@ El SIT Arequipa es transporte público urbano integrado, sin vías segregadas ex
 
 **Hallazgo 4: Los identificadores de unidad se reutilizan entre empresas**
 
-28 de 126 identificadores de unidad aparecen en 3 o más empresas. Esto obliga a usar la clave compuesta (empresaid, unidadid) en todo el procesamiento para evitar mezclar datos de buses de empresas distintas.
+34 de 150 identificadores de unidad aparecen en 3 o más empresas (124 se reúsan al menos en 2). Esto obliga a usar la clave compuesta (empresaid, unidadid) en todo el procesamiento para evitar mezclar datos de buses de empresas distintas.
 
 **Hallazgo 5: La sugerencia del docente fortalece el paper**
 
@@ -102,7 +102,7 @@ Esta es una diferencia fundamental con el paper anterior, que dependía exclusiv
 
 | Característica | Valor |
 | ----- | ----- |
-| **Registros limpios** | 71,337,004 |
+| **Registros tras dedup (clave compuesta)** | 98,968,817 |
 | **Período** | Octubre 2023 – Febrero 2024 (151 días) |
 | **Frecuencia GPS** | Cada 20 segundos por unidad |
 | **Columnas** | unidadid, empresaid, latitud, longitud, timestamp, dirección (heading) |
@@ -110,26 +110,25 @@ Esta es una diferencia fundamental con el paper anterior, que dependía exclusiv
 
 **4.2 Los 4 corredores seleccionados**
 
-Del análisis de viabilidad se determinó que solo 4 empresas cumplen los requisitos de linealidad geométrica y flota simultánea:
-
-| Empresa | Unidades | Buses simultáneos (pico) | Headways simultáneos | Rol en el paper |
+| Empresa | Unidades | Buses simultáneos (mediana) | Ratio PCA | Rol en el paper |
 | ----- | ----- | ----- | ----- | ----- |
-| **Empresa 2** | 31 | 17 (mediana) | 16 | Caso principal |
-| **Empresa 59** | 40 | 22 (mediana) | 21 | Caso principal |
-| **Empresa 4** | 19 | 6 (mediana) | 5 | Validación escalabilidad |
-| **Empresa 58** | 12 | 6 (mediana) | 5 | Validación escalabilidad |
+| **Empresa 2** | 31 | 16 | 33.55 | Caso principal |
+| **Empresa 59** | 40 | 20 | 5.92 | Caso principal |
+| **Empresa 4** | 20 | 9 | 5.67 | Validación escalabilidad |
+| **Empresa 58** | 29 | 6 | 4.20 | Validación escalabilidad |
 
-**4.3 Empresas excluidas y justificación**
+**4.3 Empresas fuera del alcance**
 
-| Empresa | Razón de exclusión |
+| Empresa | Motivo |
 | ----- | ----- |
-| Empresa 1 | Ruta dispersa por toda la ciudad (ratio PCA \= 3.84). No es un corredor lineal a pesar de tener 69 unidades. |
-| Empresa 12 | Ruta con zigzag pronunciado y solo 2 buses simultáneos. Insuficiente para vector de headways. |
-| Empresa 19 | Solo 3 buses simultáneos. Vector de 2 headways no justifica IA. |
-| Empresa 22 | Ruta no lineal y solo 1 bus simultáneo en mediana. Imposible calcular headways. |
-| Empresa 45 | Ruta enredada con varios brazos y solo 2 buses simultáneos. |
-| Empresa 55 | Solo 3 buses simultáneos a pesar de linealidad moderada. |
-| Empresa 56 | Una sola unidad. Excluida en la limpieza inicial. |
+| Empresa 1 | Viable (PCA=4.87, mediana=30). Fuera del alcance inicial por tamaño de flota muy superior al resto; reservada para validación posterior. |
+| Empresa 12 | No viable: PCA=1.69 (zigzag), mediana=3 buses simultáneos. |
+| Empresa 19 | No viable: PCA=1.90 (no lineal). |
+| Empresa 22 | No viable: mediana=4 buses simultáneos. |
+| Empresa 27 | No viable: dataset casi vacío (6 registros). |
+| Empresa 45 | No viable: mediana=4 buses simultáneos. |
+| Empresa 55 | Viable (PCA=5.14, mediana=6). Fuera del alcance inicial; reservada para validación posterior. |
+| Empresa 56 | No viable: una sola unidad. |
 
 **5\. La Inteligencia Artificial**
 
@@ -185,7 +184,7 @@ Predicción ingenua: “el headway futuro será igual al actual” y promedio m�
 | ----- | ----- | ----- |
 | **Objetivo** | Detectar anomalías (reactivo) | Predecir headways (proactivo) |
 | **Validación** | Anomalías 100% sintéticas | Ground truth real (headways futuros en los datos GPS) |
-| **Alcance** | 46 unidades de 1 empresa, 1 corredor | 127 unidades de 4 empresas, 4 corredores |
+| **Alcance** | 46 unidades de 1 empresa, 1 corredor | 120 unidades de 4 empresas, 4 corredores |
 | **Arquitectura** | LSTM Autoencoder único sin comparativa | GNN+LSTM vs LSTM vs baseline estadístico |
 | **Multi-unidad** | Se aplana todo en un vector, perdiendo identidad de cada bus | GNN preserva relaciones espaciales entre buses consecutivos |
 | **Clasificación de anomalías** | Heurística externa no desarrollada | Emerge naturalmente de la predicción de headways |
@@ -203,7 +202,7 @@ Predicción ingenua: “el headway futuro será igual al actual” y promedio m�
 | **Input** | Headways actuales y recientes de todos los buses activos \+ contexto temporal (hora, día). |
 | **Output** | Vector de headways predicho para el siguiente instante. |
 | **Validación** | Ground truth real: los headways futuros ya existen en los datos GPS. Error medido en minutos (MAE, RMSE). |
-| **Datos** | 71M registros GPS, 4 corredores, flotas de 6 a 22 buses simultáneos, 5 meses. |
+| **Datos** | ~99M registros GPS tras dedup, 4 corredores, flotas de 6 a 20 buses simultáneos en mediana, 5 meses. |
 | **Novedad** | Predicción multi-headway con modelado de propagación espacial entre buses mediante GNN, usando solo GPS básico. |
 
 **8.2 Próximos pasos**

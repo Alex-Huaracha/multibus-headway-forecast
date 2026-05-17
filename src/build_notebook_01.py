@@ -62,7 +62,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-INPUT = Path("/kaggle/input/multibus-headway-forecast-raw/raw_gps.parquet")
+# Locate the parquet anywhere under /kaggle/input/ — Kaggle's mount path may
+# vary depending on dataset visibility/version. We log what's there for
+# diagnostics and then search recursively for the expected filename.
+import os
+print("Tree under /kaggle/input/:")
+for root, dirs, files in os.walk("/kaggle/input"):
+    rel = root.replace("/kaggle/input", "") or "/"
+    for f in files:
+        print(f"  {rel}/{f}")
+    if not files and not dirs:
+        print(f"  {rel}/ (empty)")
+
+candidates = list(Path("/kaggle/input").rglob("raw_gps.parquet"))
+assert candidates, "raw_gps.parquet not found anywhere under /kaggle/input/"
+INPUT = candidates[0]
+print()
+print(f"Using INPUT = {INPUT}")
+
 OUTPUT_DIR = Path("/kaggle/working")
 FIG_DIR = OUTPUT_DIR / "figuras"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -78,8 +95,6 @@ STATIONARY_WINDOW_MIN = 5  # window size to assess movement
 LAT_DEG_M = 111_000.0
 LON_DEG_M = 111_000.0 * np.cos(np.deg2rad(-16.4))
 
-assert INPUT.exists(), f"Raw dataset not found at {INPUT}"
-print(f"Reading from: {INPUT}")
 """)
 
 md("## 1. Dataset overview and sanity checks")
@@ -101,7 +116,7 @@ overview
 """)
 
 code("""
-# Composite-key sanity: confirm unidadid reuse and no duplicate (empresaid, unidadid, time).
+# Composite-key sanity: confirm unidadid reuse and count duplicates by (empresaid, unidadid, time).
 n_unidad_naive = overview["n_unidadid_naive"][0]
 n_unidad_comp = overview["n_unidades_compkey"][0]
 print(f"unidadid únicos (sin empresaid): {n_unidad_naive}")
@@ -115,7 +130,33 @@ dup_check = (
     .select(pl.len().alias("dup_rows"))
     .collect(engine="streaming")
 )
-print(f"Filas duplicadas con clave (empresaid, unidadid, time): {dup_check['dup_rows'][0]}")
+n_dups = dup_check["dup_rows"][0]
+print(f"Filas duplicadas con clave (empresaid, unidadid, time): {n_dups}")
+
+# How many unidadid are reused in 3 or more empresas? (Proposal claim: 28.)
+reuse_3plus = (
+    lf.group_by("unidadid")
+    .agg(pl.col("empresaid").n_unique().alias("n_empresas"))
+    .filter(pl.col("n_empresas") >= 3)
+    .select(pl.len().alias("n"))
+    .collect(engine="streaming")
+)
+print(f"unidadid usados en 3+ empresas: {reuse_3plus['n'][0]}")
+""")
+
+md("""
+## 1b. Dedupe with the composite key
+
+The raw export contains ~1M duplicate rows by `(empresaid, unidadid, time)`
+(likely from DB pagination at the source). We dedupe ONCE here with the
+composite key and use this lazy frame for everything downstream. Notebooks
+2+ should read the clean output and trust it.
+""")
+
+code("""
+lf = lf.unique(subset=["empresaid", "unidadid", "time"], keep="first")
+post_dedup = lf.select(pl.len().alias("rows_after_dedup")).collect(engine="streaming")
+print(post_dedup)
 """)
 
 code("""
@@ -146,6 +187,8 @@ not inflate or shrink the linearity ratio) and the simultaneous-fleet count
 
 code("""
 def load_empresa(empresa_id: int) -> pl.DataFrame:
+    # Plain collect (no streaming engine) — streaming + unique() + filter can
+    # silently drop rows in polars 1.x. Per-empresa data is small enough.
     df = (
         lf.filter(pl.col("empresaid") == empresa_id)
         .filter(pl.col("lat").is_not_null() & pl.col("lon").is_not_null())
@@ -153,10 +196,18 @@ def load_empresa(empresa_id: int) -> pl.DataFrame:
         .filter(pl.col("time").is_not_null())
         .select(["empresaid", "unidadid", "time", "lat", "lon"])
         .sort(["empresaid", "unidadid", "time"])
-        .collect(engine="streaming")
+        .collect()
     )
+    print(f"  empresa {empresa_id}: {df.height} rows after filters")
     if df.is_empty():
-        return df
+        # Return an empty frame with all expected columns so downstream code
+        # can rely on the schema.
+        return df.with_columns([
+            pl.lit(None, dtype=pl.Float64).alias("step_m"),
+            pl.lit(None, dtype=pl.UInt32).alias("n_5m"),
+            pl.lit(None, dtype=pl.Float64).alias("dist_5m"),
+            pl.lit(None, dtype=pl.Boolean).alias("stationary"),
+        ])
     # Per-bus shifted coordinates over the composite key.
     df = df.with_columns([
         pl.col("lat").shift(1).over(["empresaid", "unidadid"]).alias("lat_prev"),
@@ -169,19 +220,17 @@ def load_empresa(empresa_id: int) -> pl.DataFrame:
         (pl.col("time") - pl.col("time_prev")).dt.total_seconds().alias("dt_s"),
     ])
     # Cumulative distance and point-count over a rolling 5-min window per bus.
-    # Use `by=` (not `.over()`) — combining rolling_*_by with over is invalid and
-    # can cross bus boundaries silently.
+    # rolling_*_by("time", ...) is time-aware; group-awareness comes from .over().
+    # The prior sort on (empresaid, unidadid, time) ensures rows are time-ordered.
+    # Polars has no rolling_count_by, so we simulate it by summing a 1-column.
+    df = df.with_columns(pl.lit(1, dtype=pl.UInt32).alias("_one"))
     df = df.with_columns([
         pl.col("step_m").fill_null(0.0).rolling_sum_by(
-            "time",
-            window_size=f"{STATIONARY_WINDOW_MIN}m",
-            by=["empresaid", "unidadid"],
-        ).alias("dist_5m"),
-        pl.col("step_m").rolling_count_by(
-            "time",
-            window_size=f"{STATIONARY_WINDOW_MIN}m",
-            by=["empresaid", "unidadid"],
-        ).alias("n_5m"),
+            "time", window_size=f"{STATIONARY_WINDOW_MIN}m",
+        ).over(["empresaid", "unidadid"]).alias("dist_5m"),
+        pl.col("_one").rolling_sum_by(
+            "time", window_size=f"{STATIONARY_WINDOW_MIN}m",
+        ).over(["empresaid", "unidadid"]).alias("n_5m"),
     ])
     # Mark stationary only when the rolling window has enough points to decide.
     # An immature window (e.g. the first minutes of a bus's day) is left as null
@@ -214,6 +263,8 @@ of a bus's day) are treated as follows:
 
 code("""
 def pca_ratio(df: pl.DataFrame, sample_size: int = 200_000) -> tuple[float | None, int]:
+    if "stationary" not in df.columns or df.height == 0:
+        return None, 0
     # PCA only on points confidently moving (stationary == False, not null).
     moving = df.filter(pl.col("stationary") == False).select(["lat", "lon"])
     n_moving = moving.height
@@ -230,6 +281,8 @@ def pca_ratio(df: pl.DataFrame, sample_size: int = 200_000) -> tuple[float | Non
 
 
 def per_minute_active(df: pl.DataFrame) -> pl.DataFrame:
+    if "stationary" not in df.columns or df.height == 0:
+        return pl.DataFrame({"minute": [], "active_buses": []})
     # Active = not stationary (null included: reporting GPS, indeterminate movement).
     active = df.filter(pl.col("stationary") != True)
     if active.is_empty():
