@@ -29,12 +29,14 @@ empresas, 2023-10-01 → 2024-02-29).
 
 **Outputs** (to `/kaggle/working/`):
 - `quality_gps.csv` — per-empresa quality summary table.
+- `atypical_days.csv` — per-(empresa, day) rows flagged as low-volume or low-fleet.
 - `figuras/temporal_distribution.png` — records by hour / weekday / month.
 - `figuras/gaps_distribution.png` — distribution of inter-record gaps.
 - `figuras/spatial_heatmap.png` — spatial density per empresa.
 - `figuras/unit_statistics.png` — activity statistics per unit.
 - `figuras/gps_quality.png` — observed speed distribution.
 - `figuras/heading_distribution.png` — heading rose plot per empresa.
+- `figuras/atypical_days.png` — daily records timeline with atypical days highlighted.
 
 ## Conventions
 
@@ -88,11 +90,45 @@ MAX_PLAUSIBLE_JUMP_M = 500       # >500m at 20s sampling implies >90 km/h
 SAMPLING_TARGET_S = 20           # nominal source sampling rate
 """)
 
+md("""
+## 0. Data quality preflight
+
+`clean_gps.parquet` is "clean" only in the sense that Phase 0 deduplicated on
+`(empresaid, unidadid, time)` and filtered to the selected empresas. By design
+it preserves all rows, including those with null `time` / `lat` / `lon` or
+`(lat, lon) == (0, 0)`, so each downstream notebook re-derives its own
+row-level filters. We count those rows here and drop them before every
+aggregation below — the counts in this cell are the audit trail of what we
+discarded.
+""")
+
+code("""
+lf_raw = pl.scan_parquet(INPUT)
+
+preflight = lf_raw.select([
+    pl.len().alias("rows"),
+    pl.col("time").is_null().sum().alias("null_time"),
+    pl.col("lat").is_null().sum().alias("null_lat"),
+    pl.col("lon").is_null().sum().alias("null_lon"),
+    pl.col("empresaid").is_null().sum().alias("null_empresaid"),
+    pl.col("unidadid").is_null().sum().alias("null_unidadid"),
+    ((pl.col("lat") == 0) | (pl.col("lon") == 0)).sum().alias("zero_coords"),
+]).collect(engine="streaming").to_pandas().iloc[0]
+print("Pre-filter counts:")
+print(preflight.to_string())
+
+lf = lf_raw.filter(
+    pl.col("time").is_not_null()
+    & pl.col("lat").is_not_null() & pl.col("lon").is_not_null()
+    & (pl.col("lat") != 0) & (pl.col("lon") != 0)
+)
+post_rows = lf.select(pl.len().alias("rows")).collect(engine="streaming")["rows"][0]
+print(f"\\nRows after filter: {post_rows:,}  (dropped: {int(preflight['rows']) - post_rows:,})")
+""")
+
 md("## 1. Temporal distribution: records by hour, weekday, month")
 
 code("""
-lf = pl.scan_parquet(INPUT)
-
 # Per (empresa, hour-of-day): how does activity distribute through the day?
 by_hour = (
     lf.with_columns(pl.col("time").dt.hour().alias("hour"))
@@ -285,8 +321,8 @@ per_unit = (
         pl.len().alias("n_records"),
     ])
     .with_columns(
-        ((pl.col("last_seen") - pl.col("first_seen")).dt.total_seconds()
-         / 86400.0 + 1).cast(pl.Int64).alias("span_days")
+        ((pl.col("last_seen").dt.date() - pl.col("first_seen").dt.date())
+         .dt.total_days() + 1).alias("span_days")
     )
     .with_columns(
         (pl.col("active_days") / pl.col("span_days")).alias("activity_ratio")
@@ -534,16 +570,129 @@ print(quality.to_string(index=False))
 """)
 
 md("""
+## 8. Atypical days detection
+
+A day is "atypical" for an empresa when its operational footprint differs
+substantially from the typical day for that empresa. We flag two kinds:
+
+- **Low-volume days**: total records < 50% of the median daily volume for
+  that empresa. Suggests partial service (strike, holiday, system outage).
+- **Low-fleet days**: active units < 50% of the median active units for that
+  empresa. Stronger signal of operational disruption than low records alone.
+
+Note: only days with at least one record are flagged. Total blackout days
+(no records at all) are not in `by_day` and appear as missing dates in the
+timeline plot. Phase 3 must materialize the full calendar to count them.
+
+This list feeds:
+- Phase 3 (split design): atypical days must be tagged so train/val/test
+  do not concentrate disruptions on one side.
+- Phase 7 (robustness analysis): models are evaluated on atypical days
+  separately.
+""")
+
+code("""
+# Daily aggregates per empresa.
+by_day = (
+    lf.with_columns(pl.col("time").dt.date().alias("day"))
+    .group_by(["empresaid", "day"])
+    .agg([
+        pl.len().alias("records"),
+        pl.col("unidadid").n_unique().alias("active_units"),
+    ])
+    .sort(["empresaid", "day"])
+    .collect(engine="streaming")
+)
+
+# Median baselines per empresa.
+baselines = (
+    by_day.group_by("empresaid")
+    .agg([
+        pl.col("records").median().alias("records_median"),
+        pl.col("active_units").median().alias("units_median"),
+    ])
+    .sort("empresaid")
+)
+print("Per-empresa daily baselines (median):")
+print(baselines)
+
+# Flag atypical days: < 50% of either baseline.
+atypical = (
+    by_day.join(baselines, on="empresaid")
+    .with_columns([
+        (pl.col("records") < 0.5 * pl.col("records_median")).alias("low_records"),
+        (pl.col("active_units") < 0.5 * pl.col("units_median")).alias("low_fleet"),
+    ])
+    .filter(pl.col("low_records") | pl.col("low_fleet"))
+    .sort(["empresaid", "day"])
+)
+
+print()
+print("Atypical days per empresa (count):")
+print(
+    atypical.group_by("empresaid")
+    .agg([
+        pl.col("low_records").sum().alias("n_low_records"),
+        pl.col("low_fleet").sum().alias("n_low_fleet"),
+        pl.len().alias("n_total_flagged"),
+    ])
+    .sort("empresaid")
+)
+
+atypical.write_csv(OUTPUT_DIR / "atypical_days.csv")
+print(f"\\nSaved {atypical.height} flagged (empresa, day) rows to atypical_days.csv")
+""")
+
+code("""
+# Daily-records timeline per empresa, with atypical days highlighted.
+import pandas as pd
+
+by_day_pd = by_day.to_pandas()
+atypical_pd = atypical.to_pandas()
+by_day_pd["day"] = pd.to_datetime(by_day_pd["day"])
+if not atypical_pd.empty:
+    atypical_pd["day"] = pd.to_datetime(atypical_pd["day"])
+
+fig, axes = plt.subplots(2, 2, figsize=(18, 8))
+for ax, e in zip(axes.flat, EMPRESAS):
+    sub = by_day_pd[by_day_pd["empresaid"] == e]
+    if sub.empty:
+        ax.set_title(f"E{e} (no data)"); continue
+    ax.plot(sub["day"], sub["records"], color="C0", lw=1, label="records/day")
+    flagged = atypical_pd[atypical_pd["empresaid"] == e]
+    if not flagged.empty:
+        ax.scatter(flagged["day"], flagged["records"], color="red", s=40,
+                   zorder=5, label="atypical")
+    median = sub["records"].median()
+    ax.axhline(median, color="green", linestyle="--", alpha=0.5,
+               label=f"median={int(median):,}")
+    ax.axhline(0.5 * median, color="orange", linestyle=":", alpha=0.5,
+               label="50% median")
+    ax.set_title(f"Empresa {e}: daily records timeline")
+    ax.set_ylabel("Records"); ax.legend(fontsize=8)
+    ax.tick_params(axis="x", rotation=45)
+
+fig.suptitle("Daily records per empresa with atypical days flagged")
+fig.tight_layout()
+fig.savefig(FIG_DIR / "atypical_days.png", dpi=120, bbox_inches="tight")
+plt.show()
+""")
+
+md("""
 ## Next steps for Phase 2
 
 Concrete cleaning decisions (what to do with speeds > 80 km/h, with
 `direccion == 0`, with gaps > 30 min, with residual duplicates if any) are
-decided from this table and documented in the proposal before starting
-preprocessing.
+decided from this table and documented in `docs/decisiones-limpieza-fase2.md`
+before starting preprocessing.
 
-**Phase 1 closes** when `quality_gps.csv` is produced and the table has
-been reviewed with advisors. Only then we move on to Phase 2 (corridor
-centerline reconstruction and headway computation).
+The `atypical_days.csv` list is consumed by Phase 3 (temporal split design)
+and Phase 7 (robustness analysis), not by Phase 2 cleaning.
+
+**Phase 1 closes** when `quality_gps.csv` and `atypical_days.csv` are
+produced and the cleaning decisions are approved by advisors. Only then we
+move on to Phase 2 (corridor centerline reconstruction and headway
+computation).
 """)
 
 
