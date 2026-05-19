@@ -13,7 +13,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [x] Análisis de sensibilidad sobre umbrales.
 - [x] Selección de 4 empresas (2, 4, 58, 59) acotada por alcance.
 - [x] Notebook `01_viability_and_filter` ejecutado en Kaggle con outputs verificados.
-- [x] `clean_gps.parquet` producido (~99M filas dedup, 4 corredores).
+- [x] `clean_gps.parquet` producido (47.68M filas — 4 corredores filtrados del dataset crudo de 98.97M dedup de las 12 empresas).
 - [x] Propuesta actualizada con números reales del análisis.
 
 **Artefacto:** `notebooks/01_viability_and_filter/01_viability_and_filter.ipynb` + `data/processed/{viability,sensitivity}.csv` + `data/processed/figuras/` + `data/processed/clean_gps.parquet`.
@@ -26,17 +26,19 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 **Objetivo de la fase:** Entender la calidad y dinámica temporal/espacial de los datos GPS de cada corredor antes de procesarlos. Detectar problemas de calidad que impactarán el preprocesamiento.
 
-- [ ] Distribución temporal: registros por hora/día/mes por empresa.
-- [ ] Detección de gaps de servicio y días atípicos.
-- [ ] Heatmaps espaciales por empresa (validar trazado del corredor).
-- [ ] Estadísticas por unidad: viajes/día, horas activas, distancia recorrida.
-- [ ] Diagnóstico de calidad GPS: velocidades imposibles, saltos, duplicados.
-- [ ] Análisis de heading: ¿permite distinguir ida/vuelta de forma confiable?
-- [ ] Documentar problemas encontrados y decisiones de limpieza para Fase 2.
+- [x] Distribución temporal: registros por hora/día/mes por empresa.
+- [x] Detección de gaps de servicio y días atípicos.
+- [x] Heatmaps espaciales por empresa (validar trazado del corredor).
+- [x] Estadísticas por unidad: viajes/día, horas activas, distancia recorrida.
+- [x] Diagnóstico de calidad GPS: velocidades imposibles, saltos, duplicados.
+- [x] Análisis de heading: ¿permite distinguir ida/vuelta de forma confiable?
+- [x] Documentar problemas encontrados y decisiones de limpieza para Fase 2.
 
-**Artefacto:** `notebooks/02_eda_corredores/02_eda_corredores.ipynb`.
+**Artefacto:** `notebooks/02_eda_corredores/02_eda_corredores.ipynb` + `quality_gps.csv` + `atypical_days.csv` (en Kaggle) + [`docs/decisiones-limpieza-fase2.md`](./decisiones-limpieza-fase2.md) + [`docs/eventos-anomalos.md`](./eventos-anomalos.md) + [`docs/dataset-manifest.md`](./dataset-manifest.md).
 
 **Criterio de cierre:** Tabla de problemas de calidad por empresa documentada y decisiones de limpieza aprobadas.
+
+**Estado:** Completada (2026-05-19).
 
 ---
 
@@ -46,7 +48,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 - [ ] Reconstrucción del trazado del corredor (median path / centerline).
 - [ ] Proyección lineal: convertir (lat, lon) en distancia acumulada `s`.
-- [ ] Identificación de sentido ida/vuelta (heading + derivada de `s`).
+- [ ] Identificación de sentido ida/vuelta: método primario = derivada signada de `s`; el heading se usa solo como verificación cruzada en E2 y E4 (E58 y E59 no reportan `direccion`, ver `decisiones-limpieza-fase2.md` §3.1).
 - [ ] Segmentación de viajes (terminal a terminal).
 - [ ] Definición operativa de headway (espacial vs. temporal — decidir y documentar).
 - [ ] Cálculo de headways en grilla temporal regular.

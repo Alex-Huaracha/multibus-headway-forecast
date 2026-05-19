@@ -36,6 +36,10 @@ El SIT Arequipa es transporte público urbano integrado, sin vías segregadas ex
 
 El docente asesor recomendó que el modelo no solo detecte anomalías sino que prediga el vector completo de headways. Esto transforma el paper de reactivo (detectar lo que ya pasó) a proactivo (anticipar lo que va a pasar), y resuelve el problema de validación: el ground truth son los headways reales futuros que ya existen en los datos GPS, eliminando la dependencia de datos sintéticos.
 
+**Hallazgo 6: Empresas 58 y 59 no reportan los campos `direccion` (heading) ni `velocidad`**
+
+El EDA dirigido sobre los 4 corredores (Fase 1, notebook `02_eda_corredores`) reveló que las empresas 58 y 59 no reportan los campos `direccion` ni `velocidad` en sus registros GPS (las empresas 2 y 4 sí los reportan). Como la empresa 59 es uno de los dos corredores obligatorios del proyecto, esto fuerza un cambio metodológico: la identificación de sentido ida/vuelta no puede depender del heading. El método primario será la derivada signada de la coordenada lineal `s` (proyección sobre la centerline del corredor); el heading queda como verificación cruzada únicamente en los corredores donde se reporta. La velocidad utilizada en todo el pipeline se computa como `step_m / dt_s` a partir de coordenadas y tiempos consecutivos, no del campo `velocidad` reportado (ver [`decisiones-limpieza-fase2.md`](./decisiones-limpieza-fase2.md)). Esta restricción del dataset refuerza el argumento de generalización: el método funciona con el subconjunto mínimo de columnas GPS (lat, lon, time), sin depender de campos opcionales.
+
 **2\. El problema**
 
 **2.1 Contexto operacional**
@@ -102,11 +106,14 @@ Esta es una diferencia fundamental con el paper anterior, que dependía exclusiv
 
 | Característica | Valor |
 | ----- | ----- |
-| **Registros tras dedup (clave compuesta)** | 98,968,817 |
+| **Registros del dataset raw tras dedup (12 empresas)** | 98,968,817 |
+| **Registros del corpus de trabajo (4 corredores seleccionados)** | 47,681,656 |
 | **Período** | Octubre 2023 – Febrero 2024 (151 días) |
 | **Frecuencia GPS** | Cada 20 segundos por unidad |
 | **Columnas** | unidadid, empresaid, latitud, longitud, timestamp, dirección (heading) |
 | **Hardware adicional** | Ninguno — solo GPS básico ya instalado |
+
+> Nota: 98.97M es el total tras deduplicar el dataset crudo de las 12 empresas con la clave compuesta `(empresaid, unidadid, time)`. El corpus efectivamente analizado en este trabajo (47.68M) corresponde al filtrado a los 4 corredores seleccionados en §4.2, antes de la limpieza row-level documentada en [`decisiones-limpieza-fase2.md`](./decisiones-limpieza-fase2.md).
 
 **4.2 Los 4 corredores seleccionados**
 
@@ -114,8 +121,10 @@ Esta es una diferencia fundamental con el paper anterior, que dependía exclusiv
 | ----- | ----- | ----- | ----- | ----- |
 | **Empresa 2** | 31 | 16 | 33.55 | Caso principal |
 | **Empresa 59** | 40 | 20 | 5.92 | Caso principal |
-| **Empresa 4** | 20 | 9 | 5.67 | Validación escalabilidad |
-| **Empresa 58** | 29 | 6 | 4.20 | Validación escalabilidad |
+| **Empresa 4** | 19 | 9 | 5.67 | Validación escalabilidad |
+| **Empresa 58** | 12 | 6 | 4.20 | Validación escalabilidad |
+
+> Las cifras de "Unidades" corresponden a la **flota operacionalmente activa** tras el filtro de buses estacionarios aplicado en Fase 0 (notebook `01_viability_and_filter`). El dataset raw contenía 120 unidades distintas en estas 4 empresas; 18 unidades estuvieron siempre estacionadas durante el período y fueron excluidas del corpus de trabajo. Total operacional: 102 unidades. Los conteos verificables están en el notebook `02_eda_corredores` (output `quality_gps.csv`).
 
 **4.3 Empresas fuera del alcance**
 
@@ -184,7 +193,7 @@ Predicción ingenua: “el headway futuro será igual al actual” y promedio m�
 | ----- | ----- | ----- |
 | **Objetivo** | Detectar anomalías (reactivo) | Predecir headways (proactivo) |
 | **Validación** | Anomalías 100% sintéticas | Ground truth real (headways futuros en los datos GPS) |
-| **Alcance** | 46 unidades de 1 empresa, 1 corredor | 120 unidades de 4 empresas, 4 corredores |
+| **Alcance** | 46 unidades de 1 empresa, 1 corredor | 102 unidades operacionales de 4 empresas, 4 corredores (120 unidades en raw, 18 excluidas por estar siempre estacionadas) |
 | **Arquitectura** | LSTM Autoencoder único sin comparativa | GNN+LSTM vs LSTM vs baseline estadístico |
 | **Multi-unidad** | Se aplana todo en un vector, perdiendo identidad de cada bus | GNN preserva relaciones espaciales entre buses consecutivos |
 | **Clasificación de anomalías** | Heurística externa no desarrollada | Emerge naturalmente de la predicción de headways |
@@ -202,7 +211,7 @@ Predicción ingenua: “el headway futuro será igual al actual” y promedio m�
 | **Input** | Headways actuales y recientes de todos los buses activos \+ contexto temporal (hora, día). |
 | **Output** | Vector de headways predicho para el siguiente instante. |
 | **Validación** | Ground truth real: los headways futuros ya existen en los datos GPS. Error medido en minutos (MAE, RMSE). |
-| **Datos** | ~99M registros GPS tras dedup, 4 corredores, flotas de 6 a 20 buses simultáneos en mediana, 5 meses. |
+| **Datos** | ~47.68M registros GPS sobre los 4 corredores seleccionados (filtrados del dataset crudo de 98.97M tras dedup de las 12 empresas), flotas de 6 a 20 buses simultáneos en mediana, 5 meses. |
 | **Novedad** | Predicción multi-headway con modelado de propagación espacial entre buses mediante GNN, usando solo GPS básico. |
 
 **8.2 Próximos pasos**
