@@ -39,3 +39,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Agent / gentle-ai tooling state
+.atl/
+.gga
