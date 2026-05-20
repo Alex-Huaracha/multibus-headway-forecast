@@ -92,6 +92,7 @@ def _find_last_crossing_ns(
     s_arr: np.ndarray,
     T_ns: int,
     s_front: float,
+    max_lookback_ns: float | None = None,
 ) -> float | None:
     """Find the most recent time (nanoseconds) when bus_back's s crossed s_front.
 
@@ -104,9 +105,14 @@ def _find_last_crossing_ns(
         s_arr: float64 arc-length values at those timestamps.
         T_ns:  snapshot time in nanoseconds (restrict to t <= T).
         s_front: arc-length of the front bus at T.
+        max_lookback_ns: when not None, crossings older than this many nanoseconds
+            before T are treated as 'no crossing found' and return None. Prevents
+            stale historical crossings in multi-filar corridors (e.g. E2 Arequipa)
+            from being emitted as absurd delta_t_min values (decisiones-headway-fase2 §3).
 
     Returns:
-        t_cross in nanoseconds (float), or None if no crossing exists.
+        t_cross in nanoseconds (float), or None if no crossing exists or the
+        crossing is older than max_lookback_ns.
     """
     cutoff = int(np.searchsorted(t_arr, T_ns, side="right"))
     if cutoff < 2:
@@ -121,7 +127,10 @@ def _find_last_crossing_ns(
     zero_mask = diff == 0.0
     if zero_mask.any():
         i = int(np.where(zero_mask)[0][-1])
-        return float(t_past[i])
+        t_cross = float(t_past[i])
+        if max_lookback_ns is not None and (T_ns - t_cross) > max_lookback_ns:
+            return None
+        return t_cross
 
     # Case 2: sign-change crossing — bus_back's s straddled s_front.
     signs = np.sign(diff)
@@ -139,6 +148,8 @@ def _find_last_crossing_ns(
 
     frac = float((s_front - s_past[i]) / ds)
     t_cross = float(t_past[i]) + frac * float(t_past[i + 1] - t_past[i])
+    if max_lookback_ns is not None and (T_ns - t_cross) > max_lookback_ns:
+        return None
     return t_cross
 
 
@@ -146,6 +157,7 @@ def compute_headways_c2(
     snapshots: pl.DataFrame,
     gps: pl.DataFrame,
     min_buses: int = PRODUCTIVE_PARAMS.min_buses_per_snapshot,
+    max_lookback_minutes: float = PRODUCTIVE_PARAMS.max_interpolation_lookback_minutes,
 ) -> pl.DataFrame:
     """C.2 trailing-crossing headway (pure polars + numpy).
 
@@ -159,6 +171,12 @@ def compute_headways_c2(
     not yet crossed s_front): emits the row with delta_t_min = null (NOT dropped).
     This is clarification #17 rule 2 — preserves INV-3 (dense pair_rank) and
     INV-4 (n_buses consistent with active bus count).
+
+    Crossings whose interpolated t_cross is older than max_lookback_minutes are
+    treated as 'no crossing' and emitted with delta_t_min = NULL (same semantics
+    as clarification §2). This bound exists because multi-filar corridors project
+    unrelated buses to the same s axis; without it, np.searchsorted finds ancient
+    crossings and emits absurd headways (e.g. ~112 days on E2 dir=1).
 
     Algorithm:
     1. Build a trajectory index: group gps by (empresaid, unidadid, direction)
@@ -174,6 +192,8 @@ def compute_headways_c2(
         gps: post-projection, post-direction frame (full trajectory for crossing
              lookup). Should be filtered to the relevant empresa and day range.
         min_buses: drop snapshot groups with fewer buses (INV-4).
+        max_lookback_minutes: crossings older than this many minutes before T are
+            emitted as NULL (same as no-crossing). Default from ProductiveParams.
 
     Returns:
         pl.DataFrame matching R7 schema:
@@ -192,6 +212,9 @@ def compute_headways_c2(
     pairs = pairs.filter(pl.col("n_buses") >= min_buses)
     if pairs.is_empty():
         return pairs.with_columns(pl.lit(None, dtype=pl.Float64).alias("delta_t_min"))
+
+    # Convert minutes → nanoseconds ONCE (kernel works in nanoseconds throughout).
+    max_lookback_ns = float(max_lookback_minutes) * 60.0 * 1e9
 
     # --- Build trajectory index ---
     # Group gps by (empresaid, unidadid, direction) → sorted (t_arr, s_arr).
@@ -241,7 +264,10 @@ def compute_headways_c2(
         s_front_group = s_front_all[row_indices]
 
         for j, (T_ns, sf) in enumerate(zip(T_ns_group, s_front_group)):
-            t_cross = _find_last_crossing_ns(t_arr, s_arr, int(T_ns), float(sf))
+            t_cross = _find_last_crossing_ns(
+                t_arr, s_arr, int(T_ns), float(sf),
+                max_lookback_ns=max_lookback_ns,
+            )
             if t_cross is not None:
                 dt_ns = float(T_ns) - t_cross
                 delta_t_min[row_indices[j]] = dt_ns / 1e9 / 60.0

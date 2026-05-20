@@ -275,3 +275,60 @@ class TestNullEmission:
 
         ranks = sorted(result["pair_rank"].to_list())
         assert ranks == [1, 2], f"pair_rank must be dense [1, 2]; got {ranks}"
+
+
+class TestLookbackBound:
+    """Bound: stale historical crossings → NULL emission (proposal c2-lookback-fix)."""
+
+    def test_headways_lookback_bound(self):
+        """Failure mode: a bus_back whose only historical crossing of s_front is
+        older than max_interpolation_lookback_minutes (default 30 min) is emitted
+        with delta_t_min IS NULL. Without the bound, the kernel would emit
+        delta_t_min ≈ 45 min (absurd for an urban headway).
+
+        Scenario: at T=T0, bus_front is at s=500, bus_back is at s=400. bus_back
+        crossed s=500 at T0 - 45 min (older than the 30-min default lookback) and
+        has NOT crossed s=500 since. Expected: pair emitted with delta_t_min IS NULL
+        (not 45.0).
+        """
+        T = T0
+        t_cross_stale = T0 - timedelta(minutes=45)
+
+        # bus_back trajectory: crosses s=500 at T-45min, then drifts backwards
+        # (does not approach s_front again). Simulates a parallel-route bus that
+        # was last near s_front 45 min ago.
+        # Pings: 6 points spanning T-50min .. T-1min, s monotonically decreasing
+        # after the early crossing.
+        times_back = [
+            T0 - timedelta(minutes=50),  # s = 600
+            T0 - timedelta(minutes=46),  # s = 520
+            t_cross_stale,               # s = 500 (the crossing, 45 min before T)
+            T0 - timedelta(minutes=44),  # s = 480
+            T0 - timedelta(minutes=30),  # s = 450
+            T0 - timedelta(minutes=1),   # s = 400 (where it ends up at T)
+        ]
+        s_back_arr = [600.0, 520.0, 500.0, 480.0, 450.0, 400.0]
+
+        gps_rows = _make_gps_pings(2, 202, times_back, s_back_arr, direction=1)
+
+        snap_rows = [
+            _make_snapshot_row(2, 201, T, s=500.0),   # bus_front
+            _make_snapshot_row(2, 202, T, s=400.0),   # bus_back
+        ]
+        snaps = _build_snapshots_df(snap_rows)
+        gps = _build_gps_df(gps_rows)
+
+        # Default params (max_interpolation_lookback_minutes = 30.0).
+        result = compute_headways_c2(snaps, gps, min_buses=2)
+
+        assert len(result) == 1, (
+            f"Pair must be EMITTED (not dropped); got {len(result)} rows"
+        )
+        row = result.row(0, named=True)
+        # Critical assertion: stale crossing → NULL, not ~45 min.
+        assert row["delta_t_min"] is None, (
+            f"Expected NULL for stale historical crossing (>30 min old); "
+            f"got {row['delta_t_min']} min — bound is not enforced"
+        )
+        # INV-3: pair_rank still dense (1 for the only pair).
+        assert row["pair_rank"] == 1, f"pair_rank must be 1; got {row['pair_rank']}"

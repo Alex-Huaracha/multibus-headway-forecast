@@ -56,6 +56,12 @@ class ProductiveParams:
     lateral_offset_threshold_m: float = 300.0
     direction_smooth_win: int = 5
     min_buses_per_snapshot: int = 2
+    # Max staleness in minutes for a historical crossing to count as a real
+    # trailing pair. Older crossings → emit delta_t_min = NULL. Bound exists
+    # because multi-filar corridors (e.g. E2 in Arequipa) project unrelated
+    # buses to the same s; without this bound, np.searchsorted finds ancient
+    # crossings and reports them as valid headways. See decisiones-headway-fase2 §3.
+    max_interpolation_lookback_minutes: float = 30.0
 
 
 PRODUCTIVE_PARAMS = ProductiveParams()

@@ -45,6 +45,9 @@ class TestProductiveParamsFreeze:
     def test_min_buses_per_snapshot(self):
         assert PRODUCTIVE_PARAMS.min_buses_per_snapshot == 2
 
+    def test_max_interpolation_lookback_minutes(self):
+        assert PRODUCTIVE_PARAMS.max_interpolation_lookback_minutes == 30.0
+
     def test_frozen(self):
         """ProductiveParams must raise on attempted mutation."""
         import dataclasses

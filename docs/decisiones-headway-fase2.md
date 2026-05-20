@@ -50,7 +50,18 @@ Estos parámetros se fijan como contrato para `src/preprocessing/` de Fase 2. Cu
 | `CENTERLINE_N_BINS` | **50** | Vertices del polyline. Probado estable contra 10 y 40 (KL < 0.01). |
 | `LATERAL_OFFSET_THRESHOLD_M` | **300.0** | Pings proyectados a más de 300 m de la centerline se consideran "off-route" y se descartan. En el probe drop el 43.7% — agresivo pero limpia los pings de calles paralelas/depósitos. Revisable a 500 m en Fase 2 si baja demasiado el conteo. |
 | `DIRECTION_SMOOTH_WIN` | **5** | Ventana móvil para `sign(ds/dt)`. Suaviza ruido sin perder transiciones reales ida↔vuelta. |
+| `MAX_INTERPOLATION_LOOKBACK_MINUTES` | **30.0 min** | Límite temporal en la búsqueda de cruce histórico (C.2). Cruces más antiguos que 30 min → emitir `delta_t_min = NULL` en lugar de un valor absurdo. Headways típicos en Arequipa urbana: 5–15 min; 30 min = margen 2–3×. Corrige el 58.4% de ruido en E2 dir=1 (obs #27 — max observado: ~112 días). Ambas ramas de emisión de `_find_last_crossing_ns` (cruce exacto y cruce interpolado por cambio de signo) aplican el límite. Ver `fix(phase-2): bound C.2 trailing crossing with lookback window`. |
 | Sub-opción de C | **C.2 (trailing crossing)** | Más precisa que C.1 (forward projection); C.1 quedó con MI~0 en v1 (la GNN no aprende nada) y MI=0.23-0.33 en v3 (sigue inferior a C.2). |
+
+### 3.1 Parámetros de `ProductiveParams` añadidos en c2-lookback-fix
+
+**`max_interpolation_lookback_minutes = 30.0`** (campo frozen en `src/preprocessing/config.py`).
+
+**Problema raíz**: Los corredores multi-filar de Arequipa (en particular E2) comparten un eje lineal `s` común. Cuando dos líneas independientes circulan por el mismo tramo, `np.searchsorted` localiza el cruce histórico más reciente del bus de atrás sobre `s_front`, sin importar cuán antiguo sea. En un corredor multi-filar, ese cruce puede corresponder a un viaje de hace horas o días → `delta_t_min` absurdo (hasta 161,666 min observados en la validación visual de notebook 04b).
+
+**Solución**: introducir un techo temporal de 30 min. Si `T − t_cross > 30 min`, el kernel retorna `None` (mismo centinela que "no hay cruce") y la fila se emite con `delta_t_min = NULL`. La conversión minutos → nanosegundos se hace UNA SOLA VEZ en `compute_headways_c2` antes del bucle de pares; dentro del kernel todo opera en nanosegundos int64/float64.
+
+**¿Por qué 30 min?**: El histograma de `delta_t_min` para E59 (corredor sin multi-filar) muestra una distribución exponencial truncada con percentil 95 en ~18 min. Un techo de 30 min = 2–3× el headway típico peak, preserva virtualmente todos los pares válidos de E59 (cambio esperado < 1% en conteo de pares no-null) y elimina los valores patológicos de E2 dir=1. La validación cuantitativa definitiva (AC-D4 y AC-D5 de la spec) se realiza en Kaggle v3 post-merge.
 
 ## 4. Caveats registrados (deuda técnica conocida)
 
