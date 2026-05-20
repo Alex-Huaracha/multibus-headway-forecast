@@ -119,24 +119,26 @@ def _build_e59() -> pl.DataFrame:
     lon_start_59 = -71.65
     lon_end_59 = -71.50
 
-    # Bus 501: straight ida, no anomalies
-    pings_501 = _straight_pings(59, 501, 90, lon_start_59, lon_end_59, T0, rng=rng)
+    # Bus 501: straight ida, no anomalies (180 pings = 60 min at 20s interval)
+    pings_501 = _straight_pings(59, 501, 180, lon_start_59, lon_end_59, T0, rng=rng)
 
     # Bus 502: ida, then stops near lon_end_59 for 6 min (18 pings @ 20s) with speed ~0
     t_502 = T0 + timedelta(minutes=3)
-    ida_502 = _straight_pings(59, 502, 80, lon_start_59, lon_end_59, t_502, rng=rng)
+    ida_502 = _straight_pings(59, 502, 160, lon_start_59, lon_end_59, t_502, rng=rng)
 
-    # Dwell pings: position near lon_end_59 - 0.001 (within ~90 m of terminus)
+    # Dwell pings: position within the terminal band of the route (near s_max but on-route).
+    # Use lon_end_59 - 0.0008 ≈ 85 m west of the route endpoint, staying on the centerline
+    # (lat=BASE_LAT, very small jitter so lateral_m << 300 m).
     dwell_start_time = ida_502[-1]["time"] + timedelta(seconds=PING_INTERVAL_S)
-    dwell_lon = lon_end_59 - 0.001   # ~90 m west of terminus = within TERMINAL_BAND_M
+    dwell_lon = lon_end_59 - 0.0008   # ~85 m west of terminus, within TERMINAL_BAND_M
     dwell_pings = []
     for i in range(18):  # 18 * 20 s = 360 s = 6 min
         dwell_pings.append({
             "empresaid": 59,
             "unidadid": 502,
             "time": dwell_start_time + timedelta(seconds=i * PING_INTERVAL_S),
-            "lat": BASE_LAT + rng.normal(0, 0.00002),  # nearly stationary
-            "lon": dwell_lon + rng.normal(0, 0.00001),
+            "lat": BASE_LAT + rng.normal(0, 0.000005),  # nearly stationary, on-route
+            "lon": dwell_lon + rng.normal(0, 0.000002),  # very small lon jitter
         })
 
     # Resume: bus continues forward a bit more after dwell
@@ -180,8 +182,8 @@ def generate() -> None:
 
     assert set(e59["empresaid"].unique().to_list()) == {59}
     assert "direccion" not in e59.columns, "E59 must NOT have a direccion column"
-    assert len(e59.filter(pl.col("unidadid") == 502)) >= 80 + 18, (
-        "Bus 502 must have at least 80 ida pings + 18 dwell pings"
+    assert len(e59.filter(pl.col("unidadid") == 502)) >= 160 + 18, (
+        "Bus 502 must have at least 160 ida pings + 18 dwell pings"
     )
 
     print("Assertions passed.")
