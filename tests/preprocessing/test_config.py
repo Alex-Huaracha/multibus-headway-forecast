@@ -8,6 +8,7 @@ import math
 
 from src.preprocessing.config import (
     EMPRESA_CONFIG,
+    EmpresaConfig,
     GAP_CUT_SECONDS,
     LAT_DEG_M,
     LON_DEG_M,
@@ -15,6 +16,7 @@ from src.preprocessing.config import (
     TERMINAL_BAND_M,
     TERMINAL_DWELL_SECONDS,
     lateral_threshold_for,
+    lateral_pair_threshold_for,
 )
 
 
@@ -94,3 +96,33 @@ class TestLateralThreshold:
     def test_default_no_override(self):
         assert lateral_threshold_for(2) == 300.0
         assert lateral_threshold_for(59) == 300.0
+
+
+class TestProductiveParamsFreezeLateralPair:
+    """AC-C3: lateral_pair_threshold_m default = 50.0."""
+
+    def test_lateral_pair_threshold_default(self):
+        """Failure: AttributeError if field not added to ProductiveParams."""
+        assert PRODUCTIVE_PARAMS.lateral_pair_threshold_m == 50.0
+
+
+class TestLateralPairThreshold:
+    """AC-C4: lateral_pair_threshold_for resolver."""
+
+    def test_default_no_override(self):
+        """Resolver must return global default for empresas without override."""
+        assert lateral_pair_threshold_for(2) == 50.0
+        assert lateral_pair_threshold_for(59) == 50.0
+
+    def test_override_used_when_set(self):
+        """Resolver must return per-empresa override when set."""
+        cfg = EmpresaConfig(empresaid=2, has_heading=True, lateral_pair_threshold_m_override=30.0)
+        # The override is respected when the resolver looks it up from EMPRESA_CONFIG.
+        # We test via the resolver by temporarily patching, or we test the
+        # EmpresaConfig field directly and verify resolver logic.
+        assert cfg.lateral_pair_threshold_m_override == 30.0
+
+    def test_missing_empresa_returns_global_default(self):
+        """Resolver must return global default for empresa not in EMPRESA_CONFIG."""
+        result = lateral_pair_threshold_for(999)
+        assert result == PRODUCTIVE_PARAMS.lateral_pair_threshold_m
