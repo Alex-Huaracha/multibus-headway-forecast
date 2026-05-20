@@ -48,17 +48,17 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 **Estado:** Completada (2026-05-20).
 
-- [ ] Reconstrucción del trazado del corredor (median path / centerline).
-- [ ] Proyección lineal: convertir (lat, lon) en distancia acumulada `s`.
-- [ ] Identificación de sentido ida/vuelta: método primario = derivada signada de `s`; el heading se usa solo como verificación cruzada en E2 y E4 (E58 y E59 no reportan `direccion`, ver `decisiones-limpieza-fase2.md` §3.1).
-- [ ] Segmentación de viajes (terminal a terminal).
-- [ ] Definición operativa de headway (espacial vs. temporal — decidir y documentar).
-- [ ] Cálculo de headways en grilla temporal regular.
-- [ ] Estrategia de cardinalidad variable (buses que entran/salen del corredor).
+- [x] Reconstrucción del trazado del corredor (median path / centerline).
+- [x] Proyección lineal: convertir (lat, lon) en distancia acumulada `s`.
+- [x] Identificación de sentido ida/vuelta: método primario = derivada signada de `s`; el heading se usa solo como verificación cruzada en E2 y E4 (E58 y E59 no reportan `direccion`, ver `decisiones-limpieza-fase2.md` §3.1).
+- [x] Segmentación de viajes (terminal a terminal).
+- [x] Definición operativa de headway (espacial vs. temporal — decidir y documentar).
+- [x] Cálculo de headways en grilla temporal regular.
+- [x] Estrategia de cardinalidad variable (buses que entran/salen del corredor).
 - [ ] Validación visual sobre muestras (lado a lado con GPS crudo).
-- [ ] Módulo `src/preprocessing/` reutilizable.
-- [ ] Notebook documentando decisiones por empresa.
-- [ ] Dataset intermedio `data/processed/headways_<empresa>.parquet`.
+- [x] Módulo `src/preprocessing/` reutilizable.
+- [x] Notebook documentando decisiones por empresa.
+- [x] Dataset intermedio `data/processed/headways_<empresa>.parquet`.
 
 **Artefacto:** Módulo `src/preprocessing/` + notebook `04_preprocessing` + datasets parquet por empresa.
 
