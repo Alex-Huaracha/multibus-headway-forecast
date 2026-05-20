@@ -426,6 +426,71 @@ class TestR7Schema:
         )
 
 
+    def test_lateral_columns_in_compute_headways_c2_output(self):
+        """AC-S1/AC-S2: compute_headways_c2 must forward lateral_m_front and
+        lateral_m_back as the last two columns of the returned DataFrame.
+
+        Failure mode (CRITICAL #1 from verify): the final .select in
+        compute_headways_c2 enumerates only 11 columns explicitly and drops the
+        two lateral columns emitted by compute_pairs.
+
+        Setup: two buses with distinct lateral_m values form a same-track pair.
+        bus_back has GPS history that crosses s_front 3 minutes before T0, so
+        delta_t_min is non-null (ensures the pair row is not trivially filtered).
+        """
+        T = T0
+        t_cross = T0 - timedelta(minutes=3)
+
+        # bus_back trajectory: crosses s_front at t_cross.
+        gps_rows = _make_gps_pings(
+            2, 202,
+            [T0 - timedelta(minutes=6), t_cross, T0 - timedelta(minutes=1)],
+            [80.0, 200.0, 150.0],  # crosses s=200 (s_front) at t_cross
+            direction=1,
+        )
+        gps = _build_gps_df(gps_rows)
+
+        snap_rows = [
+            _make_snapshot_row(2, 201, T, s=200.0, lateral_m=5.0),   # bus_front
+            _make_snapshot_row(2, 202, T, s=100.0, lateral_m=8.0),   # bus_back
+        ]
+        snaps = _build_snapshots_df(snap_rows)
+
+        result = compute_headways_c2(snaps, gps, min_buses=2)
+        assert len(result) == 1, f"Expected 1 pair row; got {len(result)}"
+
+        # AC-S1: lateral_m_front must be present.
+        assert "lateral_m_front" in result.columns, (
+            "lateral_m_front missing from compute_headways_c2 output (AC-S1)"
+        )
+        # AC-S2: lateral_m_back must be present.
+        assert "lateral_m_back" in result.columns, (
+            "lateral_m_back missing from compute_headways_c2 output (AC-S2)"
+        )
+        # Dtype must be Float64.
+        assert result.schema["lateral_m_front"] == pl.Float64, (
+            f"lateral_m_front dtype must be Float64; got {result.schema['lateral_m_front']}"
+        )
+        assert result.schema["lateral_m_back"] == pl.Float64, (
+            f"lateral_m_back dtype must be Float64; got {result.schema['lateral_m_back']}"
+        )
+        # Columns must be the last two.
+        assert result.columns[-2] == "lateral_m_front", (
+            f"lateral_m_front must be second-to-last column; got {result.columns}"
+        )
+        assert result.columns[-1] == "lateral_m_back", (
+            f"lateral_m_back must be last column; got {result.columns}"
+        )
+        # Values must match the snapshot lateral_m values (front=5.0, back=8.0).
+        row = result.row(0, named=True)
+        assert row["lateral_m_front"] == pytest.approx(5.0), (
+            f"lateral_m_front value must be 5.0; got {row['lateral_m_front']}"
+        )
+        assert row["lateral_m_back"] == pytest.approx(8.0), (
+            f"lateral_m_back value must be 8.0; got {row['lateral_m_back']}"
+        )
+
+
 class TestLookbackBound:
     """Bound: stale historical crossings → NULL emission (proposal c2-lookback-fix)."""
 
