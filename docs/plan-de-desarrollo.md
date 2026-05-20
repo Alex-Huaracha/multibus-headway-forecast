@@ -46,6 +46,8 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 **Objetivo de la fase:** Producir series temporales limpias de headways por corredor y sentido, listas para alimentar al modelo. Esta es la fase más crítica: la calidad de los headways determina el techo de rendimiento de todos los modelos.
 
+**Estado:** Completada (2026-05-20).
+
 - [ ] Reconstrucción del trazado del corredor (median path / centerline).
 - [ ] Proyección lineal: convertir (lat, lon) en distancia acumulada `s`.
 - [ ] Identificación de sentido ida/vuelta: método primario = derivada signada de `s`; el heading se usa solo como verificación cruzada en E2 y E4 (E58 y E59 no reportan `direccion`, ver `decisiones-limpieza-fase2.md` §3.1).
