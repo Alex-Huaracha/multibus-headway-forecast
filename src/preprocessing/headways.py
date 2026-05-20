@@ -28,7 +28,7 @@ from __future__ import annotations
 import numpy as np
 import polars as pl
 
-from .config import PRODUCTIVE_PARAMS
+from .config import PRODUCTIVE_PARAMS, lateral_pair_threshold_for
 
 
 def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
@@ -37,9 +37,15 @@ def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
     For each snapshot group sorted by s (ascending), bus at rank i is "front" and
     bus at rank i-1 is "back". Drops direction == 0 rows.
 
+    Lateral pair filter (R-LAT3): after pair formation, drops pairs where
+    |lateral_m_front − lateral_m_back| > lateral_pair_threshold_for(empresaid).
+    Rows where either lateral value is null are RETAINED (conservative).
+    Filter is applied only when the input snapshot frame contains a `lateral_m`
+    column. When the column is absent, all pairs are retained (backward-compatible).
+
     Args:
         snapshots: output of trips.build_snapshots with columns
-                   (empresaid, day, t, unidadid, s, speed_kmh, direction).
+                   (empresaid, day, t, unidadid, s, speed_kmh, direction[, lateral_m]).
 
     Returns:
         pl.DataFrame with columns:
@@ -48,17 +54,20 @@ def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
           bus_front (Int64), bus_back (Int64),
           s_front (Float64), s_back (Float64),
           speed_front_kmh (Float64), speed_back_kmh (Float64),
-          n_buses (Int32).
+          n_buses (Int32)[, lateral_m_front (Float64), lateral_m_back (Float64)].
+          The lateral columns are present only when the input has lateral_m.
 
     Failure mode: if shift(1) is applied before sort, pair assignment is wrong;
     test_headways.py::test_pair_structure_count catches this.
     """
+    has_lateral = "lateral_m" in snapshots.columns
+
     s = snapshots.filter(pl.col("direction") != 0)
     s = s.sort(["empresaid", "day", "t", "direction", "s"])
 
     group_cols = ["empresaid", "day", "t", "direction"]
 
-    s = s.with_columns([
+    shift_exprs = [
         pl.col("s").shift(1).over(group_cols).alias("s_back"),
         pl.col("unidadid").shift(1).over(group_cols).alias("bus_back"),
         pl.col("speed_kmh").shift(1).over(group_cols).alias("speed_back_kmh"),
@@ -66,12 +75,50 @@ def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
         # cum_count starts at 1 for the first row; after dropping the first row
         # (the "back" reference is null) we get ranks 2..N. Subtract 1 to get 1..N-1.
         (pl.col("s").cum_count().over(group_cols).cast(pl.Int32) - 1).alias("pair_rank"),
-    ])
+    ]
+    if has_lateral:
+        # Shift lateral_m to get the back-bus value after pairing.
+        shift_exprs.append(
+            pl.col("lateral_m").shift(1).over(group_cols).alias("lateral_m_back_raw")
+        )
+        # The front bus keeps its own lateral_m (renamed after select).
+        shift_exprs.append(
+            pl.col("lateral_m").alias("lateral_m_front_raw")
+        )
+
+    s = s.with_columns(shift_exprs)
 
     # Drop the first bus in each group (shift produces null for it).
     s = s.filter(pl.col("s_back").is_not_null())
 
-    return s.select([
+    if has_lateral:
+        # Step 6: filter cross-street pairs.
+        # Build per-empresa threshold mapping via Python-side lookup (task note:
+        # fallback from vectorised when/then if empresa list varies).
+        empresa_ids = s["empresaid"].unique().to_list()
+        threshold_map = {int(e): lateral_pair_threshold_for(int(e)) for e in empresa_ids}
+
+        # Build a Polars expression: pl.col("empresaid").replace(mapping, default=global)
+        # Conservative rule: retain if either lateral value is null.
+        # retain when: lateral_m_front_raw IS NULL
+        #           OR lateral_m_back_raw IS NULL
+        #           OR abs(front - back) <= threshold
+        global_threshold = PRODUCTIVE_PARAMS.lateral_pair_threshold_m
+        keep_expr = (
+            pl.col("lateral_m_front_raw").is_null()
+            | pl.col("lateral_m_back_raw").is_null()
+            | (
+                (pl.col("lateral_m_front_raw") - pl.col("lateral_m_back_raw")).abs()
+                <= pl.col("empresaid").replace_strict(
+                    threshold_map,
+                    default=global_threshold,
+                    return_dtype=pl.Float64,
+                )
+            )
+        )
+        s = s.filter(keep_expr)
+
+    select_exprs = [
         "empresaid",
         "day",
         "t",
@@ -84,7 +131,14 @@ def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
         pl.col("speed_kmh").alias("speed_front_kmh"),
         pl.col("speed_back_kmh").cast(pl.Float64),
         "n_buses",
-    ])
+    ]
+    if has_lateral:
+        select_exprs += [
+            pl.col("lateral_m_front_raw").cast(pl.Float64).alias("lateral_m_front"),
+            pl.col("lateral_m_back_raw").cast(pl.Float64).alias("lateral_m_back"),
+        ]
+
+    return s.select(select_exprs)
 
 
 def _find_last_crossing_ns(
