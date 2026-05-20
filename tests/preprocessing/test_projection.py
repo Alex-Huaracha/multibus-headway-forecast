@@ -119,28 +119,37 @@ class TestProjectOffCenterline:
 class TestArcLengthMonotonicity:
     """Projection monotonicity for a straight on-route bus (indirect T1.3/T1.4 guard)."""
 
-    def test_arc_length_monotonic_for_bus_202(
+    def test_arc_length_monotonic_for_bus_201_ida(
         self, gps_e2_with_speed: pl.DataFrame, centerline_e2: np.ndarray
     ):
         """Failure mode: regression of chunked projection; if the chunk boundary
         resets s or produces a discontinuity, the s series for a bus traveling
         strictly west-to-east along the route will not be monotonic.
 
-        Bus 202 travels lon -71.55 → -71.50 (pure ida). After projection, s
-        should be monotonically increasing with at most 1 m of floating-point
-        noise per step.
+        Bus 201 travels lon -71.55 → -71.50 on its ida trip (first trip, before
+        the 31-min gap). The s values should be monotonically increasing with
+        at most 1 m of floating-point noise per step.
         """
+        from datetime import datetime
         projected = project_to_centerline(gps_e2_with_speed, centerline_e2, empresaid=2)
-        bus_202 = projected.filter(pl.col("unidadid") == 202).sort("time")
+        bus_201 = projected.filter(pl.col("unidadid") == 201).sort("time")
 
-        if bus_202.is_empty():
-            pytest.skip("Bus 202 was entirely filtered out as off-route (unexpected)")
+        if bus_201.is_empty():
+            pytest.skip("Bus 201 was entirely filtered out as off-route (unexpected)")
 
-        s_vals = bus_202["s"].to_numpy()
+        # Only look at the first ~30 min (ida trip) — before the 31-min gap.
+        # T0 = 07:00; ida ends around 07:27.
+        t_cutoff = datetime(2024, 1, 23, 7, 28, 0)
+        bus_201_ida = bus_201.filter(pl.col("time") <= t_cutoff)
+
+        if len(bus_201_ida) < 3:
+            pytest.skip("Not enough ida pings for bus 201")
+
+        s_vals = bus_201_ida["s"].to_numpy()
         diffs = np.diff(s_vals)
-        # Allow tiny negative noise (± 1 m) from floating-point and GPS jitter.
+        # Allow ± 1 m noise from GPS jitter and floating-point.
         assert diffs.min() >= -1.0, (
-            f"Bus 202 s series has a negative step of {diffs.min():.2f} m — "
+            f"Bus 201 s series has a negative step of {diffs.min():.2f} m — "
             "projection chunking bug or PCA sign flip"
         )
 

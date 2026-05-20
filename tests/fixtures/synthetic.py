@@ -88,9 +88,17 @@ def _build_e2() -> pl.DataFrame:
 
     pings_201 = ida_201 + vuelta_201
 
-    # --- Bus 202: same route as 201's ida, starting 5 min later ---
-    t_202 = T0 + timedelta(minutes=5)
-    pings_202 = _straight_pings(2, 202, 80, LON_START, LON_END, t_202, rng=rng)
+    # --- Bus 202: completes a full ida trip 30 min before bus 201 starts,
+    # then starts a second ida trip 5 min after bus 201. During bus 201's ida
+    # (the observation window), bus 201 is bus_front and bus 202 (on second trip)
+    # is bus_back. Bus 202's first-trip history provides C.2 crossings for all
+    # s values up to s_max.
+    # First trip: 80 pings ending at T0 - 5 min (finishes before bus 201 starts)
+    t_202_trip1 = T0 - timedelta(minutes=30)
+    pings_202_trip1 = _straight_pings(2, 202, 80, LON_START, LON_END, t_202_trip1, rng=rng)
+    # Short gap, then second trip starts 5 min after bus 201
+    t_202_trip2 = T0 + timedelta(minutes=5)
+    pings_202 = pings_202_trip1 + _straight_pings(2, 202, 80, LON_START, LON_END, t_202_trip2, rng=rng)
 
     # --- Bus 203: 10 pings off-route (lat=-16.45, ~5.5 km south of centerline) ---
     off_route_lat = -16.45   # lateral offset ≈ 5.5 km >> LATERAL_OFFSET_THRESHOLD_M=300 m
