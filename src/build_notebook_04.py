@@ -8,7 +8,7 @@ tests run against the modules directly so the notebook never diverges.
 Output: notebooks/04_preprocessing/04_preprocessing.ipynb
 Kaggle kernel: alexhuaracha/04-preprocessing
 """
-import re
+import ast
 from pathlib import Path
 
 import nbformat as nbf
@@ -20,13 +20,44 @@ OUT.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _strip_relative_imports(src: str) -> str:
-    """Remove 'from .xxx import ...' and 'from . import ...' lines.
+    """Remove all relative 'from .xxx import ...' statements from source.
 
-    Inside the notebook, all modules are in the same flat namespace so
-    relative imports would fail. This is the only transformation applied
-    to module source code before embedding.
+    Uses ast.get_source_segment to locate and remove the EXACT text for every
+    relative ImportFrom node (level > 0). This handles both single-line and
+    parenthesized multi-line import blocks without regex fragility.
+
+    Single-line:  from .config import X
+    Multi-line:   from .config import (
+                      X,
+                      Y,
+                  )
+
+    Inside the notebook, all modules are inlined into the same flat namespace
+    so relative imports would raise ImportError at Kaggle runtime. This is the
+    only transformation applied to module source code before embedding.
     """
-    return re.sub(r"^from \.[^\n]*\n", "", src, flags=re.MULTILINE)
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        # If the source itself is broken, return as-is so the compile test
+        # catches it with a clear error.
+        return src
+
+    # Collect source segments for all relative ImportFrom nodes.
+    segments_to_remove: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.level > 0:
+            segment = ast.get_source_segment(src, node)
+            if segment:
+                segments_to_remove.append(segment)
+
+    result = src
+    for segment in segments_to_remove:
+        # Remove the segment plus its trailing newline (if any).
+        result = result.replace(segment + "\n", "")
+        result = result.replace(segment, "")
+
+    return result
 
 
 nb = nbf.v4.new_notebook()

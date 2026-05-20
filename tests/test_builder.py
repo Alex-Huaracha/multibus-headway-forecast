@@ -147,3 +147,37 @@ class TestRelativeImportsStripped:
                 f"Code cell {i} contains relative import(s): {matches}\n"
                 f"Cell source (first 200 chars): {cell.source[:200]!r}"
             )
+
+
+class TestAllCellsCompile:
+    """Every code cell in the generated notebook must be syntactically valid Python.
+
+    This is the permanent guard for CRITICAL-1: _strip_relative_imports must
+    leave every code cell in a state that Python can compile without SyntaxError.
+    Catches multi-line import blocks where stripping only the opening line leaves
+    dangling names + closing paren as orphaned syntax.
+    """
+
+    def test_all_cells_compile(self, generated_notebook: nbformat.NotebookNode):
+        """Failure mode: _strip_relative_imports strips only the 'from .x import ('
+        line but leaves indented names and closing paren in the cell — Python raises
+        SyntaxError: unexpected indent on those lines.
+
+        Reads notebooks/04_preprocessing/04_preprocessing.ipynb, compiles every
+        code cell, and asserts no SyntaxError is raised.
+        """
+        errors: list[str] = []
+        for i, cell in enumerate(generated_notebook.cells):
+            if cell.cell_type != "code":
+                continue
+            source = "".join(cell.source) if isinstance(cell.source, list) else cell.source
+            try:
+                compile(source, f"<cell-{i}>", "exec")
+            except SyntaxError as exc:
+                errors.append(
+                    f"Cell {i} SyntaxError at line {exc.lineno}: {exc.msg}\n"
+                    f"  Source snippet: {source.splitlines()[max(0,(exc.lineno or 1)-1)]!r}"
+                )
+        assert not errors, (
+            f"{len(errors)} code cell(s) failed to compile:\n" + "\n".join(errors)
+        )
