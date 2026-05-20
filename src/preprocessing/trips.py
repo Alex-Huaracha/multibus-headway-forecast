@@ -204,6 +204,7 @@ def build_snapshots(
         gps = gps.with_columns(pl.col("time").dt.date().alias("day"))
 
     has_trip_id = "trip_id" in gps.columns
+    has_lateral_m = "lateral_m" in gps.columns
 
     for keys, sub_eday in gps.group_by(["empresaid", "day"], maintain_order=True):
         e, day = keys[0], keys[1]
@@ -263,6 +264,19 @@ def build_snapshots(
                 idx_trip = np.searchsorted(t_arr, tg, side="right") - 1
                 idx_trip = np.clip(idx_trip, 0, len(tid_arr) - 1)
                 row_data["trip_id"] = tid_arr[idx_trip]
+
+            if has_lateral_m:
+                # Linear interpolation of lateral_m alongside s/speed_kmh.
+                # lateral_m is a continuous geometric quantity (orthogonal distance
+                # to centerline) — same regularity class as s. np.interp handles
+                # null/NaN by propagating them; fill_null(0.0) is intentionally NOT
+                # used here because a null lateral_m carries meaning (ping without
+                # projection), and we want to propagate it faithfully.
+                lat_arr = sub_sorted["lateral_m"].fill_null(float("nan")).to_numpy().astype(np.float64)
+                lat_interp = np.interp(tg, t_arr, lat_arr)
+                # Convert NaN back to null via a float64 series.
+                lat_series = pl.Series("lateral_m", lat_interp, dtype=pl.Float64)
+                row_data["lateral_m"] = lat_interp
 
             snaps_per_eday.append(pl.DataFrame(row_data))
 
