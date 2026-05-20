@@ -1,0 +1,101 @@
+"""Configuration and frozen parameters for the Fase 2 preprocessing pipeline.
+
+All productive parameter values are locked to docs/decisiones-headway-fase2.md §3.
+Changing any value requires updating that document first (versioned decision),
+then updating the literal here. The freeze-assertion test in
+tests/preprocessing/test_config.py encodes this contract as executable checks.
+"""
+import math
+from dataclasses import dataclass
+from typing import Mapping
+
+# ---------------------------------------------------------------------------
+# Coordinate constants — local flat-Earth at Arequipa (-16.4°)
+# ---------------------------------------------------------------------------
+
+LAT_DEG_M: float = 111_000.0
+LON_DEG_M: float = 111_000.0 * math.cos(math.radians(-16.4))
+
+# ---------------------------------------------------------------------------
+# Quality thresholds (decisiones-limpieza-fase2 §2 rows 4-5)
+# ---------------------------------------------------------------------------
+
+MAX_PLAUSIBLE_SPEED_KMH: float = 80.0
+MAX_PLAUSIBLE_JUMP_M: float = 500.0
+
+# ---------------------------------------------------------------------------
+# Trip segmentation (decisión §3.3 of decisiones-limpieza-fase2)
+# ---------------------------------------------------------------------------
+
+GAP_CUT_SECONDS: int = 30 * 60         # 30-minute gap between consecutive pings
+TERMINAL_BAND_M: float = 200.0         # within X m of s_min / s_max → terminal candidate
+TERMINAL_DWELL_SECONDS: int = 5 * 60   # stopped > 5 min near a terminal → cut
+TERMINAL_MAX_SPEED_KMH: float = 5.0    # stopped threshold for terminal-dwell detection
+
+
+# ---------------------------------------------------------------------------
+# Frozen productive parameters
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class ProductiveParams:
+    """Frozen contract — every field mirrors docs/decisiones-headway-fase2.md §3.
+
+    Changing a value requires updating that document FIRST (versioned), then
+    this file. The freeze-assertion test in test_config.py turns this into
+    executable code.
+    """
+
+    grid_seconds: int = 60
+    min_speed_for_centerline_kmh: float = 10.0
+    centerline_latlon_quantile_lo: float = 0.005
+    centerline_latlon_quantile_hi: float = 0.995
+    centerline_n_bins: int = 50
+    centerline_trim_pct: float = 0.025
+    centerline_smooth_win: int = 5
+    lateral_offset_threshold_m: float = 300.0
+    direction_smooth_win: int = 5
+    min_buses_per_snapshot: int = 2
+
+
+PRODUCTIVE_PARAMS = ProductiveParams()
+
+
+# ---------------------------------------------------------------------------
+# Per-empresa configuration
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class EmpresaConfig:
+    """Per-empresa settings.
+
+    has_heading: E2/E4 report a `direccion` field usable as cross-check;
+                 E58/E59 do not.
+    centerline_sample_cap: maximum pings used to build the centerline.
+    lateral_offset_threshold_m_override: when set, overrides
+        PRODUCTIVE_PARAMS.lateral_offset_threshold_m for this empresa.
+        Used for Caveat 3 monitoring (see decisiones-headway-fase2 §4).
+    """
+
+    empresaid: int
+    has_heading: bool
+    centerline_sample_cap: int = 50_000
+    lateral_offset_threshold_m_override: float | None = None
+
+
+EMPRESA_CONFIG: Mapping[int, EmpresaConfig] = {
+    2:  EmpresaConfig(empresaid=2,  has_heading=True),
+    59: EmpresaConfig(empresaid=59, has_heading=False),
+}
+
+
+def lateral_threshold_for(empresaid: int) -> float:
+    """Return the effective lateral offset threshold for a given empresa.
+
+    Checks EmpresaConfig.lateral_offset_threshold_m_override first; falls
+    back to PRODUCTIVE_PARAMS.lateral_offset_threshold_m (Caveat 3 hook).
+    """
+    cfg = EMPRESA_CONFIG[empresaid]
+    if cfg.lateral_offset_threshold_m_override is not None:
+        return cfg.lateral_offset_threshold_m_override
+    return PRODUCTIVE_PARAMS.lateral_offset_threshold_m
