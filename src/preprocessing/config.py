@@ -62,6 +62,12 @@ class ProductiveParams:
     # buses to the same s; without this bound, np.searchsorted finds ancient
     # crossings and reports them as valid headways. See decisiones-headway-fase2 §3.
     max_interpolation_lookback_minutes: float = 30.0
+    # Lateral distance threshold (meters) between bus_front and bus_back to
+    # consider them on the same track. Pairs with |lateral_m_front -
+    # lateral_m_back| > threshold are filtered out as cross-street pairs.
+    # Per-empresa override available via EmpresaConfig.lateral_pair_threshold_m_override.
+    # See decisiones-headway-fase2 §3 (multi-filar-disambiguation).
+    lateral_pair_threshold_m: float = 50.0
 
 
 PRODUCTIVE_PARAMS = ProductiveParams()
@@ -87,6 +93,10 @@ class EmpresaConfig:
     has_heading: bool
     centerline_sample_cap: int = 50_000
     lateral_offset_threshold_m_override: float | None = None
+    # Per-empresa override for the lateral pair filter threshold (meters).
+    # When set, overrides PRODUCTIVE_PARAMS.lateral_pair_threshold_m for this
+    # empresa. Used after Kaggle calibration of the |lateral_delta| histogram.
+    lateral_pair_threshold_m_override: float | None = None
 
 
 EMPRESA_CONFIG: Mapping[int, EmpresaConfig] = {
@@ -105,3 +115,19 @@ def lateral_threshold_for(empresaid: int) -> float:
     if cfg.lateral_offset_threshold_m_override is not None:
         return cfg.lateral_offset_threshold_m_override
     return PRODUCTIVE_PARAMS.lateral_offset_threshold_m
+
+
+def lateral_pair_threshold_for(empresaid: int) -> float:
+    """Return the effective lateral pair filter threshold for a given empresa.
+
+    Checks EmpresaConfig.lateral_pair_threshold_m_override first; falls back
+    to PRODUCTIVE_PARAMS.lateral_pair_threshold_m. Returns the global default
+    for empresas not in EMPRESA_CONFIG (graceful missing-key handling).
+
+    Used by compute_pairs to decide which (front, back) pairs are cross-street
+    contamination and should be filtered out.
+    """
+    cfg = EMPRESA_CONFIG.get(empresaid)
+    if cfg is not None and cfg.lateral_pair_threshold_m_override is not None:
+        return cfg.lateral_pair_threshold_m_override
+    return PRODUCTIVE_PARAMS.lateral_pair_threshold_m

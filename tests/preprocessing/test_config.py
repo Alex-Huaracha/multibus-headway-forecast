@@ -116,11 +116,22 @@ class TestLateralPairThreshold:
 
     def test_override_used_when_set(self):
         """Resolver must return per-empresa override when set."""
-        cfg = EmpresaConfig(empresaid=2, has_heading=True, lateral_pair_threshold_m_override=30.0)
-        # The override is respected when the resolver looks it up from EMPRESA_CONFIG.
-        # We test via the resolver by temporarily patching, or we test the
-        # EmpresaConfig field directly and verify resolver logic.
-        assert cfg.lateral_pair_threshold_m_override == 30.0
+        import src.preprocessing.config as config_module
+        original_config = config_module.EMPRESA_CONFIG
+        try:
+            # Temporarily override EMPRESA_CONFIG to include an override for empresa 2.
+            config_module.EMPRESA_CONFIG = {
+                2: EmpresaConfig(
+                    empresaid=2,
+                    has_heading=True,
+                    lateral_pair_threshold_m_override=30.0,
+                ),
+                59: EmpresaConfig(empresaid=59, has_heading=False),
+            }
+            result = lateral_pair_threshold_for(2)
+            assert result == 30.0, f"Expected 30.0 with override; got {result}"
+        finally:
+            config_module.EMPRESA_CONFIG = original_config
 
     def test_missing_empresa_returns_global_default(self):
         """Resolver must return global default for empresa not in EMPRESA_CONFIG."""
