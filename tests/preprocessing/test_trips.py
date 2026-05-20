@@ -219,6 +219,97 @@ class TestTerminalCut:
         )
 
 
+class TestSnapshotLateral:
+    """AC-C1, AC-C2: lateral_m propagation in build_snapshots."""
+
+    def test_lateral_m_propagated_linear(self):
+        """AC-C1: lateral_m must be linearly interpolated to snapshot grid.
+
+        Failure mode: if build_snapshots ignores lateral_m, the snapshot will
+        not have the column or the value will be wrong.
+
+        Build GPS with lateral_m linearly varying 0→100 m over 2 min.
+        Grid at 60 s; the midpoint snapshot (1 min into the window) must
+        have lateral_m interpolated to ~50 m (within 1 m of expected).
+        """
+        t0 = datetime(2024, 1, 23, 7, 0, 0)
+        # 7 pings at 20s intervals spanning 2 min (0..120 s)
+        n = 7
+        times = [t0 + timedelta(seconds=i * 20) for i in range(n)]
+        s_values = [float(i * 50) for i in range(n)]   # s: 0..300 m
+        lat_values = [float(i * 100 / (n - 1)) for i in range(n)]  # 0..100 m
+
+        gps = pl.DataFrame({
+            "empresaid": [2] * n,
+            "unidadid": [201] * n,
+            "time": times,
+            "s": s_values,
+            "speed_kmh": [30.0] * n,
+            "direction": [1] * n,
+            "lateral_m": lat_values,
+        }).with_columns([
+            pl.col("time").dt.date().alias("day"),
+            pl.col("time").shift(1).over(["empresaid", "unidadid"]).alias("time_prev"),
+        ]).with_columns([
+            (pl.col("time") - pl.col("time_prev")).dt.total_seconds().alias("dt_s"),
+        ]).drop("time_prev")
+
+        snaps = build_snapshots(gps, grid_seconds=60)
+        assert not snaps.is_empty(), "build_snapshots returned empty frame"
+        assert "lateral_m" in snaps.columns, (
+            "lateral_m column missing from build_snapshots output (AC-C1 violation)"
+        )
+
+        # Snapshot at 1 min from start (t0 + 60s) should have lateral_m ≈ 50 m.
+        # t0 is at 07:00:00 (already minute-aligned), so grid at 07:00:00 and 07:01:00.
+        # 07:01:00 is 60 s into the window; expected lateral_m = 100 * (60/120) = 50.0
+        t_target = (t0 + timedelta(seconds=60)).replace(second=0)
+        snap_at_1min = snaps.filter(
+            pl.col("t").dt.hour() == t_target.hour,
+            pl.col("t").dt.minute() == t_target.minute,
+        )
+        assert snap_at_1min.height > 0, f"No snapshot at {t_target}"
+        lat_at_1min = snap_at_1min["lateral_m"][0]
+        assert abs(lat_at_1min - 50.0) < 1.0, (
+            f"Expected lateral_m ≈ 50.0 at 1 min; got {lat_at_1min:.3f} (AC-C1)"
+        )
+
+    def test_lateral_m_absent_when_input_lacks_column(self):
+        """AC-C2: build_snapshots must omit lateral_m when input GPS has no such column.
+
+        Failure mode: if build_snapshots always emits lateral_m (e.g. with nulls),
+        the output schema changes for GPS data that predates the lateral_m field.
+        """
+        t0 = datetime(2024, 1, 23, 7, 0, 0)
+        n = 7
+        times = [t0 + timedelta(seconds=i * 20) for i in range(n)]
+        s_values = [float(i * 50) for i in range(n)]
+
+        # GPS WITHOUT lateral_m column
+        gps = pl.DataFrame({
+            "empresaid": [2] * n,
+            "unidadid": [201] * n,
+            "time": times,
+            "s": s_values,
+            "speed_kmh": [30.0] * n,
+            "direction": [1] * n,
+        }).with_columns([
+            pl.col("time").dt.date().alias("day"),
+            pl.col("time").shift(1).over(["empresaid", "unidadid"]).alias("time_prev"),
+        ]).with_columns([
+            (pl.col("time") - pl.col("time_prev")).dt.total_seconds().alias("dt_s"),
+        ]).drop("time_prev")
+
+        snaps = build_snapshots(gps, grid_seconds=60)
+        assert not snaps.is_empty(), "build_snapshots returned empty frame"
+        assert "lateral_m" not in snaps.columns, (
+            "lateral_m column must be ABSENT when input GPS lacks it (AC-C2 violation)"
+        )
+        # All expected columns must still be present.
+        for col in ["empresaid", "unidadid", "t", "s", "speed_kmh", "direction"]:
+            assert col in snaps.columns, f"Column {col!r} missing from snapshot output"
+
+
 class TestSnapshotGridAlignment:
     """build_snapshots must produce minute-aligned timestamps (INV-6, clarification #17 rule 1)."""
 
