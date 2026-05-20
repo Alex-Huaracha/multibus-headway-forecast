@@ -5,6 +5,7 @@ Covers:
   T1.8 sub-scenario — NULL emission: when bus_back has zero history, row is
       emitted with delta_t_min IS NULL (NOT dropped). pair_rank remains dense.
   Additional: pair count = N-1 for N buses per snapshot group.
+  AC-C5..C9: lateral pair filter and R7 schema extension.
 """
 from __future__ import annotations
 from datetime import datetime, timedelta
@@ -27,10 +28,11 @@ def _make_snapshot_row(
     speed_kmh: float = 20.0,
     direction: int = 1,
     day=None,
+    lateral_m: float | None = None,
 ) -> dict:
     if day is None:
         day = t.date()
-    return {
+    row: dict = {
         "empresaid": empresaid,
         "unidadid": unidadid,
         "t": t,
@@ -39,6 +41,9 @@ def _make_snapshot_row(
         "direction": direction,
         "day": day,
     }
+    if lateral_m is not None:
+        row["lateral_m"] = lateral_m
+    return row
 
 
 def _make_gps_pings(
@@ -65,7 +70,7 @@ def _make_gps_pings(
 
 
 def _build_snapshots_df(rows: list[dict]) -> pl.DataFrame:
-    return pl.DataFrame(rows).with_columns([
+    df = pl.DataFrame(rows).with_columns([
         pl.col("empresaid").cast(pl.Int64),
         pl.col("unidadid").cast(pl.Int64),
         pl.col("t").cast(pl.Datetime("us")),
@@ -73,6 +78,9 @@ def _build_snapshots_df(rows: list[dict]) -> pl.DataFrame:
         pl.col("speed_kmh").cast(pl.Float64),
         pl.col("direction").cast(pl.Int8),
     ])
+    if "lateral_m" in df.columns:
+        df = df.with_columns(pl.col("lateral_m").cast(pl.Float64))
+    return df
 
 
 def _build_gps_df(rows: list[dict]) -> pl.DataFrame:
@@ -275,6 +283,147 @@ class TestNullEmission:
 
         ranks = sorted(result["pair_rank"].to_list())
         assert ranks == [1, 2], f"pair_rank must be dense [1, 2]; got {ranks}"
+
+
+class TestPairLateralFilter:
+    """AC-C5, AC-C6, AC-C7: lateral pair filter in compute_pairs."""
+
+    def test_lateral_filter_drops_cross_track(self):
+        """AC-C5: two buses at same s with |lateral_delta|=120 m → no pair (default 50 m threshold).
+
+        Failure mode: if compute_pairs does not filter by lateral_m, the cross-street
+        pair is emitted when it should be suppressed.
+        """
+        rows = [
+            _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=10.0),
+            _make_snapshot_row(2, 202, T0, s=200.0, lateral_m=130.0),  # delta = 120 m
+        ]
+        snaps = _build_snapshots_df(rows)
+        pairs = compute_pairs(snaps)
+        assert len(pairs) == 0, (
+            f"Expected 0 pairs (cross-street delta=120 m > threshold 50 m); got {len(pairs)}"
+        )
+
+    def test_lateral_filter_keeps_same_track(self):
+        """AC-C5 (retain case): |lateral_delta|=20 m at default 50 m threshold → pair retained."""
+        rows = [
+            _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=10.0),
+            _make_snapshot_row(2, 202, T0, s=200.0, lateral_m=30.0),  # delta = 20 m
+        ]
+        snaps = _build_snapshots_df(rows)
+        pairs = compute_pairs(snaps)
+        assert len(pairs) == 1, (
+            f"Expected 1 pair (same-track delta=20 m <= threshold 50 m); got {len(pairs)}"
+        )
+
+    def test_lateral_filter_uses_empresa_override(self):
+        """AC-C4 integration + AC-C5: empresa override = 10 m drops 20 m delta pair.
+
+        Uses monkeypatching on EMPRESA_CONFIG to set override for empresa 2.
+        """
+        import src.preprocessing.config as config_module
+        from src.preprocessing.config import EmpresaConfig
+        original_config = config_module.EMPRESA_CONFIG
+        try:
+            config_module.EMPRESA_CONFIG = {
+                2: EmpresaConfig(
+                    empresaid=2,
+                    has_heading=True,
+                    lateral_pair_threshold_m_override=10.0,
+                ),
+                59: EmpresaConfig(empresaid=59, has_heading=False),
+            }
+            rows = [
+                _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=10.0),
+                _make_snapshot_row(2, 202, T0, s=200.0, lateral_m=30.0),  # delta = 20 m
+            ]
+            snaps = _build_snapshots_df(rows)
+            pairs = compute_pairs(snaps)
+            assert len(pairs) == 0, (
+                f"Expected 0 pairs (delta=20 m > empresa override 10 m); got {len(pairs)}"
+            )
+        finally:
+            config_module.EMPRESA_CONFIG = original_config
+
+    def test_lateral_filter_boundary_retained(self):
+        """AC-C7: |delta| == 50.0 exactly at threshold 50.0 → pair retained (inclusive boundary).
+
+        Consistent with R-LB1 boundary semantics (>= for retain, > for drop).
+        """
+        rows = [
+            _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=0.0),
+            _make_snapshot_row(2, 202, T0, s=200.0, lateral_m=50.0),  # delta = 50.0 exactly
+        ]
+        snaps = _build_snapshots_df(rows)
+        pairs = compute_pairs(snaps)
+        assert len(pairs) == 1, (
+            f"Expected 1 pair (boundary |delta|=50.0 == threshold 50.0 → retained); got {len(pairs)}"
+        )
+
+    def test_lateral_filter_retains_null_lateral(self):
+        """AC-C6: when lateral_m is null for a bus, the pair is retained conservatively."""
+        rows = [
+            {"empresaid": 2, "unidadid": 201, "t": T0, "s": 100.0,
+             "speed_kmh": 20.0, "direction": 1, "day": T0.date(), "lateral_m": None},
+            {"empresaid": 2, "unidadid": 202, "t": T0, "s": 200.0,
+             "speed_kmh": 20.0, "direction": 1, "day": T0.date(), "lateral_m": 200.0},
+        ]
+        snaps = pl.DataFrame(rows).with_columns([
+            pl.col("empresaid").cast(pl.Int64),
+            pl.col("unidadid").cast(pl.Int64),
+            pl.col("t").cast(pl.Datetime("us")),
+            pl.col("s").cast(pl.Float64),
+            pl.col("speed_kmh").cast(pl.Float64),
+            pl.col("direction").cast(pl.Int8),
+            pl.col("lateral_m").cast(pl.Float64),
+        ])
+        pairs = compute_pairs(snaps)
+        assert len(pairs) == 1, (
+            f"Expected 1 pair (null lateral_m → conservative retain); got {len(pairs)}"
+        )
+
+
+class TestR7Schema:
+    """AC-C8, AC-C9: R7 schema extension with lateral_m_front, lateral_m_back."""
+
+    def test_lateral_columns_emitted(self):
+        """AC-C8: compute_pairs output must contain lateral_m_front and lateral_m_back (Float64)."""
+        rows = [
+            _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=10.0),
+            _make_snapshot_row(2, 202, T0, s=200.0, lateral_m=20.0),
+        ]
+        snaps = _build_snapshots_df(rows)
+        pairs = compute_pairs(snaps)
+        assert "lateral_m_front" in pairs.columns, (
+            "lateral_m_front column missing from compute_pairs output (AC-C8)"
+        )
+        assert "lateral_m_back" in pairs.columns, (
+            "lateral_m_back column missing from compute_pairs output (AC-C8)"
+        )
+        assert pairs.schema["lateral_m_front"] == pl.Float64, (
+            f"lateral_m_front must be Float64; got {pairs.schema['lateral_m_front']}"
+        )
+        assert pairs.schema["lateral_m_back"] == pl.Float64, (
+            f"lateral_m_back must be Float64; got {pairs.schema['lateral_m_back']}"
+        )
+
+    def test_n_minus_one_pairs_unchanged_when_all_same_track(self):
+        """AC-C9 regression guard: 3 same-track buses → exactly 2 pairs (N-1).
+
+        Verifies the lateral filter does not accidentally drop valid same-track pairs.
+        All buses within 5 m lateral → well within 50 m threshold.
+        """
+        rows = [
+            _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=5.0),
+            _make_snapshot_row(2, 202, T0, s=200.0, lateral_m=8.0),
+            _make_snapshot_row(2, 203, T0, s=300.0, lateral_m=10.0),
+        ]
+        snaps = _build_snapshots_df(rows)
+        pairs = compute_pairs(snaps)
+        assert len(pairs) == 2, (
+            f"Expected 2 pairs for 3 same-track buses; got {len(pairs)} "
+            "(filter may be incorrectly dropping valid pairs)"
+        )
 
 
 class TestLookbackBound:
