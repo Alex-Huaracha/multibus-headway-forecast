@@ -1,0 +1,13 @@
+{
+  "id": "alexhuaracha/04b-preprocessing-visual",
+  "title": "04b Preprocessing Visual",
+  "code_file": "04b_preprocessing_visual.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": ["alexhuaracha/04-preprocessing"]
+}
