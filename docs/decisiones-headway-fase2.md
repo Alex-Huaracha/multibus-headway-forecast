@@ -101,7 +101,43 @@ El viability probe queda aprobado al cierre con los resultados del kernel `alexh
 
 Esta decisión actualiza implícitamente la sección "8.2 Próximos pasos" de [`propuesta.md`](./propuesta.md) — el preprocesamiento de Fase 2 se rige por este documento, no por la descripción genérica del paso 1 de §8.2.
 
-## 7. Cierre de Fase 2 — Kaggle v2 (2026-05-20)
+## 7. Cierre de Fase 2 — Kaggle v3 multi-filar-disambiguation (2026-05-20)
+
+### 7.0 AC-D5 — RETIRADA
+
+**Criterio original** (de `sdd/c2-lookback-fix/spec`): "E59 non-null pair count changes by < 1% vs v2 — Row count comparison across Kaggle runs."
+
+**Por qué se retira**: AC-D5 asumió que E59 dir=1 tenía cobertura adecuada y que el lookback fix no la alteraría. La validación Kaggle v3 (obs #38) falseó esta hipótesis: E59 dir=1 sobrevive en sólo 13.4% de fracción non-null, confirmando contaminación cross-street y no una regresión de conteo.
+
+**Criterio de reemplazo — AC D-SHAPE**: la distribución `delta_t_min` de E59 dir=1 debe ser unimodal con mediana en [4, 12] min y skewness > 1.0 (exponential-like). Éste es un criterio de forma de distribución, no de estabilidad de conteo. Se valida en notebook 04b Figura 8.
+
+---
+
+### 7.0b Parámetro nuevo — `lateral_pair_threshold_m` (multi-filar-disambiguation)
+
+**Motivación**: los corredores multi-filar (E2, E59) proyectan buses de calles paralelas al mismo eje `s`. Sin un filtro lateral, `compute_pairs` empareja buses en diferentes calles → headways espurios. El filtro `|lateral_m_front − lateral_m_back| > threshold` elimina estos pares cross-street.
+
+| Campo | Valor | Notas |
+|---|---|---|
+| `ProductiveParams.lateral_pair_threshold_m` | **50.0 m** | Default operativo; sujeto a calibración Kaggle v4 |
+| `EmpresaConfig.lateral_pair_threshold_m_override` | `None` (por defecto) | Permite override por empresa tras inspección del histograma 04b Figura 7 |
+| Resolver | `lateral_pair_threshold_for(empresaid)` | Espejo de `lateral_threshold_for`; fallback a global para empresas sin config |
+
+**Protocolo de calibración post-run Kaggle v4**:
+
+1. Abrir notebook 04b v4. Inspeccionar Figura 7 (`|lateral_delta|` por empresa, dirección) con línea vertical en 50 m.
+2. Si el histograma es **bimodal con un valle claro**: tomar el valor del valle como override. Redondear a 10 m. Establecer con `EmpresaConfig.lateral_pair_threshold_m_override`.
+3. Si el histograma es **unimodal o el valle no es claro**: el default 50 m queda vigente.
+4. Re-correr Kaggle sólo si se eligió un override en el paso 2; de lo contrario el run v4 es final.
+5. Registrar el threshold final aquí (actualizar esta entrada con la decisión post-calibración).
+
+**Nota para sdd-verify**: el AC D-PAIRS (n_pairs_efectivo >= 90% de v3 baseline) requiere que el contador v3 sea registrado ANTES de ejecutar el run Kaggle v4. Instrucción explícita: antes de subir el código v4 a Kaggle, anotar aquí los `n_pairs_efectivo` diarios (min/mean/max) de E2 y E59 de la tabla §7.1. Los valores v2 están en §7.1; si no se corrió v3, usar los de v2 como baseline conservador.
+
+**Impacto en R7 schema**: `compute_pairs` y `compute_headways_c2` ahora emiten `lateral_m_front` (Float64, nullable) y `lateral_m_back` (Float64, nullable) como las dos últimas columnas del parquet de headways. Cambio ADITIVO — no se renombra ni cambia el tipo de ninguna columna anterior. Los 13 campos existentes están intactos.
+
+---
+
+## 8. Cierre de Fase 2 — Kaggle v2 (2026-05-20)
 
 El módulo productivo `src/preprocessing/` fue implementado y ejecutado en Kaggle como kernel `alexhuaracha/04-preprocessing` versión 2, status `COMPLETE`. Los parquets `cleaned_gps_E{2,59}.parquet` y `headways_E{2,59}.parquet` quedaron generados y validados contra los invariantes de la spec (INV-4, INV-6, INV-7, INV-8 = 0 violations en ambas empresas).
 
