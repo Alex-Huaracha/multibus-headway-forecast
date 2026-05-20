@@ -19,6 +19,7 @@ data/processed/*
 !data/processed/dataset-metadata.json
 *.csv
 *.parquet
+!tests/fixtures/*.parquet
 *.feather
 *.h5
 *.hdf5

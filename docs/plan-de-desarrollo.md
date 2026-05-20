@@ -58,7 +58,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [ ] Notebook documentando decisiones por empresa.
 - [ ] Dataset intermedio `data/processed/headways_<empresa>.parquet`.
 
-**Artefacto:** Módulo `src/preprocessing/` + notebook `03_preprocessing` + datasets parquet por empresa.
+**Artefacto:** Módulo `src/preprocessing/` + notebook `04_preprocessing` + datasets parquet por empresa.
 
 **Criterio de cierre:** Para Empresas 2 y 59, series de headways validadas, sin huecos no documentados, listas para Fase 3.
 
@@ -77,7 +77,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [ ] DataLoader / Dataset reutilizable.
 - [ ] Notebook con estadísticas de splits y verificación de sanidad.
 
-**Artefacto:** Módulo `src/data/dataset.py` + notebook `04_dataset`.
+**Artefacto:** Módulo `src/data/dataset.py` + notebook `05_dataset`.
 
 **Criterio de cierre:** DataLoaders reproducibles entregando tensores con shapes documentados, sin leakage entre splits.
 
@@ -93,7 +93,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [ ] Evaluación sobre test con MAE y RMSE por horizonte.
 - [ ] Tabla de métricas baseline congelada.
 
-**Artefacto:** Módulo `src/baselines/statistical.py` + notebook `05_baselines_stat`.
+**Artefacto:** Módulo `src/baselines/statistical.py` + notebook `06_baselines_stat`.
 
 **Criterio de cierre:** Tabla de métricas baseline publicada y congelada como referencia.
 
@@ -110,7 +110,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [ ] Logging de experimentos.
 - [ ] Métricas sobre test.
 
-**Artefacto:** Módulo `src/models/lstm.py` + `src/train.py` + notebook `06_lstm` + checkpoints.
+**Artefacto:** Módulo `src/models/lstm.py` + `src/train.py` + notebook `07_lstm` + checkpoints.
 
 **Criterio de cierre:** LSTM supera baselines estadísticos en MAE/RMSE con significancia.
 
@@ -129,7 +129,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [ ] (Si la primera no supera al LSTM) implementación de candidata alternativa.
 - [ ] Selección de la arquitectura final para el paper.
 
-**Artefacto:** Módulo `src/models/<arquitectura>.py` + notebook `07_modelo_espacial` + checkpoints.
+**Artefacto:** Módulo `src/models/<arquitectura>.py` + notebook `08_modelo_espacial` + checkpoints.
 
 **Criterio de cierre:** Al menos una arquitectura espacial-temporal entrenada con métricas registradas, comparable contra LSTM y baselines.
 
@@ -146,7 +146,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [ ] Robustez frente a días atípicos.
 - [ ] Tablas y figuras candidatas a paper, congeladas.
 
-**Artefacto:** Notebook `08_evaluacion` + carpeta `results/` con CSVs crudos.
+**Artefacto:** Notebook `09_evaluacion` + carpeta `results/` con CSVs crudos.
 
 **Criterio de cierre:** Tablas y figuras del paper aprobadas; el criterio de éxito de `objetivo.md` (p<0.05) está verificado en Empresas 2 y 59.
 
@@ -163,7 +163,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [ ] Métrica operacional simple (ej. minutos de anticipación con error < X).
 - [ ] Al menos 3 casos por fenómeno.
 
-**Artefacto:** Notebook `09_casos_estudio` + figuras para la discusión.
+**Artefacto:** Notebook `10_casos_estudio` + figuras para la discusión.
 
 **Criterio de cierre:** 3+ casos por fenómeno documentados con predicción vs. realidad vs. baseline.
 
@@ -191,7 +191,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 ```
 src/
-  preprocessing/{corridor,projection,direction,trips,headways}.py
+  preprocessing/{corridor,projection,direction,trips,headways,config}.py
   data/dataset.py
   baselines/statistical.py
   models/{lstm,<arquitectura_final>}.py
@@ -199,16 +199,18 @@ src/
   evaluate.py
 notebooks/
   01_viability_and_filter/    [✓]
-  02_eda_corredores/
-  03_preprocessing/
-  04_dataset/
-  05_baselines_stat/
-  06_lstm/
-  07_modelo_espacial/
-  08_evaluacion/
-  09_casos_estudio/
+  02_eda_corredores/          [✓]
+  03_headway_viability/       [✓]  (viability probe — Opción C.2)
+  04_preprocessing/
+  05_dataset/
+  06_baselines_stat/
+  07_lstm/
+  08_modelo_espacial/
+  09_evaluacion/
+  10_casos_estudio/
 data/
   raw/                        [✓]
+  processed/cleaned_gps_<empresa>.parquet
   processed/headways_<empresa>.parquet
 models/{lstm,modelo_final}/
 results/
