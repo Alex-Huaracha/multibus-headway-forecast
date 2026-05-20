@@ -278,10 +278,11 @@ for empresaid in EMPRESAS:
         print(f"  delta_t_min null fraction: {null_frac:.1%}")
         print(f"  delta_t_min stats: {hw_e['delta_t_min'].drop_nulls().describe()}")
 
-    # n_pairs_efectivo per day
+    # n_pairs_efectivo per day (derive 'day' from 't' — headways schema has no 'day' column)
     if hw_e.height > 0:
         pairs_per_day = (
             hw_e.filter(pl.col("delta_t_min").is_not_null())
+            .with_columns(pl.col("t").dt.date().alias("day"))
             .group_by("day").len().sort("day")
         )
         print(f"  pairs_efectivo/day: min={pairs_per_day['len'].min():,} "
