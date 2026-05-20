@@ -1,7 +1,9 @@
 """Speed attachment and arc-length projection for the preprocessing pipeline.
 
 Provides:
-  attach_observed_speed — compute step_m, dt_s, speed_kmh per (empresaid, unidadid).
+  attach_observed_speed — compute step_m, dt_s, speed_kmh per (empresaid, unidadid)
+                          and DROP GPS-jump pairs per spec R11 (pair-level discard,
+                          not row-level nulling).
   project_to_centerline — project pings onto a polyline, compute s and lateral_m,
                           drop off-route rows.
 
@@ -16,6 +18,7 @@ import polars as pl
 from .config import (
     LAT_DEG_M,
     LON_DEG_M,
+    MAX_PLAUSIBLE_JUMP_M,
     MAX_PLAUSIBLE_SPEED_KMH,
     lateral_threshold_for,
 )
@@ -23,16 +26,25 @@ from .config import (
 
 def attach_observed_speed(gps: pl.DataFrame) -> pl.DataFrame:
     """Add columns (lat_prev, lon_prev, time_prev, step_m, dt_s, speed_kmh) by
-    diffing successive rows of the same (empresaid, unidadid).
+    diffing successive rows of the same (empresaid, unidadid), then discard
+    GPS-jump pairs per spec R11.
 
     speed_kmh is computed as step_m / dt_s * 3.6 (observed speed from GPS
-    displacement). Values exceeding MAX_PLAUSIBLE_SPEED_KMH (80 km/h) are set
-    to null — these signal GPS jumps or data errors, NOT high-speed buses.
+    displacement). The raw `velocidad` field is intentionally NOT used (spec R11,
+    decisiones-limpieza-fase2 §2.3).
 
-    The raw `velocidad` field is intentionally NOT used anywhere in the pipeline
-    (decisiones-limpieza-fase2 §2.3).
+    Pair-level discard (spec R11) — rows are DROPPED (not nulled) when:
+      1. speed_kmh > MAX_PLAUSIBLE_SPEED_KMH (80 km/h): GPS jump or data error.
+      2. step_m > MAX_PLAUSIBLE_JUMP_M (500 m) AND dt_s <= 60 s: implausible jump.
 
-    Source: build_notebook_03.py lines 250-272.
+    The first ping per bus has no previous ping, so step_m and dt_s are null
+    and speed_kmh is null. These rows are KEPT (null speed is not an outlier —
+    it is missing data for the leading ping only). The filter conditions
+    explicitly preserve null-speed rows.
+
+    Output frame has fewer rows than input when GPS jumps are present.
+
+    Source: build_notebook_03.py lines 250-272 (extended for R11 pair-level discard).
     """
     gps = gps.with_columns([
         pl.col("lat").shift(1).over(["empresaid", "unidadid"]).alias("lat_prev"),
@@ -52,12 +64,23 @@ def attach_observed_speed(gps: pl.DataFrame) -> pl.DataFrame:
           .otherwise(None)
           .alias("speed_kmh")
     )
-    # Cap implausible speeds: GPS jumps produce speed > 80 km/h → null.
-    gps = gps.with_columns(
-        pl.when(pl.col("speed_kmh") > MAX_PLAUSIBLE_SPEED_KMH)
-          .then(None)
-          .otherwise(pl.col("speed_kmh"))
-          .alias("speed_kmh")
+    # Pair-level discard criterion 1 (spec R11): drop rows where speed > 80 km/h.
+    # Null speed (first ping per bus) is preserved — it is not a GPS-jump outlier.
+    gps = gps.filter(
+        pl.col("speed_kmh").is_null() | (pl.col("speed_kmh") <= MAX_PLAUSIBLE_SPEED_KMH)
+    )
+    # Pair-level discard criterion 2 (spec R11): drop rows where step_m > 500 m
+    # AND dt_s <= 60 s. This catches teleporting pings that briefly exceed the
+    # jump threshold within a 1-minute window.
+    # The first ping per bus has step_m = null (no previous ping) — these must
+    # be kept. Polars propagates null through comparisons, so we must explicitly
+    # preserve null-step_m rows with step_m.is_null() as an OR guard.
+    gps = gps.filter(
+        pl.col("step_m").is_null()
+        | ~(
+            (pl.col("step_m") > MAX_PLAUSIBLE_JUMP_M)
+            & (pl.col("dt_s") <= 60)
+        )
     )
     return gps
 

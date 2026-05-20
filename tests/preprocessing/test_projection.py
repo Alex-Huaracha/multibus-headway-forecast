@@ -171,3 +171,112 @@ class TestOffRouteFilter:
         assert len(bus_203_rows) == 0, (
             f"Expected 0 rows for off-route bus 203; got {len(bus_203_rows)}"
         )
+
+
+class TestAttachObservedSpeedDropsGPSJumps:
+    """Spec R11 — GPS-jump pairs must be DROPPED, not nulled.
+
+    Covers three sub-scenarios:
+      1. step_m > 500 m AND dt_s <= 60 s → row dropped (jump criterion).
+      2. step_m > 500 m AND dt_s > 60 s → row kept (dt_s threshold not met).
+      3. speed_kmh > 80 km/h → row dropped (speed criterion).
+    """
+
+    def _make_single_bus_gps(self, rows: list[dict]) -> pl.DataFrame:
+        """Build a minimal GPS DataFrame for a single (empresaid=2, unidadid=901)."""
+        from datetime import datetime, timedelta
+
+        base = datetime(2024, 1, 23, 8, 0, 0)
+        times = [base + timedelta(seconds=r["dt_offset"]) for r in rows]
+        return pl.DataFrame({
+            "empresaid": [2] * len(rows),
+            "unidadid": [901] * len(rows),
+            "time": pl.Series(times, dtype=pl.Datetime("us")),
+            "lat": [r["lat"] for r in rows],
+            "lon": [r["lon"] for r in rows],
+        })
+
+    def test_gps_jump_pair_dropped_within_60s(self):
+        """Failure mode (pre-fix): the GPS-jump pair survives as a null speed_kmh
+        row instead of being dropped. After fix, step_m > 500 m AND dt_s <= 60 s
+        must cause the jump row to be discarded.
+
+        3-row frame:
+          ping 0 (t=0s, lat0)          — first ping, null speed.
+          ping 1 (t=30s, lat_jump)     — 600m/30s = jump criterion → DROP.
+          ping 2 (t=60s, lat_jump+tiny) — small step from ping 1, normal speed → KEEP.
+
+        Note: step_m for each ping is computed relative to the PREVIOUS ping before
+        any filtering; ping 2's step_m is relative to ping 1. After ping 1 is dropped
+        by the jump criterion, we expect 2 rows (ping 0 + ping 2).
+        Ping 2 must have a small step_m (< 500 m, speed < 80 km/h) to survive.
+        """
+        lat0 = -16.4
+        lon0 = -71.55
+        # 600 m north in degrees lat (LAT_DEG_M ≈ 111000)
+        lat_jump = lat0 + 600.0 / 111_000.0
+        # Ping 2 is 50 m beyond ping 1 in 30 s → speed = 50/30*3.6 = 6 km/h, step = 50 m.
+        lat_ping2 = lat_jump + 50.0 / 111_000.0
+
+        rows = [
+            {"dt_offset": 0,  "lat": lat0,       "lon": lon0},  # ping 0: first ping
+            {"dt_offset": 30, "lat": lat_jump,    "lon": lon0},  # ping 1: 600m/30s → DROP
+            {"dt_offset": 60, "lat": lat_ping2,   "lon": lon0},  # ping 2: 50m/30s → KEEP
+        ]
+        gps = self._make_single_bus_gps(rows)
+        result = attach_observed_speed(gps)
+
+        assert result.height == 2, (
+            f"Expected 2 rows after dropping GPS-jump pair; got {result.height}. "
+            f"Row heights suggest the jump pair was NOT dropped."
+        )
+
+    def test_gps_jump_pair_kept_when_dt_exceeds_60s(self):
+        """A 600 m step over 120 s is NOT a GPS jump (dt_s > 60 s threshold).
+        The row must be KEPT (speed = 600/120*3.6 = 18 km/h, well within 80 km/h).
+        """
+        lat0 = -16.4
+        lon0 = -71.55
+        lat_far = lat0 + 600.0 / 111_000.0
+
+        rows = [
+            {"dt_offset": 0,   "lat": lat0,    "lon": lon0},
+            {"dt_offset": 120, "lat": lat_far,  "lon": lon0},  # 600 m / 120 s = 18 km/h → KEEP
+        ]
+        gps = self._make_single_bus_gps(rows)
+        result = attach_observed_speed(gps)
+
+        assert result.height == 2, (
+            f"Expected 2 rows (600m/120s is NOT a jump); got {result.height}."
+        )
+        speed = result.filter(pl.col("speed_kmh").is_not_null())["speed_kmh"][0]
+        assert abs(speed - 18.0) < 0.1, (
+            f"Expected speed_kmh ≈ 18.0 km/h; got {speed:.3f}"
+        )
+
+    def test_speed_over_80_kmh_row_dropped_not_nulled(self):
+        """Failure mode (pre-fix): speed > 80 km/h was SET TO NULL instead of
+        DROPPING the row. After fix, the row must be absent from the output.
+
+        Construct a 2-row frame where the second ping is 1000 m in 10 s
+        (speed = 360 km/h). The second row must be dropped entirely.
+        """
+        lat0 = -16.4
+        lon0 = -71.55
+        lat_fast = lat0 + 1000.0 / 111_000.0  # 1000 m north
+
+        rows = [
+            {"dt_offset": 0,  "lat": lat0,       "lon": lon0},
+            {"dt_offset": 10, "lat": lat_fast,    "lon": lon0},  # 1000m/10s = 360 km/h → DROP
+        ]
+        gps = self._make_single_bus_gps(rows)
+        result = attach_observed_speed(gps)
+
+        assert result.height == 1, (
+            f"Expected 1 row (speed > 80 km/h row must be DROPPED, not nulled); "
+            f"got {result.height}."
+        )
+        # The surviving row is the first ping with null speed.
+        assert result["speed_kmh"][0] is None, (
+            "The surviving first-ping row should have null speed_kmh"
+        )
