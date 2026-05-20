@@ -146,29 +146,9 @@ def assign_trip_ids(
 
     gps = gps.sort(["empresaid", "unidadid", "time"])
 
-    all_trip_ids: list[np.ndarray] = []
-
-    for keys, sub in gps.group_by(["empresaid", "unidadid"], maintain_order=True):
-        sub_sorted = sub.sort("time")
-        dt_s = sub_sorted["dt_s"].fill_null(0.0).to_numpy().astype(np.float64)
-        s_arr = sub_sorted["s"].to_numpy().astype(np.float64)
-        speed_arr = sub_sorted["speed_kmh"].fill_null(0.0).to_numpy().astype(np.float64)
-        dir_arr = sub_sorted["direction"].to_numpy().astype(np.int64)
-        time_arr = sub_sorted["time"].to_numpy().astype("datetime64[ns]").astype(np.int64)
-
-        trip_ids = _compute_trip_ids_for_bus(
-            s_arr, dt_s, speed_arr, dir_arr, time_arr, s_min, s_max
-        )
-        all_trip_ids.append(trip_ids)
-
-    # Reconstruct in the same row order as the sorted gps.
-    # Since we sorted gps first and maintain_order=True in group_by, we can
-    # concatenate the per-bus arrays and re-attach them positionally.
-    all_ids_concat = np.concatenate(all_trip_ids) if all_trip_ids else np.array([], dtype=np.uint32)
-
-    # group_by with maintain_order=True iterates groups in the order their first row appears.
-    # We need to map back to the original sorted frame order. Let's do it via an explicit
-    # row_index approach to guarantee correctness.
+    # Use row_index to guarantee correct positional mapping back to the sorted frame
+    # after group_by (maintain_order=True guarantees group iteration order but not
+    # row order within the full frame after re-join).
     gps_indexed = gps.with_row_index("_row_idx")
     trip_id_parts: list[pl.DataFrame] = []
 
