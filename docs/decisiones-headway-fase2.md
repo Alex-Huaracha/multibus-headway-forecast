@@ -89,3 +89,44 @@ La autocorrelación a 5 min está apenas en 0.31 (E2) y 0.60 (E59) para C.2 — 
 El viability probe queda aprobado al cierre con los resultados del kernel `alexhuaracha/03-headway-viability` versión 5 (ejecutado el 2026-05-19, status `COMPLETE`). El siguiente paso del [plan de desarrollo](./plan-de-desarrollo.md) es scaffold de `src/preprocessing/` con los parámetros productivos de §3 y la formulación C.2 de §2.
 
 Esta decisión actualiza implícitamente la sección "8.2 Próximos pasos" de [`propuesta.md`](./propuesta.md) — el preprocesamiento de Fase 2 se rige por este documento, no por la descripción genérica del paso 1 de §8.2.
+
+## 7. Cierre de Fase 2 — Kaggle v2 (2026-05-20)
+
+El módulo productivo `src/preprocessing/` fue implementado y ejecutado en Kaggle como kernel `alexhuaracha/04-preprocessing` versión 2, status `COMPLETE`. Los parquets `cleaned_gps_E{2,59}.parquet` y `headways_E{2,59}.parquet` quedaron generados y validados contra los invariantes de la spec (INV-4, INV-6, INV-7, INV-8 = 0 violations en ambas empresas).
+
+### 7.1 Métricas del run productivo
+
+| Métrica | E2 | E59 |
+|---|---|---|
+| cleaned_gps rows | 9,595,566 | 10,557,968 |
+| headways rows | 1,692,411 | 3,530,316 |
+| non-null `delta_t_min` | 1,691,530 (99.95%) | 3,523,241 (99.80%) |
+| `pairs_efectivo`/día (min / mean / max) | 654 / 11,128 / 16,752 | 9,122 / 23,179 / 30,744 |
+| Tiempo Kaggle | 656 s (~11 min) | 1,389 s (~23 min) |
+
+### 7.2 Resolución de Caveat 3 (off-route filter 300m)
+
+El threshold de `pairs_efectivo < 10k/día` para E2 (definido en §4 row 3 como criterio de calibración) fue **alcanzado en 32 de 152 días (21%)**. La investigación post-run categorizó cada uno de los 32 días:
+
+| Categoría | Días | Acción Fase 2 |
+|---|---|---|
+| Domingos sistemáticos (caveat §6 de `eventos-anomalos.md`) | 22 | Patrón conocido; Fase 3 split design los maneja |
+| Feriados ya documentados (Navidad, Año Nuevo) | 2 | Patrón conocido |
+| Evento sistémico (2023-10-28, Señor de los Milagros) | 1 | Patrón conocido (`eventos-anomalos.md §3.1`) |
+| Feriados nacionales nuevos (Nov 1, Nov 2, Dec 8) | 3 | **Documentados ahora en `eventos-anomalos.md §4`** |
+| Días residuales cerca del threshold (8-9.7k pares) | 4 | Aceptados; sábados de baja demanda o post-feriados |
+
+**Veredicto**: el threshold de 300m NO se sube a 500m. La caída de `n_pairs_efectivo` es operacional (menos buses circulando en días de baja demanda), no problema de filtrado lateral. Subir el threshold introduciría ruido (calles paralelas, depósitos) sin recuperar pares válidos.
+
+**Hallazgo colateral**: detectamos 3 feriados nacionales peruanos que el §8 del notebook 02 (Fase 1) no había flagueado porque su criterio compara `active_units` y `records` contra la mediana agregada, y los feriados nacionales caen entre semana sin reducir esos contadores al 50% del baseline. La métrica `n_pairs_efectivo` (que requiere cruces históricos computables) sí los expone. Esto refuerza la recomendación del §8 de `eventos-anomalos.md`: refinar el baseline a (empresa, día_de_semana) en Fase 3.
+
+### 7.3 Caveats que quedan abiertos para fases posteriores
+
+- **Caveat 2 (winsorización p99 de `delta_t_min`)**: confirmado necesario — E2 tiene `max(delta_t_min) = 216,550` min, cola pesada. Decisión vinculante en Fase 5 al construir el dataset supervisado.
+- **Caveat 4 (R² persistencia)**: sin cambios respecto al cierre del probe.
+- **Caveat 5 (`n_pairs_151d` bug del probe)**: no aplicable a `04-preprocessing` (métrica no se vuelve a calcular).
+- **Sin nuevos caveats** introducidos por el run productivo.
+
+### 7.4 Estado de outputs
+
+Los 4 parquets están disponibles en el kernel Kaggle `alexhuaracha/04-preprocessing` v2 (output del run COMPLETE). Para Fase 3 se recomienda promoverlos a un Kaggle Dataset versionado (siguiendo la política de §`docs/dataset-manifest.md`).

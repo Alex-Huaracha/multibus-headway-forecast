@@ -38,13 +38,18 @@ No todo día flagged es operacionalmente significativo. Distinguimos tres catego
 
 ## 4. Feriados conocidos
 
-| Fecha | Empresas afectadas | Evento |
-|---|---|---|
-| 2023-12-25 | E4, E58 | Navidad |
-| 2023-12-31 | E4 | Víspera de Año Nuevo |
-| 2024-01-01 | E2, E4 | Año Nuevo |
+| Fecha | Empresas afectadas | Evento | Fuente |
+|---|---|---|---|
+| 2023-11-01 | E2 (verificado), otras no medidas | Día de Todos los Santos (feriado nacional PE) | Detectado en Fase 2 (n_pairs_efectivo E2 = 7,883/día, < threshold 10k) |
+| 2023-11-02 | E2 (verificado), otras no medidas | Día de los Difuntos / puente post Nov 1 (no oficial pero observado) | Detectado en Fase 2 (n_pairs_efectivo E2 = 7,918/día) |
+| 2023-12-08 | E2 (verificado), otras no medidas | Inmaculada Concepción (feriado nacional PE) | Detectado en Fase 2 (n_pairs_efectivo E2 = 8,231/día) |
+| 2023-12-25 | E4, E58 | Navidad | Fase 1 (notebook 02) |
+| 2023-12-31 | E4 | Víspera de Año Nuevo | Fase 1 (notebook 02) |
+| 2024-01-01 | E2, E4 | Año Nuevo | Fase 1 (notebook 02) |
 
 Estos días son **predecibles** y representan operación reducida pero no estructuralmente anómala. No deben tratarse como outliers en F7. Pueden incluirse en train, val o test sin manipulación especial; opcionalmente se anotan como `is_holiday` si Fase 5+ usa esa señal como feature.
+
+**Nota sobre los feriados Nov/Dic 2023**: el §8 del notebook 02 (Fase 1) no flagueó estos tres días porque su criterio compara contra la mediana agregada y los feriados nacionales caen entre semana — el `active_units` y `records` no bajaron al 50% del baseline. Sí se manifiestan cuando se mide `n_pairs_efectivo` (pares con cruce histórico computable) porque la cardinalidad de buses en el corredor cae proporcionalmente más que el conteo crudo de pings. Recomendación para Fase 3: validar empíricamente si Nov 1, Nov 2 y Dec 8 también caen en E59 (no medido en Fase 2 cierre), y completar la columna "Empresas afectadas" de esta tabla.
 
 ## 5. Períodos de ramp-up (NO son anomalías)
 
@@ -77,4 +82,4 @@ Este documento se re-emite cuando:
 - El dataset crece con nuevos meses y aparecen días flagged adicionales.
 
 ---
-*Generado al cierre de Fase 1 (2026-05-19) a partir del análisis del notebook 02_eda_corredores ejecutado en Kaggle como kernel version 3.*
+*Generado al cierre de Fase 1 (2026-05-19) a partir del análisis del notebook 02_eda_corredores ejecutado en Kaggle como kernel version 3. Actualizado al cierre de Fase 2 (2026-05-20) con los tres feriados nacionales detectados al medir `n_pairs_efectivo` en `headways_E2.parquet` (kernel 04-preprocessing v2).*
