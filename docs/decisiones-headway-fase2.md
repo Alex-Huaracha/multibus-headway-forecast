@@ -131,7 +131,27 @@ Esta decisión actualiza implícitamente la sección "8.2 Próximos pasos" de [`
 4. Re-correr Kaggle sólo si se eligió un override en el paso 2; de lo contrario el run v4 es final.
 5. Registrar el threshold final aquí (actualizar esta entrada con la decisión post-calibración).
 
-**Nota para sdd-verify**: el AC D-PAIRS (n_pairs_efectivo >= 90% de v3 baseline) requiere que el contador v3 sea registrado ANTES de ejecutar el run Kaggle v4. Instrucción explícita: antes de subir el código v4 a Kaggle, anotar aquí los `n_pairs_efectivo` diarios (min/mean/max) de E2 y E59 de la tabla §7.1. Los valores v2 están en §7.1; si no se corrió v3, usar los de v2 como baseline conservador.
+**Baseline v3 para AC D-PAIRS** (registrado 2026-05-20 desde `/tmp/kernel-04-v3-outputs/headways_E{2,59}.parquet`, post c2-lookback-fix, pre multi-filar-disambiguation):
+
+| Métrica | E2 v3 | E59 v3 |
+|---|---|---|
+| headways rows | 1,692,411 | 3,530,316 |
+| n_pairs_efectivo (delta_t_min non-null) | 818,661 | 1,243,516 |
+| pairs_efectivo/día (min / mean / median / max) | 270 / 5,386 / 5,935 / 8,651 | 2,385 / 8,181 / 8,818 / 10,545 |
+| n_pairs_efectivo dir=-1 | 638,828 | 968,766 |
+| n_pairs_efectivo dir=+1 | 179,833 | 274,750 |
+| Cobertura dir=+1 | 24.0% | 13.3% |
+| Cobertura dir=-1 | 67.7% | 65.9% |
+| n_días | 152 | 152 |
+
+**Umbrales D-PAIRS** (drop ≤ 10% relativo a v3 baseline):
+
+| Empresa | v3 n_pairs_efectivo | Mínimo aceptable v4 (90%) |
+|---|---|---|
+| E2 | 818,661 | ≥ 736,795 |
+| E59 | 1,243,516 | ≥ 1,119,164 |
+
+Nota: el baseline v3 es ~50% (E2) y ~65% (E59) inferior al baseline v2 (§7.1) porque v2 incluía pares con bound C.2 sin acotar (`max_interpolation_lookback_minutes`). v3 es el baseline correcto post-c2-lookback-fix.
 
 **Impacto en R7 schema**: `compute_pairs` y `compute_headways_c2` ahora emiten `lateral_m_front` (Float64, nullable) y `lateral_m_back` (Float64, nullable) como las dos últimas columnas del parquet de headways. Cambio ADITIVO — no se renombra ni cambia el tipo de ninguna columna anterior. Los 13 campos existentes están intactos.
 
