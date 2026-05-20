@@ -292,15 +292,178 @@ plt.show()
 """)
 
 # ---------------------------------------------------------------------------
+# Figure 7 — lateral_delta calibration histogram (multi-filar-disambiguation)
+# ---------------------------------------------------------------------------
+
+md("""## Figura 7 — Histograma `|lateral_delta|` para calibración del threshold
+
+Distribución de `|lateral_m_front − lateral_m_back|` por empresa y dirección
+sobre todos los pares de headways v4. La línea vertical marca el threshold
+activo (`lateral_pair_threshold_m` en `config.py`, default 50 m).
+
+**Cómo calibrar**: si el histograma es bimodal con un valle claro,
+usar el valor del valle como `lateral_pair_threshold_m_override` en
+`EmpresaConfig`. Si es unimodal o el valle no es claro, dejar el default 50 m.
+Ver `docs/decisiones-headway-fase2.md §3` y `Calibration Protocol`.
+""")
+
+code("""
+# Calibration histogram — requires lateral_m_front / lateral_m_back columns (v4 headways).
+# If those columns are absent (v3 or earlier parquets), skip gracefully.
+has_lateral_cols = all(
+    "lateral_m_front" in data[e]["hw"].columns and
+    "lateral_m_back" in data[e]["hw"].columns
+    for e in EMPRESAS
+)
+
+if not has_lateral_cols:
+    print("WARNING: lateral_m_front/lateral_m_back columns absent — headways appear to be v3 or earlier. "
+          "Re-run the Kaggle pipeline with v4 code to generate Figure 7.")
+else:
+    LATERAL_THRESHOLD_M = 50.0  # default from PRODUCTIVE_PARAMS.lateral_pair_threshold_m
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 8))
+    for col, e in enumerate(EMPRESAS):
+        hw = data[e]["hw"]
+        for row, direction in enumerate([1, -1]):
+            ax = axes[row, col]
+            sub = hw.filter(pl.col("direction") == direction)
+            if sub.height == 0 or sub["lateral_m_front"].is_null().all():
+                ax.set_title(f"E{e} dir={direction} — sin datos de lateral")
+                continue
+
+            lateral_delta = (
+                (sub["lateral_m_front"] - sub["lateral_m_back"]).abs()
+                .drop_nulls()
+                .to_numpy()
+            )
+            if len(lateral_delta) == 0:
+                ax.set_title(f"E{e} dir={direction} — todos null")
+                continue
+
+            ax.hist(lateral_delta, bins=80, range=(0, 300),
+                    color="teal", edgecolor="black", alpha=0.7)
+            ax.axvline(LATERAL_THRESHOLD_M, color="crimson", linestyle="--",
+                       label=f"threshold {LATERAL_THRESHOLD_M:.0f} m")
+            ax.set_title(f"E{e} dir={direction} — |lateral_delta| (n={len(lateral_delta):,})")
+            ax.set_xlabel("|lateral_m_front − lateral_m_back| (m)")
+            ax.set_ylabel("count")
+            ax.legend()
+    plt.suptitle("Figura 7 — Calibración del lateral pair threshold (multi-filar-disambiguation)", y=1.01)
+    plt.tight_layout()
+    plt.savefig(FIGURAS_DIR / "07_lateral_delta_calibration.png", dpi=120, bbox_inches="tight")
+    plt.show()
+    print(f"Figure 7 saved: 07_lateral_delta_calibration.png")
+""")
+
+# ---------------------------------------------------------------------------
+# Figure 8 — before/after delta_t_min for E59 dir=1 (v3 vs v4)
+# ---------------------------------------------------------------------------
+
+md("""## Figura 8 — Distribución `delta_t_min` E59 dir=1: comparación v3 vs v4
+
+Valida AC D-SHAPE: E59 dir=1 debe ser unimodal con mediana en [4, 12] min
+y skewness > 1.0 (exponential-like) después del filtro lateral (v4).
+La figura v3 (sin filtro) mostraba distribución uniforme 0–30 min (FAIL).
+
+**Nota**: para la comparación v3 se necesita el parquet v3 (antes del filtro).
+Si sólo hay v4, se muestra la distribución v4 actual y se imprime skewness.
+""")
+
+code("""
+from scipy import stats as scipy_stats
+
+e_target = 59
+dir_target = 1
+
+hw_v4 = data[e_target]["hw"].filter(
+    (pl.col("direction") == dir_target) & pl.col("delta_t_min").is_not_null()
+)
+vals_v4 = hw_v4["delta_t_min"].to_numpy()
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# v4 distribution
+ax = axes[0]
+if len(vals_v4) > 0:
+    ax.hist(vals_v4, bins=80, range=(0, 60), color="steelblue",
+            edgecolor="black", alpha=0.7, label="v4 (con filtro lateral)")
+    ax.axvline(float(hw_v4["delta_t_min"].median()), color="crimson",
+               linestyle="--", label=f"mediana={float(hw_v4['delta_t_min'].median()):.1f} min")
+    sk = scipy_stats.skew(vals_v4[vals_v4 <= 60])
+    ax.set_title(f"E{e_target} dir={dir_target} v4 — n={len(vals_v4):,}, skewness={sk:.2f}")
+    ax.legend()
+else:
+    ax.set_title(f"E{e_target} dir={dir_target} — sin datos v4")
+ax.set_xlabel("delta_t_min")
+ax.set_ylabel("count")
+
+# Placeholder for v3 if available (user must supply v3 parquet)
+ax2 = axes[1]
+ax2.set_title(f"E{e_target} dir={dir_target} v3 — (requiere parquet v3 para comparación)")
+ax2.text(0.5, 0.5, "Parquet v3 no disponible en este entorno.\\nEjecutar comparación en Kaggle\\ncon ambas versiones.",
+         ha="center", va="center", transform=ax2.transAxes, fontsize=10)
+ax2.set_xlabel("delta_t_min")
+
+plt.suptitle("Figura 8 — AC D-SHAPE: E59 dir=1 antes/después filtro lateral")
+plt.tight_layout()
+plt.savefig(FIGURAS_DIR / "08_e59_dir1_before_after.png", dpi=120, bbox_inches="tight")
+plt.show()
+
+if len(vals_v4) > 0:
+    median_v4 = float(hw_v4["delta_t_min"].median())
+    sk_v4 = float(scipy_stats.skew(vals_v4[vals_v4 <= 60]))
+    print(f"\\nAC D-SHAPE check (E{e_target} dir={dir_target}):")
+    print(f"  median = {median_v4:.2f} min  (target: [4, 12] → {'PASS' if 4 <= median_v4 <= 12 else 'FAIL'})")
+    print(f"  skewness = {sk_v4:.2f}  (target: > 1.0 → {'PASS' if sk_v4 > 1.0 else 'FAIL'})")
+""")
+
+# ---------------------------------------------------------------------------
+# Coverage table v4
+# ---------------------------------------------------------------------------
+
+md("""## Tabla de cobertura v4
+
+Fracción de pares con `delta_t_min` no nulo por empresa y dirección.
+Valida AC D-COVERAGE: E2 dir=1 >= 19.1%, E59 dir=1 >= 8.4%.
+""")
+
+code("""
+print("=== Cobertura v4: fracción non-null delta_t_min ===\\n")
+for e in EMPRESAS:
+    hw = data[e]["hw"]
+    total = hw.height
+    for direction in [1, -1]:
+        sub = hw.filter(pl.col("direction") == direction)
+        if sub.height == 0:
+            print(f"  E{e} dir={direction}: sin datos")
+            continue
+        non_null = sub.filter(pl.col("delta_t_min").is_not_null()).height
+        frac = non_null / sub.height if sub.height > 0 else 0.0
+        threshold_label = {(2, 1): ">=19.1%", (59, 1): ">=8.4%"}.get((e, direction), "—")
+        status = ""
+        if (e, direction) == (2, 1):
+            status = "PASS" if frac >= 0.191 else "FAIL"
+        elif (e, direction) == (59, 1):
+            status = "PASS" if frac >= 0.084 else "FAIL"
+        print(f"  E{e} dir={direction}: {non_null:,}/{sub.height:,} = {frac:.1%}  "
+              f"target={threshold_label}  {status}")
+""")
+
+# ---------------------------------------------------------------------------
 # Closing summary
 # ---------------------------------------------------------------------------
 
 md("""## Cierre
 
-6 figuras guardadas en `/kaggle/working/figuras/`. Resultado esperado:
+Figuras guardadas en `/kaggle/working/figuras/`. Resultado esperado:
 trazados coherentes con la geografía de Arequipa Cercado, distribuciones
 acotadas (lateral_m < 300, delta_t mayormente < 30 min), y timeline diaria
 que refleja los patrones de demanda ya conocidos.
+
+Figura 7 (calibración del threshold lateral) y Figura 8 (AC D-SHAPE) son
+nuevas en v4 (multi-filar-disambiguation). Ver `docs/decisiones-headway-fase2.md`
+para instrucciones de calibración post-run.
 """)
 
 code("""

@@ -235,6 +235,10 @@ for empresaid in EMPRESAS:
 md("""## Auditoría de sanidad
 
 Verifica los invariantes del spec (INV-1..INV-8) sobre los parquets producidos.
+R7 schema (v4): headways parquet contiene `lateral_m_front` y `lateral_m_back`
+como columnas diagnósticas adicionales (multi-filar-disambiguation). Ver
+`docs/decisiones-headway-fase2.md §3` para el threshold y el protocolo de
+calibración en notebook 04b Figura 7.
 """)
 
 code("""
