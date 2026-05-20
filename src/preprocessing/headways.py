@@ -332,8 +332,9 @@ def compute_headways_c2(
 
     result = pairs_indexed.drop("_row_idx").with_columns(delta_series)
 
-    # Final schema cleanup: select only R7 columns.
-    return result.select([
+    # Final schema cleanup: select R7 columns, preserving lateral diagnostic
+    # columns when the upstream compute_pairs emitted them (R-LAT4 / AC-S1 / AC-S2).
+    r7_cols = [
         "t",
         "direction",
         "pair_rank",
@@ -345,7 +346,12 @@ def compute_headways_c2(
         "speed_back_kmh",
         "delta_t_min",
         "n_buses",
-    ])
+    ]
+    if "lateral_m_front" in pairs_indexed.columns:
+        r7_cols.append("lateral_m_front")
+    if "lateral_m_back" in pairs_indexed.columns:
+        r7_cols.append("lateral_m_back")
+    return result.select(r7_cols)
 
 
 def filter_snapshot_size(headways: pl.DataFrame, min_buses: int) -> pl.DataFrame:
