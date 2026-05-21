@@ -8,68 +8,48 @@ tests run against the modules directly so the notebook never diverges.
 Output: notebooks/04_preprocessing/04_preprocessing.ipynb
 Kaggle kernel: alexhuaracha/04-preprocessing
 """
-import ast
+import sys
 from pathlib import Path
 
 import nbformat as nbf
 
 ROOT = Path(__file__).resolve().parent.parent
+# Add repo root to sys.path so that ``src.notebook_utils`` is importable
+# regardless of whether the script is invoked from the repo root or
+# from within src/.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.notebook_utils import _strip_relative_imports  # noqa: E402 — shared helper
 SRC = ROOT / "src" / "preprocessing"
 OUT = ROOT / "notebooks" / "04_preprocessing" / "04_preprocessing.ipynb"
 OUT.parent.mkdir(parents=True, exist_ok=True)
 
-
-def _strip_relative_imports(src: str) -> str:
-    """Remove all relative 'from .xxx import ...' statements from source.
-
-    Uses ast.get_source_segment to locate and remove the EXACT text for every
-    relative ImportFrom node (level > 0). This handles both single-line and
-    parenthesized multi-line import blocks without regex fragility.
-
-    Single-line:  from .config import X
-    Multi-line:   from .config import (
-                      X,
-                      Y,
-                  )
-
-    Inside the notebook, all modules are inlined into the same flat namespace
-    so relative imports would raise ImportError at Kaggle runtime. This is the
-    only transformation applied to module source code before embedding.
-    """
-    try:
-        tree = ast.parse(src)
-    except SyntaxError:
-        # If the source itself is broken, return as-is so the compile test
-        # catches it with a clear error.
-        return src
-
-    # Collect source segments for all relative ImportFrom nodes.
-    segments_to_remove: list[str] = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.level > 0:
-            segment = ast.get_source_segment(src, node)
-            if segment:
-                segments_to_remove.append(segment)
-
-    result = src
-    for segment in segments_to_remove:
-        # Remove the segment plus its trailing newline (if any).
-        result = result.replace(segment + "\n", "")
-        result = result.replace(segment, "")
-
-    return result
-
-
+# Stable cell ID counter — prevents flutter on re-runs.
+# Each call to md() or code() increments _cell_counter and assigns
+# id="cell-04-{N}" so that regenerating the notebook yields byte-identical
+# output (AC-NB-2 equivalent for notebook 04).
+_cell_counter = 0
 nb = nbf.v4.new_notebook()
 cells: list = []
 
 
+def _next_id(prefix: str = "cell-04") -> str:
+    global _cell_counter
+    _cell_counter += 1
+    return f"{prefix}-{_cell_counter}"
+
+
 def md(text: str) -> None:
-    cells.append(nbf.v4.new_markdown_cell(text.strip()))
+    cell = nbf.v4.new_markdown_cell(text.strip())
+    cell["id"] = _next_id()
+    cells.append(cell)
 
 
 def code(src: str) -> None:
-    cells.append(nbf.v4.new_code_cell(src.rstrip()))
+    cell = nbf.v4.new_code_cell(src.rstrip())
+    cell["id"] = _next_id()
+    cells.append(cell)
 
 
 def embed_module(name: str, header_md: str) -> None:
