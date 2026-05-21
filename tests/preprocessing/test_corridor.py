@@ -3,6 +3,8 @@
 Covers:
   T1.1 — geographic outlier filter drops known outliers, retains inliers.
   T1.2 — build_centerline on a synthetic straight-line point set returns a valid polyline.
+  T1.5 — dual-filar fixture sanity (row count, both directions, geographic separation).
+  T2.1..T2.6 — build_centerline_per_direction per-direction centerline + fallback.
 """
 from pathlib import Path
 
@@ -11,6 +13,7 @@ import polars as pl
 import pytest
 
 from src.preprocessing.corridor import _filter_geographic_outliers, _build_centerline_from_points
+from tests.fixtures.synthetic import make_dual_filar_gps
 
 
 class TestFilterGeographicOutliers:
@@ -103,3 +106,58 @@ class TestBuildCenterline:
         cl = _build_centerline_from_points(straight_east_west_points)
         assert cl.ndim == 2
         assert cl.shape[1] == 2
+
+
+# ---------------------------------------------------------------------------
+# T1.5 RED: TestDualFilarFixture — sanity checks for make_dual_filar_gps
+# ---------------------------------------------------------------------------
+
+_N_BUSES = 4
+_N_PINGS = 300
+_SEP_M = 40.0
+
+
+class TestDualFilarFixture:
+    """Sanity checks for the make_dual_filar_gps factory (design §6).
+
+    These tests are RED-then-immediate-GREEN: the fixture is pure data generation,
+    so they should pass as soon as T1.4 INFRA (the fixture function) lands.
+    """
+
+    @pytest.fixture(scope="class")
+    def dual_filar(self) -> pl.DataFrame:
+        return make_dual_filar_gps(
+            empresaid=59,
+            n_buses_per_street=_N_BUSES,
+            n_pings_per_bus=_N_PINGS,
+            street_separation_m=_SEP_M,
+            rng_seed=42,
+        )
+
+    def test_fixture_row_count(self, dual_filar: pl.DataFrame):
+        """Total rows must equal 2 * n_buses_per_street * n_pings_per_bus."""
+        expected_rows = 2 * _N_BUSES * _N_PINGS
+        assert dual_filar.height == expected_rows, (
+            f"Expected {expected_rows} rows; got {dual_filar.height}"
+        )
+
+    def test_both_directions_present(self, dual_filar: pl.DataFrame):
+        """Both direction=+1 and direction=-1 must be present in the fixture."""
+        directions = set(dual_filar["direction"].unique().to_list())
+        assert 1 in directions, "direction=+1 (street A) must be present"
+        assert -1 in directions, "direction=-1 (street B) must be present"
+
+    def test_geographic_separation(self, dual_filar: pl.DataFrame):
+        """Mean lat of dir=+1 group and dir=-1 group must be separated by
+        approximately street_separation_m (within ±20%).
+        """
+        from src.preprocessing.config import LAT_DEG_M
+        mean_lat_plus = dual_filar.filter(pl.col("direction") == 1)["lat"].mean()
+        mean_lat_minus = dual_filar.filter(pl.col("direction") == -1)["lat"].mean()
+        assert mean_lat_plus is not None and mean_lat_minus is not None
+        sep_m = abs(mean_lat_plus - mean_lat_minus) * LAT_DEG_M
+        tolerance = 0.20 * _SEP_M
+        assert abs(sep_m - _SEP_M) <= tolerance, (
+            f"Expected geographic separation ≈ {_SEP_M} m ± {tolerance:.1f} m; "
+            f"got {sep_m:.2f} m"
+        )

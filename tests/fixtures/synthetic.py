@@ -165,6 +165,104 @@ def _build_e59() -> pl.DataFrame:
     )
 
 
+def make_dual_filar_gps(
+    empresaid: int = 59,
+    n_buses_per_street: int = 4,
+    n_pings_per_bus: int = 300,
+    street_separation_m: float = 40.0,
+    rng_seed: int = 42,
+) -> pl.DataFrame:
+    """Generate a synthetic dual-filar GPS DataFrame for two-pass centerline testing.
+
+    Two parallel east-west streets separated by `street_separation_m` meters.
+    Buses on street A (northern street) have direction=+1 (traveling east);
+    buses on street B (southern street) have direction=-1 (traveling west).
+
+    Each bus produces `n_pings_per_bus` pings so that each direction subset
+    has n_buses_per_street × n_pings_per_bus pings — comfortably above the
+    1,000-ping threshold required for pass-2 PCA eligibility.
+
+    Schema: empresaid (Int64), unidadid (Int64), time (Datetime us),
+            lat (Float64), lon (Float64), direction (Int64), speed_kmh (Float64).
+
+    The speed_kmh column is synthetic (constant 30.0 km/h) so that the
+    speed filter in build_centerline_per_direction passes without needing
+    attach_observed_speed.
+
+    Args:
+        empresaid: the empresa identifier for all pings.
+        n_buses_per_street: number of bus units on each street.
+        n_pings_per_bus: number of pings per bus. Total pings per direction
+                         = n_buses_per_street × n_pings_per_bus.
+        street_separation_m: geographic separation between streets in meters.
+                             Determines the lat offset between the two centerlines.
+        rng_seed: seed for deterministic GPS jitter.
+
+    Returns:
+        pl.DataFrame with columns:
+            empresaid, unidadid, time, lat, lon, direction, speed_kmh
+    """
+    rng = np.random.default_rng(rng_seed)
+
+    # Compute lat offset for the two streets
+    # street_separation_m in degrees lat: separation / LAT_DEG_M
+    lat_offset_deg = (street_separation_m / 2.0) / 111_000.0
+
+    lat_street_a = BASE_LAT + lat_offset_deg   # northern street (+1 direction)
+    lat_street_b = BASE_LAT - lat_offset_deg   # southern street (-1 direction)
+
+    rows: list[dict] = []
+
+    # Street A: buses 1..n_buses_per_street, direction=+1 (west → east)
+    for bus_i in range(n_buses_per_street):
+        unidadid = empresaid * 100 + bus_i + 1
+        t_start = T0 + timedelta(minutes=bus_i * 2)
+        pings = _straight_pings(
+            empresaid=empresaid,
+            unidadid=unidadid,
+            n_pings=n_pings_per_bus,
+            lon_from=LON_START,
+            lon_to=LON_END,
+            t_start=t_start,
+            lat_fixed=lat_street_a,
+            rng=rng,
+        )
+        for p in pings:
+            p["direction"] = 1
+            p["speed_kmh"] = 30.0
+        rows.extend(pings)
+
+    # Street B: buses n_buses_per_street+1..2*n_buses_per_street, direction=-1 (east → west)
+    for bus_i in range(n_buses_per_street):
+        unidadid = empresaid * 100 + n_buses_per_street + bus_i + 1
+        t_start = T0 + timedelta(minutes=bus_i * 2 + 1)
+        pings = _straight_pings(
+            empresaid=empresaid,
+            unidadid=unidadid,
+            n_pings=n_pings_per_bus,
+            lon_from=LON_END,
+            lon_to=LON_START,
+            t_start=t_start,
+            lat_fixed=lat_street_b,
+            rng=rng,
+        )
+        for p in pings:
+            p["direction"] = -1
+            p["speed_kmh"] = 30.0
+        rows.extend(pings)
+
+    df = pl.DataFrame(rows).with_columns(
+        pl.col("empresaid").cast(pl.Int64),
+        pl.col("unidadid").cast(pl.Int64),
+        pl.col("time").cast(pl.Datetime("us")),
+        pl.col("lat").cast(pl.Float64),
+        pl.col("lon").cast(pl.Float64),
+        pl.col("direction").cast(pl.Int64),
+        pl.col("speed_kmh").cast(pl.Float64),
+    )
+    return df
+
+
 def generate() -> None:
     """Write both synthetic parquets to FIXTURES_DIR."""
     FIXTURES_DIR.mkdir(parents=True, exist_ok=True)

@@ -149,3 +149,32 @@ class TestLateralPairThreshold:
         """Resolver must return global default for empresa not in EMPRESA_CONFIG."""
         result = lateral_pair_threshold_for(999)
         assert result == PRODUCTIVE_PARAMS.lateral_pair_threshold_m
+
+
+# ---------------------------------------------------------------------------
+# T1.1 RED: TestCenterlineStrategy — global default + min pings threshold
+# ---------------------------------------------------------------------------
+
+
+class TestCenterlineStrategy:
+    """D2-CONFIG — centerline_strategy resolver and min pings per direction.
+
+    R-CFG1: PRODUCTIVE_PARAMS.centerline_strategy == "single" (global default).
+    R-CFG1: PRODUCTIVE_PARAMS.centerline_min_pings_per_direction == 1_000.
+    R-CFG1: centerline_strategy_for(2) == "two-pass".
+    R-CFG1: centerline_strategy_for(59) == "two-pass".
+    R-CFG1: centerline_strategy_for(4) == "single" (fallback to global default).
+    """
+
+    def test_centerline_strategy_global_default(self):
+        """Global default must be 'single' for backward compatibility (R-CFG1)."""
+        from src.preprocessing.config import PRODUCTIVE_PARAMS
+        assert PRODUCTIVE_PARAMS.centerline_strategy == "single"
+        assert PRODUCTIVE_PARAMS.centerline_min_pings_per_direction == 1_000
+
+    def test_centerline_strategy_override_E2_E59(self):
+        """E2 and E59 must resolve to 'two-pass'; E4 must fall back to 'single'."""
+        from src.preprocessing.config import centerline_strategy_for
+        assert centerline_strategy_for(2) == "two-pass"
+        assert centerline_strategy_for(59) == "two-pass"
+        assert centerline_strategy_for(4) == "single"

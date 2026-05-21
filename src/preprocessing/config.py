@@ -7,7 +7,7 @@ tests/preprocessing/test_config.py encodes this contract as executable checks.
 """
 import math
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Literal, Mapping
 
 # ---------------------------------------------------------------------------
 # Coordinate constants — local flat-Earth at Arequipa (-16.4°)
@@ -79,6 +79,15 @@ class ProductiveParams:
     #
     # Per-empresa override available via EmpresaConfig.lateral_pair_threshold_m_override.
     lateral_pair_threshold_m: float = float('inf')
+    # Centerline strategy: "single" (default, single-pass PCA over all pings)
+    # or "two-pass" (per-direction PCA for multi-filar corridors).
+    # Overridden per empresa via EmpresaConfig.centerline_strategy_override.
+    # See decisiones-headway-fase2 §8, R-CFG1.
+    centerline_strategy: Literal["single", "two-pass"] = "single"
+    # Minimum ping count per direction subset to attempt pass-2 PCA.
+    # Below this threshold, build_centerline_per_direction falls back to the
+    # single-pass centerline. See R-CL1, R-CFG1.
+    centerline_min_pings_per_direction: int = 1_000
 
 
 PRODUCTIVE_PARAMS = ProductiveParams()
@@ -108,12 +117,31 @@ class EmpresaConfig:
     # When set, overrides PRODUCTIVE_PARAMS.lateral_pair_threshold_m for this
     # empresa. Used after Kaggle calibration of the |lateral_delta| histogram.
     lateral_pair_threshold_m_override: float | None = None
+    # Per-empresa override for the centerline strategy.
+    # When set, overrides PRODUCTIVE_PARAMS.centerline_strategy for this empresa.
+    # E2 and E59 are set to "two-pass" (multi-filar corridor, Option D SDD).
+    centerline_strategy_override: Literal["single", "two-pass"] | None = None
 
 
 EMPRESA_CONFIG: Mapping[int, EmpresaConfig] = {
-    2:  EmpresaConfig(empresaid=2,  has_heading=True),
-    59: EmpresaConfig(empresaid=59, has_heading=False),
+    2:  EmpresaConfig(empresaid=2,  has_heading=True,  centerline_strategy_override="two-pass"),
+    59: EmpresaConfig(empresaid=59, has_heading=False, centerline_strategy_override="two-pass"),
 }
+
+
+def centerline_strategy_for(empresaid: int) -> str:
+    """Return the effective centerline strategy for a given empresa.
+
+    Checks EmpresaConfig.centerline_strategy_override first; falls back to
+    PRODUCTIVE_PARAMS.centerline_strategy. Returns the global default for
+    empresas not in EMPRESA_CONFIG (graceful missing-key handling).
+
+    R-CFG1: E2 and E59 return "two-pass"; all others return "single".
+    """
+    cfg = EMPRESA_CONFIG.get(empresaid)
+    if cfg is not None and cfg.centerline_strategy_override is not None:
+        return cfg.centerline_strategy_override
+    return PRODUCTIVE_PARAMS.centerline_strategy
 
 
 def lateral_threshold_for(empresaid: int) -> float:
