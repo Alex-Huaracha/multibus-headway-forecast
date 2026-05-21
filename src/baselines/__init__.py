@@ -1,2 +1,9 @@
 # Classical statistical baselines for headway forecasting (Fase 3).
-# Public callables re-exported here after implementation in statistical.py and harness.py.
+from src.baselines.statistical import (  # noqa: F401
+    predict_b0,
+    predict_b1,
+    predict_b2,
+    predict_b3,
+    BASELINE_B2_WINDOWS,
+    SES_ALPHA,
+)
