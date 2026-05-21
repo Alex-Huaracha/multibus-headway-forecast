@@ -161,3 +161,120 @@ class TestDualFilarFixture:
             f"Expected geographic separation ≈ {_SEP_M} m ± {tolerance:.1f} m; "
             f"got {sep_m:.2f} m"
         )
+
+
+# ---------------------------------------------------------------------------
+# T2.1–T2.4 RED: TestBuildCenterlinePerDirection
+# ---------------------------------------------------------------------------
+
+
+class TestBuildCenterlinePerDirection:
+    """D2-CL-API, D2-FALLBACK-SPARSE — per-direction centerline wrapper.
+
+    T2.1: returns dict keyed by {+1, -1} with valid (m,2) arrays.
+    T2.2: the two centerlines' centroids are spatially separated.
+    T2.3: fallback triggers when subset is below min_pings_per_dir.
+    T2.4: fallback emits structured log warning via caplog.
+    T2.6: centerlines are deterministic across two calls on identical input.
+    """
+
+    @pytest.fixture(scope="class")
+    def dual_filar(self) -> pl.DataFrame:
+        return make_dual_filar_gps(
+            empresaid=59,
+            n_buses_per_street=4,
+            n_pings_per_bus=300,
+            street_separation_m=40.0,
+            rng_seed=42,
+        )
+
+    def test_returns_dict_keyed_by_direction(self, dual_filar: pl.DataFrame):
+        """T2.1: build_centerline_per_direction returns dict with keys {+1, -1},
+        each value is np.ndarray of shape (m, 2) with m >= 1.
+        """
+        from src.preprocessing.corridor import build_centerline_per_direction
+        result = build_centerline_per_direction(dual_filar, empresaid=59)
+        assert isinstance(result, dict), f"Expected dict; got {type(result)}"
+        assert set(result.keys()) == {1, -1}, (
+            f"Expected keys {{+1, -1}}; got {set(result.keys())}"
+        )
+        for direction, cl in result.items():
+            assert isinstance(cl, np.ndarray), (
+                f"Expected np.ndarray for direction={direction}; got {type(cl)}"
+            )
+            assert cl.ndim == 2, f"Expected 2D array for direction={direction}; got ndim={cl.ndim}"
+            assert cl.shape[1] == 2, (
+                f"Expected shape (m,2) for direction={direction}; got {cl.shape}"
+            )
+            assert cl.shape[0] >= 1, (
+                f"Expected m>=1 for direction={direction}; got shape={cl.shape}"
+            )
+
+    def test_centerlines_are_spatially_separated(self, dual_filar: pl.DataFrame):
+        """T2.2: centroid of cl[+1] and centroid of cl[-1] must be separated in lat
+        by >= 80% of street_separation_m (40.0 m default).
+        """
+        from src.preprocessing.corridor import build_centerline_per_direction
+        from src.preprocessing.config import LAT_DEG_M
+        result = build_centerline_per_direction(dual_filar, empresaid=59)
+        centroid_plus = result[1].mean(axis=0)   # (lat, lon) centroid of cl[+1]
+        centroid_minus = result[-1].mean(axis=0)  # (lat, lon) centroid of cl[-1]
+        sep_m = abs(centroid_plus[0] - centroid_minus[0]) * LAT_DEG_M
+        assert sep_m >= 0.80 * 40.0, (
+            f"Expected centerline centroid separation >= {0.80 * 40.0:.1f} m; "
+            f"got {sep_m:.2f} m"
+        )
+
+    def test_fallback_triggers_when_subset_too_small(self, dual_filar: pl.DataFrame):
+        """T2.3: when direction=+1 subset has < 1000 pings, build_centerline_per_direction
+        must fall back to the single-pass centerline for that direction (not None,
+        and returns a valid array).
+        """
+        from src.preprocessing.corridor import build_centerline_per_direction
+        # Create a sparse-dir=+1 frame: only 50 pings for +1, plenty for -1
+        sparse = dual_filar.filter(pl.col("direction") == -1)  # full -1 set
+        sparse_plus = dual_filar.filter(pl.col("direction") == 1).head(50)  # only 50 pings
+        sparse_frame = pl.concat([sparse, sparse_plus])
+        result = build_centerline_per_direction(
+            sparse_frame, empresaid=59, min_pings_per_dir=1_000
+        )
+        # +1 direction must have fallen back to a valid single-pass centerline
+        assert 1 in result, "Key +1 must be present even after fallback"
+        assert result[1] is not None, "Fallback must return a valid array, not None"
+        assert isinstance(result[1], np.ndarray)
+        assert result[1].shape[0] >= 1
+
+    def test_fallback_logs_structured_event(self, dual_filar: pl.DataFrame, caplog):
+        """T2.4: fallback emits a logging.warning with empresaid, direction, and pings."""
+        import logging
+        from src.preprocessing.corridor import build_centerline_per_direction
+        sparse_plus = dual_filar.filter(pl.col("direction") == 1).head(50)
+        sparse_minus = dual_filar.filter(pl.col("direction") == -1)
+        sparse_frame = pl.concat([sparse_plus, sparse_minus])
+        with caplog.at_level(logging.WARNING):
+            build_centerline_per_direction(
+                sparse_frame, empresaid=59, min_pings_per_dir=1_000
+            )
+        # Verify that at least one warning was emitted containing the required fields
+        warning_records = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert len(warning_records) >= 1, (
+            "Expected at least one WARNING log entry for fallback; got none"
+        )
+        full_log = " ".join(r.getMessage() for r in warning_records)
+        assert "59" in full_log, f"empresaid=59 not found in log: {full_log!r}"
+        assert "1" in full_log or "+1" in full_log, (
+            f"direction not found in log: {full_log!r}"
+        )
+        assert "50" in full_log, f"ping count (50) not found in log: {full_log!r}"
+
+    def test_centerline_deterministic_across_runs(self, dual_filar: pl.DataFrame):
+        """T2.6: build_centerline_per_direction is deterministic: two calls on
+        identical input produce numerically identical centerlines.
+        """
+        from src.preprocessing.corridor import build_centerline_per_direction
+        cl1 = build_centerline_per_direction(dual_filar, empresaid=59)
+        cl2 = build_centerline_per_direction(dual_filar, empresaid=59)
+        for direction in [1, -1]:
+            assert np.array_equal(cl1[direction], cl2[direction]), (
+                f"Centerline for direction={direction} is not deterministic across runs"
+            )

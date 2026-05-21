@@ -7,6 +7,7 @@ Covers:
           perpendicular to a centerline segment.
   Additional: arc-length monotonicity for straight on-route bus;
               off-route filter drops bus 203 (lat=-16.45) from E2 fixture.
+  T2.7–T2.10 — project_per_direction per-direction projection wrapper.
 """
 from __future__ import annotations
 from pathlib import Path
@@ -22,6 +23,7 @@ from src.preprocessing.projection import (
 )
 from src.preprocessing.corridor import build_centerline
 from src.preprocessing.config import LAT_DEG_M, LON_DEG_M
+from tests.fixtures.synthetic import make_dual_filar_gps
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 
@@ -280,3 +282,124 @@ class TestAttachObservedSpeedDropsGPSJumps:
         assert result["speed_kmh"][0] is None, (
             "The surviving first-ping row should have null speed_kmh"
         )
+
+
+# ---------------------------------------------------------------------------
+# T2.7–T2.9 RED: TestProjectPerDirection
+# ---------------------------------------------------------------------------
+
+
+class TestProjectPerDirection:
+    """D2-PR-API — per-direction projection wrapper (R-PR1).
+
+    T2.7: pings with direction=+1 have smaller |lateral_m| against cl[+1]
+          than against cl[-1], and vice-versa for direction=-1.
+    T2.8: pings with direction=0 (or unknown key) yield NaN s and NaN lateral_m.
+    T2.9: output row count equals input; no new columns; s/lateral_m are Float64.
+    """
+
+    @pytest.fixture(scope="class")
+    def dual_filar(self) -> pl.DataFrame:
+        return make_dual_filar_gps(
+            empresaid=59,
+            n_buses_per_street=4,
+            n_pings_per_bus=300,
+            street_separation_m=40.0,
+            rng_seed=42,
+        )
+
+    @pytest.fixture(scope="class")
+    def centerlines(self, dual_filar: pl.DataFrame) -> dict[int, np.ndarray]:
+        from src.preprocessing.corridor import build_centerline_per_direction
+        return build_centerline_per_direction(dual_filar, empresaid=59)
+
+    def test_dir_pings_project_to_their_centerline(
+        self, dual_filar: pl.DataFrame, centerlines: dict[int, np.ndarray]
+    ):
+        """T2.7: pings with direction=+1 have smaller |lateral_m| when projected
+        against cl[+1] than against cl[-1] (and vice-versa for direction=-1).
+        This confirms each ping is matched to its own street centerline.
+        """
+        from src.preprocessing.projection import project_per_direction, _project_arc_length
+
+        result = project_per_direction(dual_filar, centerlines, empresaid=59)
+
+        # For direction=+1 pings: lateral_m in result (projected against cl[+1])
+        # should be smaller than if projected against cl[-1]
+        plus_pings = dual_filar.filter(pl.col("direction") == 1)
+        pts = plus_pings.select(["lat", "lon"]).to_numpy()
+
+        _, lateral_vs_cl_plus = _project_arc_length(pts, centerlines[1], chunk_size=10_000)
+        _, lateral_vs_cl_minus = _project_arc_length(pts, centerlines[-1], chunk_size=10_000)
+
+        mean_lateral_own = float(lateral_vs_cl_plus.mean())
+        mean_lateral_other = float(lateral_vs_cl_minus.mean())
+        assert mean_lateral_own < mean_lateral_other, (
+            f"Expected dir=+1 pings closer to cl[+1] (mean {mean_lateral_own:.2f} m) "
+            f"than to cl[-1] (mean {mean_lateral_other:.2f} m)"
+        )
+
+    def test_directionless_pings_get_nan(self, centerlines: dict[int, np.ndarray]):
+        """T2.8: pings with direction=0 (key not in centerlines dict) yield NaN
+        for s and lateral_m, but are kept in the output (not dropped).
+        """
+        from datetime import datetime
+        from src.preprocessing.projection import project_per_direction
+        import math
+        # Build a minimal frame with direction=0 pings
+        directionless = pl.DataFrame({
+            "empresaid": pl.Series([59, 59], dtype=pl.Int64),
+            "unidadid": pl.Series([5901, 5901], dtype=pl.Int64),
+            "time": pl.Series(
+                [datetime(2024, 1, 23, 7, 0, 0), datetime(2024, 1, 23, 7, 0, 20)],
+                dtype=pl.Datetime("us"),
+            ),
+            "lat": pl.Series([-16.4, -16.4], dtype=pl.Float64),
+            "lon": pl.Series([-71.52, -71.51], dtype=pl.Float64),
+            "direction": pl.Series([0, 0], dtype=pl.Int64),
+            "speed_kmh": pl.Series([20.0, 20.0], dtype=pl.Float64),
+            "s": pl.Series([0.0, 0.0], dtype=pl.Float64),
+            "lateral_m": pl.Series([0.0, 0.0], dtype=pl.Float64),
+        })
+        result = project_per_direction(directionless, centerlines, empresaid=59)
+        assert result.height == 2, f"Expected 2 rows kept; got {result.height}"
+        s_vals = result["s"].to_list()
+        lat_vals = result["lateral_m"].to_list()
+        for v in s_vals:
+            assert v is None or (isinstance(v, float) and math.isnan(v)), (
+                f"Expected NaN s for direction=0; got {v}"
+            )
+        for v in lat_vals:
+            assert v is None or (isinstance(v, float) and math.isnan(v)), (
+                f"Expected NaN lateral_m for direction=0; got {v}"
+            )
+
+    def test_schema_preserved(
+        self, dual_filar: pl.DataFrame, centerlines: dict[int, np.ndarray]
+    ):
+        """T2.9: output row count equals input; s and lateral_m are Float64.
+        The function must not add or remove columns beyond s/lateral_m.
+        """
+        from src.preprocessing.projection import project_per_direction
+        # Add s and lateral_m as placeholder columns to mimic post-pass1 frame
+        input_frame = dual_filar.with_columns([
+            pl.lit(0.0, dtype=pl.Float64).alias("s"),
+            pl.lit(0.0, dtype=pl.Float64).alias("lateral_m"),
+        ])
+        result = project_per_direction(input_frame, centerlines, empresaid=59)
+        # Row count preserved
+        assert result.height == input_frame.height, (
+            f"Expected {input_frame.height} rows; got {result.height}"
+        )
+        # s and lateral_m present with Float64 dtype
+        assert result["s"].dtype == pl.Float64, (
+            f"Expected s dtype Float64; got {result['s'].dtype}"
+        )
+        assert result["lateral_m"].dtype == pl.Float64, (
+            f"Expected lateral_m dtype Float64; got {result['lateral_m'].dtype}"
+        )
+        # No new unexpected columns
+        input_cols = set(input_frame.columns)
+        output_cols = set(result.columns)
+        new_cols = output_cols - input_cols
+        assert not new_cols, f"Unexpected new columns in output: {new_cols}"

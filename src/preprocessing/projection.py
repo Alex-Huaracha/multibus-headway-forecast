@@ -130,6 +130,74 @@ def project_to_centerline(
     return result
 
 
+def project_per_direction(
+    gps: pl.DataFrame,
+    centerlines: dict[int, "np.ndarray"],
+    *,
+    empresaid: int,
+    direction_col: str = "direction",
+    chunk_size: int = 10_000,
+) -> pl.DataFrame:
+    """Project each direction subset onto its own centerline, then vertical_concat.
+
+    Pings with direction not in centerlines (e.g. direction == 0) get NaN s,
+    NaN lateral_m, and are kept (downstream filters handle them). Schema and dtypes
+    match project_to_centerline.
+
+    This function OVERWRITES the s and lateral_m columns in the returned DataFrame.
+    It is designed for pass-2 of the two-pass pipeline: after pass-1 has already
+    written s/lateral_m, call this to replace them with per-direction projections.
+
+    Args:
+        gps: DataFrame with columns including (direction, lat, lon) and existing
+             s/lateral_m columns (will be overwritten). All rows are kept.
+        centerlines: dict mapping direction int → (m, 2) centerline array.
+                     Keys are typically {+1, -1}. Pings with unknown direction
+                     keys receive NaN s and NaN lateral_m.
+        empresaid: empresa identifier (for type consistency; not used for filtering
+                   since gps is assumed to be already empresa-filtered).
+        direction_col: name of the direction column (default "direction").
+        chunk_size: number of pings per numpy batch (bounds peak memory).
+
+    Returns:
+        pl.DataFrame with same schema as input, same row count, with s and
+        lateral_m overwritten by per-direction projections.
+    """
+    known_directions = set(centerlines.keys())
+    parts: list[pl.DataFrame] = []
+
+    for direction, cl in centerlines.items():
+        subset = gps.filter(pl.col(direction_col) == direction)
+        if subset.is_empty():
+            continue
+        pts = subset.select(["lat", "lon"]).to_numpy()
+        s_arr, lateral_arr = _project_arc_length(pts, cl, chunk_size)
+        subset = subset.with_columns([
+            pl.Series("s", s_arr.astype(float), dtype=pl.Float64),
+            pl.Series("lateral_m", lateral_arr.astype(float), dtype=pl.Float64),
+        ])
+        parts.append(subset)
+
+    # Handle pings with unknown direction (not in centerlines) — assign NaN
+    unknown_mask = ~pl.col(direction_col).is_in(list(known_directions))
+    unknown_subset = gps.filter(unknown_mask)
+    if not unknown_subset.is_empty():
+        unknown_subset = unknown_subset.with_columns([
+            pl.lit(float("nan"), dtype=pl.Float64).alias("s"),
+            pl.lit(float("nan"), dtype=pl.Float64).alias("lateral_m"),
+        ])
+        parts.append(unknown_subset)
+
+    if not parts:
+        # Edge case: empty input
+        return gps.with_columns([
+            pl.lit(float("nan"), dtype=pl.Float64).alias("s"),
+            pl.lit(float("nan"), dtype=pl.Float64).alias("lateral_m"),
+        ])
+
+    return pl.concat(parts)
+
+
 def _project_arc_length(
     points_latlon: np.ndarray,
     centerline_latlon: np.ndarray,

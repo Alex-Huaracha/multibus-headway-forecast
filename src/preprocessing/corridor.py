@@ -11,10 +11,13 @@ Source: derived from build_notebook_03.py lines 279-361.
 """
 from __future__ import annotations
 
+import logging
 import numpy as np
 import polars as pl
 
 from .config import EMPRESA_CONFIG, LAT_DEG_M, LON_DEG_M, PRODUCTIVE_PARAMS
+
+logger = logging.getLogger(__name__)
 
 
 def _filter_geographic_outliers(
@@ -97,6 +100,87 @@ def build_centerline(
         trim_pct=params.centerline_trim_pct,
         smooth_win=params.centerline_smooth_win,
     )
+
+
+def build_centerline_per_direction(
+    gps: pl.DataFrame,
+    *,
+    empresaid: int,
+    direction_col: str = "direction",
+    min_pings_per_dir: int = 1_000,
+    rng_seed: int = 42,
+) -> dict[int, np.ndarray]:
+    """Build one (m, 2) centerline per direction key {+1, -1}.
+
+    Filters gps by empresaid and speed >= min_speed_for_centerline_kmh, partitions
+    by direction_col, calls _build_centerline_from_points per subset. Subsets below
+    min_pings_per_dir fall back to single-pass build_centerline; same fallback on
+    ValueError from sparse bins. Logs a structured FallbackEvent per fallback.
+
+    Args:
+        gps: DataFrame with columns (empresaid, direction, speed_kmh, lat, lon).
+             speed_kmh must already be populated.
+        empresaid: which empresa to build centerlines for.
+        direction_col: name of the direction column (default "direction").
+        min_pings_per_dir: minimum pings required per direction subset to attempt
+                           per-direction PCA. Below this, falls back to single-pass
+                           centerline. (R-CL1)
+        rng_seed: seed for deterministic random sampling in the fallback single-pass
+                  build_centerline call.
+
+    Returns:
+        dict[int, np.ndarray] with keys +1 and -1. Each value is the (m, 2)
+        centerline for that direction subset. When a subset falls back to the
+        single-pass centerline, that centerline is stored for the direction key.
+
+    Raises:
+        Never raises — all exceptions from _build_centerline_from_points trigger
+        the fallback path.
+    """
+    params = PRODUCTIVE_PARAMS
+
+    # Filter to this empresa's moving pings
+    moving = gps.filter(
+        (pl.col("empresaid") == empresaid)
+        & (pl.col("speed_kmh") >= params.min_speed_for_centerline_kmh)
+    )
+
+    # Build the single-pass centerline once (used as fallback for sparse directions)
+    single_pass_cl = build_centerline(gps, empresaid=empresaid, rng_seed=rng_seed)
+
+    result: dict[int, np.ndarray] = {}
+
+    for direction in [1, -1]:
+        subset = moving.filter(pl.col(direction_col) == direction)
+        n_pings = subset.height
+
+        if n_pings < min_pings_per_dir:
+            logger.warning(
+                "FallbackEvent: empresaid=%d direction=%d pings=%d reason=sparse "
+                "(below min_pings_per_dir=%d); using single-pass centerline",
+                empresaid, direction, n_pings, min_pings_per_dir,
+            )
+            result[direction] = single_pass_cl
+            continue
+
+        points = subset.select(["lat", "lon"]).to_numpy()
+        try:
+            cl = _build_centerline_from_points(
+                points,
+                n_bins=params.centerline_n_bins,
+                trim_pct=params.centerline_trim_pct,
+                smooth_win=params.centerline_smooth_win,
+            )
+            result[direction] = cl
+        except ValueError as exc:
+            logger.warning(
+                "FallbackEvent: empresaid=%d direction=%d pings=%d reason=pca_error "
+                "(%s); using single-pass centerline",
+                empresaid, direction, n_pings, exc,
+            )
+            result[direction] = single_pass_cl
+
+    return result
 
 
 def _build_centerline_from_points(
