@@ -207,3 +207,64 @@ El threshold de `pairs_efectivo < 10k/día` para E2 (definido en §4 row 3 como 
 ### 7.4 Estado de outputs
 
 Los 4 parquets están disponibles en el kernel Kaggle `alexhuaracha/04-preprocessing` v2 (output del run COMPLETE). Para Fase 3 se recomienda promoverlos a un Kaggle Dataset versionado (siguiendo la política de §`docs/dataset-manifest.md`).
+
+---
+
+## 8. Centerline por dirección (multi-filar-direction-balanced-centerline, Option D)
+
+**Estado:** IMPLEMENTADO (2026-05-21) — SDD `multi-filar-direction-balanced-centerline`. Validación Kaggle v5 pendiente (post-merge manual).
+
+### 8.1 Causa raíz
+
+El SDD predecesor `multi-filar-disambiguation` (archivado PARTIAL-SUCCESS) demostró que el centroide único construido por `build_centerline` sobre todos los pings (ida + vuelta mezclados) cae **entre las dos calles paralelas** de los corredores multi-filares E2 y E59. Esto produce:
+
+- `lateral_m` ruidoso (cada ping proyectado contra el centroide del corredor en lugar de su propia calle).
+- `s` ruidoso → `ds/dt` ruidoso → etiquetas de dirección erróneas.
+- Contaminación cruzada de pares (bus de calle A emparejado con bus de calle B).
+
+La distribución `|lateral_delta|` mostrada en Figura 7 del notebook 04b v4 es monotónicamente decreciente, sin valle bimodal. No es posible calibrar un threshold post-emparejamiento; la corrección debe ser upstream.
+
+### 8.2 Estrategia two-pass
+
+**Opción D — Two-pass PCA centerline** (rechazadas: B=DBSCAN, C=displacement-heuristic).
+
+```
+Pass 1 (existente):
+  build_centerline → project_to_centerline → infer_direction
+  [produce etiquetas de dirección crudas, dir=-1 ≈ 50-63% cobertura]
+
+Pass 2 (nuevo, E2 y E59):
+  build_centerline_per_direction  → project_per_direction
+  → infer_direction               → assign_trip_ids
+  [cada ping proyectado contra el centroide de SU calle, no el centroide global]
+```
+
+### 8.3 Política de fallback
+
+Threshold mínimo: **1,000 pings por subconjunto de dirección** para intentar PCA pass-2. Justificación: `_build_centerline_from_points` requiere ≥ 5 muestras por bin × 50 bins mínimos = 250 pings absolutos; 1,000 provee un margen de seguridad 4× para el recorte IQR (0.5% por cola) y el paso de mediana binada.
+
+Cuando un subconjunto cae por debajo del threshold (o PCA lanza `ValueError`), `build_centerline_per_direction` vuelve al centroide single-pass para esa dirección y emite un `FallbackEvent` WARNING estructurado con `empresaid`, `direction` y `pings`. El comportamiento downstream es transparente: `s` y `lateral_m` se escriben con dtype Float64 sin introducir nulls.
+
+### 8.4 Garantía de esquema R7 v4
+
+El esquema de los parquets `cleaned_gps` y `headways` **no cambia**. Las columnas `s`, `lateral_m`, `lateral_m_front`, `lateral_m_back`, `direction`, `delta_t_min`, etc. conservan nombres, dtypes y semántica. Solo los **valores** de `s` y `lateral_m` mejoran (cada ping proyectado contra la calle correcta).
+
+### 8.5 Invariante de ordenamiento (R-PIPE2)
+
+`assign_trip_ids` se ejecuta DESPUÉS de la segunda llamada a `infer_direction` en el path two-pass. Este ordenamiento se verifica con un test de integración (`TestTwoPassPipeline::test_two_pass_call_order`).
+
+### 8.6 Validación Kaggle v5 (post-merge, manual)
+
+| AC | Métrica | Target |
+|---|---|---|
+| D2-EXPO-DIR1 | Skewness `delta_t_min` E59 dir=+1 | > 1.0 |
+| D2-SHAPE-E59-DIR1 | Mediana `delta_t_min` E59 dir=+1 | ∈ [4, 12] min |
+| D2-ASYMMETRY | Ratio cobertura dir=+1 / dir=-1 (E2 y E59) | ∈ [0.77, 1.30] |
+| D2-NPAIRS-REGRESS | `n_pairs_efectivo` vs baseline v3 | ≥ 0.90 × baseline |
+| D2-DETERMINISM | Hash centerlines numpy en 2 runs consecutivos | bit-identical |
+
+**Bloqueantes**: D2-NPAIRS-REGRESS y D2-DETERMINISM. Si cualquiera falla, el SDD no puede archivarse.
+
+### 8.7 Rollback
+
+El two-pass está gateado por `centerline_strategy_for(empresaid)`. Revertir el merge commit o forzar `centerline_strategy_override=None` en `EMPRESA_CONFIG` restaura el comportamiento v4 completamente. El esquema R7 v4 no cambia, por lo que los parquets anteriores son legibles sin migración.
