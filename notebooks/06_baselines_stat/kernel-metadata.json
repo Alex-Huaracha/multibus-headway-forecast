@@ -1,0 +1,13 @@
+{
+  "id": "alexhuaracha/06-baselines-stat",
+  "title": "06 Baselines Stat",
+  "code_file": "06_baselines_stat.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": ["alexhuaracha/multibus-headway-forecast-clean"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

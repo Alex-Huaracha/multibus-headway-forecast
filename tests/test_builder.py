@@ -181,3 +181,157 @@ class TestAllCellsCompile:
         assert not errors, (
             f"{len(errors)} code cell(s) failed to compile:\n" + "\n".join(errors)
         )
+
+
+# ---------------------------------------------------------------------------
+# Tests for src/build_notebook_06.py  (T8.1 — RED)
+#   AC-NB-1: builder exits 0, notebook exists, valid JSON
+#   AC-NB-2: byte-identical second run (stable cell IDs, flutter-free)
+# ---------------------------------------------------------------------------
+
+NOTEBOOK_06_PATH = ROOT / "notebooks" / "06_baselines_stat" / "06_baselines_stat.ipynb"
+BUILDER_06 = ROOT / "src" / "build_notebook_06.py"
+
+
+@pytest.fixture(scope="module")
+def generated_notebook_06() -> nbformat.NotebookNode:
+    """Run build_notebook_06.py once and return the parsed notebook.
+
+    AC-NB-1: builder must exit 0 and produce a valid .ipynb at
+    notebooks/06_baselines_stat/06_baselines_stat.ipynb.
+    """
+    result = subprocess.run(
+        [sys.executable, str(BUILDER_06)],
+        capture_output=True, text=True, cwd=str(ROOT),
+    )
+    assert result.returncode == 0, (
+        f"build_notebook_06.py failed with return code {result.returncode}.\n"
+        f"stdout: {result.stdout}\nstderr: {result.stderr}"
+    )
+    assert NOTEBOOK_06_PATH.exists(), (
+        f"Expected notebook at {NOTEBOOK_06_PATH} but file does not exist"
+    )
+    with open(NOTEBOOK_06_PATH, encoding="utf-8") as f:
+        return nbformat.read(f, as_version=4)
+
+
+class TestNotebook06Builder:
+    """T8.1 — Verify build_notebook_06.py produces a correct, stable notebook."""
+
+    def test_notebook_06_exists_and_valid(
+        self, generated_notebook_06: nbformat.NotebookNode
+    ):
+        """AC-NB-1: Notebook file must exist and be valid nbformat.
+
+        Failure mode: builder script raises an exception or writes invalid JSON.
+        """
+        assert NOTEBOOK_06_PATH.exists()
+        nb = generated_notebook_06
+        assert hasattr(nb, "cells"), "Notebook must have a cells attribute"
+        assert len(nb.cells) >= 8, (
+            f"Expected >= 8 cells (title + setup + 4 embeds + sanity + run + write + summary); "
+            f"got {len(nb.cells)}"
+        )
+
+    def test_notebook_06_first_cell_markdown_with_title(
+        self, generated_notebook_06: nbformat.NotebookNode
+    ):
+        """First cell must be a markdown title cell referencing notebook 06."""
+        first = generated_notebook_06.cells[0]
+        assert first.cell_type == "markdown", (
+            f"First cell is '{first.cell_type}'; expected 'markdown'"
+        )
+        assert "06" in first.source, (
+            f"First markdown cell does not mention '06': {first.source[:100]!r}"
+        )
+
+    def test_notebook_06_embeds_all_modules(
+        self, generated_notebook_06: nbformat.NotebookNode
+    ):
+        """All four modules must be inlined as code cells.
+
+        Checks for at least one unique symbol from each module:
+          - splits.py  → SPLIT_TRAIN_START
+          - metrics.py → def mae
+          - statistical.py → predict_b0
+          - harness.py → evaluate_corridor
+        """
+        code_cells = [
+            c.source for c in generated_notebook_06.cells if c.cell_type == "code"
+        ]
+        combined = "\n".join(code_cells)
+        assert "SPLIT_TRAIN_START" in combined, (
+            "Expected 'SPLIT_TRAIN_START' from evaluation/splits.py in a code cell"
+        )
+        assert "def mae" in combined, (
+            "Expected 'def mae' from evaluation/metrics.py in a code cell"
+        )
+        assert "predict_b0" in combined, (
+            "Expected 'predict_b0' from baselines/statistical.py in a code cell"
+        )
+        assert "evaluate_corridor" in combined, (
+            "Expected 'evaluate_corridor' from baselines/harness.py in a code cell"
+        )
+
+    def test_notebook_06_no_relative_imports(
+        self, generated_notebook_06: nbformat.NotebookNode
+    ):
+        """No relative import may survive in any code cell after _strip_relative_imports.
+
+        Failure mode: the helper misses 'from .config import X' type lines,
+        which would fail at Kaggle runtime.
+        """
+        import re
+        relative_import_pattern = re.compile(r"from \.")
+        for i, cell in enumerate(generated_notebook_06.cells):
+            if cell.cell_type != "code":
+                continue
+            matches = relative_import_pattern.findall(cell.source)
+            assert not matches, (
+                f"Code cell {i} contains relative import(s): {matches}\n"
+                f"Cell source (first 200 chars): {cell.source[:200]!r}"
+            )
+
+    def test_notebook_06_references_e2_and_e59_only(
+        self, generated_notebook_06: nbformat.NotebookNode
+    ):
+        """No reference to E4 or E58 may appear in any cell.
+
+        This guards B3-CORRIDOR-SCOPE / AC-CSV-3.
+        """
+        for i, cell in enumerate(generated_notebook_06.cells):
+            src = cell.source
+            assert "E4" not in src and "E58" not in src, (
+                f"Cell {i} references E4 or E58 (out of scope): {src[:200]!r}"
+            )
+
+    def test_notebook_06_stable_cell_ids(self):
+        """AC-NB-2: Running the builder twice must produce identical cell IDs.
+
+        This is the regression test for B3-NOTEBOOK-FLUTTER: if cell IDs are
+        random (uuid4), each regen produces a dirty working tree. With explicit
+        stable IDs (cell-06-N) the second run is byte-identical.
+        """
+        # Run builder a second time
+        result2 = subprocess.run(
+            [sys.executable, str(BUILDER_06)],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        assert result2.returncode == 0, (
+            f"Second run of build_notebook_06.py failed.\n"
+            f"stdout: {result2.stdout}\nstderr: {result2.stderr}"
+        )
+        # Read both versions (first was written by the fixture; second just written)
+        first_bytes = NOTEBOOK_06_PATH.read_bytes()
+        # Write again and compare (the fixture already ran the first pass)
+        result3 = subprocess.run(
+            [sys.executable, str(BUILDER_06)],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        assert result3.returncode == 0
+        second_bytes = NOTEBOOK_06_PATH.read_bytes()
+        assert first_bytes == second_bytes, (
+            "build_notebook_06.py is NOT idempotent: two consecutive runs produced "
+            "different byte content. This indicates non-stable cell IDs (flutter). "
+            "Each cell must have an explicit id= like 'cell-06-setup'."
+        )
