@@ -314,8 +314,11 @@ class TestB3:
         result1 = predict_b3(df)
         result2 = predict_b3(df)
 
-        # Sort both by same key to ensure row order alignment
+        # Sort both by same key to ensure row order alignment.
+        # Use polars Series equality (null-safe) instead of Python list __eq__
+        # because Python's float NaN != NaN breaks list comparison.
         key = ["direction", "pair_rank", "t"]
-        r1 = result1.sort(key)["y_pred_b3"].to_list()
-        r2 = result2.sort(key)["y_pred_b3"].to_list()
-        assert r1 == r2, "predict_b3 must be deterministic"
+        s1 = result1.sort(key)["y_pred_b3"]
+        s2 = result2.sort(key)["y_pred_b3"]
+        # .equals(null_equal=True) treats null==null as True (polars >= 1.21 API).
+        assert s1.equals(s2, null_equal=True), "predict_b3 must be deterministic"
