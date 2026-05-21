@@ -139,11 +139,17 @@ def build_centerline_per_direction(
     """
     params = PRODUCTIVE_PARAMS
 
-    # Filter to this empresa's moving pings
-    moving = gps.filter(
-        (pl.col("empresaid") == empresaid)
-        & (pl.col("speed_kmh") >= params.min_speed_for_centerline_kmh)
-    )
+    # Filter to this empresa's moving pings.
+    # Speed filter is applied only when speed_kmh column is present
+    # (it may be absent in test fixtures that pre-set direction without going
+    # through attach_observed_speed).
+    if "speed_kmh" in gps.columns:
+        moving = gps.filter(
+            (pl.col("empresaid") == empresaid)
+            & (pl.col("speed_kmh") >= params.min_speed_for_centerline_kmh)
+        )
+    else:
+        moving = gps.filter(pl.col("empresaid") == empresaid)
 
     # Build the single-pass centerline once (used as fallback for sparse directions)
     single_pass_cl = build_centerline(gps, empresaid=empresaid, rng_seed=rng_seed)
