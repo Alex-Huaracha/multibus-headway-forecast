@@ -165,6 +165,37 @@ def _build_e59() -> pl.DataFrame:
     )
 
 
+_DUAL_FILAR_PING_INTERVAL_S: int = 6  # 6s → ~10.6 km/h on a 5.3 km route with 300 pings
+
+
+def _straight_pings_interval(
+    empresaid: int,
+    unidadid: int,
+    n_pings: int,
+    lon_from: float,
+    lon_to: float,
+    t_start: datetime,
+    lat_fixed: float = BASE_LAT,
+    ping_interval_s: int = PING_INTERVAL_S,
+    rng: np.random.Generator | None = None,
+) -> list[dict]:
+    """Return pings with a configurable ping interval (variant of _straight_pings)."""
+    if rng is None:
+        rng = np.random.default_rng(42)
+    lons = np.linspace(lon_from, lon_to, n_pings)
+    lat_jitter = rng.normal(0, 0.0001, n_pings)
+    rows = []
+    for i in range(n_pings):
+        rows.append({
+            "empresaid": empresaid,
+            "unidadid": unidadid,
+            "time": t_start + timedelta(seconds=i * ping_interval_s),
+            "lat": lat_fixed + lat_jitter[i],
+            "lon": lons[i],
+        })
+    return rows
+
+
 def make_dual_filar_gps(
     empresaid: int = 59,
     n_buses_per_street: int = 4,
@@ -182,12 +213,18 @@ def make_dual_filar_gps(
     has n_buses_per_street × n_pings_per_bus pings — comfortably above the
     1,000-ping threshold required for pass-2 PCA eligibility.
 
+    Ping interval is 6 seconds so that the GPS-inferred speed is ≥ 10 km/h
+    and pings pass the `min_speed_for_centerline_kmh` filter after
+    attach_observed_speed is called by the pipeline.
+
     Schema: empresaid (Int64), unidadid (Int64), time (Datetime us),
             lat (Float64), lon (Float64), direction (Int64), speed_kmh (Float64).
 
-    The speed_kmh column is synthetic (constant 30.0 km/h) so that the
-    speed filter in build_centerline_per_direction passes without needing
-    attach_observed_speed.
+    speed_kmh is a synthetic constant (30.0 km/h), suitable for unit tests that
+    call build_centerline_per_direction or project_per_direction directly.
+    For e2e pipeline tests that call run_two_pass_pipeline, speed_kmh from the
+    6s ping interval is ≥ 10 km/h so the speed filter passes correctly even
+    after attach_observed_speed overwrites the synthetic speed.
 
     Args:
         empresaid: the empresa identifier for all pings.
@@ -200,7 +237,8 @@ def make_dual_filar_gps(
 
     Returns:
         pl.DataFrame with columns:
-            empresaid, unidadid, time, lat, lon, direction, speed_kmh
+            empresaid (Int64), unidadid (Int64), time (Datetime us),
+            lat (Float64), lon (Float64), direction (Int64).
     """
     rng = np.random.default_rng(rng_seed)
 
@@ -217,7 +255,7 @@ def make_dual_filar_gps(
     for bus_i in range(n_buses_per_street):
         unidadid = empresaid * 100 + bus_i + 1
         t_start = T0 + timedelta(minutes=bus_i * 2)
-        pings = _straight_pings(
+        pings = _straight_pings_interval(
             empresaid=empresaid,
             unidadid=unidadid,
             n_pings=n_pings_per_bus,
@@ -225,6 +263,7 @@ def make_dual_filar_gps(
             lon_to=LON_END,
             t_start=t_start,
             lat_fixed=lat_street_a,
+            ping_interval_s=_DUAL_FILAR_PING_INTERVAL_S,
             rng=rng,
         )
         for p in pings:
@@ -236,7 +275,7 @@ def make_dual_filar_gps(
     for bus_i in range(n_buses_per_street):
         unidadid = empresaid * 100 + n_buses_per_street + bus_i + 1
         t_start = T0 + timedelta(minutes=bus_i * 2 + 1)
-        pings = _straight_pings(
+        pings = _straight_pings_interval(
             empresaid=empresaid,
             unidadid=unidadid,
             n_pings=n_pings_per_bus,
@@ -244,6 +283,7 @@ def make_dual_filar_gps(
             lon_to=LON_START,
             t_start=t_start,
             lat_fixed=lat_street_b,
+            ping_interval_s=_DUAL_FILAR_PING_INTERVAL_S,
             rng=rng,
         )
         for p in pings:

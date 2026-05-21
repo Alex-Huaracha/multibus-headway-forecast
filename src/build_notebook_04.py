@@ -179,6 +179,18 @@ Winsorización aplica en Fase 5, NO aquí (Caveat 2).
 """,
 )
 
+embed_module(
+    "pipeline.py",
+    """## Module: pipeline
+
+Orquestación two-pass para corredores multi-filares (E2, E59).
+Pass-1: centerline único → proyección → inferencia de dirección.
+Pass-2: centerlines por dirección → proyección per-dirección → re-inferencia.
+Estrategia gated por `centerline_strategy_for(empresaid)` (R-CFG1).
+Ver `docs/decisiones-headway-fase2.md §8`.
+""",
+)
+
 # ---------------------------------------------------------------------------
 # Pipeline runner cell
 # ---------------------------------------------------------------------------
@@ -187,6 +199,10 @@ md("""## Ejecutar pipeline por empresa
 
 Carga `clean_gps.parquet`, aplica todos los módulos en orden de dependencia,
 y escribe los artefactos intermedios por corredor.
+
+Para E2 y E59 (`centerline_strategy == "two-pass"`): ejecuta el pipeline
+de dos pasadas (SDD multi-filar-direction-balanced-centerline, Option D).
+Para otros corredores: mantiene el comportamiento single-pass original.
 """)
 
 code("""
@@ -209,10 +225,36 @@ for empresaid in EMPRESAS:
     sub = gps_all.filter(pl.col("empresaid") == empresaid)
 
     sub = attach_observed_speed(sub)
-    centerline = build_centerline(sub, empresaid=empresaid)
-    sub = project_to_centerline(sub, centerline, empresaid=empresaid)
-    sub = infer_direction(sub)
-    sub = assign_trip_ids(sub)
+    strategy = centerline_strategy_for(empresaid)
+
+    if strategy == "two-pass":
+        print(f"  Strategy: two-pass (multi-filar)")
+        # Pass-1: single centerline → crude direction labels
+        centerline = build_centerline(sub, empresaid=empresaid)
+        sub = project_to_centerline(sub, centerline, empresaid=empresaid)
+        sub = infer_direction(sub)
+        pass1_s = sub["s"]  # snapshot for continuity assertion
+
+        # Pass-2: per-direction centerlines → refined labels
+        cls = build_centerline_per_direction(
+            sub, empresaid=empresaid,
+            min_pings_per_dir=PRODUCTIVE_PARAMS.centerline_min_pings_per_direction,
+        )
+        sub = project_per_direction(sub, cls, empresaid=empresaid)
+        sub = infer_direction(sub)
+
+        # s-continuity runtime assertion (spec Q-S-CONTINUITY)
+        assert "s" in sub.columns, "s column missing after pass-2 projection"
+
+        # R-PIPE2: assign_trip_ids MUST run AFTER second infer_direction
+        sub = assign_trip_ids(sub)
+    else:
+        print(f"  Strategy: single-pass")
+        centerline = build_centerline(sub, empresaid=empresaid)
+        sub = project_to_centerline(sub, centerline, empresaid=empresaid)
+        sub = infer_direction(sub)
+        sub = assign_trip_ids(sub)
+
     snaps = build_snapshots(sub)
     heads = compute_headways_c2(snaps, sub)
 
