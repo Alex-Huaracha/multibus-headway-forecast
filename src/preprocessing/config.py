@@ -65,9 +65,20 @@ class ProductiveParams:
     # Lateral distance threshold (meters) between bus_front and bus_back to
     # consider them on the same track. Pairs with |lateral_m_front -
     # lateral_m_back| > threshold are filtered out as cross-street pairs.
+    #
+    # DEFAULT: float('inf') — filter is OFF by default (no-op).
+    # Rationale: Kaggle 04b v4 Figure 7 (2026-05-21) showed a monotonically-
+    # decreasing |lateral_delta| distribution for E2/E59 with no bimodal valley.
+    # A calibration threshold cannot be meaningfully chosen from this shape.
+    # Root cause is upstream (centerline + projection per direction), addressed
+    # by Option D SDD (multi-filar-direction-balanced-centerline).
+    #
+    # Opt-in: set EmpresaConfig.lateral_pair_threshold_m_override to a finite
+    # value for any empresa where the filter should be active.
+    # See decisiones-headway-fase2 §7.0b.1.
+    #
     # Per-empresa override available via EmpresaConfig.lateral_pair_threshold_m_override.
-    # See decisiones-headway-fase2 §3 (multi-filar-disambiguation).
-    lateral_pair_threshold_m: float = 50.0
+    lateral_pair_threshold_m: float = float('inf')
 
 
 PRODUCTIVE_PARAMS = ProductiveParams()

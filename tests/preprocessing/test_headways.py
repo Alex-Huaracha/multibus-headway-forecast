@@ -289,23 +289,41 @@ class TestPairLateralFilter:
     """AC-C5, AC-C6, AC-C7: lateral pair filter in compute_pairs."""
 
     def test_lateral_filter_drops_cross_track(self):
-        """AC-C5: two buses at same s with |lateral_delta|=120 m → no pair (default 50 m threshold).
+        """AC-C5: cross-track pair is dropped when an explicit override activates the filter.
 
-        Failure mode: if compute_pairs does not filter by lateral_m, the cross-street
-        pair is emitted when it should be suppressed.
+        Default is float('inf') (filter OFF). This test verifies the filter mechanism
+        works when opted-in via EmpresaConfig.lateral_pair_threshold_m_override=50 m:
+        |lateral_delta|=120 m > 50 m override → pair dropped.
+
+        Failure mode: if compute_pairs does not respect the per-empresa override, the
+        cross-street pair is emitted when it should be suppressed.
         """
-        rows = [
-            _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=10.0),
-            _make_snapshot_row(2, 202, T0, s=200.0, lateral_m=130.0),  # delta = 120 m
-        ]
-        snaps = _build_snapshots_df(rows)
-        pairs = compute_pairs(snaps)
-        assert len(pairs) == 0, (
-            f"Expected 0 pairs (cross-street delta=120 m > threshold 50 m); got {len(pairs)}"
-        )
+        import src.preprocessing.config as config_module
+        from src.preprocessing.config import EmpresaConfig
+        original_config = config_module.EMPRESA_CONFIG
+        try:
+            config_module.EMPRESA_CONFIG = {
+                2: EmpresaConfig(
+                    empresaid=2,
+                    has_heading=True,
+                    lateral_pair_threshold_m_override=50.0,
+                ),
+                59: EmpresaConfig(empresaid=59, has_heading=False),
+            }
+            rows = [
+                _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=10.0),
+                _make_snapshot_row(2, 202, T0, s=200.0, lateral_m=130.0),  # delta = 120 m
+            ]
+            snaps = _build_snapshots_df(rows)
+            pairs = compute_pairs(snaps)
+            assert len(pairs) == 0, (
+                f"Expected 0 pairs (cross-street delta=120 m > override 50 m); got {len(pairs)}"
+            )
+        finally:
+            config_module.EMPRESA_CONFIG = original_config
 
     def test_lateral_filter_keeps_same_track(self):
-        """AC-C5 (retain case): |lateral_delta|=20 m at default 50 m threshold → pair retained."""
+        """AC-C5 (retain case): |lateral_delta|=20 m with default float('inf') → pair retained (filter OFF)."""
         rows = [
             _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=10.0),
             _make_snapshot_row(2, 202, T0, s=200.0, lateral_m=30.0),  # delta = 20 m
@@ -346,9 +364,10 @@ class TestPairLateralFilter:
             config_module.EMPRESA_CONFIG = original_config
 
     def test_lateral_filter_boundary_retained(self):
-        """AC-C7: |delta| == 50.0 exactly at threshold 50.0 → pair retained (inclusive boundary).
+        """AC-C7: |delta| == 50.0 with default float('inf') → pair retained (filter is no-op by default).
 
         Consistent with R-LB1 boundary semantics (>= for retain, > for drop).
+        With default=inf, any finite delta is always retained.
         """
         rows = [
             _make_snapshot_row(2, 201, T0, s=100.0, lateral_m=0.0),

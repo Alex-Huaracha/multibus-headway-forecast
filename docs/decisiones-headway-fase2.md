@@ -155,6 +155,16 @@ Nota: el baseline v3 es ~50% (E2) y ~65% (E59) inferior al baseline v2 (§7.1) p
 
 **Impacto en R7 schema**: `compute_pairs` y `compute_headways_c2` ahora emiten `lateral_m_front` (Float64, nullable) y `lateral_m_back` (Float64, nullable) como las dos últimas columnas del parquet de headways. Cambio ADITIVO — no se renombra ni cambia el tipo de ninguna columna anterior. Los 13 campos existentes están intactos.
 
+### 7.0b.1 — Default OFF (2026-05-21)
+
+**Decisión**: `ProductiveParams.lateral_pair_threshold_m` cambió de `50.0` a `float('inf')`.
+
+**Evidencia**: Figura 7 del kernel Kaggle 04b v4 (ejecutado 2026-05-21) muestra una distribución `|lateral_m_front − lateral_m_back|` monotónicamente decreciente de 0 a 50 m para E2/E59 × dir=±1. No existe valle bimodal. Sin un valle bimodal no hay umbral calibrable: cualquier valor entre 0 y 50 m discriminaría de forma arbitraria, no estructural.
+
+**Consecuencia**: el filtro lateral queda como infraestructura opt-in. Con el default `float('inf')`, la condición `|delta| > inf` es siempre falsa y `compute_pairs` se comporta idéntico al estado pre-multi-filar-disambiguation. Los tests, el schema R7 v4 y `EmpresaConfig.lateral_pair_threshold_m_override` se preservan para activación futura por empresa si la evidencia cambia.
+
+**Avance**: la causa raíz de la contaminación cross-street es upstream (centerline único + proyección sin separación por dirección). El SDD `multi-filar-direction-balanced-centerline` (Option D) es la ruta que aborda este problema estructuralmente.
+
 ---
 
 ## 8. Cierre de Fase 2 — Kaggle v2 (2026-05-20)

@@ -298,13 +298,15 @@ plt.show()
 md("""## Figura 7 — Histograma `|lateral_delta|` para calibración del threshold
 
 Distribución de `|lateral_m_front − lateral_m_back|` por empresa y dirección
-sobre todos los pares de headways v4. La línea vertical marca el threshold
-activo (`lateral_pair_threshold_m` en `config.py`, default 50 m).
+sobre todos los pares de headways v4. La línea vertical marca la referencia
+histórica de 50 m (valor previo al cambio de default; ver §7.0b.1 en
+`docs/decisiones-headway-fase2.md`).
 
-**Cómo calibrar**: si el histograma es bimodal con un valle claro,
-usar el valor del valle como `lateral_pair_threshold_m_override` en
-`EmpresaConfig`. Si es unimodal o el valle no es claro, dejar el default 50 m.
-Ver `docs/decisiones-headway-fase2.md §3` y `Calibration Protocol`.
+**Default actual**: `lateral_pair_threshold_m = float('inf')` — el filtro lateral
+está desactivado por defecto (no-op). La Figura 7 del run v4 mostró una
+distribución monotónicamente decreciente sin valle bimodal, haciendo imposible
+la calibración automática. El filtro se puede activar por empresa con
+`EmpresaConfig.lateral_pair_threshold_m_override`. Ver §7.0b.1.
 """)
 
 code("""
@@ -320,7 +322,7 @@ if not has_lateral_cols:
     print("WARNING: lateral_m_front/lateral_m_back columns absent — headways appear to be v3 or earlier. "
           "Re-run the Kaggle pipeline with v4 code to generate Figure 7.")
 else:
-    LATERAL_THRESHOLD_M = 50.0  # default from PRODUCTIVE_PARAMS.lateral_pair_threshold_m
+    LATERAL_THRESHOLD_M = 50.0  # historical reference only — current default is float('inf') (filter OFF)
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 8))
     for col, e in enumerate(EMPRESAS):

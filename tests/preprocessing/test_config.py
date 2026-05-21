@@ -99,20 +99,32 @@ class TestLateralThreshold:
 
 
 class TestProductiveParamsFreezeLateralPair:
-    """AC-C3: lateral_pair_threshold_m default = 50.0."""
+    """AC-C3: lateral_pair_threshold_m default = float('inf') (filter OFF by default).
+
+    Changed 2026-05-21: default switched from 50.0 to float('inf') after Kaggle
+    04b v4 Figure 7 showed a monotonically-decreasing |lateral_delta| distribution
+    with no bimodal valley — calibration is impossible. See decisiones-headway-fase2
+    §7.0b.1. The filter remains available as opt-in via EmpresaConfig override.
+    """
 
     def test_lateral_pair_threshold_default(self):
-        """Failure: AttributeError if field not added to ProductiveParams."""
-        assert PRODUCTIVE_PARAMS.lateral_pair_threshold_m == 50.0
+        """Default must be float('inf') so the filter is a no-op unless overridden."""
+        assert math.isinf(PRODUCTIVE_PARAMS.lateral_pair_threshold_m), (
+            f"Expected float('inf') (filter OFF); got {PRODUCTIVE_PARAMS.lateral_pair_threshold_m}"
+        )
 
 
 class TestLateralPairThreshold:
     """AC-C4: lateral_pair_threshold_for resolver."""
 
     def test_default_no_override(self):
-        """Resolver must return global default for empresas without override."""
-        assert lateral_pair_threshold_for(2) == 50.0
-        assert lateral_pair_threshold_for(59) == 50.0
+        """Resolver must return global default (float('inf')) for empresas without override."""
+        assert math.isinf(lateral_pair_threshold_for(2)), (
+            f"Expected float('inf') for E2 (no override); got {lateral_pair_threshold_for(2)}"
+        )
+        assert math.isinf(lateral_pair_threshold_for(59)), (
+            f"Expected float('inf') for E59 (no override); got {lateral_pair_threshold_for(59)}"
+        )
 
     def test_override_used_when_set(self):
         """Resolver must return per-empresa override when set."""
