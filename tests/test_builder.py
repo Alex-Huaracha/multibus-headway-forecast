@@ -129,6 +129,29 @@ class TestModuleEmbedding:
             "Expected 'compute_headways_c2' from headways.py in a code cell"
         )
 
+    def test_null_buckets_sidecar_embedded(self, generated_notebook: nbformat.NotebookNode):
+        """AC-NB-1: the generated notebook must contain the null_buckets sidecar write.
+
+        Asserts that:
+        1. The string 'headway_null_buckets_E' is present (output filename pattern).
+        2. A second '.write_parquet(' call is present for the sidecar DataFrame.
+
+        Failure mode (RED): build_notebook_04.py does not yet unpack the tuple
+        or write the sidecar parquet — both strings are absent.
+        """
+        code_cells = self._get_code_cells(generated_notebook)
+        combined = "\n".join(code_cells)
+        assert "headway_null_buckets_E" in combined, (
+            "Expected 'headway_null_buckets_E' in generated notebook code cells (AC-NB-1). "
+            "Update src/build_notebook_04.py to unpack the tuple and write the sidecar parquet."
+        )
+        # The notebook must have at least 2 .write_parquet( calls in the headways section.
+        write_parquet_count = combined.count(".write_parquet(")
+        assert write_parquet_count >= 2, (
+            f"Expected >= 2 '.write_parquet(' calls in generated notebook (headways + sidecar); "
+            f"got {write_parquet_count}. Update src/build_notebook_04.py to add the sidecar write."
+        )
+
 
 class TestRelativeImportsStripped:
     """No 'from .' relative import must survive in any code cell (_strip_relative_imports)."""

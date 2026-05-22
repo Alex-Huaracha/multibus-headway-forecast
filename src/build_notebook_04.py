@@ -236,18 +236,21 @@ for empresaid in EMPRESAS:
         sub = assign_trip_ids(sub)
 
     snaps = build_snapshots(sub)
-    heads = compute_headways_c2(snaps, sub)
+    heads, null_buckets = compute_headways_c2(snaps, sub)
 
     out_gps = OUTPUT_DIR / f"cleaned_gps_E{empresaid}.parquet"
     out_hw = OUTPUT_DIR / f"headways_E{empresaid}.parquet"
+    out_buckets = OUTPUT_DIR / f"headway_null_buckets_E{empresaid}.parquet"
     sub.rename({"time": "t"}).select(
         ["unidadid", "t", "lat", "lon", "s", "direction", "speed_kmh", "lateral_m"]
     ).write_parquet(out_gps)
     heads.write_parquet(out_hw)
+    null_buckets.write_parquet(out_buckets)
 
     print(f"  cleaned_gps:  {sub.height:,} rows → {out_gps}")
     print(f"  headways:     {heads.height:,} rows → {out_hw}")
     print(f"  non-null hw:  {heads.filter(pl.col('delta_t_min').is_not_null()).height:,}")
+    print(f"  null_buckets: {null_buckets.height:,} rows → {out_buckets}")
 """)
 
 # ---------------------------------------------------------------------------
