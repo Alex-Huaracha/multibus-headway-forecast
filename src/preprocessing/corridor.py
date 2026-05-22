@@ -255,4 +255,17 @@ def _build_centerline_from_points(
 
     # Back-transform from PCA space to (lat, lon).
     cl_latlon: np.ndarray = cl_proj_arr @ eigvecs.T + centroid
+
+    # Enforce forward orientation along dominant PCA axis (eigvec sign is non-deterministic).
+    # numpy.linalg.eigh may return a principal eigenvector whose dominant component is
+    # negative (e.g., pointing south for a north-south route). When that happens, the
+    # back-transformed polyline runs from the 'high-lat' end to the 'low-lat' end, causing
+    # arc-length s to decrease as buses travel forward — which breaks infer_direction and
+    # the trajectory matching in compute_headways_c2. Fix: if the dominant component of
+    # eigvecs[:, 0] is negative, reverse the polyline so it always traverses in the
+    # direction of the positive dominant geographic axis.
+    dominant_idx = int(np.argmax(np.abs(eigvecs[:, 0])))
+    if eigvecs[dominant_idx, 0] < 0:
+        cl_latlon = cl_latlon[::-1]
+
     return cl_latlon

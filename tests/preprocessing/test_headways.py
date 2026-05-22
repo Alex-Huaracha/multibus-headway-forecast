@@ -6,8 +6,11 @@ Covers:
       emitted with delta_t_min IS NULL (NOT dropped). pair_rank remains dense.
   Additional: pair count = N-1 for N buses per snapshot group.
   AC-C5..C9: lateral pair filter and R7 schema extension.
+  AC-COUNTER-1/2 — trajectory-miss counter with [traj-miss] log prefix.
 """
 from __future__ import annotations
+import logging
+import re
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -565,3 +568,137 @@ class TestLookbackBound:
         )
         # INV-3: pair_rank still dense (1 for the only pair).
         assert row["pair_rank"] == 1, f"pair_rank must be 1; got {row['pair_rank']}"
+
+
+# ---------------------------------------------------------------------------
+# AC-COUNTER-1, AC-COUNTER-2 — NULL-miss diagnostic counter
+# ---------------------------------------------------------------------------
+
+
+def _make_minimal_miss_fixture() -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Return (snapshots, gps) where bus_back (unidadid=202, direction=+1)
+    has NO trajectory in the GPS frame, guaranteeing a traj_key miss.
+
+    The trajectory index will contain (2, 201, 1) but NOT (2, 202, 1).
+    compute_headways_c2 must log a [traj-miss] line for empresa=2, dir=+1.
+    """
+    # Snapshot: two buses at T0 form one pair (bus_front=201, bus_back=202)
+    snap_rows = [
+        _make_snapshot_row(2, 201, T0, s=500.0, direction=1),
+        _make_snapshot_row(2, 202, T0, s=400.0, direction=1),
+    ]
+    snaps = _build_snapshots_df(snap_rows)
+
+    # GPS: only bus 201 has history — bus 202 is absent from traj_index
+    gps_rows = _make_gps_pings(
+        2, 201,
+        [T0 - timedelta(minutes=5), T0 - timedelta(minutes=2)],
+        [480.0, 520.0],
+        direction=1,
+    )
+    gps = _build_gps_df(gps_rows)
+    return snaps, gps
+
+
+class TestTrajMissCounter:
+    """AC-COUNTER-1, AC-COUNTER-2 — trajectory-miss logging in compute_headways_c2.
+
+    Wave 2 RED: written before the counter implementation is added.
+    These tests MUST fail (RED) until the production counter is in place.
+    """
+
+    def test_traj_miss_counter_logged_per_direction(self, caplog):
+        """AC-COUNTER-1: compute_headways_c2 MUST emit at least one [traj-miss]
+        log line at INFO level when a trajectory key is absent from traj_index.
+
+        The log line must contain:
+          - prefix '[traj-miss]'
+          - empresa identifier
+          - direction identifier
+          - miss count and total count (e.g. 'miss=1/1' or 'miss=1 total=1')
+
+        Fixture: bus_back (unidadid=202) has no GPS history for direction=+1,
+        so traj_key=(2, 202, 1) is absent. After processing, the counter must
+        log: '[traj-miss] empresa=2 dir=1 miss=1/1 ...'
+
+        Failure mode (RED without fix): headways.py has no logger at all.
+        No [traj-miss] log records are emitted. The assertions fail.
+        """
+        snaps, gps = _make_minimal_miss_fixture()
+
+        with caplog.at_level(logging.INFO, logger="src.preprocessing.headways"):
+            compute_headways_c2(snaps, gps, min_buses=2)
+
+        # At least one [traj-miss] record must be present.
+        traj_miss_records = [
+            r for r in caplog.records if "[traj-miss]" in r.getMessage()
+        ]
+        assert len(traj_miss_records) >= 1, (
+            f"Expected at least one [traj-miss] INFO log record; got 0.\n"
+            "headways.py is missing the trajectory-miss counter and logger. "
+            "Add: logger = logging.getLogger(__name__) at module level, "
+            "Counter accumulators in compute_headways_c2, and log emission before return."
+        )
+
+        # The log message must match the machine-grepable pattern.
+        # Pattern: '[traj-miss] empresa=<int> dir=<int> miss=<int>/<int>'
+        combined_log = " ".join(r.getMessage() for r in traj_miss_records)
+        pattern = r"\[traj-miss\] empresa=\d+ dir=[+-]?\d+ miss=\d+/\d+"
+        assert re.search(pattern, combined_log), (
+            f"[traj-miss] log line does not match required pattern "
+            f"r'{pattern}'.\nActual log: {combined_log!r}\n"
+            "Ensure the format is: '[traj-miss] empresa=<int> dir=<int> miss=<int>/<int> (<float>%)'"
+        )
+
+    def test_traj_miss_warning_emitted_when_above_30pct(self, caplog):
+        """AC-COUNTER-2: when more than 30% of trajectory groups for a given
+        (empresaid, direction) are missing from traj_index, compute_headways_c2
+        MUST emit a [traj-miss-warning] log line at WARNING level.
+
+        Fixture: empresa=2, direction=+1. We set up 4 bus groups (unidades 201-204)
+        in the snapshots, but only bus 201's trajectory is in the GPS frame.
+        That means 3/4 = 75% of direction=+1 groups are missing from traj_index
+        → clearly above the 30% threshold. A [traj-miss-warning] must be emitted.
+
+        Failure mode (RED without fix): headways.py emits no warning. The assertion
+        that at least one [traj-miss-warning] WARNING record exists fails.
+        """
+        # Snapshots: 5 buses at T0 (4 pairs), all direction=+1
+        snap_rows = [
+            _make_snapshot_row(2, 201, T0, s=500.0, direction=1),
+            _make_snapshot_row(2, 202, T0, s=400.0, direction=1),
+            _make_snapshot_row(2, 203, T0, s=300.0, direction=1),
+            _make_snapshot_row(2, 204, T0, s=200.0, direction=1),
+            _make_snapshot_row(2, 205, T0, s=100.0, direction=1),
+        ]
+        snaps = _build_snapshots_df(snap_rows)
+
+        # GPS: only bus 201 has trajectory history. Buses 202-205 are absent.
+        # That means traj_key=(2, 202..205, 1) are all misses.
+        # groups attempted for (empresa=2, dir=+1): {(201,), (202,), (203,), (204,)}
+        # (the group_by iterates over (empresaid, bus_back, direction) pairs)
+        # bus 205 is always bus_front in all pairs; bus 204 is bus_back in the
+        # 204-205 pair, etc. Let's compute: pairs are (205, 204), (204, 203),
+        # (203, 202), (202, 201). Groups by bus_back: {204, 203, 202, 201}.
+        # Misses: {204, 203, 202} = 3 misses / 4 total = 75% > 30%.
+        gps_rows = _make_gps_pings(
+            2, 201,
+            [T0 - timedelta(minutes=10), T0 - timedelta(minutes=5)],
+            [400.0, 600.0],
+            direction=1,
+        )
+        gps = _build_gps_df(gps_rows)
+
+        with caplog.at_level(logging.WARNING, logger="src.preprocessing.headways"):
+            compute_headways_c2(snaps, gps, min_buses=2)
+
+        warning_records = [
+            r for r in caplog.records
+            if "[traj-miss-warning]" in r.getMessage() and r.levelno == logging.WARNING
+        ]
+        assert len(warning_records) >= 1, (
+            f"Expected at least one [traj-miss-warning] WARNING log record "
+            f"when miss rate = 75% > 30% threshold; got 0.\n"
+            "Ensure the counter emits logger.warning('[traj-miss-warning] ...') "
+            "when miss_fraction > 0.30 for a (empresaid, direction) pair."
+        )

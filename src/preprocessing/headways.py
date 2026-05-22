@@ -25,10 +25,15 @@ winsorization: delta_t_min is stored RAW. Winsorization is a Fase 5 transformati
 """
 from __future__ import annotations
 
+import logging
+from collections import Counter
+
 import numpy as np
 import polars as pl
 
 from .config import PRODUCTIVE_PARAMS, lateral_pair_threshold_for
+
+logger = logging.getLogger(__name__)
 
 
 def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
@@ -302,13 +307,19 @@ def compute_headways_c2(
     n = len(pairs_indexed)
     delta_t_min = np.full(n, np.nan, dtype=np.float64)
 
+    # Trajectory-miss counter: accumulate misses per (empresaid, direction) for diagnostics.
+    miss_counter: Counter[tuple[int, int]] = Counter()
+    total_counter: Counter[tuple[int, int]] = Counter()
+
     # Iterate per (empresaid, bus_back, direction) group — O(P_k × K_k) per group.
     for keys, sub_idx in pairs_indexed.group_by(
         ["empresaid", "bus_back", "direction"], maintain_order=False
     ):
         e, bus, dirc = int(keys[0]), int(keys[1]), int(keys[2])
+        total_counter[(e, dirc)] += 1
         traj_key = (e, bus, dirc)
         if traj_key not in traj_index:
+            miss_counter[(e, dirc)] += 1
             continue
 
         t_arr, s_arr = traj_index[traj_key]
@@ -331,6 +342,21 @@ def compute_headways_c2(
     delta_series = delta_series.set(delta_series.is_nan(), None)
 
     result = pairs_indexed.drop("_row_idx").with_columns(delta_series)
+
+    # Emit per-(empresa, direction) trajectory-miss diagnostics before returning.
+    # Prefix [traj-miss] is machine-grepable; [traj-miss-warning] fires when > 30%.
+    for (e, d), total in total_counter.items():
+        miss = miss_counter.get((e, d), 0)
+        pct = (miss / total * 100.0) if total else 0.0
+        logger.info(
+            "[traj-miss] empresa=%d dir=%d miss=%d/%d (%.1f%%)",
+            e, d, miss, total, pct,
+        )
+        if pct > 30.0:
+            logger.warning(
+                "[traj-miss-warning] empresa=%d dir=%d miss_pct=%.1f%% exceeds 30%%",
+                e, d, pct,
+            )
 
     # Final schema cleanup: select R7 columns, preserving lateral diagnostic
     # columns when the upstream compute_pairs emitted them (R-LAT4 / AC-S1 / AC-S2).

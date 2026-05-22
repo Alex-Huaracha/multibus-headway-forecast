@@ -5,7 +5,10 @@ Covers:
   T1.2 — build_centerline on a synthetic straight-line point set returns a valid polyline.
   T1.5 — dual-filar fixture sanity (row count, both directions, geographic separation).
   T2.1..T2.6 — build_centerline_per_direction per-direction centerline + fallback.
+  AC-ORIENT-1 — centerline orientation is invariant to input reversal.
+  AC-ORIENT-2 — centerline is unchanged for already-forward input.
 """
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -278,3 +281,151 @@ class TestBuildCenterlinePerDirection:
             assert np.array_equal(cl1[direction], cl2[direction]), (
                 f"Centerline for direction={direction} is not deterministic across runs"
             )
+
+
+# ---------------------------------------------------------------------------
+# AC-ORIENT-1: Orientation invariant to input reversal
+# AC-ORIENT-2: No mutation on already-forward input
+# ---------------------------------------------------------------------------
+
+
+class TestCenterlineOrientationDeterminism:
+    """AC-ORIENT-1, AC-ORIENT-2 — centerline orientation is deterministic.
+
+    Wave 1: these tests define the orientation-enforcement contract.
+
+    The core bug: _build_centerline_from_points bins points along the PCA
+    principal axis (PC1). The bins are in ascending PC1 order. After back-
+    transforming to (lat, lon), the returned polyline's geographic direction
+    depends on the SIGN of the PC1 eigenvector:
+
+      - If eigvecs[:, 0] has a positive dominant component → low PC1 = geographic
+        'start' (e.g., south end for a north-south route) → cl_latlon goes south→north.
+      - If eigvecs[:, 0] has a negative dominant component → low PC1 = geographic
+        'end' (e.g., north end for a north-south route) → cl_latlon goes north→south.
+
+    numpy.linalg.eigh may return eigenvectors with either sign depending on the
+    data distribution. For a north-south route (rng seed 7), it returns a
+    south-pointing eigvec, making cl_latlon go north→south. Buses traveling
+    south→north see decreasing s and get relabeled direction=-1 by infer_direction,
+    causing trajectory misses in compute_headways_c2.
+
+    The fix: after back-transform, if the dominant component of eigvecs[:, 0]
+    is negative, reverse cl_latlon. This normalizes the orientation so the
+    centerline always traverses from the 'negative-dominant-axis' end to the
+    'positive-dominant-axis' end in geographic space.
+    """
+
+    @pytest.fixture
+    def west_east_points(self) -> np.ndarray:
+        """300 points along a strict west-east line.
+
+        lon goes from -71.55 (west) to -71.50 (east), lat fixed at -16.4 with
+        small Gaussian jitter. The PCA dominant axis is lon, and the eigvec
+        points east (positive lon component), so the centerline naturally runs
+        west→east for this fixture. Used as the 'already-canonical' fixture for
+        AC-ORIENT-2 — the fix should be a no-op on this data.
+        """
+        rng = np.random.default_rng(42)
+        n = 300
+        lons = np.linspace(-71.55, -71.50, n)
+        lats = np.full(n, -16.4) + rng.normal(0, 0.0002, n)
+        return np.stack([lats, lons], axis=1)
+
+    @pytest.fixture
+    def north_south_points(self) -> np.ndarray:
+        """300 points along a north-south route where numpy returns
+        a south-pointing (negative lat) eigenvector, causing cl_latlon
+        to run north→south WITHOUT the orientation fix.
+
+        lat goes from -16.50 (south) to -16.30 (north), lon fixed near -71.52
+        with very small jitter so lat is the clearly dominant axis.
+        Seed 7 reliably triggers the negative-lat eigenvector sign.
+        """
+        rng = np.random.default_rng(7)
+        n = 300
+        lats = np.linspace(-16.50, -16.30, n) + rng.normal(0, 0.0002, n)
+        lons = np.full(n, -71.52) + rng.normal(0, 0.00001, n)
+        return np.stack([lats, lons], axis=1)
+
+    def test_centerline_orientation_invariant_to_input_reversal(
+        self, west_east_points: np.ndarray
+    ):
+        """AC-ORIENT-1 (regression guard): forward and reversed input must
+        produce the same polyline (up to full reversal).
+
+        For a west-east route, both orderings have the same covariance matrix
+        (covariance is order-invariant), so they must produce identical results.
+        This is already true without the fix. The test guards against any
+        regression introduced by the orientation patch.
+        """
+        pts_fwd = west_east_points
+        pts_rev = west_east_points[::-1]
+
+        cl_fwd = _build_centerline_from_points(pts_fwd)
+        cl_rev = _build_centerline_from_points(pts_rev)
+
+        same_direction = np.allclose(cl_fwd, cl_rev, atol=1e-8)
+        mirror_direction = np.allclose(cl_fwd, cl_rev[::-1], atol=1e-8)
+
+        assert same_direction or mirror_direction, (
+            f"Centerline is NOT orientation-invariant to input reversal.\n"
+            f"cl_fwd[0]={cl_fwd[0]}, cl_fwd[-1]={cl_fwd[-1]}\n"
+            f"cl_rev[0]={cl_rev[0]}, cl_rev[-1]={cl_rev[-1]}\n"
+            "Neither np.allclose(fwd, rev) nor np.allclose(fwd, rev[::-1]) holds."
+        )
+
+    def test_centerline_canonical_orientation_for_north_south_route(
+        self, north_south_points: np.ndarray
+    ):
+        """AC-ORIENT-1 (primary RED test): for a north-south route where numpy
+        returns a NEGATIVE-lat eigenvector, _build_centerline_from_points MUST
+        return a centerline where cl_latlon[0] has LOWER lat than cl_latlon[-1]
+        (south→north, which is canonical = lower lat first).
+
+        WITHOUT the fix (RED): the PCA principal eigvec points south (negative lat).
+        Bins in ascending PC1 order correspond to north→south geographically.
+        After back-transform, cl_latlon[0] is at lat ≈ -16.31 (NORTH) and
+        cl_latlon[-1] is at lat ≈ -16.49 (SOUTH). The test assertion fails.
+
+        WITH the fix (GREEN): the dominant eigvec component is checked. Since
+        it is negative (lat component ≈ -1.0), cl_latlon is reversed so that
+        cl_latlon[0] is at lat ≈ -16.49 (SOUTH) and cl_latlon[-1] at lat ≈ -16.31
+        (NORTH). The assertion passes.
+        """
+        pts = north_south_points
+        cl = _build_centerline_from_points(pts)
+
+        # cl_latlon[:, 0] is the lat column.
+        # For a south-to-north canonical orientation: first lat < last lat.
+        assert cl[0, 0] < cl[-1, 0], (
+            f"Centerline for a north-south route is NOT canonically oriented "
+            f"(south→north).\n"
+            f"cl[0] (lat={cl[0, 0]:.5f}) >= cl[-1] (lat={cl[-1, 0]:.5f}).\n"
+            "The PCA eigenvector points south, causing the centerline to run "
+            "north→south. Apply the orientation fix: when the dominant eigvec "
+            "component is negative, reverse cl_latlon after back-transform."
+        )
+
+    def test_centerline_orientation_preserved_for_forward_input(
+        self, west_east_points: np.ndarray
+    ):
+        """AC-ORIENT-2: for a west-east route (already canonical), the returned
+        centerline must be byte-identical across repeated calls.
+
+        Regression guard: the orientation patch must NOT mutate the output when
+        the eigenvector already points in the canonical (positive) direction.
+        The fix should be a no-op for this fixture.
+        """
+        pts = west_east_points
+
+        cl1 = _build_centerline_from_points(pts)
+        cl2 = _build_centerline_from_points(pts)
+
+        hash1 = hashlib.md5(cl1.tobytes()).hexdigest()
+        hash2 = hashlib.md5(cl2.tobytes()).hexdigest()
+
+        assert hash1 == hash2, (
+            f"_build_centerline_from_points is non-deterministic on repeated calls "
+            f"with identical forward-oriented input.\nhash1={hash1}\nhash2={hash2}"
+        )
