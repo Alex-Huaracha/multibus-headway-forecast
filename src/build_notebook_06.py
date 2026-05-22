@@ -177,8 +177,10 @@ Lee los parquets v5 generados por el notebook 04 (two-pass pipeline).
 
 code(
     """
-hw_e2  = pl.read_parquet(_find_parquet(2))
-hw_e59 = pl.read_parquet(_find_parquet(59))
+# `empresaid` is implicit in the filename in the v5 parquets — inject it as a
+# literal column so it matches the SDD baselines contract (slot key requires it).
+hw_e2  = pl.read_parquet(_find_parquet(2)).with_columns(pl.lit(2,  dtype=pl.Int64).alias("empresaid"))
+hw_e59 = pl.read_parquet(_find_parquet(59)).with_columns(pl.lit(59, dtype=pl.Int64).alias("empresaid"))
 
 print(f"E2:  {hw_e2.height:,} rows, {hw_e2.width} cols")
 print(f"E59: {hw_e59.height:,} rows, {hw_e59.width} cols")

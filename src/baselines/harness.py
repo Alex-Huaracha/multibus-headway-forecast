@@ -29,9 +29,9 @@ from __future__ import annotations
 
 import polars as pl
 
-from src.evaluation.metrics import mae, rmse
-from src.evaluation.splits import split_temporal, winsorize_train_p99
-from src.baselines.statistical import (
+from ..evaluation.metrics import mae, rmse
+from ..evaluation.splits import split_temporal, winsorize_train_p99
+from .statistical import (
     BASELINE_B2_WINDOWS,
     predict_b0,
     predict_b1,

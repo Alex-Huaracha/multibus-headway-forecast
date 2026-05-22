@@ -1,5 +1,5 @@
 # Classical statistical baselines for headway forecasting (Fase 3).
-from src.baselines.statistical import (  # noqa: F401
+from .statistical import (  # noqa: F401
     predict_b0,
     predict_b1,
     predict_b2,

@@ -168,13 +168,9 @@ def predict_b2(headways: pl.DataFrame, *, window: int) -> pl.DataFrame:
         )
         return result
 
-    result = (
-        headways
-        .sort(_SLOT_COLS + ["t"])
-        .group_by(_SLOT_COLS, maintain_order=True)
-        .map_groups(_b2_one_slot)
-    )
-    return result
+    sorted_df = headways.sort(_SLOT_COLS + ["t"])
+    slots = sorted_df.partition_by(_SLOT_COLS, maintain_order=True)
+    return pl.concat([_b2_one_slot(g) for g in slots])
 
 
 # ===========================================================================
@@ -237,9 +233,6 @@ def predict_b3(headways: pl.DataFrame, *, alpha: float = SES_ALPHA) -> pl.DataFr
         polars .over() does not support stateful numpy loops; map_groups
         materializes one Python frame per slot (~30–100 per corridor — trivially fast).
     """
-    return (
-        headways
-        .sort(_SLOT_COLS + ["t"])
-        .group_by(_SLOT_COLS, maintain_order=True)
-        .map_groups(lambda g: _ses_one_slot(g, alpha))
-    )
+    sorted_df = headways.sort(_SLOT_COLS + ["t"])
+    slots = sorted_df.partition_by(_SLOT_COLS, maintain_order=True)
+    return pl.concat([_ses_one_slot(g, alpha) for g in slots])
