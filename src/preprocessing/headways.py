@@ -222,7 +222,7 @@ def compute_headways_c2(
     gps: pl.DataFrame,
     min_buses: int = PRODUCTIVE_PARAMS.min_buses_per_snapshot,
     max_lookback_minutes: float = PRODUCTIVE_PARAMS.max_interpolation_lookback_minutes,
-) -> pl.DataFrame:
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """C.2 trailing-crossing headway (pure polars + numpy).
 
     For each pair (bus_front at s_front, bus_back) at snapshot time T, finds the
@@ -260,22 +260,42 @@ def compute_headways_c2(
             emitted as NULL (same as no-crossing). Default from ProductiveParams.
 
     Returns:
-        pl.DataFrame matching R7 schema:
-          t, direction, pair_rank (Int32), bus_front (Int64), bus_back (Int64),
-          s_front, s_back, speed_front_kmh, speed_back_kmh,
-          delta_t_min (Float64, may be null per clarification #17 rule 2),
-          n_buses (Int32).
+        (headways_df, null_buckets_df) where:
+          headways_df matches R7 schema:
+            t, direction, pair_rank (Int32), bus_front (Int64), bus_back (Int64),
+            s_front, s_back, speed_front_kmh, speed_back_kmh,
+            delta_t_min (Float64, may be null per clarification #17 rule 2),
+            n_buses (Int32).
+          null_buckets_df schema (INV-N1 through INV-N4):
+            empresaid (Int64), direction (Int8), bucket (Utf8),
+            count (Int64), total_pairs (Int64).
+            One row per (empresaid, direction, bucket) — always 6 buckets per group,
+            count=0 rows included. INV-N2: sum(count) == total_pairs per group.
 
     Failure mode: if the pandas-conversion path is accidentally reintroduced,
     performance collapses on 47M-row E2 data. test_headways.py guards the polars
     purity requirement.
     """
+    # Canonical bucket name ordering for null_buckets_df construction.
+    _all_buckets = ("traj-miss", "cutoff-lt-2", "no-crossing", "ds-zero", "stale-crossing", "success")
+
+    # Schema for null_buckets_df (locked; changes require spec revision).
+    _null_buckets_schema = {
+        "empresaid": pl.Int64,
+        "direction": pl.Int8,
+        "bucket": pl.Utf8,
+        "count": pl.Int64,
+        "total_pairs": pl.Int64,
+    }
+
     pairs = compute_pairs(snapshots)
 
     # Drop pairs from too-small snapshots (INV-4: n_buses >= min_buses).
     pairs = pairs.filter(pl.col("n_buses") >= min_buses)
     if pairs.is_empty():
-        return pairs.with_columns(pl.lit(None, dtype=pl.Float64).alias("delta_t_min"))
+        empty_headways = pairs.with_columns(pl.lit(None, dtype=pl.Float64).alias("delta_t_min"))
+        empty_null_buckets = pl.DataFrame(schema=_null_buckets_schema)
+        return empty_headways, empty_null_buckets
 
     # Convert minutes → nanoseconds ONCE (kernel works in nanoseconds throughout).
     max_lookback_ns = float(max_lookback_minutes) * 60.0 * 1e9
@@ -304,16 +324,16 @@ def compute_headways_c2(
         pairs_indexed["t"].to_numpy().astype("datetime64[us]").astype(np.int64) * 1_000
     )
     s_front_all = pairs_indexed["s_front"].to_numpy().astype(np.float64)
-    e_all = pairs_indexed["empresaid"].to_numpy().astype(np.int64)
-    bus_back_all = pairs_indexed["bus_back"].to_numpy().astype(np.int64)
-    dir_all = pairs_indexed["direction"].to_numpy().astype(np.int64)
-    row_idx_all = pairs_indexed["_row_idx"].to_numpy().astype(np.int64)
 
     n = len(pairs_indexed)
     delta_t_min = np.full(n, np.nan, dtype=np.float64)
 
-    # Trajectory-miss counter: accumulate misses per (empresaid, direction) for diagnostics.
-    miss_counter: Counter[tuple[int, int]] = Counter()
+    # Bucket counter: accumulate per (empresaid, direction, bucket) across all pairs.
+    # CORRECTNESS NOTE: total_counter counts PAIRS (not groups). Each increment by
+    # len(sub_idx) (the number of rows/pairs in the group) ensures the discrimination
+    # invariant INV-N2: sum(count over all buckets) == total_pairs per (e, d).
+    # The previous code used += 1 (counting groups, not pairs) — that was wrong.
+    bucket_counter: Counter[tuple[int, int, str]] = Counter()
     total_counter: Counter[tuple[int, int]] = Counter()
 
     # Iterate per (empresaid, bus_back, direction) group — O(P_k × K_k) per group.
@@ -321,10 +341,12 @@ def compute_headways_c2(
         ["empresaid", "bus_back", "direction"], maintain_order=False
     ):
         e, bus, dirc = int(keys[0]), int(keys[1]), int(keys[2])
-        total_counter[(e, dirc)] += 1
+        # Count pairs in this group (not the group itself — correctness fix).
+        total_counter[(e, dirc)] += len(sub_idx)
         traj_key = (e, bus, dirc)
         if traj_key not in traj_index:
-            miss_counter[(e, dirc)] += 1
+            # All pairs in this group are traj-miss.
+            bucket_counter[(e, dirc, "traj-miss")] += len(sub_idx)
             continue
 
         t_arr, s_arr = traj_index[traj_key]
@@ -334,10 +356,12 @@ def compute_headways_c2(
         s_front_group = s_front_all[row_indices]
 
         for j, (T_ns, sf) in enumerate(zip(T_ns_group, s_front_group)):
-            t_cross, _reason = _find_last_crossing_ns(
+            t_cross, reason = _find_last_crossing_ns(
                 t_arr, s_arr, int(T_ns), float(sf),
                 max_lookback_ns=max_lookback_ns,
             )
+            # Count each pair outcome by its bucket (1 per pair call).
+            bucket_counter[(e, dirc, reason)] += 1
             if t_cross is not None:
                 dt_ns = float(T_ns) - t_cross
                 delta_t_min[row_indices[j]] = dt_ns / 1e9 / 60.0
@@ -348,10 +372,25 @@ def compute_headways_c2(
 
     result = pairs_indexed.drop("_row_idx").with_columns(delta_series)
 
-    # Emit per-(empresa, direction) trajectory-miss diagnostics before returning.
+    # --- Build null_buckets_df from counters ---
+    # All 6 buckets per (empresaid, direction) with count=0 when bucket didn't fire.
+    # This satisfies INV-N2: sum(count) == total_pairs for every group.
+    bucket_rows = []
+    for (e, d), total in total_counter.items():
+        for b in _all_buckets:
+            bucket_rows.append({
+                "empresaid": e,
+                "direction": d,
+                "bucket": b,
+                "count": int(bucket_counter.get((e, d, b), 0)),
+                "total_pairs": int(total),
+            })
+    null_buckets_df = pl.DataFrame(bucket_rows, schema=_null_buckets_schema)
+
+    # Emit per-(empresa, direction) trajectory-miss diagnostics.
     # Prefix [traj-miss] is machine-grepable; [traj-miss-warning] fires when > 30%.
     for (e, d), total in total_counter.items():
-        miss = miss_counter.get((e, d), 0)
+        miss = bucket_counter.get((e, d, "traj-miss"), 0)
         pct = (miss / total * 100.0) if total else 0.0
         logger.info(
             "[traj-miss] empresa=%d dir=%d miss=%d/%d (%.1f%%)",
@@ -382,7 +421,7 @@ def compute_headways_c2(
         r7_cols.append("lateral_m_front")
     if "lateral_m_back" in pairs_indexed.columns:
         r7_cols.append("lateral_m_back")
-    return result.select(r7_cols)
+    return result.select(r7_cols), null_buckets_df
 
 
 def filter_snapshot_size(headways: pl.DataFrame, min_buses: int) -> pl.DataFrame:

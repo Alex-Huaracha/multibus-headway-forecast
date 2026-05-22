@@ -363,7 +363,7 @@ class TestDirCoverageOnSyntheticFixture:
         gps_with_speed = attach_observed_speed(gps)
         gps_proj = run_two_pass_pipeline(gps_with_speed, empresaid=59)
         snapshots = build_snapshots(gps_proj)
-        headways = compute_headways_c2(snapshots, gps_proj, min_buses=2)
+        headways, _ = compute_headways_c2(snapshots, gps_proj, min_buses=2)
         return headways
 
     def test_dir1_coverage_recovery_on_synthetic_fixture(

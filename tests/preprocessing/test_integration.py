@@ -57,7 +57,7 @@ def pipeline_outputs(tmp_path_factory) -> tuple[pl.DataFrame, pl.DataFrame]:
     snaps = build_snapshots(gps)
 
     # Step 7: headways (C.2).
-    headways = compute_headways_c2(snaps, gps)
+    headways, _ = compute_headways_c2(snaps, gps)
 
     # Write cleaned GPS — include the columns defined in R6 schema.
     # The pipeline frame has extra columns; select only what R6 requires.

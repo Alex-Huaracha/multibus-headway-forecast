@@ -192,7 +192,7 @@ class TestC2KnownCrossing:
         snaps = _build_snapshots_df(snap_rows)
         gps = _build_gps_df(gps_rows)
 
-        result = compute_headways_c2(snaps, gps, min_buses=2)
+        result, _ = compute_headways_c2(snaps, gps, min_buses=2)
         assert len(result) == 1, f"Expected 1 pair row; got {len(result)}"
 
         row = result.row(0, named=True)
@@ -231,7 +231,7 @@ class TestNullEmission:
         )
         gps = _build_gps_df(gps_rows)
 
-        result = compute_headways_c2(snaps, gps, min_buses=2)
+        result, _ = compute_headways_c2(snaps, gps, min_buses=2)
 
         # Row must be present (not dropped).
         assert len(result) == 1, (
@@ -279,7 +279,7 @@ class TestNullEmission:
         )
         gps = _build_gps_df(gps_rows)
 
-        result = compute_headways_c2(snaps, gps, min_buses=2)
+        result, _ = compute_headways_c2(snaps, gps, min_buses=2)
 
         # Must have 2 rows (N-1 = 2 pairs for 3 buses).
         assert len(result) == 2, f"Expected 2 pair rows; got {len(result)}"
@@ -478,7 +478,7 @@ class TestR7Schema:
         ]
         snaps = _build_snapshots_df(snap_rows)
 
-        result = compute_headways_c2(snaps, gps, min_buses=2)
+        result, _ = compute_headways_c2(snaps, gps, min_buses=2)
         assert len(result) == 1, f"Expected 1 pair row; got {len(result)}"
 
         # AC-S1: lateral_m_front must be present.
@@ -555,7 +555,7 @@ class TestLookbackBound:
         gps = _build_gps_df(gps_rows)
 
         # Default params (max_interpolation_lookback_minutes = 30.0).
-        result = compute_headways_c2(snaps, gps, min_buses=2)
+        result, _ = compute_headways_c2(snaps, gps, min_buses=2)
 
         assert len(result) == 1, (
             f"Pair must be EMITTED (not dropped); got {len(result)} rows"
@@ -884,3 +884,105 @@ def test_crossing_bucket_success():
     )
     assert result[0] is not None, "Expected non-None t_cross for valid crossing"
     assert result[1] == "success", f"Expected 'success'; got {result[1]!r}"
+
+
+# ---------------------------------------------------------------------------
+# Wave 2 — compute_headways_c2 tuple return + null_buckets_df (AC-CODE-5, AC-CODE-DISCRIMINATION)
+# ---------------------------------------------------------------------------
+
+
+def _make_two_bus_fixture_with_crossing() -> tuple[pl.DataFrame, pl.DataFrame]:
+    """Return (snapshots, gps) where bus_back (202) has a crossing 5 min before T0."""
+    T = T0
+    t_cross = T0 - timedelta(minutes=5)
+    gps_rows = _make_gps_pings(
+        2, 202,
+        [T0 - timedelta(minutes=10), t_cross, T0 - timedelta(minutes=1)],
+        [400.0, 500.0, 450.0],
+        direction=1,
+    )
+    snap_rows = [
+        _make_snapshot_row(2, 201, T, s=500.0, direction=1),
+        _make_snapshot_row(2, 202, T, s=400.0, direction=1),
+    ]
+    return _build_snapshots_df(snap_rows), _build_gps_df(gps_rows)
+
+
+def test_null_buckets_schema():
+    """AC-CODE-5: compute_headways_c2 must return a 2-tuple whose second element
+    has schema {empresaid: Int64, direction: Int8, bucket: Utf8, count: Int64,
+    total_pairs: Int64}.
+
+    Failure mode (RED): compute_headways_c2 currently returns a single pl.DataFrame,
+    not a tuple — this test will raise TypeError on unpacking.
+    """
+    snaps, gps = _make_two_bus_fixture_with_crossing()
+    result = compute_headways_c2(snaps, gps, min_buses=2)
+    # Must be a tuple of two DataFrames.
+    assert isinstance(result, tuple), (
+        f"compute_headways_c2 must return a tuple (headways_df, null_buckets_df); "
+        f"got {type(result).__name__!r}"
+    )
+    assert len(result) == 2, f"Tuple must have exactly 2 elements; got {len(result)}"
+    headways_df, null_buckets_df = result
+    assert isinstance(headways_df, pl.DataFrame), "First element must be pl.DataFrame (headways)"
+    assert isinstance(null_buckets_df, pl.DataFrame), "Second element must be pl.DataFrame (null_buckets)"
+
+    expected_schema = {
+        "empresaid": pl.Int64,
+        "direction": pl.Int8,
+        "bucket": pl.Utf8,
+        "count": pl.Int64,
+        "total_pairs": pl.Int64,
+    }
+    assert null_buckets_df.schema == expected_schema, (
+        f"null_buckets_df schema mismatch.\n"
+        f"Expected: {expected_schema}\n"
+        f"Got:      {dict(null_buckets_df.schema)}"
+    )
+
+
+def test_discrimination_invariant():
+    """AC-CODE-DISCRIMINATION: for every (empresaid, direction) group,
+    sum(count over all 6 buckets) == total_pairs.
+
+    This is the structural regression guard (INV-N2) against silently-uncounted NaN.
+
+    Fixture: a synthetic setup that exercises multiple buckets:
+      - empresa=2, direction=+1: bus_back 202 has a crossing (success)
+      - empresa=2, direction=+1: bus_back 203 has NO GPS history (traj-miss)
+      - We verify the invariant holds for the (2, +1) group.
+    """
+    T = T0
+    # 3 buses: bus_front=201 (s=600), bus_back=202 (s=500, has history), bus_back=203 (s=400, no history)
+    snap_rows = [
+        _make_snapshot_row(2, 201, T, s=600.0, direction=1),
+        _make_snapshot_row(2, 202, T, s=500.0, direction=1),
+        _make_snapshot_row(2, 203, T, s=400.0, direction=1),
+    ]
+    snaps = _build_snapshots_df(snap_rows)
+
+    # GPS: only bus 202 has trajectory; bus 203 is absent (traj-miss)
+    gps_rows = _make_gps_pings(
+        2, 202,
+        [T0 - timedelta(minutes=10), T0 - timedelta(minutes=5), T0 - timedelta(minutes=1)],
+        [400.0, 500.0, 480.0],
+        direction=1,
+    )
+    gps = _build_gps_df(gps_rows)
+
+    result = compute_headways_c2(snaps, gps, min_buses=2)
+    assert isinstance(result, tuple), (
+        f"compute_headways_c2 must return tuple; got {type(result).__name__!r}"
+    )
+    _, null_buckets_df = result
+
+    # For every (empresaid, direction) group, sum(count) must equal total_pairs.
+    for (e, d), group_df in null_buckets_df.group_by(["empresaid", "direction"]):
+        total_pairs_val = group_df["total_pairs"][0]
+        count_sum = group_df["count"].sum()
+        assert count_sum == total_pairs_val, (
+            f"Discrimination invariant violated for empresa={e}, dir={d}: "
+            f"sum(count)={count_sum} != total_pairs={total_pairs_val}\n"
+            f"Buckets:\n{group_df}"
+        )
