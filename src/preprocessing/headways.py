@@ -146,13 +146,18 @@ def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
     return s.select(select_exprs)
 
 
+# Canonical bucket names reported by _find_last_crossing_ns (5 paths).
+# The 6th bucket ("traj-miss") is reported by the outer compute_headways_c2 loop.
+_CROSSING_BUCKETS = ("success", "cutoff-lt-2", "no-crossing", "ds-zero", "stale-crossing")
+
+
 def _find_last_crossing_ns(
     t_arr: np.ndarray,
     s_arr: np.ndarray,
     T_ns: int,
     s_front: float,
     max_lookback_ns: float | None = None,
-) -> float | None:
+) -> tuple[float | None, str]:
     """Find the most recent time (nanoseconds) when bus_back's s crossed s_front.
 
     Uses the probe's sign-change scan (build_notebook_03.py lines 796-806) on the
@@ -170,12 +175,12 @@ def _find_last_crossing_ns(
             from being emitted as absurd delta_t_min values (decisiones-headway-fase2 §3).
 
     Returns:
-        t_cross in nanoseconds (float), or None if no crossing exists or the
-        crossing is older than max_lookback_ns.
+        (t_cross, bucket) where t_cross is in nanoseconds (float) or None,
+        and bucket is one of _CROSSING_BUCKETS identifying the outcome.
     """
     cutoff = int(np.searchsorted(t_arr, T_ns, side="right"))
     if cutoff < 2:
-        return None
+        return None, "cutoff-lt-2"
 
     s_past = s_arr[:cutoff]
     t_past = t_arr[:cutoff]
@@ -188,28 +193,28 @@ def _find_last_crossing_ns(
         i = int(np.where(zero_mask)[0][-1])
         t_cross = float(t_past[i])
         if max_lookback_ns is not None and (T_ns - t_cross) > max_lookback_ns:
-            return None
-        return t_cross
+            return None, "stale-crossing"
+        return t_cross, "success"
 
     # Case 2: sign-change crossing — bus_back's s straddled s_front.
     signs = np.sign(diff)
     cross_mask = (signs[:-1] * signs[1:]) < 0
 
     if not cross_mask.any():
-        return None
+        return None, "no-crossing"
 
     # Most recent crossing (last True in cross_mask).
     i = int(np.where(cross_mask)[0][-1])
 
     ds = s_past[i + 1] - s_past[i]
     if ds == 0.0:
-        return None
+        return None, "ds-zero"
 
     frac = float((s_front - s_past[i]) / ds)
     t_cross = float(t_past[i]) + frac * float(t_past[i + 1] - t_past[i])
     if max_lookback_ns is not None and (T_ns - t_cross) > max_lookback_ns:
-        return None
-    return t_cross
+        return None, "stale-crossing"
+    return t_cross, "success"
 
 
 def compute_headways_c2(
@@ -329,7 +334,7 @@ def compute_headways_c2(
         s_front_group = s_front_all[row_indices]
 
         for j, (T_ns, sf) in enumerate(zip(T_ns_group, s_front_group)):
-            t_cross = _find_last_crossing_ns(
+            t_cross, _reason = _find_last_crossing_ns(
                 t_arr, s_arr, int(T_ns), float(sf),
                 max_lookback_ns=max_lookback_ns,
             )
