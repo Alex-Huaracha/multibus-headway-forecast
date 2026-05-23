@@ -5,6 +5,7 @@ Public API:
     predict_b1(headways: pl.DataFrame) -> pl.DataFrame
     predict_b2(headways: pl.DataFrame, *, window: int) -> pl.DataFrame
     predict_b3(headways: pl.DataFrame, *, alpha: float = SES_ALPHA) -> pl.DataFrame
+    predict_b4_ha(headways: pl.DataFrame) -> pl.DataFrame
 
 Input contract (all four functions):
     The DataFrame must have a `split` column (Utf8) added by split_temporal.
@@ -236,3 +237,29 @@ def predict_b3(headways: pl.DataFrame, *, alpha: float = SES_ALPHA) -> pl.DataFr
     sorted_df = headways.sort(_SLOT_COLS + ["t"])
     slots = sorted_df.partition_by(_SLOT_COLS, maintain_order=True)
     return pl.concat([_ses_one_slot(g, alpha) for g in slots])
+
+
+# ===========================================================================
+# B4 — Historical Average per (slot, hour-of-day) from train only
+# ===========================================================================
+
+def predict_b4_ha(headways: pl.DataFrame) -> pl.DataFrame:
+    """Add column `y_pred_b4_ha`: per-slot, per-hour mean of train delta_t_min.
+
+    For each (empresaid, direction, pair_rank, hour) group, computes the mean
+    of non-null delta_t_min values from train rows only.  Test/val rows at the
+    same hour receive that mean as their prediction.  Hours not seen in train
+    produce null predictions.
+    """
+    ha_key = _SLOT_COLS + ["_hour"]
+    df = headways.with_columns(pl.col("t").dt.hour().alias("_hour"))
+
+    train_means = (
+        df
+        .filter(pl.col("split") == "train")
+        .group_by(ha_key)
+        .agg(pl.col("delta_t_min").mean().alias("y_pred_b4_ha"))
+    )
+
+    result = df.join(train_means, on=ha_key, how="left")
+    return result.drop("_hour")

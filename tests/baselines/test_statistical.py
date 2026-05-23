@@ -322,3 +322,125 @@ class TestB3:
         s2 = result2.sort(key)["y_pred_b3"]
         # .equals(null_equal=True) treats null==null as True (polars >= 1.21 API).
         assert s1.equals(s2, null_equal=True), "predict_b3 must be deterministic"
+
+
+# ===========================================================================
+# B4 — Historical Average per (slot, hour-of-day) from train only
+# ===========================================================================
+
+def _frame_with_hours(
+    train_entries: list[tuple[int, float | None]],
+    test_entries: list[tuple[int, float | None]],
+    *,
+    empresaid: int = 2,
+    direction: int = -1,
+    pair_rank: int = 1,
+) -> pl.DataFrame:
+    """Build a split-annotated frame where each entry specifies (hour, delta).
+
+    Train rows are placed on consecutive days in Dec 2023 at the given hour.
+    Test rows are placed on consecutive days in Feb 2024 at the given hour.
+    """
+    rows: list[dict] = []
+    for i, (hour, delta) in enumerate(train_entries):
+        rows.append({
+            "empresaid": empresaid,
+            "t": datetime(2023, 12, 1 + i, hour, 0, 0),
+            "direction": direction,
+            "pair_rank": pair_rank,
+            "delta_t_min": delta,
+        })
+    for i, (hour, delta) in enumerate(test_entries):
+        rows.append({
+            "empresaid": empresaid,
+            "t": datetime(2024, 2, 10 + i, hour, 0, 0),
+            "direction": direction,
+            "pair_rank": pair_rank,
+            "delta_t_min": delta,
+        })
+
+    df = pl.DataFrame(rows).with_columns(
+        pl.col("empresaid").cast(pl.Int64),
+        pl.col("t").cast(pl.Datetime("us")),
+        pl.col("direction").cast(pl.Int64),
+        pl.col("pair_rank").cast(pl.Int32),
+        pl.col("delta_t_min").cast(pl.Float64),
+    )
+    return split_temporal(df)
+
+
+class TestB4:
+    """predict_b4_ha: per-slot, per-hour-of-day mean from train rows only."""
+
+    def test_b4_hour_mean_from_train(self):
+        """AC-B4-1: train has hour=8 with [4.0, 6.0] → test at hour=8 predicts 5.0."""
+        from src.baselines.statistical import predict_b4_ha
+
+        df = _frame_with_hours(
+            train_entries=[(8, 4.0), (8, 6.0)],
+            test_entries=[(8, 0.0)],
+        )
+        result = predict_b4_ha(df)
+
+        test_rows = result.filter(pl.col("split") == "test")
+        pred = test_rows["y_pred_b4_ha"][0]
+        assert abs(pred - 5.0) < 1e-9, f"Expected 5.0, got {pred}"
+
+    def test_b4_different_hours_independent(self):
+        """AC-B4-2: hour=8 and hour=18 have different means; predictions match their hour."""
+        from src.baselines.statistical import predict_b4_ha
+
+        df = _frame_with_hours(
+            train_entries=[(8, 3.0), (8, 5.0), (18, 10.0), (18, 12.0)],
+            test_entries=[(8, 0.0), (18, 0.0)],
+        )
+        result = predict_b4_ha(df)
+
+        test_rows = result.filter(pl.col("split") == "test").sort("t")
+        pred_8 = test_rows["y_pred_b4_ha"][0]
+        pred_18 = test_rows["y_pred_b4_ha"][1]
+        assert abs(pred_8 - 4.0) < 1e-9, f"Hour 8: expected 4.0, got {pred_8}"
+        assert abs(pred_18 - 11.0) < 1e-9, f"Hour 18: expected 11.0, got {pred_18}"
+
+    def test_b4_unseen_hour_emits_null(self):
+        """AC-B4-3: test row at hour=22 with no train data at that hour → null."""
+        from src.baselines.statistical import predict_b4_ha
+
+        df = _frame_with_hours(
+            train_entries=[(8, 5.0)],
+            test_entries=[(22, 0.0)],
+        )
+        result = predict_b4_ha(df)
+
+        test_rows = result.filter(pl.col("split") == "test")
+        assert test_rows["y_pred_b4_ha"][0] is None
+
+    def test_b4_null_train_ignored(self):
+        """AC-B4-4: null values in train are excluded from the mean calculation."""
+        from src.baselines.statistical import predict_b4_ha
+
+        df = _frame_with_hours(
+            train_entries=[(8, 4.0), (8, None), (8, 6.0)],
+            test_entries=[(8, 0.0)],
+        )
+        result = predict_b4_ha(df)
+
+        test_rows = result.filter(pl.col("split") == "test")
+        pred = test_rows["y_pred_b4_ha"][0]
+        assert abs(pred - 5.0) < 1e-9, f"Expected 5.0 (null excluded), got {pred}"
+
+    def test_b4_uses_train_only(self):
+        """AC-B4-5: test/val rows do not contaminate the historical average."""
+        from src.baselines.statistical import predict_b4_ha
+
+        df = _frame_with_hours(
+            train_entries=[(8, 4.0), (8, 6.0)],
+            test_entries=[(8, 100.0), (8, 0.0)],
+        )
+        result = predict_b4_ha(df)
+
+        test_rows = result.filter(pl.col("split") == "test").sort("t")
+        pred_first = test_rows["y_pred_b4_ha"][0]
+        pred_second = test_rows["y_pred_b4_ha"][1]
+        assert abs(pred_first - 5.0) < 1e-9, f"Expected 5.0 (train-only), got {pred_first}"
+        assert abs(pred_second - 5.0) < 1e-9, f"Expected 5.0 (train-only), got {pred_second}"

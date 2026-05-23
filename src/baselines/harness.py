@@ -4,19 +4,19 @@ Public API:
     evaluate_corridor(headways: pl.DataFrame, corridor_name: str) -> pl.DataFrame
 
 The function composes the full pipeline for one corridor:
-    split_temporal → winsorize_train_p99 → predict_b0/b1/b2(×3)/b3
+    split_temporal → winsorize_train_p99 → predict_b0/b1/b2(×3)/b3/b4_ha
     → filter test rows → compute MAE + RMSE per (direction, baseline)
     → return tidy long-form DataFrame.
 
 Output schema (design §6):
     corridor   Utf8
     direction  Utf8   — "-1", "+1", "aggregate"
-    baseline   Utf8   — "B0", "B1", "B2_w5", "B2_w10", "B2_w15", "B3"
+    baseline   Utf8   — "B0", "B1", "B2_w5", "B2_w10", "B2_w15", "B3", "B4_HA"
     metric     Utf8   — "MAE", "RMSE"
     value      Float64 — minutes
 
-Rows per corridor: 3 directions × 6 baselines × 2 metrics = 36.
-Both corridors together (notebook caller): 72 rows.
+Rows per corridor: 3 directions × 7 baselines × 2 metrics = 42.
+Both corridors together (notebook caller): 84 rows.
 
 Design decisions (locked in design §6 and §9):
   - "aggregate" direction = MAE/RMSE over POOLED test rows (both directions
@@ -37,6 +37,7 @@ from .statistical import (
     predict_b1,
     predict_b2,
     predict_b3,
+    predict_b4_ha,
 )
 
 # Map from prediction column name → display name for the output DataFrame.
@@ -47,6 +48,7 @@ _BASELINE_MAP: list[tuple[str, str]] = [
     ("y_pred_b2_w10", "B2_w10"),
     ("y_pred_b2_w15", "B2_w15"),
     ("y_pred_b3", "B3"),
+    ("y_pred_b4_ha", "B4_HA"),
 ]
 
 
@@ -67,7 +69,7 @@ def evaluate_corridor(
 
     Returns
     -------
-    pl.DataFrame — 36-row tidy long-form table with schema:
+    pl.DataFrame — 42-row tidy long-form table with schema:
         [corridor, direction, baseline, metric, value]
 
     Notes
@@ -86,6 +88,7 @@ def evaluate_corridor(
     for w in BASELINE_B2_WINDOWS:
         df = predict_b2(df, window=w)
     df = predict_b3(df)
+    df = predict_b4_ha(df)
 
     # --- Filter to test rows only (B3-VAL-UNUSED) ---
     test_df = df.filter(pl.col("split") == "test")

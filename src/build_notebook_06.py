@@ -71,9 +71,10 @@ md(
     """
 # 06 — Baselines estadísticos  (auto-generado por build_notebook_06.py)
 
-Evalúa cuatro baselines clásicos (B0 media global, B1 persistencia naive,
-B2 media móvil w∈{5,10,15}, B3 suavizado exponencial simple α=0.3) sobre los
-corredores **E2** y **E59** usando el split temporal de Fase 3.
+Evalúa baselines clásicos (B0 media global, B1 persistencia naive,
+B2 media móvil w∈{5,10,15}, B3 suavizado exponencial simple α=0.3,
+B4 promedio histórico por hora del día) sobre los corredores **E2** y **E59**
+usando el split temporal de Fase 3.
 
 Referencia: `docs/plan-de-desarrollo.md §4 Fase 4 — Baselines estadísticos`.
 """,
@@ -145,8 +146,8 @@ embed_module(
     """## Module: baselines/statistical
 
 B0 global mean, B1 naive persistence, B2 moving average (w∈{5,10,15}),
-B3 simple exponential smoothing (α=0.3).  All operate per slot
-`(empresaid, direction, pair_rank)`.
+B3 simple exponential smoothing (α=0.3), B4 historical average per hour.
+All operate per slot `(empresaid, direction, pair_rank)`.
 """,
     cell_id_md="cell-06-embed-statistical-md",
     cell_id_code="cell-06-embed-statistical",
@@ -157,7 +158,7 @@ embed_module(
     """## Module: baselines/harness
 
 `evaluate_corridor` composes split → winsorize → all baselines → metrics per
-(direction × baseline) and returns a tidy 36-row long DataFrame.
+(direction × baseline) and returns a tidy 42-row long DataFrame.
 """,
     cell_id_md="cell-06-embed-harness-md",
     cell_id_code="cell-06-embed-harness",
@@ -170,15 +171,15 @@ embed_module(
 md(
     """## Cargar datos — E2 y E59
 
-Lee los parquets v5 generados por el notebook 04 (two-pass pipeline).
+Lee los parquets generados por el notebook 04 (two-pass pipeline).
 """,
     cell_id="cell-06-load-md",
 )
 
 code(
     """
-# `empresaid` is implicit in the filename in the v5 parquets — inject it as a
-# literal column so it matches the SDD baselines contract (slot key requires it).
+# `empresaid` is implicit in the filename — inject it as a literal column
+# so it matches the baselines contract (slot key requires it).
 hw_e2  = pl.read_parquet(_find_parquet(2)).with_columns(pl.lit(2,  dtype=pl.Int64).alias("empresaid"))
 hw_e59 = pl.read_parquet(_find_parquet(59)).with_columns(pl.lit(59, dtype=pl.Int64).alias("empresaid"))
 
@@ -237,7 +238,7 @@ results_e2  = evaluate_corridor(hw_e2,  "E2")
 results_e59 = evaluate_corridor(hw_e59, "E59")
 results = pl.concat([results_e2, results_e59])
 
-print(f"Total rows: {results.height}  (expected 72 = 2 corridors × 36)")
+print(f"Total rows: {results.height}  (expected 84 = 2 corridors × 42)")
 print(results.head(10))
 """,
     cell_id="cell-06-run-harness",

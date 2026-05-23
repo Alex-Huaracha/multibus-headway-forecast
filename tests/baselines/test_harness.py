@@ -11,7 +11,7 @@ Design (design §6):
         → filter test rows → compute MAE + RMSE per (direction, baseline)
         → return tidy long DataFrame.
 
-    36 rows per corridor (3 directions × 6 baselines × 2 metrics).
+    42 rows per corridor (3 directions × 7 baselines × 2 metrics).
     direction column is Utf8 (strings: "-1", "+1", "aggregate").
     val rows are NEVER used.
 """
@@ -91,14 +91,14 @@ class TestEvaluateCorridorSchema:
         )
 
     def test_harness_row_count(self):
-        """AC-CSV-2: 36 rows per corridor (3 directions × 6 baselines × 2 metrics)."""
+        """AC-CSV-2: 42 rows per corridor (3 directions × 7 baselines × 2 metrics)."""
         from src.baselines.harness import evaluate_corridor
 
         df = _make_corridor_frame()
         result = evaluate_corridor(df, "E2")
 
-        assert len(result) == 36, (
-            f"Expected 36 rows per corridor, got {len(result)}"
+        assert len(result) == 42, (
+            f"Expected 42 rows per corridor, got {len(result)}"
         )
 
         # Verify the corridor name propagated correctly
@@ -110,7 +110,7 @@ class TestEvaluateCorridorSchema:
 
         # Verify baselines
         baselines = set(result["baseline"].unique().to_list())
-        expected_baselines = {"B0", "B1", "B2_w5", "B2_w10", "B2_w15", "B3"}
+        expected_baselines = {"B0", "B1", "B2_w5", "B2_w10", "B2_w15", "B3", "B4_HA"}
         assert baselines == expected_baselines, f"Unexpected baselines: {baselines}"
 
     def test_harness_deterministic(self):
