@@ -55,7 +55,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [x] Definición operativa de headway (espacial vs. temporal — decidir y documentar).
 - [x] Cálculo de headways en grilla temporal regular.
 - [x] Estrategia de cardinalidad variable (buses que entran/salen del corredor).
-- [ ] Validación visual sobre muestras (lado a lado con GPS crudo).
+- [x] Validación visual sobre muestras (lado a lado con GPS crudo).
 - [x] Módulo `src/preprocessing/` reutilizable.
 - [x] Notebook documentando decisiones por empresa.
 - [x] Dataset intermedio `data/processed/headways_<empresa>.parquet`.
