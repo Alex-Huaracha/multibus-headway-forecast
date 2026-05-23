@@ -93,13 +93,15 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 **Objetivo de la fase:** Establecer la línea base obligatoria que el DL debe superar. Sin esto no hay paper.
 
-- [x] Implementación de baseline ingenuo (`y_pred(t+h) = y(t)`).
-- [x] Implementación de promedio móvil.
-- [x] Promedio histórico por hora-del-día.
+- [x] B0 — Media global por slot (train only).
+- [x] B1 — Baseline ingenuo / persistencia (`y_pred(t+h) = y(t)`).
+- [x] B2 — Promedio móvil (w ∈ {5, 10, 15}).
+- [x] B3 — Suavizado exponencial simple (SES α=0.3).
+- [x] B4 — Promedio histórico por hora-del-día (HA).
 - [x] Evaluación sobre test con MAE y RMSE por horizonte.
-- [x] Tabla de métricas baseline congelada.
+- [x] Tabla de métricas baseline congelada (Kaggle NB06 v8, 84 filas, data v8 post-fix H7).
 
-**Artefacto:** Módulo `src/baselines/statistical.py` + notebook `06_baselines_stat`.
+**Artefacto:** Módulo `src/baselines/statistical.py` + `src/baselines/harness.py` + notebook `06_baselines_stat` (Kaggle kernel `alexhuaracha/06-baselines-stat`).
 
 **Criterio de cierre:** Tabla de métricas baseline publicada y congelada como referencia.
 
