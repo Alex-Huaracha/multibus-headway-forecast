@@ -129,6 +129,24 @@ EMPRESA_CONFIG: Mapping[int, EmpresaConfig] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Per-direction sort key calibration (SDD dir1-pair-ordering-h7)
+# ---------------------------------------------------------------------------
+# Empirically calibrated via observational evidence from Kaggle NB04 v7
+# bucket analysis (obs #126). See sdd/dir1-pair-ordering-h7/apply-progress
+# for full calibration evidence and cross-references.
+#
+# Set to +1 because the dir=+1 per-direction centerline has `s` inverse to
+# physical direction of motion for empresas E2 and E59 (multi-filar corridor,
+# two-pass PCA). Evidence: dir+1 yields 83.5%/92.6% stale-crossing rate;
+# dir-1 yields ~70% success rate.
+#
+# CALIBRATED_INVERTED_DIRECTION: the direction value whose sort key is -s
+# (negated arc-length) so that ascending sort places the physically-front
+# bus first. For the other direction, sort key == s (canonical ascending).
+CALIBRATED_INVERTED_DIRECTION: Literal[1, -1] = 1
+
+
 def centerline_strategy_for(empresaid: int) -> str:
     """Return the effective centerline strategy for a given empresa.
 
