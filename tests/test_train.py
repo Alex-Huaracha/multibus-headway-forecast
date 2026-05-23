@@ -230,3 +230,146 @@ class TestEarlyStopping:
         assert torch.allclose(es.best_state_dict[stored_param_name], stored_tensor), (
             "best_state_dict must be a deep copy — modifying model must not affect it"
         )
+
+
+# ---------------------------------------------------------------------------
+# Wave 3: train_model, grid_search, checkpoint save/load, denormalize
+# ---------------------------------------------------------------------------
+
+class TestTrainModel:
+    def test_train_model_returns_train_result(self) -> None:
+        """train_model must return a TrainResult with best_val_loss and state_dict set."""
+        from src.train import TrainResult, train_model
+
+        set_seed(42)
+        max_N, ctx_dim = 3, 5
+        config = TrainConfig(hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3, max_epochs=3, patience=10)
+        model = _make_model(max_N=max_N, context_dim=ctx_dim, hidden_size=8)
+        train_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=2)
+        val_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=1)
+
+        result = train_model(model, train_dl, val_dl, config, device="cpu")
+
+        assert isinstance(result, TrainResult), f"Expected TrainResult, got {type(result)}"
+        assert isinstance(result.best_val_loss, float), "best_val_loss must be float"
+        assert result.state_dict is not None and len(result.state_dict) > 0, "state_dict must be populated"
+        assert result.config is config, "result.config must be the TrainConfig passed in"
+
+    def test_train_model_respects_early_stopping(self) -> None:
+        """train_model with patience=2 on non-improving data must stop before max_epochs."""
+        from src.train import train_model
+
+        set_seed(99)
+        max_N, ctx_dim = 2, 5
+        # Use max_epochs=20 and patience=2; non-improving val loss should stop it early
+        config = TrainConfig(hidden_size=4, num_layers=1, dropout=0.0, lr=0.0, max_epochs=20, patience=2)
+        model = _make_model(max_N=max_N, context_dim=ctx_dim, hidden_size=4)
+        # lr=0.0 means weights never change → val loss never improves → stops after patience+1 epochs
+        train_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=2)
+        val_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=1)
+
+        result = train_model(model, train_dl, val_dl, config, device="cpu")
+
+        assert result.epochs_trained < config.max_epochs, (
+            f"Expected early stop before {config.max_epochs} epochs, "
+            f"but trained {result.epochs_trained} epochs"
+        )
+
+
+class TestGridSearch:
+    def test_grid_constant_has_24_configs(self) -> None:
+        """GRID must contain exactly 24 TrainConfig entries (3×2×2×2 combinations)."""
+        from src.train import GRID
+
+        assert len(GRID) == 24, f"GRID must have 24 entries, got {len(GRID)}"
+        assert all(isinstance(c, TrainConfig) for c in GRID), "All GRID items must be TrainConfig"
+
+    def test_grid_search_returns_results_list(self) -> None:
+        """grid_search must return a list of TrainResult with one entry per config, sorted by best_val_loss."""
+        from src.train import TrainResult, grid_search
+
+        set_seed(0)
+        max_N, ctx_dim = 3, 5
+        two_configs = [
+            TrainConfig(hidden_size=4, num_layers=1, dropout=0.0, lr=1e-3, max_epochs=2, patience=5),
+            TrainConfig(hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3, max_epochs=2, patience=5),
+        ]
+        train_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=2)
+        val_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=1)
+
+        results = grid_search(train_dl, val_dl, max_N=max_N, configs=two_configs, device="cpu")
+
+        assert isinstance(results, list), "grid_search must return a list"
+        assert len(results) == 2, f"Expected 2 results (one per config), got {len(results)}"
+        assert all(isinstance(r, TrainResult) for r in results), "All items must be TrainResult"
+        # Results must be sorted ascending by best_val_loss
+        assert results[0].best_val_loss <= results[1].best_val_loss, (
+            "grid_search results must be sorted ascending by best_val_loss"
+        )
+
+
+class TestCheckpoint:
+    def test_save_checkpoint_creates_files(self, tmp_path) -> None:
+        """save_checkpoint must create model.pt and config.json in the given directory."""
+        from src.train import TrainResult, save_checkpoint
+
+        config = TrainConfig(hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3)
+        model = _make_model(max_N=3, context_dim=5, hidden_size=8)
+        result = TrainResult(
+            best_val_loss=0.42,
+            best_epoch=1,
+            state_dict=copy.deepcopy(model.state_dict()),
+            config=config,
+        )
+
+        ckpt_dir = tmp_path / "checkpoint"
+        save_checkpoint(result, ckpt_dir)
+
+        assert (ckpt_dir / "model.pt").exists(), "model.pt must be created by save_checkpoint"
+        assert (ckpt_dir / "config.json").exists(), "config.json must be created by save_checkpoint"
+
+    def test_load_checkpoint_restores_model(self, tmp_path) -> None:
+        """load_checkpoint must restore a model that produces identical predictions to the saved one."""
+        from src.train import TrainResult, load_checkpoint, save_checkpoint
+
+        set_seed(7)
+        max_N, ctx_dim = 3, 5
+        config = TrainConfig(hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3)
+        original_model = _make_model(max_N=max_N, context_dim=ctx_dim, hidden_size=8)
+        result = TrainResult(
+            best_val_loss=0.1,
+            best_epoch=0,
+            state_dict=copy.deepcopy(original_model.state_dict()),
+            config=config,
+        )
+
+        ckpt_dir = tmp_path / "ckpt"
+        save_checkpoint(result, ckpt_dir)
+        restored_model, _ = load_checkpoint(ckpt_dir, max_N=max_N)
+
+        # Forward pass must produce identical predictions
+        set_seed(7)
+        x = torch.randn(2, 6, max_N + ctx_dim)
+        original_model.eval()
+        restored_model.eval()
+        with torch.no_grad():
+            out_original = original_model(x)
+            out_restored = restored_model(x)
+
+        assert torch.allclose(out_original, out_restored, atol=1e-6), (
+            "Restored model must produce identical predictions to the original"
+        )
+
+
+class TestDenormalize:
+    def test_denormalize_predictions_known_value(self) -> None:
+        """denormalize_predictions(z=1.0, mean=5.0, std=2.0) must return 7.0 within 1e-6."""
+        from src.train import denormalize_predictions
+
+        pred = torch.tensor([1.0])
+        result = denormalize_predictions(pred, mean=5.0, std=2.0)
+
+        expected = torch.tensor([7.0])
+        assert torch.allclose(result, expected, atol=1e-6), (
+            f"Expected 7.0, got {result.item():.8f}"
+        )
