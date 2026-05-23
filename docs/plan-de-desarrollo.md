@@ -120,9 +120,11 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [ ] Logging de experimentos.
 - [ ] Métricas sobre test.
 
-**Artefacto:** Módulo `src/models/lstm.py` + `src/train.py` + notebook `07_lstm` + checkpoints.
+**Artefacto:** `src/models/lstm.py` + `src/train.py` + notebook `07_lstm` (Kaggle kernel `alexhuaracha/07-lstm`) + checkpoints.
 
-**Criterio de cierre:** LSTM supera baselines estadísticos en MAE/RMSE con significancia.
+**Criterio de cierre:** LSTM entrenado y evaluado en Kaggle. Métricas sobre test publicadas y comparadas con baselines (MAE y RMSE por horizonte, significancia verificada).
+
+**Estado:** En progreso — código y tests implementados (253 tests, commit `4d28b6f`). Pendiente: ejecución y validación en Kaggle.
 
 ---
 
