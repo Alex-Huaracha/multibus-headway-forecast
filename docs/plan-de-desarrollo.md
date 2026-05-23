@@ -70,22 +70,26 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 **Objetivo de la fase:** Transformar las series de headways en pares (X, y) para entrenamiento, con splits temporales sin leakage.
 
-- [ ] Definición de ventana de entrada `T_in` y horizonte `T_out`.
-- [ ] Generación de ventanas deslizantes por corredor y sentido.
-- [ ] Split train/val/test temporal (cronológico, no aleatorio).
-- [ ] Normalización ajustada solo sobre train.
-- [ ] Codificación de features de contexto (hora cíclica, día de semana).
-- [ ] Implementación de máscara para cardinalidad variable.
-- [ ] DataLoader / Dataset reutilizable.
-- [ ] Notebook con estadísticas de splits y verificación de sanidad.
+- [x] Definición de ventana de entrada `T_in` y horizonte `T_out`.
+- [x] Generación de ventanas deslizantes por corredor y sentido.
+- [x] Split train/val/test temporal (cronológico, no aleatorio).
+- [x] Normalización ajustada solo sobre train.
+- [x] Codificación de features de contexto (hora cíclica, día de semana).
+- [x] Implementación de máscara para cardinalidad variable.
+- [x] DataLoader / Dataset reutilizable.
+- [x] Notebook con estadísticas de splits y verificación de sanidad.
 
 **Artefacto:** Módulo `src/data/dataset.py` + notebook `05_dataset`.
 
 **Criterio de cierre:** DataLoaders reproducibles entregando tensores con shapes documentados, sin leakage entre splits.
 
+**Estado:** Completada (2026-05-23).
+
 ---
 
 ## Fase 4 — Baselines estadísticos
+
+> **Nota sobre orden de ejecución**: esta fase se implementó ANTES de la Fase 3 (SDD `phase-3-baselines-classical`, cerrado 2026-05-21, commit `fe12cdd`). Los baselines clásicos operan directamente sobre `headways_E{2,59}.parquet` por slot `(empresaid, direction, pair_rank)` sin requerir ventanas X/y prefabricadas, por lo que no dependen de Fase 3. Fase 5 (LSTM) y Fase 6 (GNN+LSTM) sí requieren Fase 3 cerrada. La numeración se conserva por convención académica (dataset → baselines → DL es el orden estándar esperado por el revisor del paper).
 
 **Objetivo de la fase:** Establecer la línea base obligatoria que el DL debe superar. Sin esto no hay paper.
 

@@ -115,7 +115,7 @@ Todos los artefactos derivados producidos por Fase 2 viven como outputs del Kagg
 
 | Artefacto | Estado | Fase |
 |---|---|---|
-| `splits/<empresa>/{train,val,test}.parquet` | no producido aún | Fase 3 |
+| `splits/<empresa>/{train,val,test}.parquet` | **no producido — excluido por DL-4** (splits se computan en-kernel en NB05; no se escriben parquets intermedios) | Fase 3 |
 | `atypical_days.csv` | producido por kernel `alexhuaracha/02-eda-corridors` (Fase 1), última corrida 2026-05-19 | Fase 1 → consumido por Fase 3 y Fase 7 |
 | `quality_gps.csv` | producido por kernel `02-eda-corridors`, contiene métricas de calidad GPS por empresa | Fase 1 |
 
@@ -127,6 +127,45 @@ uv run kaggle kernels output alexhuaracha/04-preprocessing -p /tmp/nb04_v8/
 ```
 
 Los outputs descargados incluyen los 6 parquets listados arriba más el log de ejecución `04-preprocessing.log`.
+
+---
+
+## Artefactos derivados — Fase 3 (productos del NB05, pendiente ejecución Kaggle)
+
+El kernel `alexhuaracha/05-dataset` construye el dataset supervisado sobre los outputs de NB04 v8. La ejecución en Kaggle está **diferida** (DL-12): el notebook está generado y los módulos están integrados al venv; el kernel se lanzará una vez que la cadena NB04 → NB05 se valide localmente.
+
+### Pin Kaggle (kernel productor)
+
+| Campo | Valor |
+|---|---|
+| Kernel ID | `alexhuaracha/05-dataset` |
+| Versión vigente | **Pendiente de ejecución Kaggle (DL-12)** |
+| kernel_sources | `alexhuaracha/04-preprocessing` |
+| dataset_sources | — (vacío; datos llegan vía kernel_sources) |
+| Builder | `src/build_notebook_05.py` |
+| Commit de producción | `4bdd7cf` — "feat(builder): GREEN — build_notebook_05 with stable cell IDs and embedded modules" (2026-05-23) |
+
+### Outputs esperados del kernel — Fase 3
+
+> **Nota DL-4**: los splits train/val/test se computan íntegramente dentro del kernel a partir de `headways_E{2,59}.parquet`. **No se escriben archivos `splits/*.parquet`** en `/kaggle/working`. Esta es una decisión de diseño deliberada para evitar artefactos intermedios redundantes (la fuente de verdad es el kernel NB04 v8 más el código de NB05).
+
+| Artefacto | Descripción | Estado |
+|---|---|---|
+| `dataset_stats.csv` | Métricas por `(corridor, direction, split)`: `n_rows`, `n_windows`, `max_N`, `mean_delta_t_min`, `std_delta_t_min`, `truncation_rate`. 7–9 columnas. | Pendiente de ejecución Kaggle (DL-12) |
+
+El `HeadwayDataset` y los `DataLoader` son objetos Python en memoria; no se serializan a disco (no hay `*.pt` outputs). Los tensores se reconstruyen en cada kernel run a partir de los parquets de NB04.
+
+### Splits (en-kernel, no en disco)
+
+Los splits temporales se derivan en-kernel mediante `split_temporal` de `src/evaluation/splits.py`. Fechas de corte (bloqueadas en el código):
+
+| Split | Período |
+|---|---|
+| train | comienzo del dataset → 2024-01-14 |
+| val   | 2024-01-15 → 2024-02-04 |
+| test  | 2024-02-05 → fin del dataset |
+
+> No existen `splits/{train,val,test}.parquet` en disco ni en `/kaggle/working`. Si se necesitan extraer, volver a ejecutar NB05 y agregar un `write_parquet` ad-hoc dentro del kernel.
 
 ---
 
@@ -147,4 +186,5 @@ Los outputs descargados incluyen los 6 parquets listados arriba más el log de e
 | Fecha | Cambio | Commit |
 |---|---|---|
 | 2026-05-19 | Manifest inicial al cierre de Fase 1 | (pendiente) |
-| 2026-05-23 | Registro de artefactos derivados de Fase 2 (NB04 v8 post H7 fix) | (este commit) |
+| 2026-05-23 | Registro de artefactos derivados de Fase 2 (NB04 v8 post H7 fix) | `86c4834` |
+| 2026-05-23 | Registro de artefactos de Fase 3 (NB05, DL-12 deferred); nota DL-4 splits en-kernel | (este commit) |

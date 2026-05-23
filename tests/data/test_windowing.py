@@ -163,7 +163,7 @@ class TestMakeWindowIndex:
         assert len(index) == 8
 
     def test_index_respects_stride(self) -> None:
-        """AC-WIN-2: T_in=6, T_out=2, stride=2, N=20 → floor((20-6-2)/2)+1 = 6 entries."""
+        """AC-WIN-2: T_in=6, T_out=2, stride=2, N=20 → floor((20-6-2)/2)+1 = 7 entries."""
         from src.data.windowing import make_window_index
 
         df = self._make_single_slot_df(20)
