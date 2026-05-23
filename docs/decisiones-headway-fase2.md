@@ -268,3 +268,107 @@ El esquema de los parquets `cleaned_gps` y `headways` **no cambia**. Las columna
 ### 8.7 Rollback
 
 El two-pass está gateado por `centerline_strategy_for(empresaid)`. Revertir el merge commit o forzar `centerline_strategy_override=None` en `EMPRESA_CONFIG` restaura el comportamiento v4 completamente. El esquema R7 v4 no cambia, por lo que los parquets anteriores son legibles sin migración.
+
+---
+
+## 9. Cierre de Fase 2 — Kaggle v8 direction-conditional sort (2026-05-23)
+
+Cross-references: SDD `dir1-pair-ordering-h7` (archive engram obs #148), SDD `e2-short-headways-audit` (archive engram obs #153), predecesor fallido `dir1-pair-coverage-recovery`, SDD instrumentación `headway-null-diagnostics`.
+
+### 9.1 Causa raíz (H7)
+
+Después del two-pass centerline (§8), la cobertura `dir=+1` seguía estructuralmente rota: E2 dir+1 cubría 15.6% válido y E59 dir+1 cubría 7.3%, vs ~70% en dir=-1. El SDD `headway-null-diagnostics` instrumentó counters de buckets de NULL y reveló que el bucket dominante en dir+1 era **stale-crossing** (E2 83.5%, E59 92.6%) — el algoritmo C.2 encontraba crossings pero con timestamps anteriores a `max_lookback_minutes = 30`, así que los descartaba.
+
+Las hipótesis H1-H6 (multi-filar, heading, ds-zero, etc.) quedaron descartadas por evidencia empírica. La hipótesis **H7** se confirmó por lectura de código + datos:
+
+> `compute_pairs` en `src/preprocessing/headways.py:71` ordenaba unconditionally por `s` ascending para asignar `bus_front` (último s) y `bus_back` (penúltimo s). Pero el PCA centerline del two-pass (§8) no tiene orientación canónica — para una de las dos direcciones físicas, `s` decrece con el sentido de marcha. En esa dirección, `s` ascending equivale a **back-to-front** físico, no front-to-back, así que `bus_front` se asignaba al bus que va FÍSICAMENTE DETRÁS. `_find_last_crossing_ns` encontraba el cruce HISTÓRICO (cuando ese bus, antes de ser sobrepasado, sí estaba adelante), con timestamp > 30 min, y `max_lookback` lo filtraba.
+
+### 9.2 Solución — direction-conditional sort key (Encoding A)
+
+Se introduce el parámetro `CALIBRATED_INVERTED_DIRECTION: Literal[1, -1]` en `src/preprocessing/config.py:132-147` con valor `1` hardcoded. `compute_pairs` ahora calcula el sort key como:
+
+```python
+s_sort = pl.when(pl.col("direction") == CALIBRATED_INVERTED_DIRECTION) \
+           .then(-pl.col("s")) \
+           .otherwise(pl.col("s"))
+```
+
+Y ordena por `s_sort` ascending. El efecto es que para `direction == +1` el orden se invierte (mayor `s` físico queda al final → `bus_front` recibe el bus físicamente adelantado). Para `direction == -1` el comportamiento no cambia.
+
+**Esquema R7 v4 sin cambios**. La firma de `compute_headways_c2` (tupla `(headways_df, null_buckets_df)` post-SDD `headway-null-diagnostics`) se preserva. No hay migración de parquets.
+
+### 9.3 Calibración observacional
+
+Los parquets v7 no estaban disponibles localmente para correr la calibración directa `corr(s, t_ns)` por bus que el design proponía. Se eligió **calibración observacional**: la distribución de buckets de NULL del SDD predecesor (`headway_null_buckets_E{2,59}.parquet` v7) identificó inequívocamente dir+1 como la dirección con stale-crossing dominante en ambas empresas (E2 83.5%, E59 92.6%). Por construcción, esa es la dirección con `s` invertido. Decisión registrada en engram obs #135.
+
+`AC-PROC-1` satisfecho por la decisión documentada. `AC-PROC-2` (stop on ambiguity) N/A.
+
+### 9.4 Validación Kaggle v8 — adjudicación AC-DATA-2
+
+Kaggle kernel `alexhuaracha/04-preprocessing` v8 ejecutado 2026-05-23 (~36 min). Resultados:
+
+| Empresa | Dir | Métrica | v7 (pre-fix) | v8 (post-fix) | Δ |
+|---|---|---|---|---|---|
+| E2 | +1 | success | 15.6% | **57.85%** | **+42.25pp** |
+| E2 | +1 | stale-crossing | 83.5% | 42.06% | −41.44pp |
+| E59 | +1 | success | 7.3% | **74.00%** | **+66.70pp** |
+| E59 | +1 | stale-crossing | 92.6% | 25.97% | −66.63pp |
+| E2 | -1 | success | 70.5% | 70.53% | +0.03pp (sin regresión) |
+| E59 | -1 | success | ~70% | 79.69% | +9.69pp |
+
+Adjudicación contra targets del spec:
+
+| AC | Veredicto | Evidencia |
+|----|-----------|-----------|
+| AC-DATA-2a (dir+1 stale <30%) | **PARTIAL** | E59 PASS (26%), E2 FAIL (42%) |
+| AC-DATA-2b (dir+1 success ≥50%) | **PASS** | E2 58%, E59 74% |
+| AC-DATA-2c (dir-1 success ≥65%) | **PASS** | E2 70.5%, E59 79.7% |
+| AC-DATA-2d (dir-1 stale <15%) | **FAIL-aspirational** | E2 28%, E59 20%; target no cumplido por baseline v7 tampoco |
+| AC-DATA-2e (discrimination invariant) | **PASS** | sum_check OK en las 4 (empresa, dir) groups |
+
+Verdict del SDD: **PASS-WITH-WARNINGS**. El objetivo funcional (cobertura dir+1 paper-credible en ambas empresas) está conseguido. Los targets stale missed eran aspiracionales sin baseline medido.
+
+### 9.5 Audit complementario — E2 short-headway tail (NO-FIX)
+
+Tras el fix, el dataset v8 mostró que **E2 tiene 10% de headways < 1 min** vs 3% en E59. SDD audit-only `e2-short-headways-audit` investigó cinco hipótesis empíricamente:
+
+| Hipótesis | Veredicto | Evidencia |
+|---|---|---|
+| H1 — Multi-filar cross-lane | **REFUTED** | mean(\|lat_delta\|) para <1min < para ≥1min (ratio 0.78 E2, 0.87 E59). Si fuera multi-filar el ratio sería >1. |
+| H2 — Buses detenidos apareados | PARTIAL (solo E59) | E59 <1min: 46% min_speed <2 km/h. E2 <1min: 18%, indistinguible de baseline. |
+| H3 — Rush-hour real | Rechazada como principal | E2 short% plano 6-12% todo el día (5h-21h); no concentrado en picos. |
+| H4 — pair_rank artifact | No es artefacto | Decay gracioso 1→8 en ambas empresas. |
+| H5 — Mismo bus | Imposible | algebraicamente bloqueado por `shift(1).over(group_cols)`. |
+| H6 — Densidad operacional real | **SUPPORTED** | E2 mediana dir+1 = 5.0 min vs E59 7.5 min; corredor E2 opera con frecuencia genuinamente más alta. |
+
+**Conclusión**: el 10% de E2 es operación real, no defecto. **Sin cambio de pipeline.** Cero commits. Filtros opcionales (`delta_t_min >= 1.0` o flag `is_short`) a discreción del notebook ML downstream, no del preprocesamiento.
+
+Archive engram obs #153.
+
+### 9.6 Cobertura final lista para Fase 3
+
+| Empresa | Dir (semántica) | success_count | total_pairs | success_fraction |
+|---|---|---|---|---|
+| E2 | -1 (vuelta) | 495,562 | 702,619 | 70.53% |
+| E2 | +1 (ida) | 513,722 | 888,040 | 57.85% |
+| E59 | -1 (vuelta) | 1,155,295 | 1,449,818 | 79.69% |
+| E59 | +1 (ida) | 913,898 | 1,235,060 | 74.00% |
+
+**~3 millones de observaciones válidas** distribuidas en 5 meses contiguos (2023-10-01 → 2024-02-29, 152 días sin gaps). **IDA Y VUELTA confirmadas para ambas empresas** — habilitación del objetivo del paper IJACSA.
+
+### 9.7 Rollback
+
+El fix está concentrado en una expresión Polars en `headways.py:71`. Para revertir:
+
+1. Forzar `CALIBRATED_INVERTED_DIRECTION = None` o eliminar la rama `when().then(-s)`, restaurando el sort unconditional.
+2. Re-correr NB04 en Kaggle para regenerar `headways_<empresa>.parquet`.
+3. Esquema R7 v4 no cambia → no hay migración.
+
+Costo del rollback: 1 línea de código + 1 re-run de Kaggle (~36 min). El predecesor `dir1-pair-coverage-recovery` está documentado como ejemplo de qué NO hacer (orientation flip sin direction-awareness, validado por tests pero no funcionalmente).
+
+### 9.8 Items abiertos (no bloquean Fase 3)
+
+- **E2 dir+1 residual stale-crossing 42%**: si el paper requiere paridad estricta entre empresas, evaluar promover `CALIBRATED_INVERTED_DIRECTION` a `Mapping[int, int]` per-empresa. Hipótesis: el corredor E2 tiene segmentos con orientación no monotónica.
+- **E59 stopped buses overnight**: caracterización informativa, no afecta el pipeline.
+- **Asimetría flota/frecuencia E2 vs E59**: E59 (40 unidades) opera con headway mediano 7.5 min; E2 (31 unidades) con 5 min. Diferencia operacional real, no investigada a fondo (largo de corredor, tiempo de vuelta).
+- **Spec inicial — targets aspiracionales**: lección registrada — futuros SDDs deben derivar thresholds de baselines medidos, no de aspiraciones.

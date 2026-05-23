@@ -72,16 +72,61 @@ No se consume directamente desde Fase 2; lo registramos para trazabilidad.
 
 ---
 
-## Artefactos derivados (placeholder — Fase 2 los producirá)
+## Artefactos derivados — Fase 2 (productos del NB04 v8)
+
+Todos los artefactos derivados producidos por Fase 2 viven como outputs del Kaggle kernel `alexhuaracha/04-preprocessing` (versión vigente v8, ejecutada 2026-05-23). No se publican como Kaggle Dataset — el kernel versiona inmutablemente sus outputs, así que el pin autoritativo es la versión del kernel.
+
+### Pin Kaggle (kernel productor)
+
+| Campo | Valor |
+|---|---|
+| Kernel ID | `alexhuaracha/04-preprocessing` |
+| Versión vigente | v8 |
+| Última ejecución (UTC) | 2026-05-23 14:08 |
+| Status | COMPLETE |
+| Tiempo de corrida | ~36 min |
+| dataset_sources | `alexhuaracha/multibus-headway-forecast-clean` |
+| kernel_sources | — |
+| Builder | `src/build_notebook_04.py` |
+| Commit de producción | `8674a5e` — "chore(nb04): regenerate notebook after H7 sort-key fix" (2026-05-23) |
+
+### Outputs del kernel — Fase 2 paso 1: GPS limpio por empresa
+
+| Artefacto | Tamaño | Schema |
+|---|---|---|
+| `cleaned_gps_E2.parquet` | ~151 MB | R7 v4 — añade `s`, `lateral_m`, `direction`, `trip_id` sobre el schema crudo de `clean_gps.parquet` |
+| `cleaned_gps_E59.parquet` | ~197 MB | R7 v4 — idem |
+
+### Outputs del kernel — Fase 2 paso 2: Headways por empresa
+
+| Artefacto | Tamaño | Rows válidos (delta_t_min not null) | Schema |
+|---|---|---|---|
+| `headways_E2.parquet` | ~64 MB | 1,009,284 (495,562 dir=-1 + 513,722 dir=+1) | `t, direction, pair_rank, bus_front, bus_back, s_front, s_back, speed_front_kmh, speed_back_kmh, delta_t_min, n_buses, lateral_m_front, lateral_m_back` |
+| `headways_E59.parquet` | ~106 MB | 2,069,193 (1,155,295 dir=-1 + 913,898 dir=+1) | idem |
+
+### Outputs del kernel — Fase 2 sidecar: diagnostics de NULL
+
+| Artefacto | Tamaño | Filas | Propósito |
+|---|---|---|---|
+| `headway_null_buckets_E2.parquet` | ~2 KB | 12 (6 buckets × 2 directions) | Adjudicación AC-DATA-2 — counts por `(empresaid, direction, bucket)` |
+| `headway_null_buckets_E59.parquet` | ~2 KB | 12 | idem |
+
+### Otros artefactos
 
 | Artefacto | Estado | Fase |
 |---|---|---|
-| `cleaned_gps_<empresa>.parquet` | no producido aún | Fase 2 paso 1 |
-| `headways_<empresa>.parquet` | no producido aún | Fase 2 paso 2 |
 | `splits/<empresa>/{train,val,test}.parquet` | no producido aún | Fase 3 |
-| `atypical_days.csv` | producido por notebook 02 (Fase 1) — pendiente de re-correr en Kaggle con bug fix | Fase 1 → consumido por Fase 3 y Fase 7 |
+| `atypical_days.csv` | producido por kernel `alexhuaracha/02-eda-corridors` (Fase 1), última corrida 2026-05-19 | Fase 1 → consumido por Fase 3 y Fase 7 |
+| `quality_gps.csv` | producido por kernel `02-eda-corridors`, contiene métricas de calidad GPS por empresa | Fase 1 |
 
-Cuando Fase 2 cierre, cada artefacto se agrega arriba con su propio bloque "Pin Kaggle" y "Provenance".
+### Cómo descargar (snapshot local)
+
+```bash
+mkdir -p /tmp/nb04_v8
+uv run kaggle kernels output alexhuaracha/04-preprocessing -p /tmp/nb04_v8/
+```
+
+Los outputs descargados incluyen los 6 parquets listados arriba más el log de ejecución `04-preprocessing.log`.
 
 ---
 
@@ -102,3 +147,4 @@ Cuando Fase 2 cierre, cada artefacto se agrega arriba con su propio bloque "Pin 
 | Fecha | Cambio | Commit |
 |---|---|---|
 | 2026-05-19 | Manifest inicial al cierre de Fase 1 | (pendiente) |
+| 2026-05-23 | Registro de artefactos derivados de Fase 2 (NB04 v8 post H7 fix) | (este commit) |
