@@ -358,3 +358,102 @@ class TestNotebook06Builder:
             "different byte content. This indicates non-stable cell IDs (flutter). "
             "Each cell must have an explicit id= like 'cell-06-setup'."
         )
+
+
+# ---------------------------------------------------------------------------
+# Tests for src/build_notebook_05.py  (W5 — RED)
+#   AC-NB-1: builder exits 0, notebook exists at notebooks/05_dataset/05_dataset.ipynb
+#   AC-NB-2: byte-identical second run (idempotency / no cell-ID flutter)
+#   AC-NB-3: all cell IDs match pattern cell-05-* (no random UUIDs)
+# ---------------------------------------------------------------------------
+
+NOTEBOOK_05_PATH = ROOT / "notebooks" / "05_dataset" / "05_dataset.ipynb"
+BUILDER_05 = ROOT / "src" / "build_notebook_05.py"
+
+
+class TestNotebook05Builder:
+    """W5 — Verify build_notebook_05.py produces a correct, stable notebook.
+
+    AC-NB-1: builder exits 0 and produces notebooks/05_dataset/05_dataset.ipynb.
+    AC-NB-2: two consecutive runs leave the working tree clean (byte-identical).
+    AC-NB-3: all cell IDs have the 'cell-05-' prefix (no uuid4 IDs).
+    """
+
+    def test_builder_runs_clean_exit_0(self):
+        """AC-NB-1: python -m src.build_notebook_05 exits 0 and writes the notebook.
+
+        Failure mode: build_notebook_05.py does not exist yet (RED), or exits non-zero
+        due to import error / missing dependency.
+        """
+        result = subprocess.run(
+            [sys.executable, "-m", "src.build_notebook_05"],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        assert result.returncode == 0, (
+            f"src.build_notebook_05 failed with return code {result.returncode}.\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        assert NOTEBOOK_05_PATH.exists(), (
+            f"Expected notebook at {NOTEBOOK_05_PATH} but file does not exist"
+        )
+
+    def test_builder_is_idempotent(self):
+        """AC-NB-2: two consecutive runs must produce byte-identical output.
+
+        Failure mode: cell IDs are generated with uuid4() so each run produces
+        different IDs — the working tree would show uncommitted changes after
+        the second run (notebook flutter).
+        """
+        # First run
+        result1 = subprocess.run(
+            [sys.executable, "-m", "src.build_notebook_05"],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        assert result1.returncode == 0, (
+            f"First run failed.\nstdout: {result1.stdout}\nstderr: {result1.stderr}"
+        )
+        bytes_after_first = NOTEBOOK_05_PATH.read_bytes()
+
+        # Second run
+        result2 = subprocess.run(
+            [sys.executable, "-m", "src.build_notebook_05"],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        assert result2.returncode == 0, (
+            f"Second run failed.\nstdout: {result2.stdout}\nstderr: {result2.stderr}"
+        )
+        bytes_after_second = NOTEBOOK_05_PATH.read_bytes()
+
+        assert bytes_after_first == bytes_after_second, (
+            "build_notebook_05 is NOT idempotent: two consecutive runs produced "
+            "different byte content. Each cell must have an explicit stable ID "
+            "like 'cell-05-setup', not a random uuid4."
+        )
+
+    def test_notebook_has_stable_cell_ids(self):
+        """AC-NB-3: every cell ID must match the pattern 'cell-05-*' (no uuid4).
+
+        Failure mode: nbformat assigns random UUIDs when cell['id'] is not set
+        explicitly; those IDs change on every re-generation causing git flutter.
+        """
+        # Ensure the notebook exists (run builder if needed)
+        if not NOTEBOOK_05_PATH.exists():
+            subprocess.run(
+                [sys.executable, "-m", "src.build_notebook_05"],
+                capture_output=True, text=True, cwd=str(ROOT),
+                check=True,
+            )
+        import re
+        stable_pattern = re.compile(r"^cell-05-")
+        with open(NOTEBOOK_05_PATH, encoding="utf-8") as f:
+            nb = nbformat.read(f, as_version=4)
+        bad_ids = [
+            cell.get("id", "<no-id>")
+            for cell in nb.cells
+            if not stable_pattern.match(cell.get("id", ""))
+        ]
+        assert not bad_ids, (
+            f"The following cell IDs do not match 'cell-05-*' pattern: {bad_ids}. "
+            "All cell IDs must be explicitly set to 'cell-05-<name>' to prevent "
+            "git flutter on re-generation."
+        )
