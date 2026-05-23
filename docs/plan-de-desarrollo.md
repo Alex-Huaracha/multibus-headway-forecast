@@ -93,15 +93,17 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 **Objetivo de la fase:** Establecer la línea base obligatoria que el DL debe superar. Sin esto no hay paper.
 
-- [ ] Implementación de baseline ingenuo (`y_pred(t+h) = y(t)`).
-- [ ] Implementación de promedio móvil.
-- [ ] (Opcional) Promedio histórico por hora-del-día.
-- [ ] Evaluación sobre test con MAE y RMSE por horizonte.
-- [ ] Tabla de métricas baseline congelada.
+- [x] Implementación de baseline ingenuo (`y_pred(t+h) = y(t)`).
+- [x] Implementación de promedio móvil.
+- [x] Promedio histórico por hora-del-día.
+- [x] Evaluación sobre test con MAE y RMSE por horizonte.
+- [x] Tabla de métricas baseline congelada.
 
 **Artefacto:** Módulo `src/baselines/statistical.py` + notebook `06_baselines_stat`.
 
 **Criterio de cierre:** Tabla de métricas baseline publicada y congelada como referencia.
+
+**Estado:** Completada (2026-05-23).
 
 ---
 
