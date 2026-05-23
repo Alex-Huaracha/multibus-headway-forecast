@@ -318,11 +318,63 @@ def make_dataset_fixture(
 ) -> "tuple[Any, list[dict], dict[tuple[int, int], int]]":
     """Build (df, window_index, max_N_by_direction) ready for HeadwayDataset.
 
-    Returns:
-        df: pl.DataFrame with delta_t_min_z + 5 context cols (when include_context).
-        window_index: result of make_window_index on df.
-        max_N_by_direction: {(empresaid, direction): max_N}.
+    Constructs a deterministic fixture for a single (empresaid=2, direction=-1) slot
+    with ``n_snapshots`` timesteps. Each timestep has ``max_N`` pair_ranks so that
+    all positions are filled (no padding), making tensor shape assertions exact.
 
-    Used by tests/data/test_dataset.py only (torch-dependent callers).
+    Returns
+    -------
+    df:
+        pl.DataFrame with columns: empresaid, t, direction, pair_rank,
+        delta_t_min, delta_t_min_z, and 5 context feature columns when
+        ``include_context=True``.
+    window_index:
+        list[WindowIndexEntry] from make_window_index(df, T_in=T_in, T_out=T_out).
+    max_N_by_direction:
+        {(2, -1): max_N} — the single direction present in this fixture.
+
+    Used by tests/data/test_dataset.py (torch-dependent callers only).
     """
-    raise NotImplementedError("make_dataset_fixture will be implemented in W4 (PR2)")
+    from src.data.normalization import NormalizationStats, apply_zscore
+    from src.data.context_features import encode_context
+    from src.data.windowing import make_window_index
+
+    empresaid = 2
+    direction = -1
+    anchor = datetime(2023, 11, 1, 8, 0, 0)
+    step = timedelta(minutes=1)
+
+    rows: list[dict[str, Any]] = []
+    for snap_idx in range(n_snapshots):
+        t = anchor + snap_idx * step
+        for pr in range(max_N):
+            rows.append({
+                "empresaid": empresaid,
+                "t": t,
+                "direction": direction,
+                "pair_rank": pr,
+                "delta_t_min": float(snap_idx + pr + 1),
+            })
+
+    df = pl.DataFrame(rows).with_columns(
+        pl.col("empresaid").cast(pl.Int64),
+        pl.col("t").cast(pl.Datetime("us")),
+        pl.col("direction").cast(pl.Int64),
+        pl.col("pair_rank").cast(pl.Int32),
+        pl.col("delta_t_min").cast(pl.Float64),
+    )
+
+    # Apply z-score with constant stats (mean=0, std=1 for simplicity).
+    stats = NormalizationStats(
+        means={(empresaid, direction): 0.0},
+        stds={(empresaid, direction): 1.0},
+    )
+    df = apply_zscore(df, stats)
+
+    if include_context:
+        df = encode_context(df, atypical_dates=None)
+
+    window_index = make_window_index(df, T_in=T_in, T_out=T_out)
+    max_N_by_direction: dict[tuple[int, int], int] = {(empresaid, direction): max_N}
+
+    return df, window_index, max_N_by_direction
