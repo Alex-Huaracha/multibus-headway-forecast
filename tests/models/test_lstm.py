@@ -108,10 +108,16 @@ class TestHeadwayLSTM:
         assert torch.allclose(out1, out2)
 
     def test_model_parameter_count(self):
-        """AC-MODEL-1: Parameter count matches LSTM formula.
+        """AC-MODEL-1: Parameter count matches PyTorch LSTM formula.
 
-        Single-layer LSTM: 4 * (input_size + hidden_size + 1) * hidden_size
-        Linear head: hidden_size * output_size + output_size
+        PyTorch nn.LSTM has 4 parameter matrices per layer:
+          weight_ih: (4*hidden, input)   = 4 * hidden * input
+          weight_hh: (4*hidden, hidden)  = 4 * hidden * hidden
+          bias_ih:   (4*hidden,)         = 4 * hidden
+          bias_hh:   (4*hidden,)         = 4 * hidden
+        Total LSTM = 4 * hidden * (input + hidden) + 8 * hidden
+
+        Linear head = hidden * output + output
         """
         input_size = 7
         hidden_size = 16
@@ -124,9 +130,12 @@ class TestHeadwayLSTM:
             dropout=0.0,
         )
         total_params = sum(p.numel() for p in model.parameters())
-        # LSTM params = 4 * hidden * (input + hidden) + 4 * hidden (biases)
-        lstm_params = 4 * hidden_size * (input_size + hidden_size) + 4 * hidden_size
-        # Linear params
+        # LSTM: two weight matrices + two bias vectors (bias_ih + bias_hh)
+        lstm_params = (
+            4 * hidden_size * (input_size + hidden_size)  # weight_ih + weight_hh
+            + 8 * hidden_size                              # bias_ih + bias_hh
+        )
+        # Linear head
         linear_params = hidden_size * output_size + output_size
         expected = lstm_params + linear_params
         assert total_params == expected, (
