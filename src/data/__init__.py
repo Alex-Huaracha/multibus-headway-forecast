@@ -11,6 +11,7 @@ importable without torch. Only dataset.py imports torch.
 """
 from __future__ import annotations
 
+from .normalization import NormalizationStats, apply_zscore, compute_normalization_stats
 from .windowing import (
     DEFAULT_STRIDE,
     DEFAULT_T_IN,
