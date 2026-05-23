@@ -17,6 +17,7 @@ import numpy as np
 import polars as pl
 import pytest
 
+from src.preprocessing.config import CALIBRATED_INVERTED_DIRECTION
 from src.preprocessing.headways import _find_last_crossing_ns, compute_headways_c2, compute_pairs
 
 
@@ -129,17 +130,24 @@ class TestPairStructure:
         assert ranks == [1, 2], f"Expected ranks [1, 2]; got {ranks}"
 
     def test_bus_front_greater_s_than_bus_back(self):
-        """After sorting by s ascending, bus_front must have s > bus_back."""
+        """Canonical direction: bus_front must have s > bus_back.
+
+        Updated (SDD dir1-pair-ordering-h7 Wave 3): uses direction=CANONICAL_DIR
+        (-CALIBRATED_INVERTED_DIRECTION == -1) to explicitly test the canonical-
+        direction invariant (s increases with physical motion → highest s is front).
+        The inverted direction (direction==+1) intentionally reverses this ordering.
+        """
         rows = [
-            _make_snapshot_row(2, 201, T0, s=100.0),
-            _make_snapshot_row(2, 202, T0, s=200.0),
+            _make_snapshot_row(2, 201, T0, s=100.0, direction=-CALIBRATED_INVERTED_DIRECTION),
+            _make_snapshot_row(2, 202, T0, s=200.0, direction=-CALIBRATED_INVERTED_DIRECTION),
         ]
         snaps = _build_snapshots_df(rows)
         pairs = compute_pairs(snaps)
         assert len(pairs) == 1
         row = pairs.row(0, named=True)
         assert row["s_front"] > row["s_back"], (
-            f"s_front ({row['s_front']}) must > s_back ({row['s_back']})"
+            f"s_front ({row['s_front']}) must > s_back ({row['s_back']}) "
+            f"for the canonical direction (direction={-CALIBRATED_INVERTED_DIRECTION})"
         )
 
 
@@ -181,12 +189,17 @@ class TestC2KnownCrossing:
         s_back_arr[14] = 480.0
         s_back_arr[16] = 520.0
 
-        gps_rows = _make_gps_pings(2, 202, times_back, s_back_arr.tolist(), direction=1)
+        # Use CANONICAL_DIR (-CALIBRATED_INVERTED_DIRECTION == -1) so that
+        # s increases with physical motion → bus at s=500 is bus_front, bus at
+        # s=400 is bus_back. This preserves the original test intent regardless
+        # of the direction-conditional sort key fix (SDD dir1-pair-ordering-h7).
+        _canonical_dir = -CALIBRATED_INVERTED_DIRECTION
+        gps_rows = _make_gps_pings(2, 202, times_back, s_back_arr.tolist(), direction=_canonical_dir)
 
         # Snapshots: bus_front at s=500, bus_back at s=400 (behind front) at T.
         snap_rows = [
-            _make_snapshot_row(2, 201, T, s=500.0),   # bus_front
-            _make_snapshot_row(2, 202, T, s=400.0),   # bus_back
+            _make_snapshot_row(2, 201, T, s=500.0, direction=_canonical_dir),   # bus_front
+            _make_snapshot_row(2, 202, T, s=400.0, direction=_canonical_dir),   # bus_back
         ]
 
         snaps = _build_snapshots_df(snap_rows)
@@ -213,12 +226,16 @@ class TestNullEmission:
         Scenario: bus_back has NO historical pings before T. The pair row must
         be emitted with delta_t_min IS NULL; bus_front != bus_back (INV-7);
         pair_rank remains dense (1 for the only pair).
+
+        Updated (SDD dir1-pair-ordering-h7 Wave 3): uses CANONICAL_DIR so that
+        s_front > s_back (bus 201 at s=500 is front, bus 202 at s=400 is back).
         """
         T = T0
+        _canonical_dir = -CALIBRATED_INVERTED_DIRECTION
         # Only one snapshot pair: front at s=500, back at s=400.
         snap_rows = [
-            _make_snapshot_row(2, 201, T, s=500.0),   # bus_front
-            _make_snapshot_row(2, 202, T, s=400.0),   # bus_back
+            _make_snapshot_row(2, 201, T, s=500.0, direction=_canonical_dir),   # bus_front
+            _make_snapshot_row(2, 202, T, s=400.0, direction=_canonical_dir),   # bus_back
         ]
         snaps = _build_snapshots_df(snap_rows)
 
@@ -227,7 +244,7 @@ class TestNullEmission:
             2, 201,
             [T0 - timedelta(minutes=5), T0 - timedelta(minutes=3), T0],
             [200.0, 350.0, 500.0],
-            direction=1,
+            direction=_canonical_dir,
         )
         gps = _build_gps_df(gps_rows)
 
@@ -255,12 +272,19 @@ class TestNullEmission:
 
         3 buses: pair (2,1) has crossing history → non-null; pair (3,2) has no
         history → null. Both must be emitted; pair_rank must be 1 and 2.
+
+        Updated (SDD dir1-pair-ordering-h7 Wave 3): uses CANONICAL_DIR so that
+        ascending s sort is correct (s increases with physical motion).
+        With CANONICAL_DIR: bus 201 (s=100) is back of pair-rank-1, bus 202
+        (s=200) is front of pair-rank-1 / back of pair-rank-2, bus 203 (s=300)
+        is front of pair-rank-2.
         """
         T = T0
+        _canonical_dir = -CALIBRATED_INVERTED_DIRECTION
         snap_rows = [
-            _make_snapshot_row(2, 201, T, s=100.0),
-            _make_snapshot_row(2, 202, T, s=200.0),
-            _make_snapshot_row(2, 203, T, s=300.0),
+            _make_snapshot_row(2, 201, T, s=100.0, direction=_canonical_dir),
+            _make_snapshot_row(2, 202, T, s=200.0, direction=_canonical_dir),
+            _make_snapshot_row(2, 203, T, s=300.0, direction=_canonical_dir),
         ]
         snaps = _build_snapshots_df(snap_rows)
 
@@ -271,11 +295,11 @@ class TestNullEmission:
             _make_gps_pings(2, 201,
                 [T0 - timedelta(minutes=8), T0 - timedelta(minutes=5), T0 - timedelta(minutes=2)],
                 [80.0, 100.0, 120.0],
-                direction=1)
+                direction=_canonical_dir)
             + _make_gps_pings(2, 202,
                 [T0 - timedelta(minutes=8), T0 - timedelta(minutes=5)],
                 [50.0, 150.0],   # never crosses 200
-                direction=1)
+                direction=_canonical_dir)
         )
         gps = _build_gps_df(gps_rows)
 
@@ -463,18 +487,23 @@ class TestR7Schema:
         T = T0
         t_cross = T0 - timedelta(minutes=3)
 
+        # Use CANONICAL_DIR so that bus 201 (s=200) is bus_front and bus 202
+        # (s=100) is bus_back, preserving the original test intent.
+        # (SDD dir1-pair-ordering-h7 Wave 3 fixup)
+        _canonical_dir = -CALIBRATED_INVERTED_DIRECTION
+
         # bus_back trajectory: crosses s_front at t_cross.
         gps_rows = _make_gps_pings(
             2, 202,
             [T0 - timedelta(minutes=6), t_cross, T0 - timedelta(minutes=1)],
             [80.0, 200.0, 150.0],  # crosses s=200 (s_front) at t_cross
-            direction=1,
+            direction=_canonical_dir,
         )
         gps = _build_gps_df(gps_rows)
 
         snap_rows = [
-            _make_snapshot_row(2, 201, T, s=200.0, lateral_m=5.0),   # bus_front
-            _make_snapshot_row(2, 202, T, s=100.0, lateral_m=8.0),   # bus_back
+            _make_snapshot_row(2, 201, T, s=200.0, lateral_m=5.0, direction=_canonical_dir),   # bus_front
+            _make_snapshot_row(2, 202, T, s=100.0, lateral_m=8.0, direction=_canonical_dir),   # bus_back
         ]
         snaps = _build_snapshots_df(snap_rows)
 
@@ -576,16 +605,24 @@ class TestLookbackBound:
 
 
 def _make_minimal_miss_fixture() -> tuple[pl.DataFrame, pl.DataFrame]:
-    """Return (snapshots, gps) where bus_back (unidadid=202, direction=+1)
-    has NO trajectory in the GPS frame, guaranteeing a traj_key miss.
+    """Return (snapshots, gps) where bus_back (unidadid=202) has NO trajectory
+    in the GPS frame, guaranteeing a traj_key miss.
 
-    The trajectory index will contain (2, 201, 1) but NOT (2, 202, 1).
-    compute_headways_c2 must log a [traj-miss] line for empresa=2, dir=+1.
+    Uses CANONICAL_DIR (-CALIBRATED_INVERTED_DIRECTION == -1) so that the
+    pair ordering is canonical: bus 201 (s=500) is bus_front, bus 202 (s=400)
+    is bus_back. The traj_index contains (2, 201, CANONICAL_DIR) but NOT
+    (2, 202, CANONICAL_DIR), triggering a traj-miss for the one pair.
+
+    Updated (SDD dir1-pair-ordering-h7 Wave 3): switched from direction=+1 to
+    CANONICAL_DIR to preserve the traj-miss semantics after the direction-
+    conditional sort fix. Tests that filter null_buckets_df on direction == 1
+    are also updated to filter on CANONICAL_DIR.
     """
+    _canonical_dir = -CALIBRATED_INVERTED_DIRECTION
     # Snapshot: two buses at T0 form one pair (bus_front=201, bus_back=202)
     snap_rows = [
-        _make_snapshot_row(2, 201, T0, s=500.0, direction=1),
-        _make_snapshot_row(2, 202, T0, s=400.0, direction=1),
+        _make_snapshot_row(2, 201, T0, s=500.0, direction=_canonical_dir),
+        _make_snapshot_row(2, 202, T0, s=400.0, direction=_canonical_dir),
     ]
     snaps = _build_snapshots_df(snap_rows)
 
@@ -594,7 +631,7 @@ def _make_minimal_miss_fixture() -> tuple[pl.DataFrame, pl.DataFrame]:
         2, 201,
         [T0 - timedelta(minutes=5), T0 - timedelta(minutes=2)],
         [480.0, 520.0],
-        direction=1,
+        direction=_canonical_dir,
     )
     gps = _build_gps_df(gps_rows)
     return snaps, gps
@@ -614,22 +651,26 @@ class TestTrajMissCounter:
 
     def test_traj_miss_counter_logged_per_direction(self):
         """AC-COUNTER-1 (migrated): when bus_back has no GPS history, null_buckets_df
-        must have count==1 for bucket 'traj-miss' and total_pairs==1 for empresa=2, dir=+1.
+        must have count==1 for bucket 'traj-miss' and total_pairs==1 for the pair's direction.
 
-        Fixture: bus_back (unidadid=202) has no GPS history for direction=+1,
-        so traj_key=(2, 202, 1) is absent. The single pair is a traj-miss.
+        Fixture: bus_back (unidadid=202) has no GPS history for CANONICAL_DIR,
+        so traj_key=(2, 202, CANONICAL_DIR) is absent. The single pair is a traj-miss.
+
+        Updated (SDD dir1-pair-ordering-h7 Wave 3): filter on CANONICAL_DIR
+        (-CALIBRATED_INVERTED_DIRECTION == -1) since the fixture now uses that direction.
         """
         snaps, gps = _make_minimal_miss_fixture()
+        _canonical_dir = -CALIBRATED_INVERTED_DIRECTION
 
         _, buckets = compute_headways_c2(snaps, gps, min_buses=2)
 
         traj_miss_rows = buckets.filter(
             (pl.col("bucket") == "traj-miss")
             & (pl.col("empresaid") == 2)
-            & (pl.col("direction") == 1)
+            & (pl.col("direction") == _canonical_dir)
         )
         assert len(traj_miss_rows) == 1, (
-            f"Expected 1 traj-miss row for (empresa=2, dir=1); got {len(traj_miss_rows)}"
+            f"Expected 1 traj-miss row for (empresa=2, dir={_canonical_dir}); got {len(traj_miss_rows)}"
         )
         miss_count = traj_miss_rows["count"].item()
         total_pairs = traj_miss_rows["total_pairs"].item()
@@ -975,4 +1016,174 @@ def test_discrimination_invariant():
             f"Discrimination invariant violated for empresa={e}, dir={d}: "
             f"sum(count)={count_sum} != total_pairs={total_pairs_val}\n"
             f"Buckets:\n{group_df}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# SDD dir1-pair-ordering-h7 — direction-conditional sort key
+# ---------------------------------------------------------------------------
+
+
+class TestDirectionConditionalSort:
+    """SDD dir1-pair-ordering-h7 — direction-aware pair ordering.
+
+    Verifies that compute_pairs honors CALIBRATED_INVERTED_DIRECTION when
+    assigning bus_front/bus_back, so that the physically-front bus is the
+    one closer to its motion destination, not the one with highest raw s.
+
+    INVERTED_DIR = CALIBRATED_INVERTED_DIRECTION (== 1 per obs #135).
+    CANONICAL_DIR = -INVERTED_DIR (== -1).
+
+    For INVERTED_DIR: physical motion is toward s=0, so the bus at s=10
+    has moved farthest forward → should be bus_front. The fix negates s for
+    this direction before the ascending sort, making s=10 sort last (highest
+    sort key after negation → bus_front after shift).
+
+    For CANONICAL_DIR: physical motion aligns with s increasing, so the bus
+    at s=30 is physically in front → bus_front (identical to pre-fix behavior).
+
+    These three tests are intentionally RED against the current unconditional
+    ascending sort on raw s (headways.py line 71). They become GREEN once
+    the direction-conditional sort key (Encoding A) is implemented.
+    """
+
+    INVERTED_DIR: int = CALIBRATED_INVERTED_DIRECTION       # +1
+    CANONICAL_DIR: int = -CALIBRATED_INVERTED_DIRECTION     # -1
+
+    def test_inverted_direction_assigns_front_to_lowest_s(self):
+        """AC-UNIT-3: dir+1 (inverted) — bus at s=10 must be bus_front.
+
+        Physical motion is toward s=0. The bus at s=10 has advanced farthest
+        along its physical route (it is closest to the destination). After the
+        direction-conditional fix, sort key = -s, so ascending sort places
+        s=30 (key=-30) first, s=20 (key=-20) second, s=10 (key=-10) last.
+        shift(1).over(group) gives: bus at s=10 (last row) gets bus_back from
+        the bus at s=20 (the row before it). The highest-rank pair is therefore
+        (bus_front=201 at s=10, bus_back=202 at s=20).
+
+        RED signal: current code uses raw s ascending, so the bus at s=30 is
+        last and becomes bus_front → assertion bus_front==201 fails.
+        """
+        rows = [
+            _make_snapshot_row(2, 201, T0, s=10.0, direction=self.INVERTED_DIR),
+            _make_snapshot_row(2, 202, T0, s=20.0, direction=self.INVERTED_DIR),
+            _make_snapshot_row(2, 203, T0, s=30.0, direction=self.INVERTED_DIR),
+        ]
+        pairs = compute_pairs(_build_snapshots_df(rows))
+        assert pairs.height == 2, f"Expected 2 pairs for 3 buses; got {pairs.height}"
+
+        top_pair = pairs.sort("pair_rank", descending=True).row(0, named=True)
+        assert top_pair["bus_front"] == 201, (
+            f"Inverted direction: bus at s=10 (bus_id=201) must be bus_front; "
+            f"got bus_front={top_pair['bus_front']} "
+            f"(RED: current unconditional sort assigns s=30 bus as front)"
+        )
+        assert top_pair["s_front"] == pytest.approx(10.0), (
+            f"s_front must be 10.0 (raw arc-length, not negated); got {top_pair['s_front']}"
+        )
+        assert top_pair["bus_back"] == 202, (
+            f"bus_back must be 202 (s=20); got {top_pair['bus_back']}"
+        )
+        assert top_pair["s_back"] == pytest.approx(20.0), (
+            f"s_back must be 20.0; got {top_pair['s_back']}"
+        )
+        # Critically: s_front < s_back in the INVERTED direction.
+        assert top_pair["s_front"] < top_pair["s_back"], (
+            f"INV: s_front ({top_pair['s_front']}) must be < s_back ({top_pair['s_back']}) "
+            f"for the inverted direction"
+        )
+
+    def test_canonical_direction_assigns_front_to_highest_s(self):
+        """AC-UNIT-2 (canonical branch): dir-1 (canonical) — bus at s=30 must be bus_front.
+
+        Physical motion aligns with s increasing. The bus at s=30 is furthest
+        forward. The direction-conditional fix evaluates to s (unchanged) for
+        CANONICAL_DIR, so behavior is identical to pre-fix ascending sort.
+        bus_front = bus at s=30 = bus_id=303.
+
+        This test should be GREEN against BOTH old and new code once we wire it,
+        but is written RED-first to confirm the fixture is correct.
+        NOTE: Because this direction is NOT the inverted direction, the current
+        code already produces the correct ordering — this test may actually PASS
+        before the fix. If so, it confirms canonical direction non-regression.
+        """
+        rows = [
+            _make_snapshot_row(2, 301, T0, s=10.0, direction=self.CANONICAL_DIR),
+            _make_snapshot_row(2, 302, T0, s=20.0, direction=self.CANONICAL_DIR),
+            _make_snapshot_row(2, 303, T0, s=30.0, direction=self.CANONICAL_DIR),
+        ]
+        pairs = compute_pairs(_build_snapshots_df(rows))
+        assert pairs.height == 2, f"Expected 2 pairs for 3 buses; got {pairs.height}"
+
+        top_pair = pairs.sort("pair_rank", descending=True).row(0, named=True)
+        assert top_pair["bus_front"] == 303, (
+            f"Canonical direction: bus at s=30 (bus_id=303) must be bus_front; "
+            f"got bus_front={top_pair['bus_front']}"
+        )
+        assert top_pair["s_front"] == pytest.approx(30.0), (
+            f"s_front must be 30.0; got {top_pair['s_front']}"
+        )
+        assert top_pair["bus_back"] == 302, (
+            f"bus_back must be 302 (s=20); got {top_pair['bus_back']}"
+        )
+        assert top_pair["s_back"] == pytest.approx(20.0), (
+            f"s_back must be 20.0; got {top_pair['s_back']}"
+        )
+        # s_front > s_back for canonical direction (standard behavior).
+        assert top_pair["s_front"] > top_pair["s_back"], (
+            f"INV: s_front ({top_pair['s_front']}) must be > s_back ({top_pair['s_back']}) "
+            f"for the canonical direction"
+        )
+
+    def test_mixed_direction_frame_per_direction_independence(self):
+        """AC-UNIT-4: mixed-direction frame — each direction sorted independently.
+
+        Same (empresaid, day, t) snapshot but BOTH directions present (2 buses
+        per direction). The direction-conditional sort must apply independently
+        per group. Verifies INV-1 (discrimination) and the per-direction grouping.
+
+        INVERTED_DIR group (2 buses at s=10, s=20):
+          - sort key = -s → ascending order: s=20 (key=-20), s=10 (key=-10)
+          - shift(1): last row (s=10, bus=201) gets bus_back = bus at s=20 (bus=202)
+          - pair: bus_front=201 (s=10), bus_back=202 (s=20)
+
+        CANONICAL_DIR group (2 buses at s=10, s=20):
+          - sort key = s → ascending order: s=10 (bus=301), s=20 (bus=302)
+          - shift(1): last row (s=20, bus=302) gets bus_back = bus at s=10 (bus=301)
+          - pair: bus_front=302 (s=20), bus_back=301 (s=10)
+
+        RED signal: current code uses raw s ascending for both groups, so the
+        INVERTED_DIR group also assigns bus_front=202 (s=20) which is wrong.
+        """
+        rows = [
+            # Inverted direction: 2 buses
+            _make_snapshot_row(2, 201, T0, s=10.0, direction=self.INVERTED_DIR),
+            _make_snapshot_row(2, 202, T0, s=20.0, direction=self.INVERTED_DIR),
+            # Canonical direction: 2 buses
+            _make_snapshot_row(2, 301, T0, s=10.0, direction=self.CANONICAL_DIR),
+            _make_snapshot_row(2, 302, T0, s=20.0, direction=self.CANONICAL_DIR),
+        ]
+        pairs = compute_pairs(_build_snapshots_df(rows))
+        # One pair per direction → 2 total pairs.
+        assert pairs.height == 2, (
+            f"Expected 2 pairs (1 per direction for 2 buses each); got {pairs.height}"
+        )
+
+        inv_pair = pairs.filter(
+            pl.col("direction") == self.INVERTED_DIR
+        ).row(0, named=True)
+        can_pair = pairs.filter(
+            pl.col("direction") == self.CANONICAL_DIR
+        ).row(0, named=True)
+
+        # Inverted direction: physically-front bus is at s=10.
+        assert inv_pair["bus_front"] == 201, (
+            f"Inverted direction: bus_front must be 201 (s=10); "
+            f"got {inv_pair['bus_front']} "
+            f"(RED: current code assigns bus_front=202 for raw s ascending)"
+        )
+        # Canonical direction: physically-front bus is at s=20.
+        assert can_pair["bus_front"] == 302, (
+            f"Canonical direction: bus_front must be 302 (s=20); "
+            f"got {can_pair['bus_front']}"
         )

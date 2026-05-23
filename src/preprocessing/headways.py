@@ -31,7 +31,7 @@ from collections import Counter
 import numpy as np
 import polars as pl
 
-from .config import PRODUCTIVE_PARAMS, lateral_pair_threshold_for
+from .config import CALIBRATED_INVERTED_DIRECTION, PRODUCTIVE_PARAMS, lateral_pair_threshold_for
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,18 @@ def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
     has_lateral = "lateral_m" in snapshots.columns
 
     s = snapshots.filter(pl.col("direction") != 0)
-    s = s.sort(["empresaid", "day", "t", "direction", "s"])
+    # Direction-conditional sort key (SDD dir1-pair-ordering-h7, Encoding A).
+    # For CALIBRATED_INVERTED_DIRECTION (+1): the per-direction PCA centerline
+    # has s inverse to physical motion → negate s so ascending sort places the
+    # physically-front bus last (it becomes bus_front after shift(1)).
+    # For the canonical direction: sort key == s (identical to pre-fix behavior).
+    # The negation is sort-time only; s_front/s_back retain raw arc-length values.
+    _s_sort_key = (
+        pl.when(pl.col("direction") == CALIBRATED_INVERTED_DIRECTION)
+        .then(-pl.col("s"))
+        .otherwise(pl.col("s"))
+    )
+    s = s.sort(["empresaid", "day", "t", "direction", _s_sort_key])
 
     group_cols = ["empresaid", "day", "t", "direction"]
 
