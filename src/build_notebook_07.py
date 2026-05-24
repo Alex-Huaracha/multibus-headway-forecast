@@ -352,12 +352,13 @@ print(f"E59 context columns: {[c for c in df_e59.columns if c in CONTEXT_FEATURE
 # ---------------------------------------------------------------------------
 
 md(
-    """## Construcción del Dataset — por (corredor, dirección)
+    """## Construcción del Dataset — por corredor
 
-Calcula `max_N` (train-p99 de n_buses-1 por dirección), genera índices de
-ventanas deslizantes (T_in=12, T_out=1, stride=1) e instancia `HeadwayDataset`
-para los splits train/val/test de cada (corredor, dirección).
-Esto produce 4 conjuntos de DataLoaders: (E2, -1), (E2, +1), (E59, -1), (E59, +1).
+Calcula `max_N` (train-p99 de n_buses-1 por dirección), toma el máximo global
+por corredor para dimensionar el modelo.  Materializa TODAS las ventanas en
+tensores usando un lookup por timestamp (O(1) por acceso) en vez de filtros
+Polars por ventana.  Train/val combinan ambas direcciones; test se separa
+por dirección para desnormalizar con stats específicas.
 """,
     cell_id="cell-07-dataset-md",
 )
@@ -365,56 +366,147 @@ Esto produce 4 conjuntos de DataLoaders: (E2, -1), (E2, +1), (E59, -1), (E59, +1
 code(
     """
 import torch
-from torch.utils.data import DataLoader
+import time as _time
 
 T_IN  = DEFAULT_T_IN   # 12
 T_OUT = DEFAULT_T_OUT  # 1
 BATCH_SIZE = 32
 
-def build_dir_datasets(df: pl.DataFrame, direction: int, max_n_full: dict, label: str):
-    \"\"\"Build train/val/test DataLoaders for one (corridor, direction) pair.
+def _build_snapshot_lookup(df: pl.DataFrame, max_N: int, context_cols: list[str]):
+    \"\"\"Build a dict: (empresaid, direction, timestamp) -> (values, mask, context).
 
-    max_n_full is the full per-(empresaid, direction) dict from compute_max_N.
-    We pass it directly to HeadwayDataset (it handles the direction key lookup).
-    We use the direction-specific entry for model sizing.
+    One pass through a Polars group_by — O(n_unique_snapshots).
     \"\"\"
-    max_N_dir = max_n_full[(int(df.select("empresaid").row(0)[0]), direction)]
-    print(f"  {label} dir={direction:+d} max_N={max_N_dir}")
+    agg_exprs = [pl.col("pair_rank"), pl.col("delta_t_min_z")]
+    for c in context_cols:
+        agg_exprs.append(pl.col(c).first())
 
-    dir_df = df.filter(pl.col("direction") == direction)
+    grouped = df.group_by(["empresaid", "direction", "t"]).agg(agg_exprs)
 
-    loaders = {}
-    for split_name in ["train", "val", "test"]:
-        split_df = dir_df.filter(pl.col("split") == split_name)
-        idx = make_window_index(split_df, T_in=T_IN, T_out=T_OUT)
-        ds  = HeadwayDataset(
-            df=split_df,
-            window_index=idx,
-            max_N_by_direction=max_n_full,
-            T_in=T_IN,
-            T_out=T_OUT,
-        )
-        shuffle = (split_name == "train")
-        loaders[split_name] = DataLoader(
-            ds, batch_size=BATCH_SIZE, collate_fn=collate_fn, shuffle=shuffle
-        )
-        print(f"    {split_name:5s}: {len(idx):,} windows → {len(ds):,} items")
+    lookup = {}
+    for row in grouped.iter_rows(named=True):
+        key = (row["empresaid"], row["direction"], row["t"])
+        vals = np.zeros(max_N, dtype=np.float32)
+        mask = np.zeros(max_N, dtype=np.bool_)
+        for pr, v in zip(row["pair_rank"], row["delta_t_min_z"]):
+            if 0 <= pr < max_N and v is not None:
+                vals[pr] = v
+                mask[pr] = True
+        ctx = np.array([row[c] if row[c] is not None else 0.0 for c in context_cols],
+                       dtype=np.float32)
+        lookup[key] = (vals, mask, ctx)
+    return lookup
 
-    return max_N_dir, loaders
+def _build_slot_timestamps(df: pl.DataFrame):
+    \"\"\"Build dict: (empresaid, direction, pair_rank) -> sorted list of timestamps.
 
-def build_all_dir_datasets(df: pl.DataFrame, label: str):
+    One Polars group_by — O(n_rows).
+    \"\"\"
+    grouped = (
+        df.group_by(["empresaid", "direction", "pair_rank"])
+        .agg(pl.col("t").sort())
+    )
+    slots = {}
+    for row in grouped.iter_rows(named=True):
+        key = (row["empresaid"], row["direction"], row["pair_rank"])
+        slots[key] = row["t"]
+    return slots
+
+def fast_materialize(df: pl.DataFrame, window_index, max_N: int,
+                     context_cols: list[str], label: str):
+    \"\"\"Materialize all windows into batched tensor lists using dict lookups.
+
+    Returns a list of batch dicts (same format as DataLoader output).
+    \"\"\"
+    t0 = _time.time()
+    window_size = T_IN + T_OUT
+    n_windows = len(window_index)
+
+    lookup = _build_snapshot_lookup(df, max_N, context_cols)
+    slots = _build_slot_timestamps(df)
+    t_lookup = _time.time()
+    print(f"  {label}: lookup built in {t_lookup - t0:.1f}s "
+          f"({len(lookup):,} snapshots, {len(slots):,} slots)")
+
+    all_input      = np.zeros((n_windows, T_IN, max_N), dtype=np.float32)
+    all_target     = np.zeros((n_windows, T_OUT, max_N), dtype=np.float32)
+    all_input_mask = np.zeros((n_windows, T_IN, max_N), dtype=np.bool_)
+    all_target_mask= np.zeros((n_windows, T_OUT, max_N), dtype=np.bool_)
+    all_context    = np.zeros((n_windows, T_IN, len(context_cols)), dtype=np.float32)
+
+    for i, entry in enumerate(window_index):
+        slot_key = (entry["empresaid"], entry["direction"], entry["pair_rank"])
+        emp, dirn = entry["empresaid"], entry["direction"]
+        ts_list = slots[slot_key]
+        start = entry["start_idx"]
+
+        for t_idx in range(window_size):
+            ts = ts_list[start + t_idx]
+            snap = lookup.get((emp, dirn, ts))
+            if snap is None:
+                continue
+            vals, mask, ctx = snap
+            if t_idx < T_IN:
+                all_input[i, t_idx] = vals
+                all_input_mask[i, t_idx] = mask
+                all_context[i, t_idx] = ctx
+            else:
+                out_idx = t_idx - T_IN
+                all_target[i, out_idx] = vals
+                all_target_mask[i, out_idx] = mask
+
+    # Convert to tensors and split into batches.
+    tensors = {
+        "input":       torch.from_numpy(all_input),
+        "target":      torch.from_numpy(all_target),
+        "input_mask":  torch.from_numpy(all_input_mask),
+        "target_mask": torch.from_numpy(all_target_mask),
+        "context":     torch.from_numpy(all_context),
+    }
+
+    batches = []
+    for start in range(0, n_windows, BATCH_SIZE):
+        end = min(start + BATCH_SIZE, n_windows)
+        batch = {k: v[start:end] for k, v in tensors.items()}
+        batches.append(batch)
+
+    elapsed = _time.time() - t0
+    print(f"  {label}: {n_windows:,} windows -> {len(batches):,} batches in {elapsed:.1f}s")
+    return batches
+
+CTX_COLS = list(CONTEXT_FEATURE_NAMES)
+
+def build_corridor_data(df: pl.DataFrame, label: str):
+    \"\"\"Build cached batches for one corridor (both directions combined).\"\"\"
     train_df = df.filter(pl.col("split") == "train")
     max_n = compute_max_N(train_df, quantile=0.99)
-    print(f"\\n{label} max_N (all directions): {max_n}")
+    global_max_N = max(max_n.values())
+    print(f"\\n{label} max_N per direction: {max_n}")
+    print(f"{label} global max_N (for model): {global_max_N}")
 
-    dir_data = {}
+    # Combined train/val (both directions).
+    cached = {}
+    for split_name in ["train", "val"]:
+        split_df = df.filter(pl.col("split") == split_name)
+        idx = make_window_index(split_df, T_in=T_IN, T_out=T_OUT)
+        cached[split_name] = fast_materialize(
+            split_df, idx, global_max_N, CTX_COLS, f"{label} {split_name}")
+
+    # Per-direction test (for direction-specific denormalization).
+    cached_test = {}
     for direction in [-1, 1]:
-        max_N_dir, loaders = build_dir_datasets(df, direction, max_n, label)
-        dir_data[direction] = {"max_N": max_N_dir, "loaders": loaders}
-    return max_n, dir_data
+        test_df = df.filter(
+            (pl.col("split") == "test") & (pl.col("direction") == direction)
+        )
+        idx = make_window_index(test_df, T_in=T_IN, T_out=T_OUT)
+        cached_test[direction] = fast_materialize(
+            test_df, idx, global_max_N, CTX_COLS, f"{label} test dir={direction:+d}")
 
-max_n_e2,  dir_data_e2  = build_all_dir_datasets(df_e2,  "E2")
-max_n_e59, dir_data_e59 = build_all_dir_datasets(df_e59, "E59")
+    return global_max_N, cached, cached_test
+
+max_N_e2,  cached_e2,  cached_test_e2  = build_corridor_data(df_e2,  "E2")
+max_N_e59, cached_e59, cached_test_e59 = build_corridor_data(df_e59, "E59")
+print("\\nDataset construction complete.")
 """,
     cell_id="cell-07-dataset",
 )
@@ -424,32 +516,26 @@ max_n_e59, dir_data_e59 = build_all_dir_datasets(df_e59, "E59")
 # ---------------------------------------------------------------------------
 
 md(
-    """## Grid search — entrenamiento LSTM por (corredor, dirección)
+    """## Grid search — entrenamiento LSTM por corredor
 
-Entrena un `HeadwayLSTM` por cada combinación de (corredor, dirección) × 24 configs
+Entrena UN `HeadwayLSTM` por corredor (ambas direcciones combinadas) × 24 configs
 del `GRID` (hidden ∈ {32,64,128} × layers ∈ {1,2} × dropout ∈ {0.0,0.2} × lr ∈ {1e-3,5e-4}).
 Usa `train_model` con `EarlyStopping` (patience=10, max_epochs=50).
-Produce 4 modelos independientes: (E2, -1), (E2, +1), (E59, -1), (E59, +1).
+Produce 2 modelos: uno para E2, uno para E59.
 """,
     cell_id="cell-07-train-md",
 )
 
 code(
     """
-def run_dir_grid_search(dir_data: dict, direction: int, label: str):
-    \"\"\"Grid search for one (corridor, direction) pair.
-
-    dir_data[direction] = {\"max_N\": int, \"loaders\": dict}.
-    Returns sorted list of TrainResult (best first by val loss).
-    \"\"\"
-    max_N_val = dir_data[direction]["max_N"]
-    loaders   = dir_data[direction]["loaders"]
-    print(f"\\n{label} dir={direction:+d} grid search: max_N={max_N_val}, "
+def run_corridor_grid_search(loaders: dict, max_N: int, label: str):
+    \"\"\"Grid search for one corridor (both directions combined).\"\"\"
+    print(f"\\n{label} grid search: max_N={max_N}, "
           f"{len(GRID)} configs, device={DEVICE}")
     results = grid_search(
         train_dl=loaders["train"],
         val_dl=loaders["val"],
-        max_N=max_N_val,
+        max_N=max_N,
         configs=GRID,
         device=DEVICE,
     )
@@ -461,9 +547,8 @@ def run_dir_grid_search(dir_data: dict, direction: int, label: str):
     print(f"  Epochs trained: {best.epochs_trained}")
     return results
 
-# Train one model per (corridor, direction) — 4 models total.
-dir_results_e2  = {d: run_dir_grid_search(dir_data_e2,  d, "E2")  for d in [-1, 1]}
-dir_results_e59 = {d: run_dir_grid_search(dir_data_e59, d, "E59") for d in [-1, 1]}
+results_e2  = run_corridor_grid_search(cached_e2,  max_N_e2,  "E2")
+results_e59 = run_corridor_grid_search(cached_e59, max_N_e59, "E59")
 """,
     cell_id="cell-07-train",
 )
@@ -475,30 +560,27 @@ dir_results_e59 = {d: run_dir_grid_search(dir_data_e59, d, "E59") for d in [-1, 
 md(
     """## Evaluación en test — MAE y RMSE por dirección
 
-Evalúa el mejor modelo de cada (corredor, dirección) sobre el split test.
-Desnormaliza usando la media/std específica de cada dirección (no promedios).
-Computa MAE/RMSE por dirección; el agregado se obtiene juntando predicciones de ambas direcciones.
+Evalúa el modelo de cada corredor sobre el split test, separando por dirección
+para desnormalizar con la media/std específica de cada una.
+Computa MAE/RMSE por dirección; el agregado se obtiene juntando predicciones de ambas.
 """,
     cell_id="cell-07-evaluate-md",
 )
 
 code(
     """
-def evaluate_dir_model(best_result, loaders, direction, max_N_val, stats, label):
-    \"\"\"Evaluate one per-direction model on the test split.
+def evaluate_corridor_model(best_result, test_loaders, max_N, stats, label):
+    \"\"\"Evaluate one corridor model on per-direction test splits.
 
-    Uses the direction-specific mean/std from NormalizationStats for denormalization.
-    Returns (preds_flat, targets_flat, masks_flat) in minutes — arrays before masking,
-    so the caller can pool across directions for the aggregate metric.
+    Uses direction-specific mean/std from NormalizationStats for denormalization.
+    Returns (dir_metrics, dir_arrays) for downstream result building.
     \"\"\"
     empresa_id = int(list(stats.means.keys())[0][0])
-    mean_val = stats.means[(empresa_id, direction)]
-    std_val  = stats.stds[(empresa_id, direction)]
 
     model = HeadwayLSTM(
-        input_size=max_N_val + CONTEXT_DIM,
+        input_size=max_N + CONTEXT_DIM,
         hidden_size=best_result.config.hidden_size,
-        output_size=max_N_val,
+        output_size=max_N,
         num_layers=best_result.config.num_layers,
         dropout=best_result.config.dropout,
     )
@@ -506,63 +588,58 @@ def evaluate_dir_model(best_result, loaders, direction, max_N_val, stats, label)
     model.eval()
     model.to(torch.device(DEVICE))
 
-    all_preds   = []
-    all_targets = []
-    all_masks   = []
+    dir_metrics = {}
+    dir_arrays  = {}
 
-    with torch.no_grad():
-        for batch in loaders["test"]:
-            inp    = batch["input"].to(DEVICE)
-            ctx    = batch["context"].to(DEVICE)
-            target = batch["target"].to(DEVICE)
-            mask   = batch["target_mask"].to(DEVICE)
+    for direction in [-1, 1]:
+        mean_val = stats.means[(empresa_id, direction)]
+        std_val  = stats.stds[(empresa_id, direction)]
 
-            x    = torch.cat([inp, ctx], dim=-1)
-            pred = model(x)  # (B, max_N)
+        all_preds   = []
+        all_targets = []
+        all_masks   = []
 
-            target_sq = target.squeeze(1)
-            mask_sq   = mask.squeeze(1)
+        with torch.no_grad():
+            for batch in test_loaders[direction]:
+                inp    = batch["input"].to(DEVICE)
+                ctx    = batch["context"].to(DEVICE)
+                target = batch["target"].to(DEVICE)
+                mask   = batch["target_mask"].to(DEVICE)
 
-            pred_min   = denormalize_predictions(pred,      mean_val, std_val)
-            target_min = denormalize_predictions(target_sq, mean_val, std_val)
+                x    = torch.cat([inp, ctx], dim=-1)
+                pred = model(x)
 
-            all_preds.append(pred_min.cpu().numpy())
-            all_targets.append(target_min.cpu().numpy())
-            all_masks.append(mask_sq.cpu().numpy())
+                target_sq = target.squeeze(1)
+                mask_sq   = mask.squeeze(1)
 
-    preds_flat   = np.concatenate([p.ravel() for p in all_preds])
-    targets_flat = np.concatenate([t.ravel() for t in all_targets])
-    masks_flat   = np.concatenate([m.ravel() for m in all_masks]).astype(bool)
+                pred_min   = denormalize_predictions(pred,      mean_val, std_val)
+                target_min = denormalize_predictions(target_sq, mean_val, std_val)
 
-    valid_preds   = preds_flat[masks_flat]
-    valid_targets = targets_flat[masks_flat]
+                all_preds.append(pred_min.cpu().numpy())
+                all_targets.append(target_min.cpu().numpy())
+                all_masks.append(mask_sq.cpu().numpy())
 
-    mae_val  = mae(valid_targets,  valid_preds)
-    rmse_val = rmse(valid_targets, valid_preds)
-    print(f"{label} dir={direction:+d} LSTM: MAE={mae_val:.4f} min, RMSE={rmse_val:.4f} min "
-          f"(n_valid={masks_flat.sum():,})")
-    return mae_val, rmse_val, preds_flat, targets_flat, masks_flat
+        preds_flat   = np.concatenate([p.ravel() for p in all_preds])
+        targets_flat = np.concatenate([t.ravel() for t in all_targets])
+        masks_flat   = np.concatenate([m.ravel() for m in all_masks]).astype(bool)
 
-# Evaluate all 4 per-direction models.
-dir_metrics_e2  = {}
-dir_arrays_e2   = {}
-for d in [-1, 1]:
-    best = dir_results_e2[d][0]
-    max_N_val = dir_data_e2[d]["max_N"]
-    loaders   = dir_data_e2[d]["loaders"]
-    m, r, p, t, mk = evaluate_dir_model(best, loaders, d, max_N_val, stats_e2, "E2")
-    dir_metrics_e2[d]  = (m, r)
-    dir_arrays_e2[d]   = (p, t, mk)
+        valid_preds   = preds_flat[masks_flat]
+        valid_targets = targets_flat[masks_flat]
 
-dir_metrics_e59 = {}
-dir_arrays_e59  = {}
-for d in [-1, 1]:
-    best = dir_results_e59[d][0]
-    max_N_val = dir_data_e59[d]["max_N"]
-    loaders   = dir_data_e59[d]["loaders"]
-    m, r, p, t, mk = evaluate_dir_model(best, loaders, d, max_N_val, stats_e59, "E59")
-    dir_metrics_e59[d]  = (m, r)
-    dir_arrays_e59[d]   = (p, t, mk)
+        mae_val  = mae(valid_targets,  valid_preds)
+        rmse_val = rmse(valid_targets, valid_preds)
+        print(f"{label} dir={direction:+d} LSTM: MAE={mae_val:.4f} min, RMSE={rmse_val:.4f} min "
+              f"(n_valid={masks_flat.sum():,})")
+
+        dir_metrics[direction] = (mae_val, rmse_val)
+        dir_arrays[direction]  = (preds_flat, targets_flat, masks_flat)
+
+    return dir_metrics, dir_arrays
+
+dir_metrics_e2,  dir_arrays_e2  = evaluate_corridor_model(
+    results_e2[0], cached_test_e2, max_N_e2, stats_e2, "E2")
+dir_metrics_e59, dir_arrays_e59 = evaluate_corridor_model(
+    results_e59[0], cached_test_e59, max_N_e59, stats_e59, "E59")
 """,
     cell_id="cell-07-evaluate",
 )
