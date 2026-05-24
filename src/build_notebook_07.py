@@ -352,11 +352,12 @@ print(f"E59 context columns: {[c for c in df_e59.columns if c in CONTEXT_FEATURE
 # ---------------------------------------------------------------------------
 
 md(
-    """## Construcción del Dataset
+    """## Construcción del Dataset — por (corredor, dirección)
 
 Calcula `max_N` (train-p99 de n_buses-1 por dirección), genera índices de
 ventanas deslizantes (T_in=12, T_out=1, stride=1) e instancia `HeadwayDataset`
-para los splits train/val/test de cada corredor.
+para los splits train/val/test de cada (corredor, dirección).
+Esto produce 4 conjuntos de DataLoaders: (E2, -1), (E2, +1), (E59, -1), (E59, +1).
 """,
     cell_id="cell-07-dataset-md",
 )
@@ -370,20 +371,26 @@ T_IN  = DEFAULT_T_IN   # 12
 T_OUT = DEFAULT_T_OUT  # 1
 BATCH_SIZE = 32
 
-def build_datasets(df: pl.DataFrame, label: str):
-    train_df = df.filter(pl.col("split") == "train")
-    max_n = compute_max_N(train_df, quantile=0.99)
-    print(f"\\n{label} max_N: {max_n}")
+def build_dir_datasets(df: pl.DataFrame, direction: int, max_n_full: dict, label: str):
+    \"\"\"Build train/val/test DataLoaders for one (corridor, direction) pair.
 
-    datasets = {}
-    loaders  = {}
+    max_n_full is the full per-(empresaid, direction) dict from compute_max_N.
+    We pass it directly to HeadwayDataset (it handles the direction key lookup).
+    We use the direction-specific entry for model sizing.
+    \"\"\"
+    max_N_dir = max_n_full[(int(df.select("empresaid").row(0)[0]), direction)]
+    print(f"  {label} dir={direction:+d} max_N={max_N_dir}")
+
+    dir_df = df.filter(pl.col("direction") == direction)
+
+    loaders = {}
     for split_name in ["train", "val", "test"]:
-        split_df = df.filter(pl.col("split") == split_name)
+        split_df = dir_df.filter(pl.col("split") == split_name)
         idx = make_window_index(split_df, T_in=T_IN, T_out=T_OUT)
         ds  = HeadwayDataset(
             df=split_df,
             window_index=idx,
-            max_N_by_direction=max_n,
+            max_N_by_direction=max_n_full,
             T_in=T_IN,
             T_out=T_OUT,
         )
@@ -391,13 +398,23 @@ def build_datasets(df: pl.DataFrame, label: str):
         loaders[split_name] = DataLoader(
             ds, batch_size=BATCH_SIZE, collate_fn=collate_fn, shuffle=shuffle
         )
-        datasets[split_name] = ds
-        print(f"  {label} {split_name:5s}: {len(idx):,} windows → {len(ds):,} items")
+        print(f"    {split_name:5s}: {len(idx):,} windows → {len(ds):,} items")
 
-    return max_n, datasets, loaders
+    return max_N_dir, loaders
 
-max_n_e2,  ds_e2,  loaders_e2  = build_datasets(df_e2,  "E2")
-max_n_e59, ds_e59, loaders_e59 = build_datasets(df_e59, "E59")
+def build_all_dir_datasets(df: pl.DataFrame, label: str):
+    train_df = df.filter(pl.col("split") == "train")
+    max_n = compute_max_N(train_df, quantile=0.99)
+    print(f"\\n{label} max_N (all directions): {max_n}")
+
+    dir_data = {}
+    for direction in [-1, 1]:
+        max_N_dir, loaders = build_dir_datasets(df, direction, max_n, label)
+        dir_data[direction] = {"max_N": max_N_dir, "loaders": loaders}
+    return max_n, dir_data
+
+max_n_e2,  dir_data_e2  = build_all_dir_datasets(df_e2,  "E2")
+max_n_e59, dir_data_e59 = build_all_dir_datasets(df_e59, "E59")
 """,
     cell_id="cell-07-dataset",
 )
@@ -407,23 +424,28 @@ max_n_e59, ds_e59, loaders_e59 = build_datasets(df_e59, "E59")
 # ---------------------------------------------------------------------------
 
 md(
-    """## Grid search — entrenamiento LSTM
+    """## Grid search — entrenamiento LSTM por (corredor, dirección)
 
-Entrena un `HeadwayLSTM` por cada una de las 24 configuraciones en `GRID`
-(hidden ∈ {32,64,128} × layers ∈ {1,2} × dropout ∈ {0.0,0.2} × lr ∈ {1e-3,5e-4}).
+Entrena un `HeadwayLSTM` por cada combinación de (corredor, dirección) × 24 configs
+del `GRID` (hidden ∈ {32,64,128} × layers ∈ {1,2} × dropout ∈ {0.0,0.2} × lr ∈ {1e-3,5e-4}).
 Usa `train_model` con `EarlyStopping` (patience=10, max_epochs=50).
-Devuelve resultados ordenados por `best_val_loss` ascendente.
+Produce 4 modelos independientes: (E2, -1), (E2, +1), (E59, -1), (E59, +1).
 """,
     cell_id="cell-07-train-md",
 )
 
 code(
     """
-def run_grid_search(loaders: dict, max_n: dict, label: str):
-    # Determine max_N for this corridor (use max over directions)
-    # grid_search needs a single max_N as input_size = max_N + CONTEXT_DIM
-    max_N_val = max(max_n.values())
-    print(f"\\n{label} grid search: max_N={max_N_val}, {len(GRID)} configs, device={DEVICE}")
+def run_dir_grid_search(dir_data: dict, direction: int, label: str):
+    \"\"\"Grid search for one (corridor, direction) pair.
+
+    dir_data[direction] = {\"max_N\": int, \"loaders\": dict}.
+    Returns sorted list of TrainResult (best first by val loss).
+    \"\"\"
+    max_N_val = dir_data[direction]["max_N"]
+    loaders   = dir_data[direction]["loaders"]
+    print(f"\\n{label} dir={direction:+d} grid search: max_N={max_N_val}, "
+          f"{len(GRID)} configs, device={DEVICE}")
     results = grid_search(
         train_dl=loaders["train"],
         val_dl=loaders["val"],
@@ -439,8 +461,9 @@ def run_grid_search(loaders: dict, max_n: dict, label: str):
     print(f"  Epochs trained: {best.epochs_trained}")
     return results
 
-results_e2  = run_grid_search(loaders_e2,  max_n_e2,  "E2")
-results_e59 = run_grid_search(loaders_e59, max_n_e59, "E59")
+# Train one model per (corridor, direction) — 4 models total.
+dir_results_e2  = {d: run_dir_grid_search(dir_data_e2,  d, "E2")  for d in [-1, 1]}
+dir_results_e59 = {d: run_dir_grid_search(dir_data_e59, d, "E59") for d in [-1, 1]}
 """,
     cell_id="cell-07-train",
 )
@@ -450,19 +473,28 @@ results_e59 = run_grid_search(loaders_e59, max_n_e59, "E59")
 # ---------------------------------------------------------------------------
 
 md(
-    """## Evaluación en test — MAE y RMSE
+    """## Evaluación en test — MAE y RMSE por dirección
 
-Carga el mejor modelo de cada corredor, genera predicciones en el split test,
-desnormaliza de z-score a minutos y computa MAE/RMSE.
+Evalúa el mejor modelo de cada (corredor, dirección) sobre el split test.
+Desnormaliza usando la media/std específica de cada dirección (no promedios).
+Computa MAE/RMSE por dirección; el agregado se obtiene juntando predicciones de ambas direcciones.
 """,
     cell_id="cell-07-evaluate-md",
 )
 
 code(
     """
-def evaluate_best_model(best_result, loaders, max_n, stats, label):
-    max_N_val = max(max_n.values())
-    # Reconstruct best model from state_dict
+def evaluate_dir_model(best_result, loaders, direction, max_N_val, stats, label):
+    \"\"\"Evaluate one per-direction model on the test split.
+
+    Uses the direction-specific mean/std from NormalizationStats for denormalization.
+    Returns (preds_flat, targets_flat, masks_flat) in minutes — arrays before masking,
+    so the caller can pool across directions for the aggregate metric.
+    \"\"\"
+    empresa_id = int(list(stats.means.keys())[0][0])
+    mean_val = stats.means[(empresa_id, direction)]
+    std_val  = stats.stds[(empresa_id, direction)]
+
     model = HeadwayLSTM(
         input_size=max_N_val + CONTEXT_DIM,
         hidden_size=best_result.config.hidden_size,
@@ -473,13 +505,6 @@ def evaluate_best_model(best_result, loaders, max_n, stats, label):
     model.load_state_dict(best_result.state_dict)
     model.eval()
     model.to(torch.device(DEVICE))
-
-    # Collect per-direction mean/std for denormalization
-    # Use the mean of means/stds across directions as approximation
-    all_means = list(stats.means.values())
-    all_stds  = list(stats.stds.values())
-    mean_val  = float(np.mean(all_means))
-    std_val   = float(np.mean(all_stds))
 
     all_preds   = []
     all_targets = []
@@ -495,11 +520,9 @@ def evaluate_best_model(best_result, loaders, max_n, stats, label):
             x    = torch.cat([inp, ctx], dim=-1)
             pred = model(x)  # (B, max_N)
 
-            # Squeeze time dimension from target/mask
             target_sq = target.squeeze(1)
             mask_sq   = mask.squeeze(1)
 
-            # Denormalize predictions and targets
             pred_min   = denormalize_predictions(pred,      mean_val, std_val)
             target_min = denormalize_predictions(target_sq, mean_val, std_val)
 
@@ -507,7 +530,6 @@ def evaluate_best_model(best_result, loaders, max_n, stats, label):
             all_targets.append(target_min.cpu().numpy())
             all_masks.append(mask_sq.cpu().numpy())
 
-    # Flatten and apply mask
     preds_flat   = np.concatenate([p.ravel() for p in all_preds])
     targets_flat = np.concatenate([t.ravel() for t in all_targets])
     masks_flat   = np.concatenate([m.ravel() for m in all_masks]).astype(bool)
@@ -517,16 +539,30 @@ def evaluate_best_model(best_result, loaders, max_n, stats, label):
 
     mae_val  = mae(valid_targets,  valid_preds)
     rmse_val = rmse(valid_targets, valid_preds)
-
-    print(f"{label} LSTM test results: MAE={mae_val:.4f} min, RMSE={rmse_val:.4f} min "
+    print(f"{label} dir={direction:+d} LSTM: MAE={mae_val:.4f} min, RMSE={rmse_val:.4f} min "
           f"(n_valid={masks_flat.sum():,})")
-    return mae_val, rmse_val
+    return mae_val, rmse_val, preds_flat, targets_flat, masks_flat
 
-best_e2  = results_e2[0]
-best_e59 = results_e59[0]
+# Evaluate all 4 per-direction models.
+dir_metrics_e2  = {}
+dir_arrays_e2   = {}
+for d in [-1, 1]:
+    best = dir_results_e2[d][0]
+    max_N_val = dir_data_e2[d]["max_N"]
+    loaders   = dir_data_e2[d]["loaders"]
+    m, r, p, t, mk = evaluate_dir_model(best, loaders, d, max_N_val, stats_e2, "E2")
+    dir_metrics_e2[d]  = (m, r)
+    dir_arrays_e2[d]   = (p, t, mk)
 
-mae_e2,  rmse_e2  = evaluate_best_model(best_e2,  loaders_e2,  max_n_e2,  stats_e2,  "E2")
-mae_e59, rmse_e59 = evaluate_best_model(best_e59, loaders_e59, max_n_e59, stats_e59, "E59")
+dir_metrics_e59 = {}
+dir_arrays_e59  = {}
+for d in [-1, 1]:
+    best = dir_results_e59[d][0]
+    max_N_val = dir_data_e59[d]["max_N"]
+    loaders   = dir_data_e59[d]["loaders"]
+    m, r, p, t, mk = evaluate_dir_model(best, loaders, d, max_N_val, stats_e59, "E59")
+    dir_metrics_e59[d]  = (m, r)
+    dir_arrays_e59[d]   = (p, t, mk)
 """,
     cell_id="cell-07-evaluate",
 )
@@ -538,32 +574,62 @@ mae_e59, rmse_e59 = evaluate_best_model(best_e59, loaders_e59, max_n_e59, stats_
 md(
     """## Tabla de resultados — lstm_results.csv
 
-Guarda los resultados del LSTM en formato long-form compatible con
-`baselines_results.csv` de NB06 (columnas: corridor, direction, baseline, metric, value).
+Guarda los resultados del LSTM en formato long-form idéntico al schema del harness de NB06
+(columnas: corridor, direction, baseline, metric, value).
+direction ∈ {\"-1\", \"+1\", \"aggregate\"} — 12 filas totales (3 dir × 2 métricas × 2 corredores).
 """,
     cell_id="cell-07-results-md",
 )
 
 code(
     """
-lstm_rows = []
-for corridor, best_result, mae_val, rmse_val in [
-    ("E2",  best_e2,  mae_e2,  rmse_e2),
-    ("E59", best_e59, mae_e59, rmse_e59),
-]:
-    # Use "both" for direction since we averaged across directions
-    for metric_name, metric_val in [("mae", mae_val), ("rmse", rmse_val)]:
-        lstm_rows.append({
+def build_lstm_rows(corridor, dir_metrics, dir_arrays):
+    \"\"\"Build long-form rows matching harness schema.
+
+    direction values: \"-1\", \"+1\", \"aggregate\"
+    baseline: \"LSTM\"
+    metric:   \"MAE\", \"RMSE\"
+
+    Produces 6 rows per corridor (3 directions × 2 metrics).
+    \"\"\"
+    rows = []
+    for direction_int in [-1, 1]:
+        direction_str = f"+{direction_int}" if direction_int > 0 else str(direction_int)
+        mae_val, rmse_val = dir_metrics[direction_int]
+        for metric_name, metric_val in [("MAE", mae_val), ("RMSE", rmse_val)]:
+            rows.append({
+                "corridor":  corridor,
+                "direction": direction_str,
+                "baseline":  "LSTM",
+                "metric":    metric_name,
+                "value":     float(metric_val),
+            })
+
+    # Aggregate: pool valid predictions from both directions.
+    all_preds   = np.concatenate([dir_arrays[d][0][dir_arrays[d][2]] for d in [-1, 1]])
+    all_targets = np.concatenate([dir_arrays[d][1][dir_arrays[d][2]] for d in [-1, 1]])
+    agg_mae  = mae(all_targets,  all_preds)
+    agg_rmse = rmse(all_targets, all_preds)
+    print(f"{corridor} aggregate LSTM: MAE={agg_mae:.4f} min, RMSE={agg_rmse:.4f} min "
+          f"(n_valid={len(all_preds):,})")
+    for metric_name, metric_val in [("MAE", agg_mae), ("RMSE", agg_rmse)]:
+        rows.append({
             "corridor":  corridor,
-            "direction": "both",
-            "baseline":  "lstm",
+            "direction": "aggregate",
+            "baseline":  "LSTM",
             "metric":    metric_name,
-            "value":     metric_val,
+            "value":     float(metric_val),
         })
+    return rows
+
+lstm_rows = (
+    build_lstm_rows("E2",  dir_metrics_e2,  dir_arrays_e2)
+    + build_lstm_rows("E59", dir_metrics_e59, dir_arrays_e59)
+)
 
 lstm_results = pl.DataFrame(lstm_rows)
 lstm_results.write_csv(LSTM_CSV_OUT)
-print(f"LSTM results written to: {LSTM_CSV_OUT}")
+print(f"\\nLSTM results written to: {LSTM_CSV_OUT}  ({lstm_results.height} rows)")
 print(lstm_results)
 """,
     cell_id="cell-07-results",
@@ -592,26 +658,27 @@ if baselines_csv is not None:
 
     # Filter to MAE for a clean comparison
     comparison = pl.concat([
-        baselines.filter(pl.col("metric") == "mae"),
-        lstm_results.filter(pl.col("metric") == "mae"),
+        baselines.filter(pl.col("metric") == "MAE"),
+        lstm_results.filter(pl.col("metric") == "MAE"),
     ])
 
     print("\\nMAE comparison (minutes) — lower is better:")
-    print(comparison.sort(["corridor", "baseline"]))
+    print(comparison.sort(["corridor", "direction", "baseline"]))
 
     # Wide pivot for quick human inspection
     wide = comparison.pivot(
         on="baseline",
-        index=["corridor", "metric"],
+        index=["corridor", "direction", "metric"],
         values="value",
     )
     print("\\nPivot table:")
-    print(wide.sort(["corridor", "metric"]))
+    print(wide.sort(["corridor", "direction", "metric"]))
 else:
     print("baselines_results.csv not found — skipping comparison.")
     print("Ensure kernel_sources includes alexhuaracha/06-baselines-stat.")
-    print(f"LSTM results: E2 MAE={mae_e2:.4f}, RMSE={rmse_e2:.4f}")
-    print(f"LSTM results: E59 MAE={mae_e59:.4f}, RMSE={rmse_e59:.4f}")
+    print("LSTM results summary:")
+    for row in lstm_results.filter(pl.col("metric") == "MAE").iter_rows(named=True):
+        print(f"  {row['corridor']} dir={row['direction']}: MAE={row['value']:.4f} min")
 """,
     cell_id="cell-07-compare",
 )
