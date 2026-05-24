@@ -18,43 +18,32 @@ import ast
 
 
 def _strip_relative_imports(src: str) -> str:
-    """Remove all relative ``from .xxx import ...`` statements from source.
+    """Remove intra-package imports so inlined modules work in a flat Kaggle cell.
 
-    Uses ``ast.get_source_segment`` to locate and remove the EXACT text for
-    every relative ImportFrom node (level > 0).  This handles both
-    single-line and parenthesized multi-line import blocks without regex
-    fragility.
+    Strips two kinds of imports:
+      1. Relative: ``from .config import X`` (level > 0)
+      2. Absolute from ``src.*``: ``from src.models.lstm import X`` (level == 0)
 
-    Single-line:  ``from .config import X``
-    Multi-line::
-
-        from .config import (
-            X,
-            Y,
-        )
-
-    Inside the notebook all modules are inlined into the same flat namespace
-    so relative imports would raise ``ImportError`` at Kaggle runtime.  This
-    is the only transformation applied to module source code before embedding.
+    Both would raise ``ModuleNotFoundError`` in a Kaggle notebook where all
+    modules are embedded sequentially into the same flat namespace.
     """
     try:
         tree = ast.parse(src)
     except SyntaxError:
-        # If the source itself is broken, return as-is so the compile test
-        # catches it with a clear error.
         return src
 
-    # Collect source segments for all relative ImportFrom nodes.
     segments_to_remove: list[str] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.level > 0:
-            segment = ast.get_source_segment(src, node)
-            if segment:
-                segments_to_remove.append(segment)
+        if isinstance(node, ast.ImportFrom):
+            is_relative = node.level > 0
+            is_src_absolute = node.level == 0 and node.module and node.module.startswith("src.")
+            if is_relative or is_src_absolute:
+                segment = ast.get_source_segment(src, node)
+                if segment:
+                    segments_to_remove.append(segment)
 
     result = src
     for segment in segments_to_remove:
-        # Remove the segment plus its trailing newline (if any).
         result = result.replace(segment + "\n", "")
         result = result.replace(segment, "")
 
