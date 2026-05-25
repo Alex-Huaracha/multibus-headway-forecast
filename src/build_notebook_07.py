@@ -370,7 +370,7 @@ import time as _time
 
 T_IN  = DEFAULT_T_IN   # 12
 T_OUT = DEFAULT_T_OUT  # 1
-BATCH_SIZE = 32
+BATCH_SIZE = 128
 
 def _build_snapshot_lookup(df: pl.DataFrame, max_N: int, context_cols: list[str]):
     \"\"\"Build a dict: (empresaid, direction, timestamp) -> (values, mask, context).
