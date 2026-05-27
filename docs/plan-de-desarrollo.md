@@ -113,18 +113,18 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 **Objetivo de la fase:** LSTM sobre el vector aplanado de headways. Aísla la contribución de cualquier componente espacial que se añada en Fase 6.
 
-- [ ] Arquitectura LSTM definida (encoder seq2one o seq2seq).
-- [ ] Loss con máscara para cardinalidad variable.
-- [ ] Loop de entrenamiento con early stopping y checkpointing.
-- [ ] Hyperparameter search acotado (hidden, capas, dropout, lr).
-- [ ] Logging de experimentos.
-- [ ] Métricas sobre test.
+- [x] Arquitectura LSTM definida (encoder seq2one o seq2seq).
+- [x] Loss con máscara para cardinalidad variable.
+- [x] Loop de entrenamiento con early stopping y checkpointing.
+- [x] Hyperparameter search acotado (hidden, capas, dropout, lr).
+- [x] Logging de experimentos.
+- [x] Métricas sobre test.
 
 **Artefacto:** `src/models/lstm.py` + `src/train.py` + notebook `07_lstm` (Kaggle kernel `alexhuaracha/07-lstm`) + checkpoints.
 
 **Criterio de cierre:** LSTM entrenado y evaluado en Kaggle. Métricas sobre test publicadas y comparadas con baselines (MAE y RMSE por horizonte, significancia verificada).
 
-**Estado:** En progreso — código y tests implementados (253 tests, commit `4d28b6f`). Pendiente: ejecución y validación en Kaggle.
+**Estado:** Completada (2026-05-27). LSTM supera todos los baselines: E2 aggregate MAE 4.47 min (-6.4% vs B3), E59 aggregate MAE 3.34 min (-4.8% vs B3). Grid search en Kaggle GPU T4, ~6h. Integridad verificada: split temporal, mismo test set que baselines, denormalización correcta.
 
 ---
 
