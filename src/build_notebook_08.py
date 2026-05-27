@@ -851,6 +851,7 @@ kernel_meta = {
     "kernel_type": "notebook",
     "is_private": True,
     "enable_gpu": True,
+    "accelerator": "GPU_T4X2",
     "enable_internet": True,
     "keywords": [],
     "dataset_sources": [],
