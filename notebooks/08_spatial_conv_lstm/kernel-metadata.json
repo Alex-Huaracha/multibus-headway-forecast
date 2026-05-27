@@ -1,5 +1,5 @@
 {
-  "id": "alexhuaracha/08-spatial-conv-lstm",
+  "id": "alexhuaracha/08-spatialconvlstm",
   "title": "08 \u2014 SpatialConvLSTM",
   "code_file": "08_spatial_conv_lstm.ipynb",
   "language": "python",
@@ -12,7 +12,7 @@
   "kernel_sources": [
     "alexhuaracha/04-preprocessing",
     "alexhuaracha/06-baselines-stat",
-    "alexhuaracha/07-lstm"
+    "alexhuaracha/07-lstm-baseline"
   ],
   "competition_sources": []
 }

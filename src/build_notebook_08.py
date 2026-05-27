@@ -9,16 +9,16 @@ Inline-embed pattern (mirror of build_notebook_07.py):
   - Stable cell IDs (cell-08-*) prevent git flutter on re-runs (AC-NB08-2).
 
 Output: notebooks/08_spatial_conv_lstm/08_spatial_conv_lstm.ipynb
-Kaggle kernel: alexhuaracha/08-spatial-conv-lstm
+Kaggle kernel: alexhuaracha/08-spatialconvlstm
 kernel_sources: ["alexhuaracha/04-preprocessing", "alexhuaracha/06-baselines-stat",
-                 "alexhuaracha/07-lstm"]
+                 "alexhuaracha/07-lstm-baseline"]
 
 Architecture decisions applied (from design doc AD-8):
   - Mirrors build_notebook_07.py structure exactly.
   - Embeds models/spatial_conv_lstm.py in addition to models/lstm.py.
   - Uses SPATIAL_GRID instead of GRID (48 configs).
   - Cell IDs use cell-08-* prefix.
-  - kernel_sources adds alexhuaracha/07-lstm for LSTM results CSV comparison.
+  - kernel_sources adds alexhuaracha/07-lstm-baseline for LSTM results CSV comparison.
   - Model forward call passes (inp, ctx, input_mask) — spatial 3-arg dispatch (AD-1).
 """
 import json
@@ -125,7 +125,7 @@ def _find_baselines_csv() -> Path | None:
     return None
 
 def _find_lstm_csv() -> Path | None:
-    \"\"\"Locate lstm_results.csv from NB07 kernel output (kernel_source: alexhuaracha/07-lstm).\"\"\"
+    \"\"\"Locate lstm_results.csv from NB07 kernel output (kernel_source: alexhuaracha/07-lstm-baseline).\"\"\"
     name = "lstm_results.csv"
     if Path("/kaggle/input").exists():
         candidates = list(Path("/kaggle/input").rglob(name))
@@ -769,7 +769,7 @@ md(
     """## Comparación con LSTM (NB07) y baselines estadísticos (NB06)
 
 Carga `lstm_results.csv` generado por NB07
-(kernel_source: `alexhuaracha/07-lstm`) y `baselines_results.csv` de NB06
+(kernel_source: `alexhuaracha/07-lstm-baseline`) y `baselines_results.csv` de NB06
 (kernel_source: `alexhuaracha/06-baselines-stat`) para comparar con el
 SpatialConvLSTM. Una tabla pivote facilita la lectura.
 """,
@@ -789,7 +789,7 @@ if lstm_csv is not None:
     all_results.append(lstm_results)
 else:
     print("lstm_results.csv not found — skipping LSTM comparison.")
-    print("Ensure kernel_sources includes alexhuaracha/07-lstm.")
+    print("Ensure kernel_sources includes alexhuaracha/07-lstm-baseline.")
 
 if baselines_csv is not None:
     baselines = pl.read_csv(baselines_csv)
@@ -844,7 +844,7 @@ print(f"Notebook written: {OUT}  ({len(cells)} cells)")
 # ---------------------------------------------------------------------------
 
 kernel_meta = {
-    "id": "alexhuaracha/08-spatial-conv-lstm",
+    "id": "alexhuaracha/08-spatialconvlstm",
     "title": "08 — SpatialConvLSTM",
     "code_file": "08_spatial_conv_lstm.ipynb",
     "language": "python",
@@ -857,7 +857,7 @@ kernel_meta = {
     "kernel_sources": [
         "alexhuaracha/04-preprocessing",
         "alexhuaracha/06-baselines-stat",
-        "alexhuaracha/07-lstm",
+        "alexhuaracha/07-lstm-baseline",
     ],
     "competition_sources": [],
 }
