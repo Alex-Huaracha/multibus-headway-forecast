@@ -360,6 +360,46 @@ class TestCheckpoint:
             "Restored model must produce identical predictions to the original"
         )
 
+    def test_load_checkpoint_restores_spatial_model(self, tmp_path) -> None:
+        """load_checkpoint must round-trip a SpatialConvLSTM with identical predictions."""
+        from src.train import TrainResult, load_checkpoint, save_checkpoint
+
+        set_seed(7)
+        max_N, conv_channels = 4, 8
+        config = TrainConfig(
+            hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3,
+            conv_channels=conv_channels,
+        )
+        original_model = _make_spatial_model(
+            max_N=max_N, conv_channels=conv_channels, hidden_size=8,
+        )
+        result = TrainResult(
+            best_val_loss=0.1,
+            best_epoch=0,
+            state_dict=copy.deepcopy(original_model.state_dict()),
+            config=config,
+        )
+
+        ckpt_dir = tmp_path / "spatial_ckpt"
+        save_checkpoint(result, ckpt_dir)
+        restored_model, restored_config = load_checkpoint(ckpt_dir, max_N=max_N)
+
+        assert restored_config.conv_channels == conv_channels
+        assert hasattr(restored_model, "spatial") and restored_model.spatial
+
+        inp = torch.randn(2, 6, max_N)
+        ctx = torch.randn(2, 6, 5)
+        mask = torch.ones(2, 6, max_N, dtype=torch.bool)
+        original_model.eval()
+        restored_model.eval()
+        with torch.no_grad():
+            out_original = original_model(inp, ctx, mask)
+            out_restored = restored_model(inp, ctx, mask)
+
+        assert torch.allclose(out_original, out_restored, atol=1e-6), (
+            "Restored SpatialConvLSTM must produce identical predictions"
+        )
+
 
 class TestDenormalize:
     def test_denormalize_predictions_known_value(self) -> None:
@@ -373,3 +413,224 @@ class TestDenormalize:
         assert torch.allclose(result, expected, atol=1e-6), (
             f"Expected 7.0, got {result.item():.8f}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Wave 2 (Fase 6a): SpatialConvLSTM dispatch, TrainConfig.conv_channels,
+#                   SPATIAL_GRID, and backward-compat verification
+# ---------------------------------------------------------------------------
+
+def _make_spatial_dataloader(
+    max_N: int = 4,
+    context_dim: int = 5,
+    seq_len: int = 6,
+    batch_size: int = 2,
+    n_batches: int = 2,
+) -> list[dict[str, torch.Tensor]]:
+    """Minimal synthetic loader that includes input_mask — required by SpatialConvLSTM."""
+    batches = []
+    for _ in range(n_batches):
+        inp = torch.randn(batch_size, seq_len, max_N)
+        ctx = torch.randn(batch_size, seq_len, context_dim)
+        target = torch.randn(batch_size, 1, max_N)
+        target_mask = torch.ones(batch_size, 1, max_N, dtype=torch.bool)
+        input_mask = torch.ones(batch_size, seq_len, max_N, dtype=torch.bool)
+        batches.append({
+            "input": inp,
+            "context": ctx,
+            "target": target,
+            "target_mask": target_mask,
+            "input_mask": input_mask,
+        })
+    return batches
+
+
+def _make_spatial_model(max_N: int = 4, conv_channels: int = 1, hidden_size: int = 8):
+    """Build a tiny SpatialConvLSTM for testing."""
+    from src.models.spatial_conv_lstm import SpatialConvLSTM
+    return SpatialConvLSTM(
+        max_N=max_N,
+        conv_channels=conv_channels,
+        hidden_size=hidden_size,
+        output_size=max_N,
+        num_layers=1,
+        dropout=0.0,
+        context_size=5,
+    )
+
+
+class TestTrainConfigConvChannels:
+    def test_train_config_conv_channels_default_none(self) -> None:
+        """TrainConfig().conv_channels must default to None (AD-5, backward compat)."""
+        cfg = TrainConfig(hidden_size=32, num_layers=1, dropout=0.0, lr=1e-3)
+        assert cfg.conv_channels is None, (
+            f"Expected conv_channels=None, got {cfg.conv_channels!r}"
+        )
+
+    def test_train_config_conv_channels_can_be_set(self) -> None:
+        """TrainConfig must accept an explicit conv_channels value."""
+        cfg = TrainConfig(hidden_size=32, num_layers=1, dropout=0.0, lr=1e-3, conv_channels=8)
+        assert cfg.conv_channels == 8
+
+
+class TestSpatialGrid:
+    def test_spatial_grid_length_48(self) -> None:
+        """SPATIAL_GRID must contain exactly 48 TrainConfig entries (AD-6: 3×2×2×2×2)."""
+        from src.train import SPATIAL_GRID
+
+        assert len(SPATIAL_GRID) == 48, (
+            f"SPATIAL_GRID must have 48 entries, got {len(SPATIAL_GRID)}"
+        )
+
+    def test_spatial_grid_all_conv_channels_positive(self) -> None:
+        """Every config in SPATIAL_GRID must have conv_channels in {1, 8, 16}."""
+        from src.train import SPATIAL_GRID
+
+        valid = {1, 8, 16}
+        for cfg in SPATIAL_GRID:
+            assert cfg.conv_channels in valid, (
+                f"Expected conv_channels in {valid}, got {cfg.conv_channels}"
+            )
+
+    def test_spatial_grid_all_are_train_config(self) -> None:
+        """All SPATIAL_GRID items must be TrainConfig instances."""
+        from src.train import SPATIAL_GRID
+
+        assert all(isinstance(c, TrainConfig) for c in SPATIAL_GRID), (
+            "Every SPATIAL_GRID entry must be a TrainConfig"
+        )
+
+
+class TestSpatialDispatchTrainOneEpoch:
+    def test_train_one_epoch_spatial_dispatch(self) -> None:
+        """train_one_epoch must call model(inp, ctx, input_mask) when model.spatial is True."""
+        import unittest.mock as mock
+
+        spatial_model = _make_spatial_model()
+        loader = _make_spatial_dataloader()
+        optimizer = torch.optim.Adam(spatial_model.parameters(), lr=1e-3)
+
+        call_args_list = []
+        original_forward = spatial_model.forward
+
+        def recording_forward(inp, ctx, input_mask):
+            call_args_list.append((inp, ctx, input_mask))
+            return original_forward(inp, ctx, input_mask)
+
+        with mock.patch.object(spatial_model, "forward", side_effect=recording_forward):
+            train_one_epoch(spatial_model, loader, optimizer, device="cpu")
+
+        assert len(call_args_list) > 0, "forward must be called at least once"
+        # Each call must have received 3 positional arguments
+        for args in call_args_list:
+            assert len(args) == 3, (
+                f"Expected 3 args (inp, ctx, input_mask), got {len(args)}"
+            )
+
+    def test_train_one_epoch_spatial_returns_finite_float(self) -> None:
+        """train_one_epoch with SpatialConvLSTM must return a finite float >= 0."""
+        spatial_model = _make_spatial_model()
+        loader = _make_spatial_dataloader()
+        optimizer = torch.optim.Adam(spatial_model.parameters(), lr=1e-3)
+
+        result = train_one_epoch(spatial_model, loader, optimizer, device="cpu")
+
+        assert isinstance(result, float), f"Expected float, got {type(result)}"
+        assert result >= 0.0, f"Loss must be non-negative, got {result}"
+        assert result == result, "Loss must not be NaN"  # NaN != NaN
+        import math
+        assert math.isfinite(result), f"Loss must be finite, got {result}"
+
+
+class TestSpatialDispatchEvaluateEpoch:
+    def test_evaluate_epoch_spatial_dispatch(self) -> None:
+        """evaluate_epoch must call model(inp, ctx, input_mask) when model.spatial is True."""
+        import unittest.mock as mock
+
+        spatial_model = _make_spatial_model()
+        loader = _make_spatial_dataloader()
+
+        call_args_list = []
+        original_forward = spatial_model.forward
+
+        def recording_forward(inp, ctx, input_mask):
+            call_args_list.append((inp, ctx, input_mask))
+            return original_forward(inp, ctx, input_mask)
+
+        with mock.patch.object(spatial_model, "forward", side_effect=recording_forward):
+            evaluate_epoch(spatial_model, loader, device="cpu")
+
+        assert len(call_args_list) > 0, "forward must be called at least once"
+        for args in call_args_list:
+            assert len(args) == 3, (
+                f"Expected 3 args (inp, ctx, input_mask), got {len(args)}"
+            )
+
+    def test_evaluate_epoch_spatial_returns_finite_float(self) -> None:
+        """evaluate_epoch with SpatialConvLSTM must return a finite float >= 0."""
+        import math
+
+        spatial_model = _make_spatial_model()
+        loader = _make_spatial_dataloader()
+
+        result = evaluate_epoch(spatial_model, loader, device="cpu")
+
+        assert isinstance(result, float), f"Expected float, got {type(result)}"
+        assert result >= 0.0, f"Loss must be non-negative, got {result}"
+        assert math.isfinite(result), f"Loss must be finite, got {result}"
+
+    def test_evaluate_epoch_spatial_does_not_update_weights(self) -> None:
+        """evaluate_epoch must NOT update SpatialConvLSTM weights."""
+        spatial_model = _make_spatial_model()
+        loader = _make_spatial_dataloader()
+
+        before = [p.clone().detach() for p in spatial_model.parameters()]
+        evaluate_epoch(spatial_model, loader, device="cpu")
+        after = list(spatial_model.parameters())
+
+        for b, a in zip(before, after):
+            assert torch.allclose(b, a), "evaluate_epoch must not modify weights"
+
+
+class TestGridSearchWithSpatialModel:
+    def test_grid_search_with_spatial_model_returns_results(self) -> None:
+        """grid_search must work with a 1-config SPATIAL_GRID list and SpatialConvLSTM."""
+        from src.train import TrainResult, grid_search
+
+        set_seed(0)
+        max_N = 4
+        spatial_cfg = [
+            TrainConfig(
+                hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3,
+                max_epochs=2, patience=5, conv_channels=1,
+            )
+        ]
+        train_dl = _make_spatial_dataloader(max_N=max_N, n_batches=2)
+        val_dl = _make_spatial_dataloader(max_N=max_N, n_batches=1)
+
+        results = grid_search(train_dl, val_dl, max_N=max_N, configs=spatial_cfg, device="cpu")
+
+        assert isinstance(results, list), "grid_search must return a list"
+        assert len(results) == 1, f"Expected 1 result, got {len(results)}"
+        assert isinstance(results[0], TrainResult), "Result must be a TrainResult"
+        assert isinstance(results[0].best_val_loss, float)
+
+
+class TestBackwardCompatAfterDispatch:
+    """Verify that the HeadwayLSTM path is UNCHANGED after W2 dispatch changes."""
+
+    def test_train_one_epoch_lstm_still_works(self) -> None:
+        """HeadwayLSTM path in train_one_epoch must work after W2 dispatch changes."""
+        model = _make_model()
+        # Existing dataloader WITHOUT input_mask must work for HeadwayLSTM
+        loader = _make_synthetic_dataloader()
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+        result = train_one_epoch(model, loader, optimizer, device="cpu")
+        assert isinstance(result, float)
+
+    def test_evaluate_epoch_lstm_still_works(self) -> None:
+        """HeadwayLSTM path in evaluate_epoch must work after W2 dispatch changes."""
+        model = _make_model()
+        loader = _make_synthetic_dataloader()
+        result = evaluate_epoch(model, loader, device="cpu")
+        assert isinstance(result, float)

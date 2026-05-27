@@ -1,0 +1,18 @@
+{
+  "id": "alexhuaracha/08-spatial-conv-lstm",
+  "title": "08 \u2014 SpatialConvLSTM",
+  "code_file": "08_spatial_conv_lstm.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [
+    "alexhuaracha/04-preprocessing",
+    "alexhuaracha/06-baselines-stat",
+    "alexhuaracha/07-lstm"
+  ],
+  "competition_sources": []
+}

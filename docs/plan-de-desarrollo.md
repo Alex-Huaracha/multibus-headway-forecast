@@ -128,22 +128,40 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 ---
 
-## Fase 6 — Modelo principal espacial-temporal
+## Fase 6 — Modelos espaciales-temporales
 
-**Objetivo de la fase:** Evaluar al menos una arquitectura que modele explícitamente las relaciones espaciales entre buses. La arquitectura ganadora será el modelo central del paper.
+**Objetivo de la fase:** Evaluar al menos dos arquitecturas que modelen explícitamente las relaciones espaciales entre buses. La comparación con el LSTM puro (Fase 5) aísla la contribución del componente espacial.
 
-- [ ] Selección de candidatas (GNN+LSTM, Transformer con atención entre buses, STGCN).
-- [ ] Implementación de la primera candidata.
-- [ ] Definición de grafo / mecanismo de atención (vecindad en `s`).
-- [ ] Manejo de cardinalidad variable en la dimensión espacial.
-- [ ] Entrenamiento y hyperparameter search.
-- [ ] Comparación con LSTM puro.
-- [ ] (Si la primera no supera al LSTM) implementación de candidata alternativa.
-- [ ] Selección de la arquitectura final para el paper.
+> **Nota sobre estructura**: la estructura espacial entre buses es un **path graph** por construcción (`pair_rank` ordena pares consecutivos por coordenada lineal `s`). Una Conv1D con kernel=3 sobre la dimensión N es formalmente equivalente a un paso de message passing con agregación por suma sobre este path graph. Esto justifica la elección de SpatialConvLSTM sobre un GNN completo (PyG/DGL). STGCN fue descartado por requerir un Laplaciano espectral fijo, incompatible con cardinalidad variable.
 
-**Artefacto:** Módulo `src/models/<arquitectura>.py` + notebook `08_modelo_espacial` + checkpoints.
+### Fase 6a — SpatialConvLSTM (relaciones espaciales locales)
 
-**Criterio de cierre:** Al menos una arquitectura espacial-temporal entrenada con métricas registradas, comparable contra LSTM y baselines.
+- [x] Selección de candidatas y justificación (Conv1D ≡ path-graph message passing).
+- [x] Implementación de SpatialConvLSTM (`src/models/spatial_conv_lstm.py`).
+- [x] Mask-aware input: `inp * input_mask` ANTES del conv (inductive bias vs LSTM).
+- [x] Adaptación de `src/train.py`: duck-type dispatch, `SPATIAL_GRID` (48 configs).
+- [x] Notebook builder `src/build_notebook_08.py` + notebook `08_spatial_conv_lstm`.
+- [ ] Entrenamiento y grid search en Kaggle GPU T4.
+- [ ] Métricas sobre test, comparación con LSTM.
+
+**Artefacto:** `src/models/spatial_conv_lstm.py` + `src/build_notebook_08.py` + notebook `08_spatial_conv_lstm` (Kaggle kernel `alexhuaracha/08-spatial-conv-lstm`) + checkpoints.
+
+**Estado:** Código implementado (281/281 tests). Pendiente ejecución en Kaggle.
+
+### Fase 6b — SpatialTransformer (relaciones espaciales globales)
+
+- [ ] Implementación de SpatialTransformer con atención inter-bus.
+- [ ] Manejo de cardinalidad variable via attention mask.
+- [ ] Adaptación de training infrastructure.
+- [ ] Notebook builder + notebook `09_spatial_transformer`.
+- [ ] Entrenamiento y grid search en Kaggle GPU T4.
+- [ ] Métricas sobre test, comparación con LSTM y SpatialConvLSTM.
+
+**Artefacto:** `src/models/spatial_transformer.py` + notebook `09_spatial_transformer` + checkpoints.
+
+**Estado:** Pendiente (requiere Fase 6a cerrada primero).
+
+**Criterio de cierre (Fase 6 completa):** Ambas arquitecturas espaciales entrenadas con métricas registradas, comparables contra LSTM y baselines en ambos corredores (E2 y E59).
 
 ---
 

@@ -3,6 +3,10 @@
 Architecture decisions applied (from design doc):
   AD-1: Caller concatenates input + context before model forward.
         train_one_epoch / evaluate_epoch perform: x = cat([batch["input"], batch["context"]], dim=-1).
+  AD-4: Duck-type dispatch via model.spatial attribute (Fase 6a).
+        If hasattr(model, 'spatial') and model.spatial, call model(inp, ctx, input_mask).
+        Otherwise call model(cat([inp, ctx])) as before — HeadwayLSTM path unchanged.
+  AD-5: TrainConfig gets optional conv_channels: int | None = None (Fase 6a).
   AD-6: Denormalization — pred_minutes = pred_z * (std + 1e-8) + mean.
   AD-7: Reproducibility — torch + cuda + numpy manual seeds.
   AD-9: Early stopping — monitor val masked MSE, in-memory best-state copy.
@@ -22,6 +26,11 @@ ACs covered (Wave 3):
   AC-TRAIN-8: train_model honours early stopping; restores best weights on return.
   AC-GRID-1..5: GRID has 24 entries; grid_search returns sorted list of TrainResult.
   AC-EVAL-1: denormalize_predictions converts z-scored output back to minutes.
+
+ACs covered (Fase 6a Wave 2):
+  SPATIAL-DISPATCH: train_one_epoch / evaluate_epoch dispatch on model.spatial.
+  SPATIAL-GRID: SPATIAL_GRID has 48 configs (conv_channels×hidden×layers×dropout×lr).
+  SPATIAL-COMPAT: HeadwayLSTM path unchanged; all Fase 5 tests still pass.
 """
 from __future__ import annotations
 
@@ -36,6 +45,7 @@ import torch
 import torch.nn as nn
 
 from src.models.lstm import HeadwayLSTM, masked_mse_loss
+from src.models.spatial_conv_lstm import SpatialConvLSTM
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +77,8 @@ class TrainConfig:
     max_epochs: int = 50
     patience: int = 10
     seed: int = 42
+    # Fase 6a — optional spatial conv channels.  None → HeadwayLSTM path (AD-5).
+    conv_channels: int | None = None
 
 
 @dataclass
@@ -166,11 +178,15 @@ def train_one_epoch(
         target = batch["target"].to(device)   # (B, 1, max_N) or (B, T_out, max_N)
         mask = batch["target_mask"].to(device)  # (B, 1, max_N)
 
-        # AD-1: concatenate headway + context before model forward.
-        x = torch.cat([inp, ctx], dim=-1)  # (B, T_in, max_N + 5)
-
-        # Forward pass.
-        pred = model(x)  # (B, max_N)
+        # AD-4: duck-type dispatch — spatial model gets 3 separate tensors;
+        # HeadwayLSTM receives the flat concatenation as before (AD-1).
+        if hasattr(model, "spatial") and model.spatial:
+            input_mask = batch["input_mask"].to(device)  # (B, T_in, max_N) bool
+            pred = model(inp, ctx, input_mask)
+        else:
+            # AD-1: concatenate headway + context before model forward.
+            x = torch.cat([inp, ctx], dim=-1)  # (B, T_in, max_N + 5)
+            pred = model(x)  # (B, max_N)
 
         # Squeeze time dimension from target/mask: (B, 1, max_N) → (B, max_N).
         target_sq = target.squeeze(1)  # (B, max_N)
@@ -223,10 +239,15 @@ def evaluate_epoch(
             target = batch["target"].to(device)
             mask = batch["target_mask"].to(device)
 
-            # AD-1: concatenate headway + context before model forward.
-            x = torch.cat([inp, ctx], dim=-1)
-
-            pred = model(x)
+            # AD-4: duck-type dispatch — spatial model gets 3 separate tensors;
+            # HeadwayLSTM receives the flat concatenation as before (AD-1).
+            if hasattr(model, "spatial") and model.spatial:
+                input_mask = batch["input_mask"].to(device)  # (B, T_in, max_N) bool
+                pred = model(inp, ctx, input_mask)
+            else:
+                # AD-1: concatenate headway + context before model forward.
+                x = torch.cat([inp, ctx], dim=-1)
+                pred = model(x)
 
             # Squeeze time dimension: (B, 1, max_N) → (B, max_N).
             target_sq = target.squeeze(1)
@@ -332,6 +353,24 @@ GRID: list[TrainConfig] = [
     for lr in [1e-3, 5e-4]
 ]
 
+# Fase 6a — Spatial grid (AD-6):
+# conv_channels ∈ {1,8,16} × hidden ∈ {32,64} × layers ∈ {1,2}
+# × dropout ∈ {0.0,0.2} × lr ∈ {1e-3,5e-4} = 3×2×2×2×2 = 48 configs.
+SPATIAL_GRID: list[TrainConfig] = [
+    TrainConfig(
+        hidden_size=h,
+        num_layers=n,
+        dropout=d,
+        lr=lr,
+        conv_channels=c,
+    )
+    for c in [1, 8, 16]
+    for h in [32, 64]
+    for n in [1, 2]
+    for d in [0.0, 0.2]
+    for lr in [1e-3, 5e-4]
+]
+
 
 def train_model(
     model: nn.Module,
@@ -414,6 +453,9 @@ def grid_search(
 ) -> list[TrainResult]:
     """Train one model per config; return results sorted ascending by best_val_loss (AC-GRID-1..3).
 
+    Fase 6a: if config.conv_channels is not None, instantiates SpatialConvLSTM
+    instead of HeadwayLSTM (AD-4/AD-5). The HeadwayLSTM path is unchanged.
+
     Parameters
     ----------
     train_dl:
@@ -423,7 +465,8 @@ def grid_search(
     max_N:
         Maximum number of buses (determines model input_size = max_N + CONTEXT_DIM).
     configs:
-        List of TrainConfig to evaluate. Use GRID for the full 24-config sweep.
+        List of TrainConfig to evaluate. Use GRID for the full 24-config sweep,
+        SPATIAL_GRID for the Fase 6a 48-config sweep.
     device:
         Device string or torch.device.
 
@@ -434,13 +477,24 @@ def grid_search(
     results: list[TrainResult] = []
 
     for config in configs:
-        model = HeadwayLSTM(
-            input_size=max_N + CONTEXT_DIM,
-            hidden_size=config.hidden_size,
-            output_size=max_N,
-            num_layers=config.num_layers,
-            dropout=config.dropout,
-        )
+        # AD-4/AD-5: detect spatial model from conv_channels field.
+        if config.conv_channels is not None:
+            model: nn.Module = SpatialConvLSTM(
+                max_N=max_N,
+                conv_channels=config.conv_channels,
+                hidden_size=config.hidden_size,
+                output_size=max_N,
+                num_layers=config.num_layers,
+                dropout=config.dropout,
+            )
+        else:
+            model = HeadwayLSTM(
+                input_size=max_N + CONTEXT_DIM,
+                hidden_size=config.hidden_size,
+                output_size=max_N,
+                num_layers=config.num_layers,
+                dropout=config.dropout,
+            )
         result = train_model(model, train_dl, val_dl, config, device)
         results.append(result)
 
@@ -479,11 +533,19 @@ def save_checkpoint(result: TrainResult, path: Path) -> None:
         "best_val_loss": result.best_val_loss,
         "epochs_trained": result.epochs_trained,
     }
+    # AD-9 / AD-5: persist conv_channels only when it is set.
+    if result.config.conv_channels is not None:
+        config_dict["conv_channels"] = result.config.conv_channels
     (path / "config.json").write_text(json.dumps(config_dict, indent=2))
 
 
-def load_checkpoint(path: Path, max_N: int) -> tuple[HeadwayLSTM, TrainConfig]:
-    """Restore a HeadwayLSTM and its TrainConfig from a checkpoint directory (AC-TRAIN-7).
+def load_checkpoint(
+    path: Path, max_N: int
+) -> tuple[HeadwayLSTM | SpatialConvLSTM, TrainConfig]:
+    """Restore a model and its TrainConfig from a checkpoint directory (AC-TRAIN-7).
+
+    Fase 6a (AD-9): if config.json contains a ``conv_channels`` key, instantiates
+    SpatialConvLSTM; otherwise falls back to HeadwayLSTM (backward compatible).
 
     Parameters
     ----------
@@ -499,6 +561,8 @@ def load_checkpoint(path: Path, max_N: int) -> tuple[HeadwayLSTM, TrainConfig]:
     path = Path(path)
     config_dict = json.loads((path / "config.json").read_text())
 
+    conv_channels: int | None = config_dict.get("conv_channels", None)
+
     config = TrainConfig(
         hidden_size=config_dict["hidden_size"],
         num_layers=config_dict["num_layers"],
@@ -508,15 +572,28 @@ def load_checkpoint(path: Path, max_N: int) -> tuple[HeadwayLSTM, TrainConfig]:
         max_epochs=config_dict.get("max_epochs", 50),
         patience=config_dict.get("patience", 10),
         seed=config_dict.get("seed", 42),
+        conv_channels=conv_channels,
     )
 
-    model = HeadwayLSTM(
-        input_size=max_N + CONTEXT_DIM,
-        hidden_size=config.hidden_size,
-        output_size=max_N,
-        num_layers=config.num_layers,
-        dropout=config.dropout,
-    )
+    # AD-9: select model class from conv_channels field.
+    model: HeadwayLSTM | SpatialConvLSTM
+    if conv_channels is not None:
+        model = SpatialConvLSTM(
+            max_N=max_N,
+            conv_channels=conv_channels,
+            hidden_size=config.hidden_size,
+            output_size=max_N,
+            num_layers=config.num_layers,
+            dropout=config.dropout,
+        )
+    else:
+        model = HeadwayLSTM(
+            input_size=max_N + CONTEXT_DIM,
+            hidden_size=config.hidden_size,
+            output_size=max_N,
+            num_layers=config.num_layers,
+            dropout=config.dropout,
+        )
     state_dict = torch.load(path / "model.pt", weights_only=True)
     model.load_state_dict(state_dict)
     return model, config
