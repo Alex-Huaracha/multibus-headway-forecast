@@ -1,0 +1,19 @@
+{
+  "id": "alexhuaracha/08b-spatialconvlstm-e59",
+  "title": "08b \u2014 SpatialConvLSTM E59",
+  "code_file": "08b_spatial_conv_lstm_e59.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "accelerator": "GPU_T4X2",
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [
+    "alexhuaracha/04-preprocessing",
+    "alexhuaracha/06-baselines-stat",
+    "alexhuaracha/07-lstm-baseline"
+  ],
+  "competition_sources": []
+}
