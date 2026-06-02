@@ -3,13 +3,19 @@
 Architecture decisions applied (from design doc):
   AD-1: Caller concatenates input + context before model forward.
         train_one_epoch / evaluate_epoch perform: x = cat([batch["input"], batch["context"]], dim=-1).
-  AD-4: Duck-type dispatch via model.spatial attribute (Fase 6a).
+  AD-4: Duck-type dispatch via model.spatial attribute (Fase 6a/6b).
         If hasattr(model, 'spatial') and model.spatial, call model(inp, ctx, input_mask).
         Otherwise call model(cat([inp, ctx])) as before — HeadwayLSTM path unchanged.
   AD-5: TrainConfig gets optional conv_channels: int | None = None (Fase 6a).
   AD-6: Denormalization — pred_minutes = pred_z * (std + 1e-8) + mean.
   AD-7: Reproducibility — torch + cuda + numpy manual seeds.
   AD-9: Early stopping — monitor val masked MSE, in-memory best-state copy.
+  Fase 6b AD-6: TrainConfig gets optional nhead: int | None = None,
+                d_model: int | None = None for SpatialTransformer dispatch.
+  Fase 6b AD-7: TRANSFORMER_GRID — 32 configs (obs #417 canonical grid):
+                nhead{1,2} × d_model{16,32} × hidden{32,64} × dropout{0.0,0.2}
+                × lr{1e-3,5e-4}, num_layers=1 fixed. All (nhead,d_model) combos
+                satisfy d_model % nhead == 0 → 2^5 = 32 configs.
   INV-NO-COMPILE: torch.compile() is NOT used (Kaggle CUDA compatibility).
   INV-NO-TB: No TensorBoard, MLflow, or Optuna imports.
 
@@ -31,6 +37,11 @@ ACs covered (Fase 6a Wave 2):
   SPATIAL-DISPATCH: train_one_epoch / evaluate_epoch dispatch on model.spatial.
   SPATIAL-GRID: SPATIAL_GRID has 48 configs (conv_channels×hidden×layers×dropout×lr).
   SPATIAL-COMPAT: HeadwayLSTM path unchanged; all Fase 5 tests still pass.
+
+ACs covered (Fase 6b Wave 2):
+  TRANSFORMER-DISPATCH: grid_search dispatches nhead-first → SpatialTransformer.
+  TRANSFORMER-GRID: TRANSFORMER_GRID has 32 configs (obs #417).
+  TRANSFORMER-COMPAT: conv_channels path and HeadwayLSTM path unchanged.
 """
 from __future__ import annotations
 
@@ -46,6 +57,7 @@ import torch.nn as nn
 
 from src.models.lstm import HeadwayLSTM, masked_mse_loss
 from src.models.spatial_conv_lstm import SpatialConvLSTM
+from src.models.spatial_transformer import SpatialTransformer
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +91,11 @@ class TrainConfig:
     seed: int = 42
     # Fase 6a — optional spatial conv channels.  None → HeadwayLSTM path (AD-5).
     conv_channels: int | None = None
+    # Fase 6b — optional transformer attention parameters (AD-6).
+    # nhead=None, d_model=None → no SpatialTransformer (backward compat).
+    # nhead and conv_channels are mutually exclusive per config.
+    nhead: int | None = None
+    d_model: int | None = None
 
 
 @dataclass
@@ -371,6 +388,30 @@ SPATIAL_GRID: list[TrainConfig] = [
     for lr in [1e-3, 5e-4]
 ]
 
+# Fase 6b — Transformer grid (obs #417 canonical grid):
+# nhead ∈ {1,2} × d_model ∈ {16,32} × hidden ∈ {32,64}
+# × dropout ∈ {0.0,0.2} × lr ∈ {1e-3,5e-4}, num_layers=1 fixed.
+# All (nhead, d_model) combos satisfy d_model % nhead == 0:
+#   nhead=1: 16%1==0, 32%1==0 ✓
+#   nhead=2: 16%2==0, 32%2==0 ✓
+# → 2×2×2×2×2 = 32 configs total (no filtering needed).
+TRANSFORMER_GRID: list[TrainConfig] = [
+    TrainConfig(
+        hidden_size=h,
+        num_layers=1,
+        dropout=d,
+        lr=lr,
+        nhead=nh,
+        d_model=dm,
+    )
+    for nh in [1, 2]
+    for dm in [16, 32]
+    for h in [32, 64]
+    for d in [0.0, 0.2]
+    for lr in [1e-3, 5e-4]
+    if dm % nh == 0  # guard is always True for these values; kept for clarity
+]
+
 
 def train_model(
     model: nn.Module,
@@ -477,9 +518,28 @@ def grid_search(
     results: list[TrainResult] = []
 
     for config in configs:
-        # AD-4/AD-5: detect spatial model from conv_channels field.
-        if config.conv_channels is not None:
-            model: nn.Module = SpatialConvLSTM(
+        # Fase 6b: nhead and conv_channels are mutually exclusive.
+        if config.nhead is not None and config.conv_channels is not None:
+            raise ValueError(
+                f"nhead and conv_channels are mutually exclusive in TrainConfig. "
+                f"Got nhead={config.nhead}, conv_channels={config.conv_channels}. "
+                "Set one to None."
+            )
+
+        # Fase 6b: nhead-first dispatch → SpatialTransformer.
+        if config.nhead is not None:
+            model: nn.Module = SpatialTransformer(
+                max_N=max_N,
+                nhead=config.nhead,
+                d_model=config.d_model,
+                hidden_size=config.hidden_size,
+                output_size=max_N,
+                num_layers=config.num_layers,
+                dropout=config.dropout,
+            )
+        # Fase 6a: conv_channels → SpatialConvLSTM.
+        elif config.conv_channels is not None:
+            model = SpatialConvLSTM(
                 max_N=max_N,
                 conv_channels=config.conv_channels,
                 hidden_size=config.hidden_size,
@@ -487,6 +547,7 @@ def grid_search(
                 num_layers=config.num_layers,
                 dropout=config.dropout,
             )
+        # Default: HeadwayLSTM path (Fase 5).
         else:
             model = HeadwayLSTM(
                 input_size=max_N + CONTEXT_DIM,
@@ -536,16 +597,23 @@ def save_checkpoint(result: TrainResult, path: Path) -> None:
     # AD-9 / AD-5: persist conv_channels only when it is set.
     if result.config.conv_channels is not None:
         config_dict["conv_channels"] = result.config.conv_channels
+    # Fase 6b: persist nhead and d_model only when set (mirror conv_channels pattern).
+    if result.config.nhead is not None:
+        config_dict["nhead"] = result.config.nhead
+    if result.config.d_model is not None:
+        config_dict["d_model"] = result.config.d_model
     (path / "config.json").write_text(json.dumps(config_dict, indent=2))
 
 
 def load_checkpoint(
     path: Path, max_N: int
-) -> tuple[HeadwayLSTM | SpatialConvLSTM, TrainConfig]:
+) -> tuple[HeadwayLSTM | SpatialConvLSTM | SpatialTransformer, TrainConfig]:
     """Restore a model and its TrainConfig from a checkpoint directory (AC-TRAIN-7).
 
     Fase 6a (AD-9): if config.json contains a ``conv_channels`` key, instantiates
     SpatialConvLSTM; otherwise falls back to HeadwayLSTM (backward compatible).
+    Fase 6b: if config.json contains a ``nhead`` key, instantiates SpatialTransformer
+    (nhead-first priority, checked before conv_channels).
 
     Parameters
     ----------
@@ -562,6 +630,8 @@ def load_checkpoint(
     config_dict = json.loads((path / "config.json").read_text())
 
     conv_channels: int | None = config_dict.get("conv_channels", None)
+    nhead: int | None = config_dict.get("nhead", None)
+    d_model: int | None = config_dict.get("d_model", None)
 
     config = TrainConfig(
         hidden_size=config_dict["hidden_size"],
@@ -573,11 +643,23 @@ def load_checkpoint(
         patience=config_dict.get("patience", 10),
         seed=config_dict.get("seed", 42),
         conv_channels=conv_channels,
+        nhead=nhead,
+        d_model=d_model,
     )
 
-    # AD-9: select model class from conv_channels field.
-    model: HeadwayLSTM | SpatialConvLSTM
-    if conv_channels is not None:
+    # Fase 6b: nhead-first model class selection.
+    model: HeadwayLSTM | SpatialConvLSTM | SpatialTransformer
+    if nhead is not None:
+        model = SpatialTransformer(
+            max_N=max_N,
+            nhead=nhead,
+            d_model=d_model,
+            hidden_size=config.hidden_size,
+            output_size=max_N,
+            num_layers=config.num_layers,
+            dropout=config.dropout,
+        )
+    elif conv_channels is not None:
         model = SpatialConvLSTM(
             max_N=max_N,
             conv_channels=conv_channels,
