@@ -140,26 +140,47 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [x] Implementación de SpatialConvLSTM (`src/models/spatial_conv_lstm.py`).
 - [x] Mask-aware input: `inp * input_mask` ANTES del conv (inductive bias vs LSTM).
 - [x] Adaptación de `src/train.py`: duck-type dispatch, `SPATIAL_GRID` (48 configs).
-- [x] Notebook builder `src/build_notebook_08.py` + notebook `08_spatial_conv_lstm`.
-- [ ] Entrenamiento y grid search en Kaggle GPU T4.
+- [x] Notebook builder `src/build_notebook_08.py` + notebooks `08a_spatial_conv_lstm_e2` / `08b_spatial_conv_lstm_e59` (per-corridor split para respetar límite 12h de Kaggle).
+- [ ] Entrenamiento y grid search en Kaggle GPU T4 (kernel `alexhuaracha/08a-spatialconvlstm-e2` + `08b-spatialconvlstm-e59`).
 - [ ] Métricas sobre test, comparación con LSTM.
 
-**Artefacto:** `src/models/spatial_conv_lstm.py` + `src/build_notebook_08.py` + notebook `08_spatial_conv_lstm` (Kaggle kernel `alexhuaracha/08-spatial-conv-lstm`) + checkpoints.
+**Artefacto:** `src/models/spatial_conv_lstm.py` + `src/build_notebook_08.py` + notebooks `08a_spatial_conv_lstm_e2/` + `08b_spatial_conv_lstm_e59/` + checkpoints.
 
-**Estado:** Código implementado (281/281 tests). Pendiente ejecución en Kaggle.
+**Estado:** Código implementado (284/284 tests). Pendiente ejecución en Kaggle.
 
 ### Fase 6b — SpatialTransformer (relaciones espaciales globales)
 
-- [ ] Implementación de SpatialTransformer con atención inter-bus.
-- [ ] Manejo de cardinalidad variable via attention mask.
-- [ ] Adaptación de training infrastructure.
-- [ ] Notebook builder + notebook `09_spatial_transformer`.
-- [ ] Entrenamiento y grid search en Kaggle GPU T4.
-- [ ] Métricas sobre test, comparación con LSTM y SpatialConvLSTM.
+**Objetivo:** Reemplazar el encoder espacial local (Conv1D, 1-hop) por un encoder global (MHA multi-head self-attention sobre N posiciones) para capturar relaciones a larga distancia entre buses.
 
-**Artefacto:** `src/models/spatial_transformer.py` + notebook `09_spatial_transformer` + checkpoints.
+**Decisiones clave:**
+- MHA batched reshape `(B*T_in, max_N, d_model)` — sin loop Python sobre T_in (runtime).
+- `proj_out: Linear(d_model, 1)` colapsa d_model→1 por posición → LSTM input_size = max_N + 5 (igual a HeadwayLSTM, aísla efecto espacial).
+- Inversión de polaridad de máscara: `kpm = ~input_mask` (PyTorch MHA: True=IGNORE).
+- NaN guard para snapshots totalmente ausentes: fuerza primer clave válida, luego zeroes.
+- `TRANSFORMER_GRID`: 32 configs, nhead∈{1,2} × d_model∈{16,32} × hidden∈{32,64} × dropout∈{0.0,0.2} × lr∈{1e-3,5e-4}, num_layers=1 fijo (obs #417).
+- Split per-corredor (09a/09b) — mismo patrón que 6a para respetar límite 12h de Kaggle.
 
-**Estado:** Pendiente (requiere Fase 6a cerrada primero).
+**Criterios de éxito:**
+- [x] `SpatialTransformer` implementado con forward shape correcto, mask polarity inversion, NaN guard (AD-4, AD-5).
+- [x] `model.spatial = True` clase attr — duck-type dispatch sin cambios en epoch loops.
+- [x] `d_model % nhead == 0` validado en constructor (ValueError si no se cumple).
+- [x] `TrainConfig.nhead` y `TrainConfig.d_model` con default None (backward compat).
+- [x] `TRANSFORMER_GRID` con exactamente 32 configs, `num_layers=1` fijo (obs #417).
+- [x] `grid_search` con dispatch nhead-first, mutual exclusivity con conv_channels.
+- [x] `save_checkpoint` / `load_checkpoint` round-trip con SpatialTransformer (nhead branch).
+- [x] Notebook builder `src/build_notebook_09.py` genera `09a_e2/notebook.ipynb` + `09b_e59/notebook.ipynb`, cell IDs `cell-09-*`, idempotente.
+- [x] 314/314 tests, 0 regresiones contra baseline Fase 6a (284 tests).
+- [ ] Entrenamiento y grid search en Kaggle GPU T4 (kernel `alexhuaracha/09a-spatialtr-e2` + `09b-spatialtr-e59`).
+- [ ] Métricas sobre test en `spatial_transformer_results.csv`, comparación con LSTM (NB07) y SpatialConvLSTM (NB08).
+
+**Artefactos:**
+- `src/models/spatial_transformer.py` — modelo SpatialTransformer.
+- `src/build_notebook_09.py` — builder per-corredor.
+- `notebooks/09_spatial_transformer/09a_e2/` — E2 notebook + kernel-metadata.
+- `notebooks/09_spatial_transformer/09b_e59/` — E59 notebook + kernel-metadata.
+- `tests/models/test_spatial_transformer.py` (13 tests) + extensiones en `tests/test_train.py` (12 tests) + `tests/test_build_notebook_09.py` (5 test nodes).
+
+**Estado:** Código implementado (314/314 tests). Pendiente ejecución en Kaggle.
 
 **Criterio de cierre (Fase 6 completa):** Ambas arquitecturas espaciales entrenadas con métricas registradas, comparables contra LSTM y baselines en ambos corredores (E2 y E59).
 
