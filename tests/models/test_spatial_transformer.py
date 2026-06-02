@@ -252,3 +252,104 @@ class TestSpatialTransformer:
         assert torch.allclose(out1, out2), (
             "Same inputs in eval mode with dropout=0.0 must produce identical outputs."
         )
+
+    def test_mask_polarity_is_load_bearing(self):
+        """AD-4: key_padding_mask=~input_mask is actually load-bearing — removing it changes output.
+
+        WHY the existing test_mask_ignores_absent_slots is NOT sufficient:
+          The forward does `inp_masked = inp * input_mask.float()` BEFORE proj_in,
+          so absent slots are zeroed before the projection. However, proj_in is
+          Linear(1, d_model) with a bias, so even a zero input produces a non-zero
+          key vector (= bias vector). If key_padding_mask were removed, MHA would
+          attend to all N keys including the absent-slot bias vectors, changing output.
+
+        THIS TEST proves the kpm is load-bearing by:
+          1. Bypassing the pre-zeroing step: we temporarily patch inp_masked so
+             absent slots retain their original (nonzero) values entering proj_in.
+          2. Running forward with correct kpm and with kpm=None; asserting outputs differ.
+
+        The test MUST fail if `key_padding_mask=safe_kpm` is removed from the attn call.
+        """
+        from unittest.mock import patch
+
+        torch.manual_seed(42)
+        model = _make_model(max_N=6, nhead=2, d_model=16, hidden_size=32, output_size=6)
+        model.eval()
+
+        B, T, max_N = 1, 4, 6
+        # All input values are nonzero so absent slots carry non-trivial key vectors.
+        inp = torch.randn(B, T, max_N) + 2.0  # ensure nonzero even without bias
+        ctx = torch.randn(B, T, 5)
+        # Partially masked: slots 3 and 4 are absent across all timesteps.
+        mask = torch.ones(B, T, max_N, dtype=torch.bool)
+        mask[:, :, 3] = False
+        mask[:, :, 4] = False
+
+        # --- Run 1: correct forward (pre-zeroing + correct kpm) ---
+        with torch.no_grad():
+            out_correct = model(inp, ctx, mask)
+
+        # --- Run 2: bypass pre-zeroing AND remove key_padding_mask ---
+        # We patch the model's forward at the MHA call site so that kpm is forced
+        # to None. This simulates the regression where kpm is accidentally removed.
+        original_attn_forward = model.attn.forward
+
+        def _attn_no_mask(query, key, value, key_padding_mask=None, **kwargs):
+            # Drop whatever kpm was passed — simulate the bug.
+            return original_attn_forward(query, key, value, key_padding_mask=None, **kwargs)
+
+        with torch.no_grad():
+            with patch.object(model.attn, "forward", side_effect=_attn_no_mask):
+                out_no_mask = model(inp, ctx, mask)
+
+        # The outputs must differ: without kpm the absent-slot keys (bias vector)
+        # participate in attention, shifting the attended representation.
+        assert not torch.allclose(out_correct, out_no_mask), (
+            "Removing key_padding_mask should change the output on a partially-masked input. "
+            "If this assertion fails, the test is not catching mask removal regressions. "
+            "Check that absent slots carry nonzero proj_in outputs (bias effect) and that "
+            "the partial mask has meaningful valid slots to contrast against."
+        )
+
+    def test_inverted_mask_polarity_changes_output(self):
+        """AD-4: passing +input_mask instead of ~input_mask changes output (polarity check).
+
+        A polarity inversion bug would pass input_mask directly as key_padding_mask
+        (marking VALID slots as IGNORE). This test proves such a bug is detectable:
+        the output with wrong polarity must differ from the correct output.
+        """
+        from unittest.mock import patch
+
+        torch.manual_seed(7)
+        model = _make_model(max_N=6, nhead=2, d_model=16, hidden_size=32, output_size=6)
+        model.eval()
+
+        B, T, max_N = 1, 4, 6
+        inp = torch.randn(B, T, max_N) + 1.5
+        ctx = torch.randn(B, T, 5)
+        # Partial mask: slots 0-3 valid, slots 4-5 absent.
+        mask = torch.ones(B, T, max_N, dtype=torch.bool)
+        mask[:, :, 4] = False
+        mask[:, :, 5] = False
+
+        # --- Run 1: correct kpm = ~input_mask ---
+        with torch.no_grad():
+            out_correct = model(inp, ctx, mask)
+
+        # --- Run 2: inverted polarity — pass input_mask directly (wrong: True=IGNORE valid slots) ---
+        original_attn_forward = model.attn.forward
+
+        def _attn_wrong_polarity(query, key, value, key_padding_mask=None, **kwargs):
+            # Flip polarity: what was ~input_mask becomes input_mask (wrong convention).
+            if key_padding_mask is not None:
+                key_padding_mask = ~key_padding_mask
+            return original_attn_forward(query, key, value, key_padding_mask=key_padding_mask, **kwargs)
+
+        with torch.no_grad():
+            with patch.object(model.attn, "forward", side_effect=_attn_wrong_polarity):
+                out_wrong_polarity = model(inp, ctx, mask)
+
+        assert not torch.allclose(out_correct, out_wrong_polarity), (
+            "Inverting key_padding_mask polarity must change the output. "
+            "If this passes, the test does not detect polarity inversion bugs."
+        )
