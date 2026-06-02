@@ -634,3 +634,235 @@ class TestBackwardCompatAfterDispatch:
         loader = _make_synthetic_dataloader()
         result = evaluate_epoch(model, loader, device="cpu")
         assert isinstance(result, float)
+
+
+# ---------------------------------------------------------------------------
+# Wave 2 (Fase 6b): SpatialTransformer dispatch, TrainConfig.nhead/d_model,
+#                   TRANSFORMER_GRID, and backward-compat regression tests.
+#
+# Grid decision (obs #417): TRANSFORMER_GRID = nhead{1,2} × d_model{16,32}
+# × hidden{32,64} × dropout{0.0,0.2} × lr{1e-3,5e-4} → 32 configs
+# (all (d_model, nhead) combos satisfy divisibility → 2^5 = 32 with no filtering).
+# ---------------------------------------------------------------------------
+
+def _make_transformer_model(
+    max_N: int = 4,
+    nhead: int = 1,
+    d_model: int = 16,
+    hidden_size: int = 8,
+):
+    """Build a tiny SpatialTransformer for testing."""
+    from src.models.spatial_transformer import SpatialTransformer
+    return SpatialTransformer(
+        max_N=max_N,
+        nhead=nhead,
+        d_model=d_model,
+        hidden_size=hidden_size,
+        output_size=max_N,
+        num_layers=1,
+        dropout=0.0,
+        context_size=5,
+    )
+
+
+class TestTrainConfigTransformerFields:
+    """TrainConfig backward-compat tests for new nhead / d_model fields."""
+
+    def test_train_config_nhead_default_none(self) -> None:
+        """TrainConfig().nhead must default to None (backward compat)."""
+        cfg = TrainConfig(hidden_size=32, num_layers=1, dropout=0.0, lr=1e-3)
+        assert cfg.nhead is None, (
+            f"Expected nhead=None by default, got {cfg.nhead!r}"
+        )
+
+    def test_train_config_d_model_default_none(self) -> None:
+        """TrainConfig().d_model must default to None (backward compat)."""
+        cfg = TrainConfig(hidden_size=32, num_layers=1, dropout=0.0, lr=1e-3)
+        assert cfg.d_model is None, (
+            f"Expected d_model=None by default, got {cfg.d_model!r}"
+        )
+
+    def test_train_config_nhead_can_be_set(self) -> None:
+        """TrainConfig must accept explicit nhead and d_model values."""
+        cfg = TrainConfig(hidden_size=32, num_layers=1, dropout=0.0, lr=1e-3,
+                          nhead=2, d_model=16)
+        assert cfg.nhead == 2
+        assert cfg.d_model == 16
+
+
+class TestTransformerGrid:
+    """TRANSFORMER_GRID constant validation (obs #417 canonical grid)."""
+
+    def test_transformer_grid_has_32_configs(self) -> None:
+        """TRANSFORMER_GRID must contain exactly 32 configs (obs #417: 2^5 without invalid combos).
+
+        Grid: nhead{1,2} × d_model{16,32} × hidden{32,64}
+              × dropout{0.0,0.2} × lr{1e-3,5e-4}
+        All (nhead, d_model) combos satisfy d_model % nhead == 0,
+        so 2×2×2×2×2 = 32 configs total with num_layers=1 fixed.
+        """
+        from src.train import TRANSFORMER_GRID
+        assert len(TRANSFORMER_GRID) == 32, (
+            f"TRANSFORMER_GRID must have 32 configs (obs #417), got {len(TRANSFORMER_GRID)}"
+        )
+
+    def test_transformer_grid_d_model_divisible_by_nhead(self) -> None:
+        """Every TRANSFORMER_GRID config must satisfy d_model % nhead == 0."""
+        from src.train import TRANSFORMER_GRID
+        invalid = [
+            (c.nhead, c.d_model) for c in TRANSFORMER_GRID
+            if c.d_model % c.nhead != 0
+        ]
+        assert not invalid, (
+            f"Found configs where d_model % nhead != 0: {invalid}"
+        )
+
+    def test_transformer_grid_all_nhead_not_none(self) -> None:
+        """Every TRANSFORMER_GRID config must have nhead in {1, 2} (never None)."""
+        from src.train import TRANSFORMER_GRID
+        invalid = [c.nhead for c in TRANSFORMER_GRID if c.nhead is None]
+        assert not invalid, (
+            "All TRANSFORMER_GRID configs must have nhead set (never None)"
+        )
+        valid_nheads = {1, 2}
+        bad = [c.nhead for c in TRANSFORMER_GRID if c.nhead not in valid_nheads]
+        assert not bad, (
+            f"nhead values must be in {{1, 2}}, found: {set(bad)}"
+        )
+
+    def test_transformer_grid_all_are_train_config(self) -> None:
+        """All TRANSFORMER_GRID items must be TrainConfig instances."""
+        from src.train import TRANSFORMER_GRID
+        assert all(isinstance(c, TrainConfig) for c in TRANSFORMER_GRID), (
+            "Every TRANSFORMER_GRID entry must be a TrainConfig"
+        )
+
+    def test_transformer_grid_num_layers_fixed_1(self) -> None:
+        """TRANSFORMER_GRID must use num_layers=1 (fixed per obs #417)."""
+        from src.train import TRANSFORMER_GRID
+        bad = [c.num_layers for c in TRANSFORMER_GRID if c.num_layers != 1]
+        assert not bad, (
+            f"All TRANSFORMER_GRID configs must have num_layers=1, found: {bad}"
+        )
+
+
+class TestTransformerGridSearchDispatch:
+    """grid_search dispatch tests for SpatialTransformer."""
+
+    def test_grid_search_dispatches_transformer_on_nhead(self) -> None:
+        """config with nhead set → grid_search creates SpatialTransformer."""
+        from src.train import TrainResult, grid_search
+        from src.models.spatial_transformer import SpatialTransformer
+
+        set_seed(0)
+        max_N = 4
+        transformer_cfg = [
+            TrainConfig(
+                hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3,
+                max_epochs=2, patience=5, nhead=1, d_model=16,
+            )
+        ]
+        train_dl = _make_spatial_dataloader(max_N=max_N, n_batches=2)
+        val_dl = _make_spatial_dataloader(max_N=max_N, n_batches=1)
+
+        results = grid_search(train_dl, val_dl, max_N=max_N, configs=transformer_cfg, device="cpu")
+
+        assert isinstance(results, list), "grid_search must return a list"
+        assert len(results) == 1, f"Expected 1 result, got {len(results)}"
+        assert isinstance(results[0], TrainResult), "Result must be a TrainResult"
+        # The dispatched model must have been a SpatialTransformer.
+        # We verify indirectly: config has nhead set and result is valid.
+        assert results[0].config.nhead == 1
+        assert isinstance(results[0].best_val_loss, float)
+
+    def test_grid_search_nhead_priority_raises_or_transformer(self) -> None:
+        """config with both nhead and conv_channels → ValueError (mutual exclusivity).
+
+        nhead MUST take priority — conv_channels must never silently win.
+        """
+        from src.train import grid_search
+
+        set_seed(0)
+        max_N = 4
+        conflicting_cfg = [
+            TrainConfig(
+                hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3,
+                max_epochs=2, patience=5,
+                nhead=1, d_model=16, conv_channels=8,  # mutual exclusivity violation
+            )
+        ]
+        train_dl = _make_spatial_dataloader(max_N=max_N, n_batches=1)
+        val_dl = _make_spatial_dataloader(max_N=max_N, n_batches=1)
+
+        with pytest.raises(ValueError, match=r"nhead.*conv_channels|conv_channels.*nhead|mutually exclusive"):
+            grid_search(train_dl, val_dl, max_N=max_N, configs=conflicting_cfg, device="cpu")
+
+    def test_grid_search_conv_channels_still_dispatches_spatial_conv_lstm(self) -> None:
+        """nhead=None, conv_channels=8 → SpatialConvLSTM (Fase 6a regression test)."""
+        from src.train import TrainResult, grid_search
+
+        set_seed(0)
+        max_N = 4
+        spatial_cfg = [
+            TrainConfig(
+                hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3,
+                max_epochs=2, patience=5, conv_channels=8,  # nhead defaults to None
+            )
+        ]
+        train_dl = _make_spatial_dataloader(max_N=max_N, n_batches=2)
+        val_dl = _make_spatial_dataloader(max_N=max_N, n_batches=1)
+
+        results = grid_search(train_dl, val_dl, max_N=max_N, configs=spatial_cfg, device="cpu")
+
+        assert isinstance(results, list)
+        assert len(results) == 1
+        assert results[0].config.conv_channels == 8
+        assert results[0].config.nhead is None
+
+
+class TestTransformerCheckpoint:
+    """Checkpoint round-trip for SpatialTransformer."""
+
+    def test_load_checkpoint_nhead_branch(self, tmp_path) -> None:
+        """save_checkpoint + load_checkpoint round-trip with SpatialTransformer."""
+        import copy
+        from src.train import TrainResult, save_checkpoint, load_checkpoint
+        from src.models.spatial_transformer import SpatialTransformer
+
+        set_seed(7)
+        max_N, nhead, d_model = 4, 2, 16
+        config = TrainConfig(
+            hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3,
+            nhead=nhead, d_model=d_model,
+        )
+        original_model = _make_transformer_model(max_N=max_N, nhead=nhead, d_model=d_model, hidden_size=8)
+        result = TrainResult(
+            best_val_loss=0.15,
+            best_epoch=0,
+            state_dict=copy.deepcopy(original_model.state_dict()),
+            config=config,
+        )
+
+        ckpt_dir = tmp_path / "transformer_ckpt"
+        save_checkpoint(result, ckpt_dir)
+        restored_model, restored_config = load_checkpoint(ckpt_dir, max_N=max_N)
+
+        assert isinstance(restored_model, SpatialTransformer), (
+            f"Expected SpatialTransformer, got {type(restored_model)}"
+        )
+        assert restored_config.nhead == nhead
+        assert restored_config.d_model == d_model
+
+        # Forward pass must produce identical predictions.
+        inp = torch.randn(2, 6, max_N)
+        ctx = torch.randn(2, 6, 5)
+        mask = torch.ones(2, 6, max_N, dtype=torch.bool)
+        original_model.eval()
+        restored_model.eval()
+        with torch.no_grad():
+            out_original = original_model(inp, ctx, mask)
+            out_restored = restored_model(inp, ctx, mask)
+
+        assert torch.allclose(out_original, out_restored, atol=1e-6), (
+            "Restored SpatialTransformer must produce identical predictions."
+        )
