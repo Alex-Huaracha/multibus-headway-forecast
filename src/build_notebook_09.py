@@ -18,8 +18,9 @@ Inline-embed pattern (mirror of build_notebook_08.py):
     separate files are valid (and required by AC-NB09-3).
 
 Kaggle kernels:
-  09a: alexhuaracha/09a-spatialtr-e2   (E2 only)
-  09b: alexhuaracha/09b-spatialtr-e59  (E59 only)
+  09a:  alexhuaracha/09a-spatialtransformer-e2    (E2, full 32-config grid)
+  09b1: alexhuaracha/09b1-spatialtransformer-e59  (E59, tanda 1 = grid[0:16])
+  09b2: alexhuaracha/09b2-spatialtransformer-e59  (E59, tanda 2 = grid[16:32])
 
 kernel_sources: ["alexhuaracha/04-preprocessing", "alexhuaracha/06-baselines-stat",
                  "alexhuaracha/07-lstm-baseline",
@@ -591,29 +592,48 @@ print("\\nDataset construction complete.")
     )
 
 
-def _add_train_cell(corridor_label: str) -> None:
+def _add_train_cell(
+    corridor_label: str, grid_slice: tuple[int, int] | None = None
+) -> None:
+    if grid_slice is None:
+        configs_expr = "TRANSFORMER_GRID"
+        grid_desc = "× 32 configs del `TRANSFORMER_GRID`"
+        tanda_note = ""
+    else:
+        start, end = grid_slice
+        configs_expr = f"TRANSFORMER_GRID[{start}:{end}]"
+        grid_desc = (
+            f"× {end - start} configs del `TRANSFORMER_GRID[{start}:{end}]` (tanda)"
+        )
+        tanda_note = (
+            f"\n\n**Tanda `[{start}:{end}]`** — esta corrida evalúa solo ese "
+            "subconjunto del grid para no exceder el límite de 12h de sesión de "
+            "Kaggle en el corredor grande (E59). El ganador global es el de menor "
+            "`best val loss` entre las dos tandas, idéntico a `argmin` sobre el "
+            "grid completo de 32 configs."
+        )
     md(
         f"""## Grid search — entrenamiento SpatialTransformer
 
-Entrena UN `SpatialTransformer` para {corridor_label} (ambas direcciones combinadas) × 32 configs
-del `TRANSFORMER_GRID` (nhead ∈ {{1,2}} × d_model ∈ {{16,32}} × hidden ∈ {{32,64}}
+Entrena UN `SpatialTransformer` para {corridor_label} (ambas direcciones combinadas) {grid_desc}
+(nhead ∈ {{1,2}} × d_model ∈ {{16,32}} × hidden ∈ {{32,64}}
 × dropout ∈ {{0.0,0.2}} × lr ∈ {{1e-3,5e-4}}; num_layers=1 fijo).
 Usa `train_model` con `EarlyStopping` (patience=10, max_epochs=50).
 
 El dispatcher en `train_one_epoch`/`evaluate_epoch` detecta `model.spatial == True`
-y pasa `(inp, ctx, input_mask)` en lugar de `cat([inp, ctx])` (AD-4).
+y pasa `(inp, ctx, input_mask)` en lugar de `cat([inp, ctx])` (AD-4).{tanda_note}
 """,
         cell_id="cell-09-train-md",
     )
     code(
         f"""
 print(f"\\n{corridor_label} transformer grid search: max_N={{max_N}}, "
-      f"{{len(TRANSFORMER_GRID)}} configs, device={{DEVICE}}")
+      f"{{len({configs_expr})}} configs, device={{DEVICE}}")
 results = grid_search(
     train_dl=cached["train"],
     val_dl=cached["val"],
     max_N=max_N,
-    configs=TRANSFORMER_GRID,
+    configs={configs_expr},
     device=DEVICE,
 )
 best = results[0]
@@ -837,8 +857,14 @@ def build_corridor_notebook(
     notebook_filename: str,
     kernel_id: str,
     kernel_title: str,
+    grid_slice: tuple[int, int] | None = None,
 ) -> None:
-    """Build and write a single per-corridor notebook + kernel-metadata.json."""
+    """Build and write a single per-corridor notebook + kernel-metadata.json.
+
+    grid_slice: optional (start, end) to run only TRANSFORMER_GRID[start:end] in this
+    notebook. Used to split the larger corridor (E59) into two tandas so each Kaggle
+    session stays under the 12h timeout. None (default) runs the full 32-config grid.
+    """
     _reset()
 
     _add_title_cell(corridor_label, empresa_id)
@@ -849,7 +875,7 @@ def build_corridor_notebook(
     _add_norm_cell(corridor_label)
     _add_context_cell(corridor_label)
     _add_dataset_cell(corridor_label)
-    _add_train_cell(corridor_label)
+    _add_train_cell(corridor_label, grid_slice)
     _add_evaluate_cell(corridor_label, empresa_id)
     _add_results_cell(corridor_label)
     _add_compare_cell(corridor_label)
@@ -882,7 +908,13 @@ def build_corridor_notebook(
 
 
 # ---------------------------------------------------------------------------
-# Entry point — build both corridors.
+# Entry point — build per-corridor notebooks.
+#   09a  : E2,  full 32-config grid (fits in one 12h Kaggle session).
+#   09b1 : E59, tanda 1 = TRANSFORMER_GRID[0:16].
+#   09b2 : E59, tanda 2 = TRANSFORMER_GRID[16:32].
+# E59 is split into two tandas: the full 32-config grid exceeds Kaggle's 12h
+# session limit on the larger corridor. The global best is the lower best_val_loss
+# across both tandas (identical to argmin over the full grid).
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
@@ -891,15 +923,26 @@ if __name__ == "__main__":
         empresa_id=2,
         out_dir=ROOT / "notebooks" / "09_spatial_transformer" / "09a_e2",
         notebook_filename="notebook.ipynb",
-        kernel_id="alexhuaracha/09a-spatialtr-e2",
+        kernel_id="alexhuaracha/09a-spatialtransformer-e2",
         kernel_title="09a — SpatialTransformer E2",
     )
 
     build_corridor_notebook(
         corridor_label="E59",
         empresa_id=59,
-        out_dir=ROOT / "notebooks" / "09_spatial_transformer" / "09b_e59",
+        out_dir=ROOT / "notebooks" / "09_spatial_transformer" / "09b1_e59",
         notebook_filename="notebook.ipynb",
-        kernel_id="alexhuaracha/09b-spatialtr-e59",
-        kernel_title="09b — SpatialTransformer E59",
+        kernel_id="alexhuaracha/09b1-spatialtransformer-e59",
+        kernel_title="09b1 — SpatialTransformer E59",
+        grid_slice=(0, 16),
+    )
+
+    build_corridor_notebook(
+        corridor_label="E59",
+        empresa_id=59,
+        out_dir=ROOT / "notebooks" / "09_spatial_transformer" / "09b2_e59",
+        notebook_filename="notebook.ipynb",
+        kernel_id="alexhuaracha/09b2-spatialtransformer-e59",
+        kernel_title="09b2 — SpatialTransformer E59",
+        grid_slice=(16, 32),
     )
