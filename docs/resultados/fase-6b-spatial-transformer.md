@@ -1,25 +1,42 @@
 # Resultados — Fase 6b: SpatialTransformer
 
-> **Estado**: PARCIAL — E2 (09a) cerrado. E59: 09b1 corrido, 09b2 pendiente.
-> **Última actualización**: 2026-06-08
+> **Estado**: COMPLETO — E2 (09a) y E59 (09b1 + 09b2) cerrados.
+> **Última actualización**: 2026-06-14
 > **Modelo**: `SpatialTransformer` (atención multi-cabeza espacial + LSTM temporal) — `src/models/spatial_transformer.py`
 
 ## Resumen ejecutivo
 
-**En E2 la atención espacial tampoco mejora la predicción — de hecho queda marginalmente
-por debajo del LSTM.** El SpatialTransformer da **MAE agregado 4.4949 min** contra los
-**4.4707 min** del LSTM de Fase 5: **+0.024 min de error** (≈ 1.5 segundos peor), una
-diferencia despreciable pero en la dirección equivocada.
+**La atención espacial no mejora la predicción en ninguno de los dos corredores.** El
+SpatialTransformer queda marginalmente *por debajo* del LSTM en ambos: en E2, MAE agregado
+**4.4949 min** vs **4.4707** del LSTM (+0.024 min); en E59, **3.3590 min** vs **3.3375**
+(+0.022 min). Diferencias de ~1.3 s, empate técnico, pero siempre en la dirección equivocada.
 
-Esto refuerza la lectura de la Fase 6a: en E2, **mirar a los buses vecinos no aporta señal
-útil** que la historia temporal de cada posición no tenga ya. La Fase 6a lo mostró con
-convolución espacial (el grid eligió `conv_channels=1`, apagando lo espacial); la Fase 6b lo
-muestra con un mecanismo más expresivo —atención, que *aprende* qué relaciones importan— y aun
-así no le saca ventaja al LSTM plano. Cuando ni una convolución fija ni una atención aprendida
-mejoran el resultado, la conclusión es robusta: **la señal espacial entre buses adyacentes es
-marginal frente a la dinámica temporal.**
+Esto cierra la línea espacial con **dos corredores y dos mecanismos distintos**: ni la
+convolución fija de la Fase 6a (que eligió `conv_channels=1`, apagando lo espacial) ni la
+atención aprendida de la Fase 6b le sacan ventaja al LSTM plano. **La señal espacial entre
+buses adyacentes es marginal frente a la dinámica temporal.**
 
-Sigue ganándole a todos los baselines estadísticos (B3 = 4.777), pero ese ya no es el punto.
+> ### ⚠️ Hallazgo crítico para el paper: la persistencia (B1) gana en E59 sobre MAE
+>
+> Al consolidar la comparativa completa apareció algo que **debe reportarse con honestidad**:
+> en **E59, el baseline de persistencia B1** (predecir el próximo headway = el último
+> observado, `src/baselines/statistical.py:79`) da **MAE agregado 3.100 min**, **mejor que
+> TODOS los modelos profundos** (LSTM/ConvLSTM/Transformer ≈ 3.337–3.359) y en ambas
+> direcciones.
+>
+> El matiz que salva a los modelos profundos es el **RMSE**: B1 en E59 tiene RMSE agregado
+> **5.712** contra **~4.67** de los modelos profundos — es decir, persistencia acierta el caso
+> típico pero **explota en los outliers**. Los modelos profundos cambian un poco de MAE por
+> mucha mejor robustez en la cola de la distribución.
+>
+> En **E2 el relato sí se sostiene**: el LSTM (MAE 4.471, RMSE 6.110) le gana a B1 (MAE 4.757,
+> RMSE 7.636) en ambas métricas. Pero incluso ahí, **B1 es el mejor baseline por MAE** (4.757 <
+> B3 4.777) — el "mejor baseline estadístico" del paper no es B3, es la persistencia.
+>
+> **Conclusión metodológica**: la afirmación "los modelos profundos superan a los baselines" es
+> robusta **solo en E2 y solo cuando se mira RMSE**. En E59 sobre MAE, un baseline trivial gana.
+> El paper debe enmarcar la contribución en términos de **robustez (RMSE) frente a outliers**,
+> no de error promedio (MAE).
 
 ## Setup experimental
 
@@ -69,10 +86,14 @@ tardó 10.47h** (37 674 s) — casi tocando el límite de 12h. El grid completo 
 |---|---|---|
 | B4_HA | 5.259 | — |
 | B2_w5 | 5.030 | — |
-| B3 (mejor baseline estadístico) | 4.777 | — |
+| B3 (SES) | 4.777 | — |
+| B1 (persistencia — mejor baseline) | 4.757 | 7.636 |
 | **LSTM** (Fase 5) | **4.4707** | **6.110** |
 | **SpatialConvLSTM** (Fase 6a) | **4.4721** | **6.114** |
 | **SpatialTransformer** (Fase 6b) | **4.4949** | **6.133** |
+
+> En E2 los modelos profundos ganan limpio: el mejor baseline (B1, persistencia) da MAE 4.757 /
+> RMSE 7.636, y los tres modelos profundos quedan por debajo en ambas métricas.
 
 ### Desglose por dirección — SpatialTransformer
 
@@ -93,42 +114,64 @@ tardó 10.47h** (37 674 s) — casi tocando el límite de 12h. El grid completo 
   espacial **no se sostiene en E2**, ahora confirmada con dos mecanismos espaciales distintos
   (convolución fija y atención).
 
-## E59 — Resultados (PARCIAL — solo tanda 1)
+## E59 — Resultados
 
-> **Veredicto de E59 pendiente.** Lo de abajo es el mejor de `09b1` (configs 0:16). El ganador
-> real de E59 sale de comparar este `val_loss` contra el de `09b2` (configs 16:32, aún sin
-> correr). Si `09b2` trae una config con menor `val_loss`, su MAE reemplaza a este.
+Ambas tandas completaron en Kaggle. El grid de 32 configs se evaluó en dos kernels de 16:
 
-**Tanda 1** — `alexhuaracha/09b1-spatialtransformer-e59` (grid[0:16]), completada en **10.47 h**
-(37 674 s), `max_N=19`, 16 configs.
-
-**Mejor configuración de la tanda 1** (menor val loss): `nhead=1, d_model=32, hidden=32,
-dropout=0.0, lr=5e-4` — val loss 0.5268 (epoch 40), 50 epochs entrenados.
-
-### Desglose por dirección — SpatialTransformer (parcial, tanda 1)
-
-| Dirección | MAE | RMSE | n válidos | LSTM MAE (Fase 5) |
+| Tanda | Kernel | Mejor config | Val loss | Wall |
 |---|---|---|---|---|
-| −1 | 3.5157 | 4.8871 | 1,615,636 | 3.50 |
-| +1 | 3.1283 | 4.3892 | 1,121,843 | 3.10 |
-| **agregado** | **3.3570** | **4.6894** | 2,737,479 | **3.34** |
+| 09b1 (grid[0:16]) | `alexhuaracha/09b1-spatialtransformer-e59` | `nhead=1, d_model=32, hidden=32, dropout=0.0, lr=5e-4` | 0.526799 (epoch 40) | 10.47 h |
+| **09b2 (grid[16:32])** | `alexhuaracha/09b2-spatialtransformer-e59` | `nhead=2, d_model=32, hidden=64, dropout=0.2, lr=5e-4` | **0.526059 (epoch 3)** ← menor | — |
 
-### Lectura preliminar (sujeta a 09b2)
+**Veredicto del merge**: `09b2` gana por `val_loss` (0.526059 < 0.526799), así que **su CSV es
+el resultado oficial de E59**. En la práctica las dos tandas dan casi lo mismo (MAE agregado
+3.359 vs 3.357), pero metodológicamente el ganador es el `argmin(val_loss)` sobre las 32 configs
+= la mejor config de 09b2.
 
-- El mejor de la tanda 1 da MAE agregado 3.3570 vs LSTM 3.34 → **mismo empate técnico** que en
-  E2 y en la Fase 6a. El grid volvió a elegir `nhead=1` (cabeza única, mínima atención).
-- Falta 09b2 para confirmar que ninguna config de la otra mitad mejora esto. Si 09b2 no baja del
-  val loss 0.5268, este es el resultado final de E59.
+### Desglose por dirección — SpatialTransformer (oficial = 09b2)
 
-**Pendiente**: `alexhuaracha/09b2-spatialtransformer-e59` (tanda 2, grid[16:32]).
+| Dirección | MAE | RMSE | n válidos | LSTM MAE | ConvLSTM MAE |
+|---|---|---|---|---|---|
+| −1 | 3.5294 | 4.9022 | 1,615,636 | 3.5023 | 3.5041 |
+| +1 | 3.1136 | 4.3793 | 1,121,843 | 3.1000 | 3.0966 |
+| **agregado** | **3.3590** | **4.6949** | 2,737,479 | **3.3375** | **3.3371** |
 
-## Conclusión (preliminar)
+### Comparativa completa (MAE / RMSE agregado, minutos — menor es mejor)
 
-Con E2 cerrado, el SpatialTransformer **repite el resultado nulo de la Fase 6a**: la relación
-espacial entre buses adyacentes no mejora la predicción del headway, ni con convolución fija ni
-con atención aprendida. Falta E59 para confirmarlo en una segunda topología (como pasó en 6a),
-pero la dirección es clara.
+| Modelo | MAE | RMSE |
+|---|---|---|
+| **B1 (persistencia)** | **3.1004** | 5.7118 |
+| SpatialConvLSTM (Fase 6a) | 3.3371 | **4.6720** |
+| LSTM (Fase 5) | 3.3375 | 4.6671 |
+| SpatialTransformer (Fase 6b) | 3.3590 | 4.6949 |
+| B2_w5 | 3.6557 | — |
+| B3 (SES) | 3.5052 | — |
+| B4_HA | 4.8052 | — |
+| B0 | 4.8618 | — |
 
-Si E59 confirma el patrón, la lectura de cierre de la línea espacial es sólida: **para predecir
-el próximo headway, la dinámica temporal de cada posición ya contiene la señal útil; la
-interacción con buses vecinos es marginal.**
+### Interpretación
+
+- **SpatialTransformer ligeramente por debajo del LSTM y del ConvLSTM** (3.3590 vs 3.3375 /
+  3.3371): mismo empate técnico que en E2. La atención espacial no aporta.
+- **B1 (persistencia) gana en MAE a todos los modelos profundos** (3.100 vs ~3.34) — ver el
+  recuadro del resumen ejecutivo. Esto **no se observa en E2** y es específico de E59, un
+  corredor de alta frecuencia donde "el próximo headway ≈ el actual" es un predictor muy fuerte
+  del caso típico.
+- **El RMSE invierte el ranking**: los modelos profundos (RMSE ~4.67) baten a B1 (5.712) por un
+  margen amplio. Es la única métrica donde el aprendizaje profundo justifica su costo en E59.
+
+## Conclusión
+
+El SpatialTransformer **confirma en los dos corredores** lo que la Fase 6a había mostrado: la
+relación espacial entre buses adyacentes no mejora la predicción del headway, ni con convolución
+fija ni con atención aprendida. **La señal útil para predecir el próximo headway es temporal, no
+espacial.**
+
+Pero la consolidación de resultados deja una conclusión más fina y honesta para el paper:
+
+1. **La línea espacial es un resultado nulo robusto** (dos corredores, dos mecanismos). Esto es
+   un aporte válido: descarta una hipótesis razonable con evidencia limpia.
+2. **El aprendizaje profundo justifica su costo solo vía RMSE.** Sobre MAE, la persistencia
+   trivial (B1) gana en E59 y queda a centésimas en E2. El valor de los modelos profundos está
+   en **acotar los errores grandes (outliers)**, no en bajar el error promedio. El paper debe
+   enmarcarse así para no sobre-vender una mejora de MAE que en E59 directamente no existe.
