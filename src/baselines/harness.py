@@ -69,9 +69,10 @@ def evaluate_corridor(
     corridor_name:
         Label for the `corridor` column in the output (e.g. "E2", "E59").
     horizon:
-        Prediction horizon for B1 persistence baseline. Default 1 reproduces
-        the original behavior exactly. Other baselines (B0/B2/B3/B4) are
-        horizon-agnostic and are not affected.
+        Prediction horizon in steps. Default 1 reproduces the original behavior
+        exactly. B1, B2, and B3 are horizon-aware and receive this value.
+        B0 and B4_HA are horizon-agnostic (constant/lookup predictors) and are
+        not affected.
 
     Returns
     -------
@@ -92,8 +93,8 @@ def evaluate_corridor(
     df = predict_b0(df)
     df = predict_b1(df, horizon=horizon)
     for w in BASELINE_B2_WINDOWS:
-        df = predict_b2(df, window=w)
-    df = predict_b3(df)
+        df = predict_b2(df, window=w, horizon=horizon)
+    df = predict_b3(df, horizon=horizon)
     df = predict_b4_ha(df)
 
     # --- Filter to test rows only (B3-VAL-UNUSED) ---

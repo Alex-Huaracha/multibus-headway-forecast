@@ -150,6 +150,9 @@ comparación ahí.
     1 min. **337 tests verdes.**
 - **Experimentos de 1 min INTACTOS**: builders `07/08/09` y sus notebooks sin tocar (idénticos
   a `main`). Modelos y resultados ya entrenados, sin tocar.
+- **Librería de baselines horizon-aware completa** (Ola 3, 2026-06-15): `predict_b2` y
+  `predict_b3` ahora aceptan `horizon` y `evaluate_corridor` lo propaga a B1/B2/B3. Resolvió el
+  hallazgo de §6.3 (B2/B3 no eran horizon-correctos). **346 tests verdes** (337 + 9 nuevos).
 
 ### 6.2 Decisiones de arquitectura (las que rigen de acá en adelante)
 
@@ -176,6 +179,16 @@ Los notebooks DL leen los baselines de un CSV que genera **NB06**, y NB06 **no e
 horizon-aware** → a 3/5/10 min el DL se compararía contra baselines a 1 min (comparación
 tramposa que invalidaría la curva). El experimento multi-horizonte nuevo **debe generar sus
 baselines al horizonte correcto** (los 5: B0–B4, no solo B1), sin tocar el NB06 viejo.
+
+> **Actualización (Ola 3, 2026-06-15)**: al verificar el "los 5 baselines" se descubrió que
+> el problema era mayor de lo escrito. Solo B1 estaba parametrizado (Ola 1). B0 (media por slot)
+> y B4_HA (media por slot,hora) son **legítimamente horizon-agnósticos** (predictor constante /
+> lookup por hora conocida). Pero **B2 (media móvil) y B3 (SES)** eran predictores de 1 paso: a
+> 3/5/10 min usaban observaciones hasta `t-1` para predecir `t+h` = mirar al futuro, lo que los
+> haría artificialmente fuertes y un revisor lo detectaría. La **Ola 3** los parametrizó con la
+> regla unificada `shift(horizon-1)` (consistente con B1) y `evaluate_corridor` propaga `horizon`
+> a B1/B2/B3. Hallazgo cerrado a nivel librería; el builder nuevo solo debe **pasar el `horizon`
+> correcto**.
 
 ### 6.4 Cómo continuar (próxima sesión)
 

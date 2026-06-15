@@ -136,3 +136,102 @@ class TestEvaluateCorridorSchema:
             assert r1[col].to_list() == r2[col].to_list(), (
                 f"Column {col} differs between two calls"
             )
+
+
+# ===========================================================================
+# Fase 6.5 Ola 3: horizon propagation to B2 and B3 in evaluate_corridor
+# ===========================================================================
+
+class TestEvaluateCorridorHorizon:
+    """evaluate_corridor must thread horizon to B1, B2, and B3 (not B0/B4_HA)."""
+
+    def test_horizon_propagates_to_b2_b3(self):
+        """horizon=3 must produce different B2/B3 values than horizon=1.
+
+        With 20 train rows and 5 test rows, horizon=3 shifts predictions
+        by 2 extra steps relative to horizon=1 — metric values must differ
+        for at least B2 and B3 baselines.
+        """
+        from src.baselines.harness import evaluate_corridor
+
+        df = _make_corridor_frame()
+        result_h1 = evaluate_corridor(df, "E2", horizon=1)
+        result_h3 = evaluate_corridor(df, "E2", horizon=3)
+
+        sort_key = ["corridor", "direction", "baseline", "metric"]
+        r1 = result_h1.sort(sort_key)
+        r3 = result_h3.sort(sort_key)
+
+        # B2_w5 MAE must differ between horizon=1 and horizon=3.
+        b2_mae_h1 = (
+            r1.filter(
+                (pl.col("baseline") == "B2_w5")
+                & (pl.col("direction") == "aggregate")
+                & (pl.col("metric") == "MAE")
+            )["value"].to_list()
+        )
+        b2_mae_h3 = (
+            r3.filter(
+                (pl.col("baseline") == "B2_w5")
+                & (pl.col("direction") == "aggregate")
+                & (pl.col("metric") == "MAE")
+            )["value"].to_list()
+        )
+        assert b2_mae_h1 != b2_mae_h3, (
+            f"B2_w5 MAE should differ between h=1 and h=3: h1={b2_mae_h1}, h3={b2_mae_h3}"
+        )
+
+        # B3 MAE must also differ.
+        b3_mae_h1 = (
+            r1.filter(
+                (pl.col("baseline") == "B3")
+                & (pl.col("direction") == "aggregate")
+                & (pl.col("metric") == "MAE")
+            )["value"].to_list()
+        )
+        b3_mae_h3 = (
+            r3.filter(
+                (pl.col("baseline") == "B3")
+                & (pl.col("direction") == "aggregate")
+                & (pl.col("metric") == "MAE")
+            )["value"].to_list()
+        )
+        assert b3_mae_h1 != b3_mae_h3, (
+            f"B3 MAE should differ between h=1 and h=3: h1={b3_mae_h1}, h3={b3_mae_h3}"
+        )
+
+    def test_b0_b4_unchanged_by_horizon(self):
+        """B0 and B4_HA values must be identical regardless of horizon.
+
+        B0 is a slot-mean constant; B4_HA is a per-hour mean.
+        Neither depends on the prediction horizon.
+        """
+        from src.baselines.harness import evaluate_corridor
+
+        df = _make_corridor_frame()
+        result_h1 = evaluate_corridor(df, "E2", horizon=1)
+        result_h3 = evaluate_corridor(df, "E2", horizon=3)
+
+        sort_key = ["corridor", "direction", "baseline", "metric"]
+        r1 = result_h1.sort(sort_key)
+        r3 = result_h3.sort(sort_key)
+
+        for baseline_name in ("B0", "B4_HA"):
+            vals_h1 = (
+                r1.filter(pl.col("baseline") == baseline_name)["value"].to_list()
+            )
+            vals_h3 = (
+                r3.filter(pl.col("baseline") == baseline_name)["value"].to_list()
+            )
+            assert vals_h1 == vals_h3, (
+                f"{baseline_name} values must be identical across horizons: "
+                f"h1={vals_h1}, h3={vals_h3}"
+            )
+
+    def test_horizon_call_returns_42_rows(self):
+        """evaluate_corridor with horizon=3 must still return 42 rows."""
+        from src.baselines.harness import evaluate_corridor
+
+        df = _make_corridor_frame()
+        result = evaluate_corridor(df, "E2", horizon=3)
+        assert len(result) == 42, f"Expected 42 rows, got {len(result)}"

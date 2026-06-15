@@ -2,9 +2,9 @@
 
 Public API:
     predict_b0(headways: pl.DataFrame) -> pl.DataFrame
-    predict_b1(headways: pl.DataFrame) -> pl.DataFrame
-    predict_b2(headways: pl.DataFrame, *, window: int) -> pl.DataFrame
-    predict_b3(headways: pl.DataFrame, *, alpha: float = SES_ALPHA) -> pl.DataFrame
+    predict_b1(headways: pl.DataFrame, *, horizon: int = 1) -> pl.DataFrame
+    predict_b2(headways: pl.DataFrame, *, window: int, horizon: int = 1) -> pl.DataFrame
+    predict_b3(headways: pl.DataFrame, *, alpha: float = SES_ALPHA, horizon: int = 1) -> pl.DataFrame
     predict_b4_ha(headways: pl.DataFrame) -> pl.DataFrame
 
 Input contract (all four functions):
@@ -115,7 +115,7 @@ def predict_b1(headways: pl.DataFrame, *, horizon: int = 1) -> pl.DataFrame:
 # B2 — Trailing moving average of last w NON-NULL observations
 # ===========================================================================
 
-def predict_b2(headways: pl.DataFrame, *, window: int) -> pl.DataFrame:
+def predict_b2(headways: pl.DataFrame, *, window: int, horizon: int = 1) -> pl.DataFrame:
     """Add column `y_pred_b2_w{window}`: mean of last `window` non-null observations.
 
     Semantics (locked, design §3):
@@ -123,11 +123,18 @@ def predict_b2(headways: pl.DataFrame, *, window: int) -> pl.DataFrame:
       - min_periods = window // 2  (floor).
       - Prediction at row i uses only observations strictly before row i (causal).
 
+    Horizon rule (Fase 6.5):
+      The 1-step prediction is computed first (rolling_mean.shift(1) on the
+      non-null sub-series + join_asof backward).  Then shift(horizon-1) is
+      applied over the slot key so that ŷ_{t+h} = ŷ_{t+1} lagged by h-1
+      additional steps.  horizon=1 → shift(0) = identity (backward-compatible).
+
     Implementation:
       - group_by(slot).map_groups(lambda g: _b2_one_slot(g, window))
       - Within each group: extract non-null values, compute rolling_mean with
         shift(1) (causal), then join_asof(strategy="backward") back to
         original group rows on `t`.
+      - After concat, apply shift(horizon-1).over(_SLOT_COLS).
 
     Parameters
     ----------
@@ -135,6 +142,9 @@ def predict_b2(headways: pl.DataFrame, *, window: int) -> pl.DataFrame:
         headways DataFrame with `split` column attached.
     window:
         Number of non-null observations in the trailing window.
+    horizon:
+        Prediction horizon in steps.  Default 1 reproduces the original
+        behavior exactly.
 
     Returns
     -------
@@ -174,7 +184,23 @@ def predict_b2(headways: pl.DataFrame, *, window: int) -> pl.DataFrame:
 
     sorted_df = headways.sort(_SLOT_COLS + ["t"])
     slots = sorted_df.partition_by(_SLOT_COLS, maintain_order=True)
-    return pl.concat([_b2_one_slot(g) for g in slots])
+    result = pl.concat([_b2_one_slot(g) for g in slots])
+
+    # Apply horizon shift: shift(horizon-1) over slot so predictions look
+    # h steps ahead.  shift(0) is a no-op → backward-compatible for horizon=1.
+    if horizon > 1:
+        result = (
+            result
+            .sort(_SLOT_COLS + ["t"])
+            .with_columns(
+                pl.col(col_name)
+                  .shift(horizon - 1)
+                  .over(_SLOT_COLS)
+                  .alias(col_name)
+            )
+        )
+
+    return result
 
 
 # ===========================================================================
@@ -213,13 +239,19 @@ def _ses_one_slot(slot_df: pl.DataFrame, alpha: float) -> pl.DataFrame:
     return slot_df.with_columns(pred_series.set(pred_series.is_nan(), None))
 
 
-def predict_b3(headways: pl.DataFrame, *, alpha: float = SES_ALPHA) -> pl.DataFrame:
+def predict_b3(headways: pl.DataFrame, *, alpha: float = SES_ALPHA, horizon: int = 1) -> pl.DataFrame:
     """Add column `y_pred_b3`: online SES predictions, α=0.3 (default).
 
     Applies the causal recursion s_t = α·y_t + (1-α)·s_{t-1} per slot.
     Null observations do not update the state (AC-B3-2).
     State is initialized from the first non-null observation (AC-B3-3).
     Slots with all-null values emit null for all rows (AC-B3-4).
+
+    Horizon rule (Fase 6.5):
+      The 1-step SES predictions are computed first (existing per-slot loop).
+      Then shift(horizon-1) is applied over the slot key so that ŷ_{t+h} =
+      ŷ_{t+1} lagged by h-1 additional steps.
+      horizon=1 → shift(0) = identity (backward-compatible).
 
     Parameters
     ----------
@@ -228,6 +260,9 @@ def predict_b3(headways: pl.DataFrame, *, alpha: float = SES_ALPHA) -> pl.DataFr
     alpha:
         Smoothing parameter.  Default SES_ALPHA = 0.3 (locked, design §3).
         Tests may pass alternative values for edge-case verification.
+    horizon:
+        Prediction horizon in steps.  Default 1 reproduces the original
+        behavior exactly.
 
     Returns
     -------
@@ -239,7 +274,23 @@ def predict_b3(headways: pl.DataFrame, *, alpha: float = SES_ALPHA) -> pl.DataFr
     """
     sorted_df = headways.sort(_SLOT_COLS + ["t"])
     slots = sorted_df.partition_by(_SLOT_COLS, maintain_order=True)
-    return pl.concat([_ses_one_slot(g, alpha) for g in slots])
+    result = pl.concat([_ses_one_slot(g, alpha) for g in slots])
+
+    # Apply horizon shift: shift(horizon-1) over slot so predictions look
+    # h steps ahead.  shift(0) is a no-op → backward-compatible for horizon=1.
+    if horizon > 1:
+        result = (
+            result
+            .sort(_SLOT_COLS + ["t"])
+            .with_columns(
+                pl.col("y_pred_b3")
+                  .shift(horizon - 1)
+                  .over(_SLOT_COLS)
+                  .alias("y_pred_b3")
+            )
+        )
+
+    return result
 
 
 # ===========================================================================

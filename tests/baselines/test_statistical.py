@@ -441,6 +441,223 @@ class TestB3:
 
 
 # ===========================================================================
+# Fase 6.5 Ola 3: B2 horizon parameter
+# ===========================================================================
+
+class TestB2Horizon:
+    """predict_b2 with explicit horizon parameter.
+
+    The horizon rule: 1-step predictions (rolling_mean.shift(1) on the
+    non-null sub-series + join_asof backward) are computed first, then
+    shift(horizon-1).over(_SLOT_COLS) is applied to the result so that
+    ŷ_{t+h} = ŷ_{t+1} lagged by (h-1) more steps.
+
+    horizon=1 → shift(0) = identity → backward-compatible.
+    """
+
+    def _slot_values(self, values: list[float | None]) -> pl.DataFrame:
+        """Single-slot frame (train only) with the given delta_t_min values."""
+        n = len(values)
+        train_dates = [date(2023, 12, 1 + i) for i in range(n)]
+        delta_map = {(-1, 1): values}
+        df = make_headways_fixture(
+            empresaid=2,
+            train_dates=train_dates,
+            test_dates=[],
+            delta_values_per_slot=delta_map,
+        )
+        from src.evaluation.splits import split_temporal
+        return split_temporal(df)
+
+    def test_b2_horizon_1_regression(self):
+        """horizon=1 must produce identical results to the default (no horizon arg)."""
+        from src.baselines.statistical import predict_b2
+
+        df = self._slot_values([1.0, 2.0, 3.0, 4.0, 5.0])
+        col = "y_pred_b2_w5"
+        result_default = predict_b2(df, window=5).sort("t")[col].to_list()
+        result_h1 = predict_b2(df, window=5, horizon=1).sort("t")[col].to_list()
+
+        assert result_default == result_h1, (
+            f"horizon=1 must equal default: {result_h1} != {result_default}"
+        )
+
+    def test_b2_horizon_2_window5_concrete_values(self):
+        """h=2, window=5, values [1,2,3,4,5], min_periods=2.
+
+        1-step rolling_mean (window=5, min_samples=2) on non-null sub-series [1,2,3,4,5]:
+          pos 0: only 1 elem → null (< min_samples=2)
+          pos 1: mean([1,2])=1.5  (2 >= min_samples)
+          pos 2: mean([1,2,3])=2.0
+          pos 3: mean([1,2,3,4])=2.5
+          pos 4: mean([1,2,3,4,5])=3.0
+
+        After shift(1) (1-step causality shift on the non-null sub-series):
+          pos 0: null
+          pos 1: null  (rolling[0]=null → still null)
+          pos 2: 1.5
+          pos 3: 2.0
+          pos 4: 2.5
+
+        join_asof backward aligns back to original timestamps (same t values here):
+          t=0 → null, t=1 → null, t=2 → 1.5, t=3 → 2.0, t=4 → 2.5
+
+        After shift(horizon-1=1).over(slot):
+          t=0 → null, t=1 → null, t=2 → null, t=3 → 1.5, t=4 → 2.0
+        """
+        from src.baselines.statistical import predict_b2
+
+        df = self._slot_values([1.0, 2.0, 3.0, 4.0, 5.0])
+        result = predict_b2(df, window=5, horizon=2).sort("t")
+        col = "y_pred_b2_w5"
+        preds = result[col].to_list()
+
+        assert preds[0] is None, f"t=0 must be null, got {preds[0]}"
+        assert preds[1] is None, f"t=1 must be null, got {preds[1]}"
+        assert preds[2] is None, f"t=2 must be null (shifted), got {preds[2]}"
+        assert abs(preds[3] - 1.5) < 1e-9, f"t=3 must be 1.5, got {preds[3]}"
+        assert abs(preds[4] - 2.0) < 1e-9, f"t=4 must be 2.0, got {preds[4]}"
+
+    def test_b2_slot_isolation_horizon(self):
+        """shift(horizon-1).over(slot) must not bleed across slot boundaries.
+
+        Two slots (direction -1 and +1), both train-only, 5 values each.
+        With horizon=2, the last value of slot A must NOT appear as the
+        first non-null prediction in slot B.
+        """
+        from src.baselines.statistical import predict_b2
+
+        n = 5
+        train_dates = [date(2023, 12, 1 + i) for i in range(n)]
+        delta_map = {
+            (-1, 1): [100.0, 200.0, 300.0, 400.0, 500.0],
+            (1, 1):  [1.0,   2.0,   3.0,   4.0,   5.0],
+        }
+        df = make_headways_fixture(
+            empresaid=2,
+            train_dates=train_dates,
+            test_dates=[],
+            delta_values_per_slot=delta_map,
+        )
+        from src.evaluation.splits import split_temporal
+        df = split_temporal(df)
+
+        result = predict_b2(df, window=5, horizon=2)
+        col = "y_pred_b2_w5"
+
+        # Slot B (direction=+1) predictions must all be from slot B values only.
+        slot_b = result.filter(pl.col("direction") == 1).sort("t")
+        preds_b = slot_b[col].to_list()
+
+        # The max value from slot B is 5.0; slot A values are >= 100.
+        # If any slot B prediction >= 100, that's a cross-slot bleed.
+        non_null_preds = [p for p in preds_b if p is not None]
+        for v in non_null_preds:
+            assert v < 100.0, (
+                f"Slot B prediction {v} appears to bleed from slot A (values >= 100)"
+            )
+
+
+# ===========================================================================
+# Fase 6.5 Ola 3: B3 horizon parameter
+# ===========================================================================
+
+class TestB3Horizon:
+    """predict_b3 with explicit horizon parameter.
+
+    The horizon rule mirrors B2: compute the 1-step SES predictions per slot
+    first (existing logic), then apply shift(horizon-1).over(slot) on the
+    y_pred_b3 column.
+
+    horizon=1 → shift(0) = identity → backward-compatible.
+    """
+
+    def _slot_values(self, values: list[float | None]) -> pl.DataFrame:
+        """Single-slot frame (train only) with the given delta_t_min values."""
+        n = len(values)
+        train_dates = [date(2023, 12, 1 + i) for i in range(n)]
+        delta_map = {(-1, 1): values}
+        df = make_headways_fixture(
+            empresaid=2,
+            train_dates=train_dates,
+            test_dates=[],
+            delta_values_per_slot=delta_map,
+        )
+        from src.evaluation.splits import split_temporal
+        return split_temporal(df)
+
+    def test_b3_horizon_1_regression(self):
+        """horizon=1 must produce identical results to the default (no horizon arg)."""
+        from src.baselines.statistical import predict_b3
+
+        df = self._slot_values([1.0, 2.0, 3.0, 4.0, 5.0])
+        result_default = predict_b3(df).sort("t")["y_pred_b3"].to_list()
+        result_h1 = predict_b3(df, horizon=1).sort("t")["y_pred_b3"].to_list()
+
+        assert result_default == result_h1, (
+            f"horizon=1 must equal default: {result_h1} != {result_default}"
+        )
+
+    def test_b3_horizon_2_concrete_values(self):
+        """h=2, values [1,2,3,4,5], alpha=0.3.
+
+        1-step SES (causal, pred[i] = state before observing y[i]):
+          t=0: s=NaN → pred=null; update: s=1.0
+          t=1: pred=1.0; update: s=0.3*2+0.7*1=1.3
+          t=2: pred=1.3; update: s=0.3*3+0.7*1.3=1.81
+          t=3: pred=1.81; update: s=0.3*4+0.7*1.81=2.467
+          t=4: pred=2.467
+
+        After shift(1).over(slot) (horizon-1=1):
+          t=0 → null, t=1 → null, t=2 → 1.0, t=3 → 1.3, t=4 → 1.81
+        """
+        from src.baselines.statistical import predict_b3
+
+        df = self._slot_values([1.0, 2.0, 3.0, 4.0, 5.0])
+        result = predict_b3(df, horizon=2).sort("t")
+        preds = result["y_pred_b3"].to_list()
+
+        assert preds[0] is None, f"t=0 must be null, got {preds[0]}"
+        assert preds[1] is None, f"t=1 must be null, got {preds[1]}"
+        assert abs(preds[2] - 1.0) < 1e-6, f"t=2 must be 1.0, got {preds[2]}"
+        assert abs(preds[3] - 1.3) < 1e-6, f"t=3 must be 1.3, got {preds[3]}"
+        assert abs(preds[4] - 1.81) < 1e-6, f"t=4 must be 1.81, got {preds[4]}"
+
+    def test_b3_slot_isolation_horizon(self):
+        """shift(horizon-1).over(slot) must not bleed across slot boundaries.
+
+        Two slots, horizon=3. Slot B values are small (1-5); slot A values
+        are large (100-500). Any slot B prediction >= 100 is cross-slot bleed.
+        """
+        from src.baselines.statistical import predict_b3
+
+        n = 5
+        train_dates = [date(2023, 12, 1 + i) for i in range(n)]
+        delta_map = {
+            (-1, 1): [100.0, 200.0, 300.0, 400.0, 500.0],
+            (1, 1):  [1.0,   2.0,   3.0,   4.0,   5.0],
+        }
+        df = make_headways_fixture(
+            empresaid=2,
+            train_dates=train_dates,
+            test_dates=[],
+            delta_values_per_slot=delta_map,
+        )
+        from src.evaluation.splits import split_temporal
+        df = split_temporal(df)
+
+        result = predict_b3(df, horizon=3)
+        slot_b = result.filter(pl.col("direction") == 1).sort("t")
+        preds_b = slot_b["y_pred_b3"].to_list()
+
+        non_null = [p for p in preds_b if p is not None]
+        for v in non_null:
+            assert v < 100.0, (
+                f"Slot B B3 prediction {v} bleeds from slot A (values >= 100)"
+            )
+
+
+# ===========================================================================
 # B4 — Historical Average per (slot, hour-of-day) from train only
 # ===========================================================================
 
