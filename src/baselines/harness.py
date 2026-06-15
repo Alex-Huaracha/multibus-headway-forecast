@@ -55,6 +55,8 @@ _BASELINE_MAP: list[tuple[str, str]] = [
 def evaluate_corridor(
     headways: pl.DataFrame,
     corridor_name: str,
+    *,
+    horizon: int = 1,
 ) -> pl.DataFrame:
     """Run all classical baselines on one corridor and return a tidy metrics table.
 
@@ -66,6 +68,10 @@ def evaluate_corridor(
         Must NOT already have a `split` column (this function adds it).
     corridor_name:
         Label for the `corridor` column in the output (e.g. "E2", "E59").
+    horizon:
+        Prediction horizon for B1 persistence baseline. Default 1 reproduces
+        the original behavior exactly. Other baselines (B0/B2/B3/B4) are
+        horizon-agnostic and are not affected.
 
     Returns
     -------
@@ -84,7 +90,7 @@ def evaluate_corridor(
     df, _threshold = winsorize_train_p99(df)
 
     df = predict_b0(df)
-    df = predict_b1(df)
+    df = predict_b1(df, horizon=horizon)
     for w in BASELINE_B2_WINDOWS:
         df = predict_b2(df, window=w)
     df = predict_b3(df)

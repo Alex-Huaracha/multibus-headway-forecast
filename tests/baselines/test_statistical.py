@@ -162,6 +162,122 @@ class TestB1:
 
 
 # ===========================================================================
+# Fase 6.5: B1 horizon parameter (AC-B1-1..5)
+# ===========================================================================
+
+class TestB1Horizon:
+    """predict_b1 with explicit horizon parameter.
+
+    Strict TDD RED tests — all must fail with TypeError before implementation.
+    """
+
+    def _slot_values(self, values: list[float | None]) -> pl.DataFrame:
+        """Build a single-slot frame (train only, no test rows needed) with given values."""
+        n = len(values)
+        train_dates = [date(2023, 12, 1 + i) for i in range(n)]
+        delta_map = {(-1, 1): values}
+        df = make_headways_fixture(
+            empresaid=2,
+            train_dates=train_dates,
+            test_dates=[],
+            delta_values_per_slot=delta_map,
+        )
+        from src.evaluation.splits import split_temporal
+        return split_temporal(df)
+
+    def test_predict_b1_horizon_3_shifts_three(self):
+        """AC-B1-2 (h=3): slot [a,b,c,d,e] with horizon=3 → [null,null,null,a,b]."""
+        from src.baselines.statistical import predict_b1
+
+        a, b, c, d, e = 1.0, 2.0, 3.0, 4.0, 5.0
+        df = self._slot_values([a, b, c, d, e])
+        result = predict_b1(df, horizon=3)
+
+        preds = result.sort("t")["y_pred_b1"].to_list()
+        assert preds[0] is None, f"Expected null at t=0, got {preds[0]}"
+        assert preds[1] is None, f"Expected null at t=1, got {preds[1]}"
+        assert preds[2] is None, f"Expected null at t=2, got {preds[2]}"
+        assert abs(preds[3] - a) < 1e-9, f"Expected {a} at t=3, got {preds[3]}"
+        assert abs(preds[4] - b) < 1e-9, f"Expected {b} at t=4, got {preds[4]}"
+
+    def test_predict_b1_horizon_1_regression(self):
+        """AC-B1-1 (regression): horizon=1 and default call produce identical results."""
+        from src.baselines.statistical import predict_b1
+
+        df = self._slot_values([1.0, 2.0, 3.0, 4.0, 5.0])
+        result_explicit = predict_b1(df, horizon=1).sort("t")["y_pred_b1"].to_list()
+        result_default = predict_b1(df).sort("t")["y_pred_b1"].to_list()
+        assert result_explicit == result_default, (
+            f"horizon=1 should equal default: {result_explicit} != {result_default}"
+        )
+
+    def test_predict_b1_horizon_5_all_null_in_short_slot(self):
+        """AC-B1-3 (h=5): slot of 5 rows with horizon=5 → all y_pred_b1 are null."""
+        from src.baselines.statistical import predict_b1
+
+        df = self._slot_values([1.0, 2.0, 3.0, 4.0, 5.0])
+        result = predict_b1(df, horizon=5)
+
+        preds = result.sort("t")["y_pred_b1"].to_list()
+        for i, p in enumerate(preds):
+            assert p is None, f"Expected null at t={i} (horizon=5, only 5 rows), got {p}"
+
+    def test_predict_b1_horizon_null_gap_forward_fill(self):
+        """AC-B1-4 (h=2, null gap): slot [a,null,c,d,e]; forward-fill first then shift(2).
+
+        After forward-fill: [a, a, c, d, e].
+        shift(2): [null, null, a, a, c].
+        """
+        from src.baselines.statistical import predict_b1
+
+        a, c, d, e = 1.0, 3.0, 4.0, 5.0
+        df = self._slot_values([a, None, c, d, e])
+        result = predict_b1(df, horizon=2)
+
+        preds = result.sort("t")["y_pred_b1"].to_list()
+        assert preds[0] is None, f"Expected null at t=0, got {preds[0]}"
+        assert preds[1] is None, f"Expected null at t=1, got {preds[1]}"
+        assert abs(preds[2] - a) < 1e-9, f"Expected {a} at t=2, got {preds[2]}"
+        assert abs(preds[3] - a) < 1e-9, f"Expected {a} (forward-filled) at t=3, got {preds[3]}"
+        assert abs(preds[4] - c) < 1e-9, f"Expected {c} at t=4, got {preds[4]}"
+
+    def test_predict_b1_slot_boundary_isolation(self):
+        """AC-B1-5: two adjacent slots; horizon=3 predictions of slot B never reference slot A."""
+        from src.baselines.statistical import predict_b1
+
+        # Slot A: direction=-1, pair_rank=1; values [10, 20, 30, 40, 50]
+        # Slot B: direction=1, pair_rank=1; values [1, 2, 3, 4, 5]
+        # With horizon=3, slot B at t=3 should predict slot_B[t=0] = 1.0, NOT any slot A value.
+        n = 5
+        train_dates = [date(2023, 12, 1 + i) for i in range(n)]
+        delta_map = {
+            (-1, 1): [10.0, 20.0, 30.0, 40.0, 50.0],
+            (1, 1):  [1.0,  2.0,  3.0,  4.0,  5.0],
+        }
+        df = make_headways_fixture(
+            empresaid=2,
+            train_dates=train_dates,
+            test_dates=[],
+            delta_values_per_slot=delta_map,
+        )
+        from src.evaluation.splits import split_temporal
+        df = split_temporal(df)
+
+        result = predict_b1(df, horizon=3)
+        slot_b = result.filter(pl.col("direction") == 1).sort("t")
+        preds_b = slot_b["y_pred_b1"].to_list()
+
+        # t=3 in slot B should be slot_B[t=0] = 1.0
+        assert abs(preds_b[3] - 1.0) < 1e-9, (
+            f"Slot B t=3 should predict 1.0 (slot B isolation), got {preds_b[3]}"
+        )
+        # t=4 in slot B should be slot_B[t=1] = 2.0
+        assert abs(preds_b[4] - 2.0) < 1e-9, (
+            f"Slot B t=4 should predict 2.0, got {preds_b[4]}"
+        )
+
+
+# ===========================================================================
 # Wave 5: B2 — moving average (last w NON-NULL observations)
 # ===========================================================================
 

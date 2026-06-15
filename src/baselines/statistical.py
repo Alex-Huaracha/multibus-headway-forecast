@@ -79,17 +79,20 @@ def predict_b0(headways: pl.DataFrame) -> pl.DataFrame:
 # B1 — Naive / persistence baseline
 # ===========================================================================
 
-def predict_b1(headways: pl.DataFrame) -> pl.DataFrame:
-    """Add column `y_pred_b1`: last non-null delta_t_min seen before each row.
+def predict_b1(headways: pl.DataFrame, *, horizon: int = 1) -> pl.DataFrame:
+    """Add column `y_pred_b1`: last non-null delta_t_min seen `horizon` steps before each row.
 
-    Uses forward_fill().shift(1).over(slot) — the canonical polars pattern for
-    ŷ_{t+1} = y_t with null gaps.  Causal by construction (shift prevents
-    the current-row value from appearing as its own prediction).
+    Uses forward_fill().shift(horizon).over(slot) — the canonical polars pattern for
+    ŷ_{t+h} = y_t with null gaps.  Causal by construction (shift prevents the
+    current-row value from appearing as its own prediction).
 
     Parameters
     ----------
     headways:
         headways DataFrame with `split` column attached.
+    horizon:
+        Number of steps to shift. Default 1 reproduces the original behavior.
+        Calling ``predict_b1(df)`` (no horizon arg) is identical to ``predict_b1(df, horizon=1)``.
 
     Returns
     -------
@@ -101,7 +104,7 @@ def predict_b1(headways: pl.DataFrame) -> pl.DataFrame:
         .with_columns(
             pl.col("delta_t_min")
               .forward_fill()
-              .shift(1)
+              .shift(horizon)
               .over(_SLOT_COLS)
               .alias("y_pred_b1")
         )
