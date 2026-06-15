@@ -59,6 +59,7 @@ class HeadwayDataset(Dataset):
         max_N_by_direction: dict[tuple[int, int], int],
         T_in: int,
         T_out: int,
+        horizon: int | None = None,
         value_col: str = "delta_t_min_z",
         context_cols: tuple[str, ...] = CONTEXT_FEATURE_NAMES,
     ) -> None:
@@ -77,7 +78,13 @@ class HeadwayDataset(Dataset):
         T_in:
             Number of input timesteps per window.
         T_out:
-            Number of target timesteps per window.
+            Number of target timesteps per window. Retained for backward compat.
+        horizon:
+            DIRECT-horizon prediction offset. When provided, the target row is
+            ``T_in + horizon - 1`` (0-based within the window) and target shape
+            is always ``(1, max_N)`` — matching train.py's squeeze(1) contract.
+            ``horizon=1`` reproduces the current T_out=1 behavior exactly.
+            Default ``None`` falls back to T_out semantics.
         value_col:
             Name of the z-scored column in df (default: "delta_t_min_z").
         context_cols:
@@ -89,6 +96,7 @@ class HeadwayDataset(Dataset):
         self._max_N_by_direction = max_N_by_direction
         self._T_in = T_in
         self._T_out = T_out
+        self._horizon = horizon  # None → legacy T_out mode; int → DIRECT horizon mode
         self._value_col = value_col
         self._context_cols = list(context_cols)
 
@@ -160,10 +168,21 @@ class HeadwayDataset(Dataset):
 
         Design note: the window_index records start_idx relative to the sorted
         slot frame for (empresaid, direction, pair_rank). We slice T_in rows for
-        the input and T_out rows for the target; then pad the N dimension
-        to max_N using per-snapshot presence detection.
+        the input and the single target row at index T_in + horizon - 1 for the
+        DIRECT-horizon contract; then pad the N dimension to max_N using
+        per-snapshot presence detection.
+
+        DIRECT horizon contract (when self._horizon is set):
+            window_size = T_in + horizon
+            target_row  = T_in + horizon - 1  (0-based within window)
+            target shape = (1, max_N)  → train.py squeeze(1) remains valid.
         """
-        window_size = self._T_in + self._T_out
+        if self._horizon is not None:
+            window_size = self._T_in + self._horizon
+            target_row_idx = self._T_in + self._horizon - 1
+        else:
+            window_size = self._T_in + self._T_out
+            target_row_idx = None  # legacy: use slice T_in: for all T_out rows
         max_N = self._max_N_by_direction[(empresaid, direction)]
 
         # Get the sorted slot frame.
@@ -228,13 +247,24 @@ class HeadwayDataset(Dataset):
                     masks[t_idx, pr] = True
                 # If val is None: value stays 0.0, mask stays False (AC-MASK-3).
 
-        return {
-            "input": values[: self._T_in],
-            "target": values[self._T_in :],
-            "input_mask": masks[: self._T_in],
-            "target_mask": masks[self._T_in :],
-            "context": context[: self._T_in],
-        }
+        if target_row_idx is not None:
+            # DIRECT horizon mode: single target row at T_in + horizon - 1.
+            return {
+                "input": values[: self._T_in],
+                "target": values[target_row_idx : target_row_idx + 1],
+                "input_mask": masks[: self._T_in],
+                "target_mask": masks[target_row_idx : target_row_idx + 1],
+                "context": context[: self._T_in],
+            }
+        else:
+            # Legacy T_out mode: all rows from T_in onward.
+            return {
+                "input": values[: self._T_in],
+                "target": values[self._T_in :],
+                "input_mask": masks[: self._T_in],
+                "target_mask": masks[self._T_in :],
+                "context": context[: self._T_in],
+            }
 
 
 # ---------------------------------------------------------------------------

@@ -120,9 +120,10 @@ def make_window_index(
     *,
     T_in: int = DEFAULT_T_IN,
     T_out: int = DEFAULT_T_OUT,
+    horizon: int | None = None,
     stride: int = DEFAULT_STRIDE,
 ) -> list[WindowIndexEntry]:
-    """Deterministic per-slot window index. DL-1, DL-11. AC-WIN-1..5.
+    """Deterministic per-slot window index. DL-1, DL-11. AC-WIN-1..5, AC-WIN-H1..H3.
 
     Produces a list of WindowIndexEntry dicts where each entry anchors one
     training window. Entries are sorted by (empresaid, direction, pair_rank,
@@ -136,7 +137,13 @@ def make_window_index(
     T_in:
         Input sequence length (number of timesteps fed to model).
     T_out:
-        Prediction horizon (number of future timesteps).
+        Prediction sequence length (number of future timesteps). Retained for
+        backward compatibility. Default 1.
+    horizon:
+        DIRECT-horizon prediction offset. When provided, ``window_size = T_in + horizon``
+        (overrides the T_out contribution). Default ``None`` falls back to T_out semantics
+        so existing callers are unaffected. ``horizon=1`` produces results identical to
+        ``T_out=1`` (AC-WIN-H3).
     stride:
         Step between consecutive window starts (default 1 = every timestep).
 
@@ -144,7 +151,7 @@ def make_window_index(
     -------
     list[WindowIndexEntry] — may be empty if no slot has enough rows.
     """
-    window_size = T_in + T_out
+    window_size = T_in + (horizon if horizon is not None else T_out)
     index: list[WindowIndexEntry] = []
 
     # Partition by slot to keep slot boundaries clean (AC-WIN-3).

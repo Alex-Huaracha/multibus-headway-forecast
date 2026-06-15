@@ -248,3 +248,200 @@ class TestCollate:
         assert "input_mask" in first
         assert "target_mask" in first
         assert "context" in first
+
+
+# ---------------------------------------------------------------------------
+# Fase 6.5: horizon parameter (AC-DS-H1..H5)
+# ---------------------------------------------------------------------------
+
+def _make_ds_horizon(T_in: int, horizon: int, max_N: int = 2, n_snapshots: int = 20):
+    """Build a HeadwayDataset with the given horizon param.
+
+    The fixture assigns delta_t_min_z = float(snap_idx + pr + 1) so values are
+    known and distinct per (snap_idx, pair_rank). With stats mean=0/std=1 the
+    z-scored values equal the raw values.
+    """
+    from src.data.dataset import HeadwayDataset
+    from src.data.windowing import make_window_index
+
+    df, _, max_N_by_direction = make_dataset_fixture(
+        T_in=T_in, T_out=1, max_N=max_N, n_snapshots=n_snapshots
+    )
+    window_index = make_window_index(df, T_in=T_in, horizon=horizon)
+    return HeadwayDataset(
+        df=df,
+        window_index=window_index,
+        max_N_by_direction=max_N_by_direction,
+        T_in=T_in,
+        T_out=1,
+        horizon=horizon,
+    )
+
+
+class TestDatasetHorizon:
+    """Strict TDD RED tests for HeadwayDataset with horizon parameter (Fase 6.5).
+
+    All tests must fail before implementation (TypeError or wrong value).
+    """
+
+    def test_dataset_target_is_plus_h_row(self):
+        """AC-DS-H1 (LOAD-BEARING): T_in=4, horizon=3 → target row index = 6, NOT 4.
+
+        Fixture row values for pair_rank=0: snap_idx + 0 + 1 = snap_idx + 1.
+        Window 0 spans snap_idx [0..6] (T_in+h-1=6).
+        target_row = T_in + horizon - 1 = 6 → value for pr=0 = 6 + 1 = 7.0.
+        The h=1 row (snap_idx=4) would be 5.0 — different, so off-by-h is detectable.
+        """
+        ds = _make_ds_horizon(T_in=4, horizon=3, max_N=2, n_snapshots=20)
+        item = ds[0]
+        target = item["target"]  # shape (1, max_N)
+        # pair_rank=0 at snap_idx=6: value = 6 + 0 + 1 = 7.0
+        assert abs(float(target[0, 0]) - 7.0) < 1e-4, (
+            f"LOAD-BEARING: target[0,0] should be 7.0 (row T_in+h-1=6), got {float(target[0, 0])}"
+        )
+
+    def test_dataset_target_is_NOT_plus_1_row_when_h_gt_1(self):
+        """AC-DS-H2 (anti-leakage): with horizon=3, target != value at row T_in (snap_idx=4).
+
+        At snap_idx=4, pair_rank=0 has value 5.0. Target must NOT be 5.0.
+        """
+        ds = _make_ds_horizon(T_in=4, horizon=3, max_N=2, n_snapshots=20)
+        item = ds[0]
+        target_value = float(item["target"][0, 0])
+        plus_1_value = 5.0  # snap_idx=4, pr=0: 4+0+1=5
+        assert abs(target_value - plus_1_value) > 1e-4, (
+            f"Anti-leakage: target should NOT equal the h=1 row (5.0), got {target_value}"
+        )
+
+    def test_dataset_target_shape_h1(self):
+        """AC-DS-H3: target.shape == (1, max_N) for horizon=1."""
+        ds = _make_ds_horizon(T_in=4, horizon=1, max_N=3, n_snapshots=20)
+        item = ds[0]
+        assert item["target"].shape == (1, 3), (
+            f"Expected (1, 3), got {item['target'].shape}"
+        )
+
+    def test_dataset_target_shape_h3(self):
+        """AC-DS-H3: target.shape == (1, max_N) for horizon=3."""
+        ds = _make_ds_horizon(T_in=4, horizon=3, max_N=3, n_snapshots=20)
+        item = ds[0]
+        assert item["target"].shape == (1, 3), (
+            f"Expected (1, 3), got {item['target'].shape}"
+        )
+
+    def test_dataset_target_shape_h5(self):
+        """AC-DS-H3: target.shape == (1, max_N) for horizon=5."""
+        ds = _make_ds_horizon(T_in=4, horizon=5, max_N=3, n_snapshots=20)
+        item = ds[0]
+        assert item["target"].shape == (1, 3), (
+            f"Expected (1, 3), got {item['target'].shape}"
+        )
+
+    def test_dataset_horizon_1_regression(self):
+        """AC-DS-H4 / h=1 regression: horizon=1 target == current behavior (values[T_in:T_in+1])."""
+        from src.data.dataset import HeadwayDataset
+
+        T_in, max_N = 3, 2
+        df, window_index_T_out, max_N_by_direction = make_dataset_fixture(
+            T_in=T_in, T_out=1, max_N=max_N, n_snapshots=10
+        )
+        from src.data.windowing import make_window_index
+        window_index_h1 = make_window_index(df, T_in=T_in, horizon=1)
+
+        ds_old = HeadwayDataset(
+            df=df,
+            window_index=window_index_T_out,
+            max_N_by_direction=max_N_by_direction,
+            T_in=T_in,
+            T_out=1,
+        )
+        ds_new = HeadwayDataset(
+            df=df,
+            window_index=window_index_h1,
+            max_N_by_direction=max_N_by_direction,
+            T_in=T_in,
+            T_out=1,
+            horizon=1,
+        )
+        # Both datasets should produce the same target for corresponding windows.
+        for i in range(min(len(ds_old), len(ds_new))):
+            old_target = ds_old[i]["target"]
+            new_target = ds_new[i]["target"]
+            assert torch.allclose(old_target, new_target), (
+                f"Window {i}: horizon=1 target differs from T_out=1 target.\n"
+                f"old={old_target.tolist()}, new={new_target.tolist()}"
+            )
+
+    def test_dataset_squeeze1_compat(self):
+        """AC-DS-H4 (squeeze compat): target.squeeze(1) → (B, max_N) for h∈{1,3,5,10}."""
+        from src.data.dataset import collate_fn
+        from torch.utils.data import DataLoader
+
+        for h in [1, 3, 5, 10]:
+            ds = _make_ds_horizon(T_in=4, horizon=h, max_N=2, n_snapshots=30)
+            loader = DataLoader(ds, batch_size=4, collate_fn=collate_fn, shuffle=False)
+            batch = next(iter(loader))
+            squeezed = batch["target"].squeeze(1)
+            assert squeezed.shape == (4, 2), (
+                f"horizon={h}: squeeze(1) should give (B=4, max_N=2), got {squeezed.shape}"
+            )
+
+    def test_dataset_mask_correctness_at_plus_h(self):
+        """AC-DS-H5: row T_in+horizon-1 has a null for pair_rank 0 → target_mask[0,0] is False.
+
+        We inject a null by creating a custom fixture where snap_idx=T_in+h-1, pr=0 is null.
+        """
+        import polars as pl
+        from datetime import datetime, timedelta
+        from src.data.dataset import HeadwayDataset
+        from src.data.windowing import make_window_index
+        from src.data.normalization import NormalizationStats, apply_zscore
+        from src.data.context_features import encode_context
+
+        T_in, h, max_N = 3, 2, 2
+        # target_row = T_in + h - 1 = 4 (0-indexed). We want n_snapshots > T_in+h.
+        n_snaps = 10
+        anchor = datetime(2023, 11, 1, 8, 0, 0)
+
+        rows: list[dict] = []
+        for snap_idx in range(n_snaps):
+            t = anchor + timedelta(minutes=snap_idx)
+            for pr in range(max_N):
+                # Make snap_idx=4, pr=0 null to trigger mask=False at target row.
+                val = None if (snap_idx == T_in + h - 1 and pr == 0) else float(snap_idx + pr + 1)
+                rows.append({
+                    "empresaid": 2,
+                    "t": t,
+                    "direction": -1,
+                    "pair_rank": pr,
+                    "delta_t_min": val,
+                })
+
+        df = pl.DataFrame(rows).with_columns(
+            pl.col("empresaid").cast(pl.Int64),
+            pl.col("t").cast(pl.Datetime("us")),
+            pl.col("direction").cast(pl.Int64),
+            pl.col("pair_rank").cast(pl.Int32),
+            pl.col("delta_t_min").cast(pl.Float64),
+        )
+        stats = NormalizationStats(
+            means={(2, -1): 0.0},
+            stds={(2, -1): 1.0},
+        )
+        df = apply_zscore(df, stats)
+        df = encode_context(df, atypical_dates=None)
+
+        window_index = make_window_index(df, T_in=T_in, horizon=h)
+        ds = HeadwayDataset(
+            df=df,
+            window_index=window_index,
+            max_N_by_direction={(2, -1): max_N},
+            T_in=T_in,
+            T_out=1,
+            horizon=h,
+        )
+        item = ds[0]
+        # target row is snap_idx=4, pr=0 has null → mask should be False.
+        assert item["target_mask"][0, 0] == False, (
+            f"target_mask[0,0] should be False (null at target row), got {item['target_mask'][0, 0]}"
+        )

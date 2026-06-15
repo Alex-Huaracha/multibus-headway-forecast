@@ -230,3 +230,38 @@ class TestMakeWindowIndex:
         entries_b = [e for e in index if e["direction"] == 1]
         assert len(entries_a) == 4
         assert len(entries_b) == 2
+
+    # -----------------------------------------------------------------------
+    # Fase 6.5: horizon parameter (AC-WIN-H1..H3)
+    # -----------------------------------------------------------------------
+
+    def test_make_window_index_window_size_includes_horizon(self) -> None:
+        """AC-WIN-H1: slot of 20 rows, T_in=12, horizon=5 → each window spans 17 rows; count=4.
+
+        window_size = T_in + horizon = 17; n_windows = 20 - 17 + 1 = 4.
+        """
+        from src.data.windowing import make_window_index
+
+        df = self._make_single_slot_df(20)
+        index = make_window_index(df, T_in=12, horizon=5)
+        assert len(index) == 4, f"Expected 4 windows (20-17+1), got {len(index)}"
+
+    def test_make_window_index_empty_slot_guard_at_horizon(self) -> None:
+        """AC-WIN-H2: slot of 16 rows, T_in=12, horizon=5 (needs 17) → 0 windows."""
+        from src.data.windowing import make_window_index
+
+        df = self._make_single_slot_df(16)
+        index = make_window_index(df, T_in=12, horizon=5)
+        assert len(index) == 0, f"Expected 0 windows (16 < 17), got {len(index)}"
+
+    def test_make_window_index_horizon_1_regression(self) -> None:
+        """AC-WIN-H3: make_window_index(df, T_in=12, horizon=1) == make_window_index(df, T_in=12, T_out=1)."""
+        from src.data.windowing import make_window_index
+
+        df = self._make_single_slot_df(20)
+        index_horizon = make_window_index(df, T_in=12, horizon=1)
+        index_T_out = make_window_index(df, T_in=12, T_out=1)
+        assert index_horizon == index_T_out, (
+            f"horizon=1 should equal T_out=1 behavior. "
+            f"Got {len(index_horizon)} vs {len(index_T_out)} windows."
+        )
