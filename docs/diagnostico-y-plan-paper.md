@@ -1,9 +1,12 @@
 # Diagnóstico y plan hacia un paper publicable (IJACSA)
 
-> **Fecha**: 2026-06-14
+> **Fecha**: 2026-06-14 · **Última actualización**: 2026-06-15
 > **Propósito**: dejar por escrito, sin vueltas, cuál es el problema real que apareció al
 > consolidar los resultados, qué necesitamos para tener un paper sólido, y los pasos concretos
 > a seguir. Este documento manda sobre el orden de trabajo de acá en adelante.
+>
+> ⚠️ **El estado de avance vigente y cómo continuar están en la [§6](#6-estado-de-avance-y-decisiones-2026-06-15).**
+> Las secciones 1–5 son el diagnóstico original; la §6 las actualiza donde difieren.
 
 ---
 
@@ -95,9 +98,10 @@ comparación ahí.
 
 ## 4. Pasos a seguir (en orden)
 
-- [ ] **Paso 1 — Re-corrida a 5 min**: cambiar el horizonte (`T_out`) y re-generar los notebooks
-      07 / 08 / 09 usando las configuraciones ganadoras ya conocidas. Correr en Kaggle los 3
-      modelos + baselines en E2 y E59 (~2–3 h GPU, una sesión).
+- [ ] **Paso 1 — Re-corrida multi-horizonte**: ⚠️ el enfoque se refinó — ver [§6](#6-estado-de-avance-y-decisiones-2026-06-15).
+      NO se re-generan los notebooks 07/08/09 (son artefactos congelados del experimento de 1 min);
+      se crean builders NUEVOS que reusan la librería ya parametrizada con `horizon`. Correr en
+      Kaggle los 3 modelos + baselines en E2 y E59 a 1/3/5/10 min.
 - [ ] **Paso 2 — Consolidar resultados a 5 min**: tabla comparativa DL vs baselines (incluida la
       persistencia) en MAE y RMSE, ambos corredores. Verificar que se cumple el criterio de
       éxito (DL > baselines en ambas métricas).
@@ -125,3 +129,71 @@ comparación ahí.
 > La honestidad metodológica acá no es un costo: es lo que hace al paper defendible. El hallazgo
 > de que la persistencia es fuerte a horizonte corto, reportado y explicado, es una fortaleza,
 > no una debilidad.
+
+---
+
+## 6. Estado de avance y decisiones (2026-06-15)
+
+> Esta sección refleja el trabajo real hecho en la rama `feat/fase-6-5-multi-horizonte` y
+> **manda sobre las secciones 1–5 donde difieran**. La curva multi-horizonte (antes "opcional"
+> en §3.3) pasó a ser **el argumento central del paper**, no un extra.
+
+### 6.1 Lo que YA está hecho (rama `feat/fase-6-5-multi-horizonte`)
+
+- **Fase 6 cerrada y validada**: SpatialConvLSTM y SpatialTransformer dan resultado nulo en
+  ambos corredores. Validado contra Kaggle al decimal (commit del plan `5c3e261`).
+- **Librería parametrizada con `horizon`** (Olas 1-2, commits `d48e913` + `42f1aa5`):
+  - `predict_b1` / `evaluate_corridor` aceptan `horizon` (persistencia = `shift(horizon)`).
+  - `make_window_index` / `HeadwayDataset` aceptan `horizon`: el target es la única fila en
+    `T_in + horizon - 1`, shape `(1, max_N)` (mantiene válido el `squeeze(1)` de `train.py`).
+  - Backward-compatible: `horizon` por defecto reproduce **exactamente** el comportamiento de
+    1 min. **337 tests verdes.**
+- **Experimentos de 1 min INTACTOS**: builders `07/08/09` y sus notebooks sin tocar (idénticos
+  a `main`). Modelos y resultados ya entrenados, sin tocar.
+
+### 6.2 Decisiones de arquitectura (las que rigen de acá en adelante)
+
+1. **Librería vs experimento — se tratan distinto** (buena práctica de ML reproducible):
+   - **Librería** (`src/data/`, `src/baselines/`, `src/models/`): código vivo compartido →
+     se **PARAMETRIZA** (perilla `horizon`), NUNCA se duplica (dos copias divergen).
+   - **Notebooks de experimento** (builders): un experimento corrido es un **artefacto
+     inmutable** (el registro reproducible del resultado de 1 min). El multi-horizonte es un
+     experimento NUEVO → se crean **builders NUEVOS**, NO se mutan los de 1 min.
+
+2. **Esquema DIRECTO por horizonte**: un modelo entrenado por cada `T_out` objetivo (no
+   recursivo), para comparación limpia DL vs persistencia a cada horizonte.
+
+3. **Reusar configs ganadoras** (`resultados/configuraciones-ganadoras.md`, validadas al
+   decimal): 1 entrenamiento por modelo/corredor/horizonte. Riesgo aceptado: las configs son
+   óptimas a 1 min; si un revisor lo cuestiona, se blinda con un mini-grid de 2-3 configs
+   vecinas, no el grid completo.
+
+4. **Sin PR**: rama + merge local a `main` (el usuario es el único en el repo).
+
+### 6.3 Bug pendiente que el nuevo experimento DEBE resolver
+
+Los notebooks DL leen los baselines de un CSV que genera **NB06**, y NB06 **no es
+horizon-aware** → a 3/5/10 min el DL se compararía contra baselines a 1 min (comparación
+tramposa que invalidaría la curva). El experimento multi-horizonte nuevo **debe generar sus
+baselines al horizonte correcto** (los 5: B0–B4, no solo B1), sin tocar el NB06 viejo.
+
+### 6.4 Cómo continuar (próxima sesión)
+
+1. Crear los **builders NUEVOS** de multi-horizonte (LSTM/ConvLSTM/Transformer) — clonar la
+   estructura de `build_notebook_07/08/09.py` y adaptar: inyectar `horizon` en el dataset cell,
+   capturar el target en `T_in+horizon-1`, CSV de salida con `_h{N}`, y baselines al horizonte
+   correcto. La duplicación del andamiaje de generación es aceptable: la lógica real vive en la
+   librería única embebida.
+2. Tests TDD para cada builder nuevo (asserciones reales, NO grep de strings).
+3. Generar los 6 notebooks, correr en Kaggle (~2h c/u, lejos del límite 12h), bajar resultados.
+4. Consolidar 1/3/5/10 min → **curva de degradación** (figura central) → significancia
+   estadística → redacción.
+
+### 6.5 Lecciones operativas (NO repetir errores de esta sesión)
+
+- **NO ejecutar los `src/build_notebook_*.py` durante el desarrollo**: regeneran los `.ipynb` y
+  ensucian el árbol. `pytest tests/` también los regenera (los tests de builders escriben en la
+  ubicación real). Tras testear: `git restore notebooks/`. (Pendiente de fondo: que esos tests
+  escriban en `tmp_path`.)
+- El trabajo de los builders nuevos se hace **inline, paso a paso**, mostrando cada archivo
+  antes de escribirlo — sin sub-agentes que corran generadores.
