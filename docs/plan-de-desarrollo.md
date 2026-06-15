@@ -141,12 +141,12 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [x] Mask-aware input: `inp * input_mask` ANTES del conv (inductive bias vs LSTM).
 - [x] Adaptación de `src/train.py`: duck-type dispatch, `SPATIAL_GRID` (48 configs).
 - [x] Notebook builder `src/build_notebook_08.py` + notebooks `08a_spatial_conv_lstm_e2` / `08b_spatial_conv_lstm_e59` (per-corridor split para respetar límite 12h de Kaggle).
-- [ ] Entrenamiento y grid search en Kaggle GPU T4 (kernel `alexhuaracha/08a-spatialconvlstm-e2` + `08b-spatialconvlstm-e59`).
-- [ ] Métricas sobre test, comparación con LSTM.
+- [x] Entrenamiento y grid search en Kaggle GPU T4 (kernel `alexhuaracha/08a-spatialconvlstm-e2` + `08b-spatialconvlstm-e59`).
+- [x] Métricas sobre test, comparación con LSTM.
 
 **Artefacto:** `src/models/spatial_conv_lstm.py` + `src/build_notebook_08.py` + notebooks `08a_spatial_conv_lstm_e2/` + `08b_spatial_conv_lstm_e59/` + checkpoints.
 
-**Estado:** Código implementado (284/284 tests). Pendiente ejecución en Kaggle.
+**Estado:** Completada. Resultado **nulo**: el grid eligió `conv_channels=1` (conv apagada), empatando con el LSTM. E2 MAE 4.4721 (vs LSTM 4.4707), E59 MAE 3.3371 (vs LSTM 3.3375). La convolución espacial local no aporta. Ver [`resultados/fase-6-spatial-conv-lstm.md`](./resultados/fase-6-spatial-conv-lstm.md).
 
 ### Fase 6b — SpatialTransformer (relaciones espaciales globales)
 
@@ -170,8 +170,8 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [x] `save_checkpoint` / `load_checkpoint` round-trip con SpatialTransformer (nhead branch).
 - [x] Notebook builder `src/build_notebook_09.py` genera `09a_e2/notebook.ipynb` + `09b_e59/notebook.ipynb`, cell IDs `cell-09-*`, idempotente.
 - [x] 314/314 tests, 0 regresiones contra baseline Fase 6a (284 tests).
-- [ ] Entrenamiento y grid search en Kaggle GPU T4 (kernel `alexhuaracha/09a-spatialtr-e2` + `09b-spatialtr-e59`).
-- [ ] Métricas sobre test en `spatial_transformer_results.csv`, comparación con LSTM (NB07) y SpatialConvLSTM (NB08).
+- [x] Entrenamiento y grid search en Kaggle GPU T4 (kernel `alexhuaracha/09a-spatialtransformer-e2` + `09b1-spatialtransformer-e59` + `09b2-spatialtransformer-e59`; E59 dividido en dos tandas de 16 configs por límite 12h).
+- [x] Métricas sobre test en `spatial_transformer_results.csv`, comparación con LSTM (NB07) y SpatialConvLSTM (NB08).
 
 **Artefactos:**
 - `src/models/spatial_transformer.py` — modelo SpatialTransformer.
@@ -180,9 +180,33 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - `notebooks/09_spatial_transformer/09b_e59/` — E59 notebook + kernel-metadata.
 - `tests/models/test_spatial_transformer.py` (13 tests) + extensiones en `tests/test_train.py` (12 tests) + `tests/test_build_notebook_09.py` (5 test nodes).
 
-**Estado:** Código implementado (314/314 tests). Pendiente ejecución en Kaggle.
+**Estado:** Completada. Resultado **nulo**: el grid eligió la mínima capacidad de atención (`nhead=1, d_model=16` en E2), empatando con el LSTM. E2 MAE 4.4949 (vs LSTM 4.4707), E59 MAE 3.3590 (vs LSTM 3.3375). Ni la atención global supera al LSTM plano. Validado contra Kaggle al decimal (2026-06-15). Ver [`resultados/fase-6b-spatial-transformer.md`](./resultados/fase-6b-spatial-transformer.md).
 
 **Criterio de cierre (Fase 6 completa):** Ambas arquitecturas espaciales entrenadas con métricas registradas, comparables contra LSTM y baselines en ambos corredores (E2 y E59).
+
+**Estado (Fase 6 completa):** **Completada (2026-06-14).** Resultado nulo robusto: dos mecanismos espaciales distintos (convolución fija + atención global), ningún corredor mejora sobre el LSTM. La señal útil para predecir el próximo headway es temporal, no espacial.
+
+---
+
+## Fase 6.5 — Predicción multi-horizonte
+
+**Objetivo de la fase:** Re-evaluar los modelos **ya seleccionados** a horizontes operativamente útiles (3, 5, 10 min), no solo a 1 min. Al consolidar los resultados a 1 min apareció el problema de fondo: la persistencia trivial (B1) **empata o gana en MAE** (E59: 3.100 vs 3.337 del mejor DL) porque en 60 s el headway casi no cambia. Predecir a 1 min no anticipa nada — no da margen de intervención operativa. El aporte del DL se demuestra al **estirar el horizonte**, donde la persistencia se degrada y los modelos profundos aguantan. Diagnóstico completo en [`diagnostico-y-plan-paper.md`](./diagnostico-y-plan-paper.md).
+
+**Decisiones clave:**
+- **Esquema directo por horizonte** (un modelo entrenado por cada `T_out` objetivo), NO recursivo: comparación limpia DL vs persistencia a cada horizonte, sin acumulación de error. Es el estándar esperado por un revisor de forecasting.
+- **Reusar las configuraciones ganadoras** del grid search de Fases 5/6 (el grid ya costó ~1 mes de cuota Kaggle y NO se repite) → **1 entrenamiento** por modelo/corredor/horizonte, no 24–32. Apuesta razonable; si un revisor la cuestiona, se blinda con un mini-grid de 2–3 configs vecinas al horizonte largo, no el grid completo.
+- Horizontes objetivo: `T_out ∈ {1, 3, 5, 10}` sobre grilla de 60 s (el de 1 min ya existe).
+- Los baselines (B0–B4) a cada horizonte corren en **CPU** (sin GPU).
+
+- [ ] Re-generar datasets supervisados a `T_out ∈ {3,5,10}` (reutiliza `src/data/dataset.py`, Fase 3).
+- [ ] Parametrizar los builders de notebooks 07/08/09 por horizonte, reusando las configs ganadoras.
+- [ ] Correr en Kaggle: 3 modelos × 2 corredores × {3,5,10} min (~8–10 h GPU, 1–2 sesiones).
+- [ ] Baselines B0–B4 a cada horizonte (CPU).
+- [ ] Consolidar CSVs de métricas por horizonte (MAE/RMSE), ambos corredores.
+
+**Artefacto:** notebooks 07/08/09 multi-horizonte + CSVs `*_results_h{3,5,10}.csv` + checkpoints por horizonte.
+
+**Criterio de cierre:** MAE y RMSE de los 3 modelos profundos + baselines disponibles a 1/3/5/10 min en E2 y E59, listos para trazar la curva de degradación en Fase 7.
 
 ---
 
@@ -191,6 +215,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 **Objetivo de la fase:** Comparar rigurosamente todos los modelos en las empresas seleccionadas y producir las tablas/figuras del paper.
 
 - [ ] MAE y RMSE por modelo, empresa y horizonte.
+- [ ] **Curva de degradación por horizonte (persistencia vs DL) — figura central del paper**: mostrar cómo B1 se desploma y los modelos profundos aguantan al crecer el horizonte (1→10 min). Convierte la debilidad a 1 min en el argumento principal.
 - [ ] Test de significancia estadística (Diebold-Mariano o Wilcoxon pareado).
 - [ ] Análisis por franja horaria (pico vs. valle).
 - [ ] Análisis por posición en el vector de headways.
