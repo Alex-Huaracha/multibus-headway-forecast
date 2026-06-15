@@ -17,6 +17,7 @@ Inline-embed pattern (mirror of build_notebook_06.py):
 Output: notebooks/10_baselines_multihorizon/10_baselines_multihorizon.ipynb
 Kaggle kernel: alexhuaracha/10-baselines-multihorizon
 """
+import json
 import sys
 from pathlib import Path
 
@@ -39,6 +40,22 @@ OUT = (
     / "10_baselines_multihorizon.ipynb"
 )
 OUT.parent.mkdir(parents=True, exist_ok=True)
+
+# ---------------------------------------------------------------------------
+# Kaggle kernel metadata — written alongside the notebook.
+# ---------------------------------------------------------------------------
+
+_KERNEL_META_BASE = {
+    "language": "python",
+    "kernel_type": "notebook",
+    "is_private": True,
+    "enable_gpu": False,
+    "enable_internet": True,
+    "keywords": [],
+    "dataset_sources": [],
+    "kernel_sources": ["alexhuaracha/04-preprocessing"],
+    "competition_sources": [],
+}
 
 # ---------------------------------------------------------------------------
 # Cell builder helpers — every cell gets an explicit stable ID.
@@ -327,3 +344,14 @@ nb["metadata"] = {
 }
 OUT.write_text(nbf.writes(nb), encoding="utf-8")
 print(f"Notebook written: {OUT}  ({len(cells)} cells)")
+
+# Write kernel-metadata.json.
+kernel_meta = {
+    "id": "alexhuaracha/10-baselines-multihorizon",
+    "title": "10 — Baselines multi-horizonte",
+    "code_file": "10_baselines_multihorizon.ipynb",
+    **_KERNEL_META_BASE,
+}
+meta_path = OUT.parent / "kernel-metadata.json"
+meta_path.write_text(json.dumps(kernel_meta, indent=2) + "\n", encoding="utf-8")
+print(f"Kernel metadata written: {meta_path}")

@@ -1,0 +1,18 @@
+{
+  "id": "alexhuaracha/11-lstm-multihorizon-h3",
+  "title": "11 \u2014 LSTM multi-horizonte h=3",
+  "code_file": "11_lstm_h3.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "accelerator": "GPU_T4X2",
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [
+    "alexhuaracha/04-preprocessing",
+    "alexhuaracha/10-baselines-multihorizon"
+  ],
+  "competition_sources": []
+}

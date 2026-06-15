@@ -35,6 +35,7 @@ Inline-embed pattern (mirror of build_notebook_11.py):
 
 kernel_sources: ["alexhuaracha/04-preprocessing", "alexhuaracha/10-baselines-multihorizon"]
 """
+import json
 import sys
 from pathlib import Path
 
@@ -45,6 +46,26 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.notebook_utils import _strip_relative_imports  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Kaggle kernel metadata — written alongside each per-horizon notebook.
+# ---------------------------------------------------------------------------
+
+_KERNEL_META_BASE = {
+    "language": "python",
+    "kernel_type": "notebook",
+    "is_private": True,
+    "enable_gpu": True,
+    "accelerator": "GPU_T4X2",
+    "enable_internet": True,
+    "keywords": [],
+    "dataset_sources": [],
+    "kernel_sources": [
+        "alexhuaracha/04-preprocessing",
+        "alexhuaracha/10-baselines-multihorizon",
+    ],
+    "competition_sources": [],
+}
 
 # ---------------------------------------------------------------------------
 # Per-build state — reset at the start of each horizon build.
@@ -835,7 +856,7 @@ def build_horizon_notebook(horizon: int) -> None:
     """
     _reset()
 
-    out_dir = ROOT / "notebooks" / "13_spatial_transformer_multihorizon"
+    out_dir = ROOT / "notebooks" / "13_spatial_transformer_multihorizon" / f"h{horizon}"
     out_dir.mkdir(parents=True, exist_ok=True)
     notebook_filename = f"13_spatial_transformer_h{horizon}.ipynb"
     nb_path = out_dir / notebook_filename
@@ -864,6 +885,17 @@ def build_horizon_notebook(horizon: int) -> None:
     }
     nb_path.write_text(nbf.writes(_nb), encoding="utf-8")
     print(f"Notebook written: {nb_path}  ({len(_cells)} cells)")
+
+    # Write kernel-metadata.json.
+    kernel_meta = {
+        "id": f"alexhuaracha/13-spatialtransformer-multihorizon-h{horizon}",
+        "title": f"13 — SpatialTransformer multi-horizonte h={horizon}",
+        "code_file": notebook_filename,
+        **_KERNEL_META_BASE,
+    }
+    meta_path = out_dir / "kernel-metadata.json"
+    meta_path.write_text(json.dumps(kernel_meta, indent=2) + "\n", encoding="utf-8")
+    print(f"Kernel metadata written: {meta_path}")
 
 
 # ---------------------------------------------------------------------------

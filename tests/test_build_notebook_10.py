@@ -7,9 +7,11 @@ Covers:
   AC-NB10-3: every cell ID matches 'cell-10-*' (no random UUIDs).
   AC-NB10-4: cell 'cell-10-run-harness' loops over HORIZONS and adds 'horizon' column.
   AC-NB10-5: setup cell references 'baselines_results_multih.csv' as output filename.
+  AC-NB10-6: kernel-metadata.json is written next to the notebook with correct fields.
 """
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
@@ -19,9 +21,9 @@ import nbformat
 import pytest
 
 ROOT = Path(__file__).parent.parent
-NOTEBOOK_10_PATH = (
-    ROOT / "notebooks" / "10_baselines_multihorizon" / "10_baselines_multihorizon.ipynb"
-)
+NB_DIR = ROOT / "notebooks" / "10_baselines_multihorizon"
+NOTEBOOK_10_PATH = NB_DIR / "10_baselines_multihorizon.ipynb"
+KERNEL_META_PATH = NB_DIR / "kernel-metadata.json"
 BUILDER_10 = ROOT / "src" / "build_notebook_10.py"
 
 
@@ -143,4 +145,92 @@ class TestNotebook10Builder:
         assert "baselines_results_multih.csv" in builder_src, (
             "build_notebook_10.py must reference 'baselines_results_multih.csv' "
             "as the output CSV filename (CSV_OUT variable)."
+        )
+
+
+# ---------------------------------------------------------------------------
+# AC-NB10-6: kernel-metadata.json written next to the notebook
+# ---------------------------------------------------------------------------
+
+class TestNotebook10KernelMetadata:
+    """Verify build_notebook_10.py writes a correct kernel-metadata.json."""
+
+    def _ensure_built(self) -> None:
+        if not KERNEL_META_PATH.exists() or not NOTEBOOK_10_PATH.exists():
+            result = subprocess.run(
+                [sys.executable, "-m", "src.build_notebook_10"],
+                capture_output=True,
+                text=True,
+                cwd=str(ROOT),
+            )
+            assert result.returncode == 0, (
+                f"Builder failed.\nstdout: {result.stdout}\nstderr: {result.stderr}"
+            )
+
+    def test_kernel_metadata_exists(self):
+        """AC-NB10-6a: kernel-metadata.json must exist in the same dir as the notebook."""
+        self._ensure_built()
+        assert KERNEL_META_PATH.exists(), (
+            f"Expected kernel-metadata.json at {KERNEL_META_PATH} but file does not exist"
+        )
+
+    def test_kernel_metadata_code_file_matches_notebook(self):
+        """AC-NB10-6b: code_file field must match the actual .ipynb filename."""
+        self._ensure_built()
+        meta = json.loads(KERNEL_META_PATH.read_text(encoding="utf-8"))
+        assert meta["code_file"] == "10_baselines_multihorizon.ipynb", (
+            f"code_file must be '10_baselines_multihorizon.ipynb', got: {meta['code_file']!r}"
+        )
+
+    def test_kernel_metadata_id(self):
+        """AC-NB10-6c: id must be 'alexhuaracha/10-baselines-multihorizon'."""
+        self._ensure_built()
+        meta = json.loads(KERNEL_META_PATH.read_text(encoding="utf-8"))
+        assert meta["id"] == "alexhuaracha/10-baselines-multihorizon", (
+            f"id must be 'alexhuaracha/10-baselines-multihorizon', got: {meta['id']!r}"
+        )
+
+    def test_kernel_metadata_kernel_sources_cpu_only(self):
+        """AC-NB10-6d: kernel_sources == ["alexhuaracha/04-preprocessing"] and enable_gpu is False."""
+        self._ensure_built()
+        meta = json.loads(KERNEL_META_PATH.read_text(encoding="utf-8"))
+        assert meta["kernel_sources"] == ["alexhuaracha/04-preprocessing"], (
+            f"kernel_sources must be ['alexhuaracha/04-preprocessing'], got: {meta['kernel_sources']!r}"
+        )
+        assert meta["enable_gpu"] is False, (
+            f"enable_gpu must be False (CPU baselines), got: {meta['enable_gpu']!r}"
+        )
+        assert "accelerator" not in meta, (
+            f"accelerator field must NOT be present for CPU kernel, got: {meta.get('accelerator')!r}"
+        )
+
+    def test_kernel_metadata_base_fields(self):
+        """AC-NB10-6e: language, kernel_type, is_private, enable_internet have correct values."""
+        self._ensure_built()
+        meta = json.loads(KERNEL_META_PATH.read_text(encoding="utf-8"))
+        assert meta["language"] == "python"
+        assert meta["kernel_type"] == "notebook"
+        assert meta["is_private"] is True
+        assert meta["enable_internet"] is True
+        assert meta["dataset_sources"] == []
+        assert meta["competition_sources"] == []
+
+    def test_kernel_metadata_deterministic(self):
+        """AC-NB10-6f: two consecutive runs produce byte-identical kernel-metadata.json."""
+        result1 = subprocess.run(
+            [sys.executable, "-m", "src.build_notebook_10"],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        assert result1.returncode == 0
+        bytes_first = KERNEL_META_PATH.read_bytes()
+
+        result2 = subprocess.run(
+            [sys.executable, "-m", "src.build_notebook_10"],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        assert result2.returncode == 0
+        bytes_second = KERNEL_META_PATH.read_bytes()
+
+        assert bytes_first == bytes_second, (
+            "kernel-metadata.json must be byte-identical across consecutive runs"
         )

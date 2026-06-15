@@ -1,0 +1,18 @@
+{
+  "id": "alexhuaracha/12-spatialconvlstm-multihorizon-h3",
+  "title": "12 \u2014 SpatialConvLSTM multi-horizonte h=3",
+  "code_file": "12_spatial_conv_lstm_h3.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "accelerator": "GPU_T4X2",
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [
+    "alexhuaracha/04-preprocessing",
+    "alexhuaracha/10-baselines-multihorizon"
+  ],
+  "competition_sources": []
+}
