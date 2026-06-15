@@ -153,6 +153,14 @@ comparación ahí.
 - **Librería de baselines horizon-aware completa** (Ola 3, 2026-06-15): `predict_b2` y
   `predict_b3` ahora aceptan `horizon` y `evaluate_corridor` lo propaga a B1/B2/B3. Resolvió el
   hallazgo de §6.3 (B2/B3 no eran horizon-correctos). **346 tests verdes** (337 + 9 nuevos).
+- **Builders multi-horizonte completos** (2026-06-15, commits `4b8043a`/`9b5e501`/`0f563b1`/`8f24e44`):
+  - **NB10** (`build_notebook_10.py`): baselines a h∈{1,3,5,10} → `baselines_results_multih.csv`
+    (336 filas, columna `horizon`). Embebe el código Ola 3.
+  - **NB11/12/13** (LSTM/ConvLSTM/Transformer): **un notebook por horizonte** (4 c/u),
+    `fast_materialize` horizon-aware (target en `T_in+HORIZON-1`), reusan la config ganadora
+    (1 entrenamiento vía `grid_search` con lista de 1), leen `baselines_results_multih.csv`
+    filtrado por `horizon`, salida `*_results_h{N}.csv` con columna `horizon`.
+  - **392 tests verdes** en total. Notebooks 01–09 (artefactos congelados de 1 min) intactos.
 
 ### 6.2 Decisiones de arquitectura (las que rigen de acá en adelante)
 
