@@ -183,11 +183,11 @@ class TestNotebook10KernelMetadata:
         )
 
     def test_kernel_metadata_id(self):
-        """AC-NB10-6c: id must be 'alexhuaracha/10-baselines-multihorizon'."""
+        """AC-NB10-6c: id must be 'alexhuaracha/10-baselines-multi-horizonte'."""
         self._ensure_built()
         meta = json.loads(KERNEL_META_PATH.read_text(encoding="utf-8"))
-        assert meta["id"] == "alexhuaracha/10-baselines-multihorizon", (
-            f"id must be 'alexhuaracha/10-baselines-multihorizon', got: {meta['id']!r}"
+        assert meta["id"] == "alexhuaracha/10-baselines-multi-horizonte", (
+            f"id must be 'alexhuaracha/10-baselines-multi-horizonte', got: {meta['id']!r}"
         )
 
     def test_kernel_metadata_kernel_sources_cpu_only(self):

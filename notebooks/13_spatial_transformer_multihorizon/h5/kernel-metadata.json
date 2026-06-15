@@ -1,6 +1,6 @@
 {
   "id": "alexhuaracha/13-spatialtransformer-multihorizon-h5",
-  "title": "13 \u2014 SpatialTransformer multi-horizonte h=5",
+  "title": "13 SpatialTransformer Multihorizon h5",
   "code_file": "13_spatial_transformer_h5.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -12,7 +12,7 @@
   "dataset_sources": [],
   "kernel_sources": [
     "alexhuaracha/04-preprocessing",
-    "alexhuaracha/10-baselines-multihorizon"
+    "alexhuaracha/10-baselines-multi-horizonte"
   ],
   "competition_sources": []
 }

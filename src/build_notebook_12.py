@@ -25,7 +25,7 @@ Shared with NB11 (identical logic):
   - Compare cell reads baselines_results_multih.csv filtered by horizon.
   - Both corridors trained in the same notebook via build_corridor_data / run_corridor_single.
 
-kernel_sources: ["alexhuaracha/04-preprocessing", "alexhuaracha/10-baselines-multihorizon"]
+kernel_sources: ["alexhuaracha/04-preprocessing", "alexhuaracha/10-baselines-multi-horizonte"]
 """
 import json
 import sys
@@ -54,7 +54,7 @@ _KERNEL_META_BASE = {
     "dataset_sources": [],
     "kernel_sources": [
         "alexhuaracha/04-preprocessing",
-        "alexhuaracha/10-baselines-multihorizon",
+        "alexhuaracha/10-baselines-multi-horizonte",
     ],
     "competition_sources": [],
 }
@@ -776,7 +776,7 @@ def _add_compare_cell() -> None:
         """## Comparación con baselines multi-horizonte (NB10)
 
 Carga `baselines_results_multih.csv` generado por NB10
-(kernel_source: `alexhuaracha/10-baselines-multihorizon`) y filtra al horizonte
+(kernel_source: `alexhuaracha/10-baselines-multi-horizonte`) y filtra al horizonte
 actual antes de comparar con los resultados del SpatialConvLSTM.
 """,
         cell_id="cell-12-compare-md",
@@ -811,7 +811,7 @@ if baselines_csv is not None:
     print(wide.sort(["corridor", "direction", "metric"]))
 else:
     print("baselines_results_multih.csv not found — skipping comparison.")
-    print("Ensure kernel_sources includes alexhuaracha/10-baselines-multihorizon.")
+    print("Ensure kernel_sources includes alexhuaracha/10-baselines-multi-horizonte.")
     print("SpatialConvLSTM results summary:")
     for row in spatial_results.filter(pl.col("metric") == "MAE").iter_rows(named=True):
         print(f"  {row['corridor']} dir={row['direction']}: MAE={row['value']:.4f} min")
@@ -865,7 +865,7 @@ def build_horizon_notebook(horizon: int) -> None:
     # Write kernel-metadata.json.
     kernel_meta = {
         "id": f"alexhuaracha/12-spatialconvlstm-multihorizon-h{horizon}",
-        "title": f"12 — SpatialConvLSTM multi-horizonte h={horizon}",
+        "title": f"12 SpatialConvLSTM Multihorizon h{horizon}",
         "code_file": notebook_filename,
         **_KERNEL_META_BASE,
     }

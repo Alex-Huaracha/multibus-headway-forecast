@@ -1,6 +1,6 @@
 {
   "id": "alexhuaracha/12-spatialconvlstm-multihorizon-h5",
-  "title": "12 \u2014 SpatialConvLSTM multi-horizonte h=5",
+  "title": "12 SpatialConvLSTM Multihorizon h5",
   "code_file": "12_spatial_conv_lstm_h5.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -12,7 +12,7 @@
   "dataset_sources": [],
   "kernel_sources": [
     "alexhuaracha/04-preprocessing",
-    "alexhuaracha/10-baselines-multihorizon"
+    "alexhuaracha/10-baselines-multi-horizonte"
   ],
   "competition_sources": []
 }

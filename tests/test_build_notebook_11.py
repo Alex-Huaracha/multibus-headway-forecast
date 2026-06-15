@@ -354,8 +354,8 @@ class TestNotebook11KernelMetadata:
             f"kernel_sources must contain 'alexhuaracha/04-preprocessing', "
             f"got: {meta['kernel_sources']!r}"
         )
-        assert "alexhuaracha/10-baselines-multihorizon" in meta["kernel_sources"], (
-            f"kernel_sources must contain 'alexhuaracha/10-baselines-multihorizon', "
+        assert "alexhuaracha/10-baselines-multi-horizonte" in meta["kernel_sources"], (
+            f"kernel_sources must contain 'alexhuaracha/10-baselines-multi-horizonte', "
             f"got: {meta['kernel_sources']!r}"
         )
         assert meta["enable_gpu"] is True, (

@@ -33,7 +33,7 @@ Inline-embed pattern (mirror of build_notebook_11.py):
   - Both notebooks per-horizon share the same cell-13-* prefix — identical IDs
     across separate files are valid (NB09 does the same with cell-09-*).
 
-kernel_sources: ["alexhuaracha/04-preprocessing", "alexhuaracha/10-baselines-multihorizon"]
+kernel_sources: ["alexhuaracha/04-preprocessing", "alexhuaracha/10-baselines-multi-horizonte"]
 """
 import json
 import sys
@@ -62,7 +62,7 @@ _KERNEL_META_BASE = {
     "dataset_sources": [],
     "kernel_sources": [
         "alexhuaracha/04-preprocessing",
-        "alexhuaracha/10-baselines-multihorizon",
+        "alexhuaracha/10-baselines-multi-horizonte",
     ],
     "competition_sources": [],
 }
@@ -800,7 +800,7 @@ def _add_compare_cell() -> None:
         """## Comparación con baselines multi-horizonte (NB10)
 
 Carga `baselines_results_multih.csv` generado por NB10
-(kernel_source: `alexhuaracha/10-baselines-multihorizon`) y filtra al horizonte
+(kernel_source: `alexhuaracha/10-baselines-multi-horizonte`) y filtra al horizonte
 actual antes de comparar con los resultados del SpatialTransformer.
 """,
         cell_id="cell-13-compare-md",
@@ -835,7 +835,7 @@ if baselines_csv is not None:
     print(wide.sort(["corridor", "direction", "metric"]))
 else:
     print("baselines_results_multih.csv not found — skipping comparison.")
-    print("Ensure kernel_sources includes alexhuaracha/10-baselines-multihorizon.")
+    print("Ensure kernel_sources includes alexhuaracha/10-baselines-multi-horizonte.")
     print("SpatialTransformer results summary:")
     for row in transformer_results.filter(pl.col("metric") == "MAE").iter_rows(named=True):
         print(f"  {row['corridor']} dir={row['direction']}: MAE={row['value']:.4f} min")
@@ -889,7 +889,7 @@ def build_horizon_notebook(horizon: int) -> None:
     # Write kernel-metadata.json.
     kernel_meta = {
         "id": f"alexhuaracha/13-spatialtransformer-multihorizon-h{horizon}",
-        "title": f"13 — SpatialTransformer multi-horizonte h={horizon}",
+        "title": f"13 SpatialTransformer Multihorizon h{horizon}",
         "code_file": notebook_filename,
         **_KERNEL_META_BASE,
     }

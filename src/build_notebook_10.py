@@ -15,7 +15,7 @@ Inline-embed pattern (mirror of build_notebook_06.py):
   - Stable cell IDs (cell-10-N) prevent git flutter on re-runs (AC-NB10-2).
 
 Output: notebooks/10_baselines_multihorizon/10_baselines_multihorizon.ipynb
-Kaggle kernel: alexhuaracha/10-baselines-multihorizon
+Kaggle kernel: alexhuaracha/10-baselines-multi-horizonte
 """
 import json
 import sys
@@ -347,7 +347,7 @@ print(f"Notebook written: {OUT}  ({len(cells)} cells)")
 
 # Write kernel-metadata.json.
 kernel_meta = {
-    "id": "alexhuaracha/10-baselines-multihorizon",
+    "id": "alexhuaracha/10-baselines-multi-horizonte",
     "title": "10 — Baselines multi-horizonte",
     "code_file": "10_baselines_multihorizon.ipynb",
     **_KERNEL_META_BASE,

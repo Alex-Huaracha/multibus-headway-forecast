@@ -1,6 +1,6 @@
 {
   "id": "alexhuaracha/11-lstm-multihorizon-h1",
-  "title": "11 \u2014 LSTM multi-horizonte h=1",
+  "title": "11 LSTM Multihorizon h1",
   "code_file": "11_lstm_h1.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -12,7 +12,7 @@
   "dataset_sources": [],
   "kernel_sources": [
     "alexhuaracha/04-preprocessing",
-    "alexhuaracha/10-baselines-multihorizon"
+    "alexhuaracha/10-baselines-multi-horizonte"
   ],
   "competition_sources": []
 }
