@@ -19,6 +19,9 @@ data/processed/*
 !data/processed/dataset-metadata.json
 *.csv
 *.parquet
+
+# Excepción: resultados de métricas (chicos, reproducibilidad del paper — no son datos crudos)
+!docs/resultados/csv-multihorizon/*.csv
 !tests/fixtures/*.parquet
 *.feather
 *.h5

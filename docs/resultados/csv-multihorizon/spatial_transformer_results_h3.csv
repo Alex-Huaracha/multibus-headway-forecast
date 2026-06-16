@@ -1,0 +1,13 @@
+corridor,direction,baseline,metric,value,horizon
+E2,-1,SpatialTransformer,MAE,5.991457399629599,3
+E2,-1,SpatialTransformer,RMSE,7.560213658514818,3
+E2,+1,SpatialTransformer,MAE,4.15833063065529,3
+E2,+1,SpatialTransformer,RMSE,5.883413070600463,3
+E2,aggregate,SpatialTransformer,MAE,4.940936527681156,3
+E2,aggregate,SpatialTransformer,RMSE,6.65119472398835,3
+E59,-1,SpatialTransformer,MAE,3.939442523852108,3
+E59,-1,SpatialTransformer,RMSE,5.264214092119192,3
+E59,+1,SpatialTransformer,MAE,3.7984720452296252,3
+E59,+1,SpatialTransformer,RMSE,5.000199452803051,3
+E59,aggregate,SpatialTransformer,MAE,3.881671548110141,3
+E59,aggregate,SpatialTransformer,RMSE,5.1576531276571425,3
