@@ -218,3 +218,12 @@ baselines al horizonte correcto** (los 5: B0–B4, no solo B1), sin tocar el NB0
   escriban en `tmp_path`.)
 - El trabajo de los builders nuevos se hace **inline, paso a paso**, mostrando cada archivo
   antes de escribirlo — sin sub-agentes que corran generadores.
+- **Parche operativo NB12 h10 → slug `h10b`** (2026-06-16): el slug
+  `alexhuaracha/12-spatialconvlstm-multihorizon-h10` quedó **corrupto en el backend de Kaggle**
+  (`GetKernel` → 500, `status` → 404, no aparece en el listado de kernels). El push falla con
+  "Notebook not found" aunque el `.ipynb` es válido (gemelo byte-a-byte del 13-h10, que pushea
+  bien). Probado: el mismo archivo entra limpio en un slug nuevo. **Fix:** el kernel-metadata.json
+  de `notebooks/12_spatial_conv_lstm_multihorizon/h10/` apunta a `12-spatialconvlstm-multihorizon-h10b`.
+  El builder `build_notebook_12.py` **se deja limpio** (genera `h10` por convención); el `h10b` es
+  un parche del artefacto generado, no de la lógica. Si se regenera NB12, re-aplicar el sufijo a
+  mano en ese metadata. Causa raíz del zombie: probable push interrumpido previo (inferencia).
