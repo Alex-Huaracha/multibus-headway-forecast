@@ -200,15 +200,18 @@ baselines al horizonte correcto** (los 5: B0–B4, no solo B1), sin tocar el NB0
 
 ### 6.4 Cómo continuar (próxima sesión)
 
-1. Crear los **builders NUEVOS** de multi-horizonte (LSTM/ConvLSTM/Transformer) — clonar la
-   estructura de `build_notebook_07/08/09.py` y adaptar: inyectar `horizon` en el dataset cell,
-   capturar el target en `T_in+horizon-1`, CSV de salida con `_h{N}`, y baselines al horizonte
-   correcto. La duplicación del andamiaje de generación es aceptable: la lógica real vive en la
-   librería única embebida.
-2. Tests TDD para cada builder nuevo (asserciones reales, NO grep de strings).
-3. Generar los 6 notebooks, correr en Kaggle (~2h c/u, lejos del límite 12h), bajar resultados.
-4. Consolidar 1/3/5/10 min → **curva de degradación** (figura central) → significancia
-   estadística → redacción.
+1. ~~Crear los **builders NUEVOS** de multi-horizonte~~ ✅ **HECHO** (NB10-13, §6.1).
+2. ~~Tests TDD para cada builder nuevo~~ ✅ **HECHO**.
+3. ~~Generar los notebooks, correr en Kaggle, bajar resultados~~ ✅ **HECHO** (2026-06-16):
+   los 13 CSVs viven versionados en `docs/resultados/csv-multihorizon/` (excepción en
+   `.gitignore`). El h=1 de los DL se bajó de los kernels viejos `07/08/09` y se normalizó al
+   schema multi-h (`horizon=1`, corredores combinados).
+4. ~~Consolidar 1/3/5/10 min → **curva de degradación**~~ ✅ **HECHO** → ver §6.6.
+5. **Pendiente — significancia estadística**: bloqueada con los datos actuales. DM/Wilcoxon
+   comparan errores **por-muestra**, pero los CSVs solo guardan MAE/RMSE agregados (y faltan
+   `scipy`/`statsmodels`). Requiere **re-correr los kernels exportando residuos/predicciones por
+   muestra**. Es un paso aparte, no un cómputo sobre lo que ya hay.
+6. **Pendiente — redacción** del paper apoyada en la curva (§6.6) + Fase 8 (anomalías).
 
 ### 6.5 Lecciones operativas (NO repetir errores de esta sesión)
 
@@ -227,3 +230,35 @@ baselines al horizonte correcto** (los 5: B0–B4, no solo B1), sin tocar el NB0
   El builder `build_notebook_12.py` **se deja limpio** (genera `h10` por convención); el `h10b` es
   un parche del artefacto generado, no de la lógica. Si se regenera NB12, re-aplicar el sufijo a
   mano en ese metadata. Causa raíz del zombie: probable push interrumpido previo (inferencia).
+
+### 6.6 Resultado — curva de degradación (2026-06-16)
+
+Consolidados los 13 CSVs de `csv-multihorizon/`, el módulo `src/evaluation/degradation.py`
+(`load_results` + `degradation_table`, 7 tests TDD) y el script
+`src/build_degradation_curve.py` producen la **figura central del paper**:
+`docs/resultados/curva-degradacion.png` (2×2: MAE/RMSE × E2/E59).
+
+> Reproducir: `uv run python -m src.build_degradation_curve`
+> (NO `python src/build_degradation_curve.py` — el import `src` falla sin el rootdir en path).
+
+**Hallazgo central — el deep learning gana al alejar el horizonte.** A **h=1** los tres modelos
+profundos **empatan** con la persistencia (B1); ese era el "problema" de §2.2. Pero **B1 se
+degrada mucho más rápido** que los DL al crecer el horizonte. Ejemplo E2, MAE agregado:
+
+| Modelo | h=1 | h=3 | h=5 | h=10 |
+|--------|-----|-----|-----|------|
+| Persistencia (B1) | 4.76 | 6.07 | 6.49 | **7.03** |
+| LSTM | 4.47 | 4.94 | 5.05 | **5.15** |
+| ConvLSTM | 4.47 | 4.94 | 5.07 | **5.14** |
+| Transformer | 4.49 | 4.94 | 5.08 | **5.17** |
+
+A h=1 la diferencia es de ~0.3 min; a h=10 es de **~1.9 min** (B1 7.03 vs DL ~5.15). La brecha
+se **abre a favor de los modelos profundos** a 3/5/10 min, en ambos corredores y en ambas
+métricas. (Los tres DL son casi indistinguibles entre sí — coherente con el resultado nulo
+espacial de Fase 6.) **Esto reencuadra el paper**: el aporte del DL no es ganar a 1 min (no lo hace),
+sino **resistir la degradación** cuando la predicción se aleja — justo donde la persistencia
+trivial colapsa. La curva de degradación es el argumento, no un horizonte aislado.
+
+**Límite honesto (para el revisor)**: la comparación es sobre el **error agregado** (MAE/RMSE).
+Falta el test de **significancia** (DM/Wilcoxon) que confirme que la brecha a h≥3 es
+estadísticamente real — ver §6.4 paso 5 (requiere errores por-muestra, no disponibles aún).
