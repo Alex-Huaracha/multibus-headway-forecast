@@ -654,6 +654,8 @@ def evaluate_corridor_model(best_result, test_loaders, max_N, stats, label):
         all_preds   = []
         all_targets = []
         all_masks   = []
+        all_persist = []   # persistence (B1) baseline = last observed input
+        all_pmask   = []   # validity of that last input step
 
         with torch.no_grad():
             for batch in test_loaders[direction]:
@@ -672,13 +674,24 @@ def evaluate_corridor_model(best_result, test_loaders, max_N, stats, label):
                 pred_min   = denormalize_predictions(pred,      mean_val, std_val)
                 target_min = denormalize_predictions(target_sq, mean_val, std_val)
 
+                # Persistence (B1): predict y(t+HORIZON) = last observed y(t),
+                # the final input step (t_idx == T_IN-1) of each window.
+                # Same samples as the DL model -> exact paired comparison, no join.
+                persist_z   = inp[:, T_IN - 1, :]
+                persist_min = denormalize_predictions(persist_z, mean_val, std_val)
+                pmask_step  = input_mask[:, T_IN - 1, :]
+
                 all_preds.append(pred_min.cpu().numpy())
                 all_targets.append(target_min.cpu().numpy())
                 all_masks.append(mask_sq.cpu().numpy())
+                all_persist.append(persist_min.cpu().numpy())
+                all_pmask.append(pmask_step.cpu().numpy())
 
         preds_flat   = np.concatenate([p.ravel() for p in all_preds])
         targets_flat = np.concatenate([t.ravel() for t in all_targets])
         masks_flat   = np.concatenate([m.ravel() for m in all_masks]).astype(bool)
+        persist_flat = np.concatenate([p.ravel() for p in all_persist])
+        pmask_flat   = np.concatenate([m.ravel() for m in all_pmask]).astype(bool)
 
         valid_preds   = preds_flat[masks_flat]
         valid_targets = targets_flat[masks_flat]
@@ -689,7 +702,8 @@ def evaluate_corridor_model(best_result, test_loaders, max_N, stats, label):
               f"RMSE={rmse_val:.4f} min (n_valid={masks_flat.sum():,})")
 
         dir_metrics[direction] = (mae_val, rmse_val)
-        dir_arrays[direction]  = (preds_flat, targets_flat, masks_flat)
+        dir_arrays[direction]  = (preds_flat, targets_flat, masks_flat,
+                                  persist_flat, pmask_flat)
 
     return dir_metrics, dir_arrays
 
@@ -771,6 +785,72 @@ print(spatial_results)
     )
 
 
+def _add_residuals_cell() -> None:
+    md(
+        """## Residuos por muestra — spatial_conv_lstm_residuals_h{H}.csv (significancia)
+
+Exporta el error por muestra del SpatialConvLSTM y de la persistencia (B1) sobre
+EXACTAMENTE las mismas muestras (mismas ventanas), para los tests de significancia
+(Diebold-Mariano / Wilcoxon) que se corren en local.
+
+La persistencia se recomputa dentro del kernel como el último input observado
+(`t_idx == T_IN-1`), que está HORIZON pasos antes del target → es la predicción
+de B1 a este horizonte. Se conserva la muestra solo si el target Y el último input
+son válidos. Schema: corridor, direction, horizon, y_true, y_pred_dl, y_pred_persist.
+""",
+        cell_id="cell-12-residuals-md",
+    )
+    code(
+        """
+SPATIAL_RESID_OUT = OUTPUT_DIR / f"spatial_conv_lstm_residuals_h{HORIZON}.csv"
+
+def build_residuals_df(corridor, dir_arrays):
+    \"\"\"Per-sample paired errors (DL vs persistence) for one corridor.
+
+    dir_arrays[d] = (preds, targets, target_mask, persist, persist_mask).
+    A sample is kept only where BOTH the target and the persistence (last input)
+    are valid — the paired set the significance tests need.
+    \"\"\"
+    frames = []
+    for direction_int in [-1, 1]:
+        direction_str = f"+{direction_int}" if direction_int > 0 else str(direction_int)
+        preds, targets, tmask, persist, pmask = dir_arrays[direction_int]
+        keep = tmask & pmask
+        frames.append(
+            pl.DataFrame({
+                "y_true":         targets[keep].astype("float64"),
+                "y_pred_dl":      preds[keep].astype("float64"),
+                "y_pred_persist": persist[keep].astype("float64"),
+            }).with_columns(
+                corridor=pl.lit(corridor),
+                direction=pl.lit(direction_str),
+                horizon=pl.lit(HORIZON),
+            ).select(
+                ["corridor", "direction", "horizon",
+                 "y_true", "y_pred_dl", "y_pred_persist"]
+            )
+        )
+    return pl.concat(frames)
+
+residuals = pl.concat([
+    build_residuals_df("E2",  dir_arrays_e2),
+    build_residuals_df("E59", dir_arrays_e59),
+])
+residuals.write_csv(SPATIAL_RESID_OUT)
+print(f"Residuals written to: {SPATIAL_RESID_OUT}  ({residuals.height:,} rows)")
+
+# Sanity check: recomputed persistence MAE should match B1 from NB10 (per corridor).
+for corr in ["E2", "E59"]:
+    sub = residuals.filter(pl.col("corridor") == corr)
+    dl_mae = (sub["y_true"] - sub["y_pred_dl"]).abs().mean()
+    p_mae  = (sub["y_true"] - sub["y_pred_persist"]).abs().mean()
+    print(f"  {corr} h={HORIZON}: DL MAE={dl_mae:.4f}  persist(B1) MAE={p_mae:.4f}  "
+          f"n={sub.height:,}")
+""",
+        cell_id="cell-12-residuals",
+    )
+
+
 def _add_compare_cell() -> None:
     md(
         """## Comparación con baselines multi-horizonte (NB10)
@@ -848,6 +928,7 @@ def build_horizon_notebook(horizon: int) -> None:
     _add_train_cell()
     _add_evaluate_cell()
     _add_results_cell()
+    _add_residuals_cell()
     _add_compare_cell()
 
     _nb["cells"] = _cells

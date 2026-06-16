@@ -275,6 +275,43 @@ class TestNotebook11ResultsCell:
 
 
 # ---------------------------------------------------------------------------
+# AC-NB11-9: residuals cell exports per-sample paired errors for significance
+# ---------------------------------------------------------------------------
+
+class TestNotebook11ResidualsCell:
+    """Verify the residuals cell + persistence capture for significance tests."""
+
+    def test_evaluate_cell_captures_persistence(self):
+        """AC-NB11-9: evaluate cell captures the last input step as persistence
+        (B1) and propagates it in dir_arrays for paired comparison.
+        """
+        nb_path = NB_PATHS[10]
+        if not nb_path.exists():
+            assert _run_builder().returncode == 0
+        src = _cell_source(nb_path, "cell-11-evaluate")
+        compile(src, "cell-11-evaluate", "exec")  # real syntax check
+        assert "all_persist" in src and "inp[:, T_IN - 1, :]" in src, (
+            "evaluate cell must recompute persistence from the last input step"
+        )
+
+    def test_residuals_cell_schema_and_output(self):
+        """AC-NB11-9: residuals cell compiles, writes lstm_residuals_h{H}.csv, and
+        emits the 6-column paired schema (true / DL / persistence).
+        """
+        nb_path = NB_PATHS[10]
+        if not nb_path.exists():
+            assert _run_builder().returncode == 0
+        src = _cell_source(nb_path, "cell-11-residuals")
+        compile(src, "cell-11-residuals", "exec")  # real syntax check
+        assert "lstm_residuals_h" in src
+        for col in ("y_true", "y_pred_dl", "y_pred_persist", "corridor",
+                    "direction", "horizon"):
+            assert col in src, f"residuals schema missing {col!r}"
+        # paired set = target AND persistence both valid
+        assert "tmask & pmask" in src
+
+
+# ---------------------------------------------------------------------------
 # AC-NB11-8: one kernel-metadata.json per h{H}/ subdir — each correct and distinct
 # ---------------------------------------------------------------------------
 

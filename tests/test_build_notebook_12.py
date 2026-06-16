@@ -290,6 +290,34 @@ class TestNotebook12ResultsCell:
 
 
 # ---------------------------------------------------------------------------
+# AC-NB12-10: residuals cell exports per-sample paired errors for significance
+# ---------------------------------------------------------------------------
+
+class TestNotebook12ResidualsCell:
+    """Verify the residuals cell + persistence capture for significance tests."""
+
+    def test_evaluate_cell_captures_persistence(self):
+        nb_path = NB_PATHS[10]
+        if not nb_path.exists():
+            assert _run_builder().returncode == 0
+        src = _cell_source(nb_path, "cell-12-evaluate")
+        compile(src, "cell-12-evaluate", "exec")
+        assert "all_persist" in src and "inp[:, T_IN - 1, :]" in src
+
+    def test_residuals_cell_schema_and_output(self):
+        nb_path = NB_PATHS[10]
+        if not nb_path.exists():
+            assert _run_builder().returncode == 0
+        src = _cell_source(nb_path, "cell-12-residuals")
+        compile(src, "cell-12-residuals", "exec")
+        assert "spatial_conv_lstm_residuals_h" in src
+        for col in ("y_true", "y_pred_dl", "y_pred_persist", "corridor",
+                    "direction", "horizon"):
+            assert col in src, f"residuals schema missing {col!r}"
+        assert "tmask & pmask" in src
+
+
+# ---------------------------------------------------------------------------
 # AC-NB12-8: evaluate cell uses SpatialConvLSTM and 3-arg forward
 # ---------------------------------------------------------------------------
 
