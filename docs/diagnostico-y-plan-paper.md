@@ -207,10 +207,9 @@ baselines al horizonte correcto** (los 5: B0–B4, no solo B1), sin tocar el NB0
    `.gitignore`). El h=1 de los DL se bajó de los kernels viejos `07/08/09` y se normalizó al
    schema multi-h (`horizon=1`, corredores combinados).
 4. ~~Consolidar 1/3/5/10 min → **curva de degradación**~~ ✅ **HECHO** → ver §6.6.
-5. **Pendiente — significancia estadística**: bloqueada con los datos actuales. DM/Wilcoxon
-   comparan errores **por-muestra**, pero los CSVs solo guardan MAE/RMSE agregados (y faltan
-   `scipy`/`statsmodels`). Requiere **re-correr los kernels exportando residuos/predicciones por
-   muestra**. Es un paso aparte, no un cómputo sobre lo que ya hay.
+5. ~~**Significancia estadística** (DM/Wilcoxon por-muestra)~~ ✅ **HECHO** (2026-06-17): se
+   re-corrieron NB11/12/13 exportando residuos por-muestra, se añadió `scipy` y el módulo
+   `src/evaluation/significance.py` (Diebold-Mariano HAC/Newey-West + Wilcoxon) → ver §6.6.
 6. **Pendiente — redacción** del paper apoyada en la curva (§6.6) + Fase 8 (anomalías).
 
 ### 6.5 Lecciones operativas (NO repetir errores de esta sesión)
@@ -259,6 +258,62 @@ espacial de Fase 6.) **Esto reencuadra el paper**: el aporte del DL no es ganar 
 sino **resistir la degradación** cuando la predicción se aleja — justo donde la persistencia
 trivial colapsa. La curva de degradación es el argumento, no un horizonte aislado.
 
-**Límite honesto (para el revisor)**: la comparación es sobre el **error agregado** (MAE/RMSE).
-Falta el test de **significancia** (DM/Wilcoxon) que confirme que la brecha a h≥3 es
-estadísticamente real — ver §6.4 paso 5 (requiere errores por-muestra, no disponibles aún).
+#### Significancia estadística (2026-06-17) — la brecha es real
+
+El límite anterior (la curva comparaba solo **error agregado**) quedó resuelto. NB11/12/13 se
+re-corrieron exportando los **errores por-muestra**: para cada ventana de test, el target real,
+la predicción del DL y la de la **persistencia recomputada in-kernel** sobre la *misma* ventana
+pareada (`y_pred_persist = inp[:, T_IN-1, :]`, el último input observado, que está `horizon`
+pasos antes del target). Eso permite un test **pareado** sobre el mismo conjunto de muestras.
+
+`src/evaluation/significance.py` (Diebold-Mariano con varianza **HAC/Newey-West** por la
+autocorrelación de los errores en minutos consecutivos + **Wilcoxon signed-rank** no-paramétrico,
+11 tests TDD) y `src/build_significance_table.py` producen
+`docs/resultados/csv-multihorizon/significance_multihorizon.csv` (36 filas: 3 modelos × 2
+corredores × 3 horizontes × {MAE, RMSE}).
+
+> Reproducir: `uv run python -m src.build_significance_table`
+> Inputs: residuos en `docs/resultados/residuos-multihorizon/` — **NO versionados** (~165 MB c/u,
+> regenerables; `.gitignore` los ignora). El test pareado se restringe a las ventanas DL completas
+> (`T_IN + horizon` consecutivos), un subconjunto del test de NB10; por eso la persistencia
+> recomputada no coincide exactamente con el B1 de NB10 (esperado, y más riguroso).
+
+**Tabla — MAE agregado** (Δ MAE = MAE_DL − MAE_persist, en minutos; negativo ⇒ DL mejor):
+
+| Modelo | Corr. | h | n | Δ MAE | DM p | Wilcoxon p |
+|--------|-------|---|---|-------|------|------------|
+| LSTM | E2 | 3 | 599 117 | −0.90 | <0.001 | <0.001 |
+| LSTM | E2 | 5 | 583 733 | −1.20 | <0.001 | <0.001 |
+| LSTM | E2 | 10 | 566 186 | −1.57 | <0.001 | <0.001 |
+| LSTM | E59 | 3 | 2 169 833 | −0.19 | <0.001 | **0.277 (ns)** |
+| LSTM | E59 | 5 | 2 142 718 | −0.48 | <0.001 | <0.001 |
+| LSTM | E59 | 10 | 2 088 148 | −1.11 | <0.001 | <0.001 |
+| ConvLSTM | E2 | 3 | 599 117 | −0.90 | <0.001 | <0.001 |
+| ConvLSTM | E2 | 5 | 583 733 | −1.19 | <0.001 | <0.001 |
+| ConvLSTM | E2 | 10 | 566 186 | −1.56 | <0.001 | <0.001 |
+| ConvLSTM | E59 | 3 | 2 169 833 | −0.16 | <0.001 | <0.001 |
+| ConvLSTM | E59 | 5 | 2 142 718 | −0.46 | <0.001 | <0.001 |
+| ConvLSTM | E59 | 10 | 2 088 148 | −1.08 | <0.001 | <0.001 |
+| Transformer | E2 | 3 | 599 117 | −0.86 | <0.001 | <0.001 |
+| Transformer | E2 | 5 | 583 733 | −1.17 | <0.001 | <0.001 |
+| Transformer | E2 | 10 | 566 186 | −1.55 | <0.001 | <0.001 |
+| Transformer | E59 | 3 | 2 169 833 | −0.16 | <0.001 | <0.001 |
+| Transformer | E59 | 5 | 2 142 718 | −0.43 | <0.001 | <0.001 |
+| Transformer | E59 | 10 | 2 088 148 | −1.08 | <0.001 | <0.001 |
+
+**Lectura.** En las **18 celdas** Δ MAE es negativo y el **efecto crece con el horizonte** (E2:
+~−0.9 → −1.57; E59: ~−0.16 → −1.08), confirmando que la brecha de la curva no es ruido. Lo mismo
+vale para RMSE (las 18 celdas significativas por ambos tests). En la figura, cada punto DL está
+anotado contra persistencia; todas las comparaciones son significativas salvo la única excepción,
+marcada con anillo y `ns`.
+
+**Matiz honesto (para el revisor) — dos puntos:**
+
+1. **n masivo ⇒ p minúsculo.** Con ~0.6–2.2 M muestras pareadas por celda, *cualquier* diferencia
+   no nula da `p ≈ 0`. El argumento del paper se lidera con el **tamaño del efecto (Δ MAE en
+   minutos)**; los p-valores solo confirman que el signo no es ruido. No sobre-interpretar `p<0.001`.
+2. **La única excepción: LSTM / E59 / h=3** (Wilcoxon p = 0.277, *no* significativo) aunque el DM sí
+   lo sea. El DM es sobre la **media** y el Wilcoxon sobre la **mediana/rangos**: a horizonte corto
+   en el corredor más fácil (E59), la ventaja del LSTM (Δ MAE −0.19) viene de **reducir los errores
+   grandes (colas)**, no de mejorar la muestra **típica**. ConvLSTM y Transformer *sí* superan ese
+   umbral incluso ahí. Es el caso límite donde "DL ≈ persistencia" sigue siendo la lectura honesta.
