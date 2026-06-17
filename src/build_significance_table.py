@@ -18,8 +18,12 @@ Inputs (downloaded from Kaggle, NOT versioned — see .gitignore):
 
 Output (versioned — small, paper reproducibility):
     docs/resultados/csv-multihorizon/significance_multihorizon.csv
-    columns: model, corridor, horizon, n, delta_mae, dm_stat, dm_p,
+    columns: model, metric, corridor, horizon, n, delta_mae, dm_stat, dm_p,
              wilcoxon_p, dl_better
+    One row per model × metric × corridor × horizon (36 rows). ``dm_*`` and
+    ``wilcoxon_p`` are computed on the row's ``metric`` loss; ``delta_mae`` is
+    the headline effect size, always in MAE units. The §6.6 table is the
+    ``metric == "MAE"`` slice; the RMSE rows back the figure's RMSE panels.
 
 Note on n: with millions of paired samples both p-values collapse to ~0; the
 paper leads with Δ MAE (effect size) and uses the p-values only to confirm the
@@ -45,10 +49,11 @@ MODELS = [
     ("SpatialTransformer", "13-spatialtransformer"),
 ]
 RESIDUALS_GLOB = "**/*_residuals_*.csv"  # skip the co-located *_results_*.csv
+METRICS = ["MAE", "RMSE"]
 
 
 def build(resid_dir: Path = RESID_DIR, out_dir: Path = OUT_DIR) -> Path:
-    """Run the paired tests for every model and write the consolidated CSV.
+    """Run the paired tests for every model × metric and write the consolidated CSV.
 
     Returns the path to the written CSV.
 
@@ -60,14 +65,16 @@ def build(resid_dir: Path = RESID_DIR, out_dir: Path = OUT_DIR) -> Path:
     tables: list[pl.DataFrame] = []
     for name, subdir in MODELS:
         df = load_residuals(resid_dir / subdir, pattern=RESIDUALS_GLOB)
-        table = significance_table(df, metric="MAE").with_columns(
-            pl.lit(name).alias("model")
-        )
-        tables.append(table)
+        for metric in METRICS:
+            table = significance_table(df, metric=metric).with_columns(
+                pl.lit(name).alias("model"), pl.lit(metric).alias("metric")
+            )
+            tables.append(table)
 
     consolidated = pl.concat(tables, how="vertical").select(
         [
             "model",
+            "metric",
             "corridor",
             "horizon",
             "n",
@@ -77,7 +84,7 @@ def build(resid_dir: Path = RESID_DIR, out_dir: Path = OUT_DIR) -> Path:
             "wilcoxon_p",
             "dl_better",
         ]
-    ).sort(["model", "corridor", "horizon"])
+    ).sort(["model", "metric", "corridor", "horizon"])
 
     out_dir.mkdir(parents=True, exist_ok=True)
     out_csv = out_dir / "significance_multihorizon.csv"

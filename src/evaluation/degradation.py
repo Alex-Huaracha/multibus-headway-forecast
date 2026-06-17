@@ -26,16 +26,20 @@ import polars as pl
 REQUIRED_COLUMNS = ["corridor", "direction", "baseline", "metric", "value", "horizon"]
 
 
-def load_results(results_dir: str | Path) -> pl.DataFrame:
-    """Load and concatenate every ``*.csv`` in ``results_dir`` into one frame.
+def load_results(results_dir: str | Path, pattern: str = "*.csv") -> pl.DataFrame:
+    """Load and concatenate every matching CSV in ``results_dir`` into one frame.
 
-    Every CSV must carry the tidy schema in ``REQUIRED_COLUMNS``. The ``horizon``
-    column is cast to ``Int64`` so horizons sort numerically (h2 < h10).
+    Every selected CSV must carry the tidy schema in ``REQUIRED_COLUMNS``. The
+    ``horizon`` column is cast to ``Int64`` so horizons sort numerically (h2 < h10).
 
     Parameters
     ----------
     results_dir:
         Directory holding the multi-horizon result CSVs.
+    pattern:
+        Glob selecting which CSVs to load. Defaults to ``"*.csv"``. Pass
+        ``"*_results_*.csv"`` to skip co-located foreign-schema files such as
+        ``significance_multihorizon.csv`` that share the directory.
 
     Returns
     -------
@@ -44,12 +48,14 @@ def load_results(results_dir: str | Path) -> pl.DataFrame:
     Raises
     ------
     ValueError
-        If the directory contains no CSVs, or any CSV lacks a required column.
+        If no CSV matches ``pattern``, or any matching CSV lacks a required column.
     """
     results_dir = Path(results_dir)
-    csv_paths = sorted(results_dir.glob("*.csv"))
+    csv_paths = sorted(results_dir.glob(pattern))
     if not csv_paths:
-        raise ValueError(f"load_results: no CSV files found in {results_dir}")
+        raise ValueError(
+            f"load_results: no CSV matching {pattern!r} found in {results_dir}"
+        )
 
     frames: list[pl.DataFrame] = []
     for path in csv_paths:

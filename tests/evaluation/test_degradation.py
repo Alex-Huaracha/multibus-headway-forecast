@@ -12,6 +12,8 @@ Acceptance criteria:
     AC-LOAD-2  load_results preserves the 6-column schema and all rows
     AC-LOAD-3  load_results raises if the dir has no CSVs
     AC-LOAD-4  load_results raises if a CSV has the wrong schema
+    AC-LOAD-5  load_results(pattern=...) loads only matching CSVs, so a
+               co-located foreign-schema CSV (e.g. significance) is skipped
     AC-CURVE-1 degradation_table pivots horizons to columns, one row per model
     AC-CURVE-2 degradation_table filters by metric and direction
     AC-CURVE-3 degradation_table sorts horizons ascending
@@ -78,6 +80,27 @@ class TestLoadResults:
         pl.DataFrame({"foo": [1], "bar": [2]}).write_csv(tmp_path / "bad.csv")
         with pytest.raises(ValueError, match="schema"):
             load_results(tmp_path)
+
+    def test_pattern_skips_foreign_csv(self, tmp_path):
+        """AC-LOAD-5: a co-located foreign-schema CSV is skipped by pattern.
+
+        The significance table (significance_multihorizon.csv) lives in the same
+        csv-multihorizon/ dir but has a different schema. The default glob would
+        choke on it; ``pattern="*_results_*.csv"`` selects only result files.
+        """
+        _write_csv(
+            tmp_path / "lstm_results_h3.csv",
+            [("E2", "aggregate", "LSTM", "MAE", 5.1, 3)],
+        )
+        pl.DataFrame(
+            {"model": ["LSTM"], "metric": ["MAE"], "dm_p": [0.0]}
+        ).write_csv(tmp_path / "significance_multihorizon.csv")
+
+        with pytest.raises(ValueError, match="schema"):
+            load_results(tmp_path)
+        df = load_results(tmp_path, pattern="*_results_*.csv")
+        assert df.height == 1
+        assert set(df["baseline"]) == {"LSTM"}
 
 
 # --- AC-CURVE --------------------------------------------------------------
