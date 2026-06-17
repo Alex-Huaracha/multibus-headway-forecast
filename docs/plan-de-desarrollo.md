@@ -198,15 +198,17 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - Horizontes objetivo: `T_out ∈ {1, 3, 5, 10}` sobre grilla de 60 s (el de 1 min ya existe).
 - Los baselines (B0–B4) a cada horizonte corren en **CPU** (sin GPU).
 
-- [ ] Re-generar datasets supervisados a `T_out ∈ {3,5,10}` (reutiliza `src/data/dataset.py`, Fase 3).
-- [ ] Parametrizar los builders de notebooks 07/08/09 por horizonte, reusando las configs ganadoras.
-- [ ] Correr en Kaggle: 3 modelos × 2 corredores × {3,5,10} min (~8–10 h GPU, 1–2 sesiones).
-- [ ] Baselines B0–B4 a cada horizonte (CPU).
-- [ ] Consolidar CSVs de métricas por horizonte (MAE/RMSE), ambos corredores.
+- [x] Re-generar datasets supervisados a `T_out ∈ {3,5,10}` (reutiliza `src/data/dataset.py`, Fase 3).
+- [x] Parametrizar los builders de notebooks por horizonte, reusando las configs ganadoras (NB11 LSTM, NB12 SpatialConvLSTM, NB13 SpatialTransformer; un subdir `h{3,5,10}/` por horizonte).
+- [x] Correr en Kaggle: 3 modelos × 2 corredores × {3,5,10} min (9/9 kernels COMPLETE).
+- [x] Baselines B0–B4 a cada horizonte (CPU, NB10).
+- [x] Consolidar CSVs de métricas por horizonte (MAE/RMSE), ambos corredores.
 
-**Artefacto:** notebooks 07/08/09 multi-horizonte + CSVs `*_results_h{3,5,10}.csv` + checkpoints por horizonte.
+**Artefacto:** notebooks NB10–13 multi-horizonte + 13 CSVs versionados en `docs/resultados/csv-multihorizon/` + residuos por-muestra en `docs/resultados/residuos-multihorizon/` (no versionados).
 
 **Criterio de cierre:** MAE y RMSE de los 3 modelos profundos + baselines disponibles a 1/3/5/10 min en E2 y E59, listos para trazar la curva de degradación en Fase 7.
+
+**Estado:** Completada (2026-06-17). Confirmado el argumento del paper: el DL le gana a la persistencia en las 18 celdas y la ventaja crece con el horizonte.
 
 ---
 
@@ -214,17 +216,19 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 **Objetivo de la fase:** Comparar rigurosamente todos los modelos en las empresas seleccionadas y producir las tablas/figuras del paper.
 
-- [ ] MAE y RMSE por modelo, empresa y horizonte.
-- [ ] **Curva de degradación por horizonte (persistencia vs DL) — figura central del paper**: mostrar cómo B1 se desploma y los modelos profundos aguantan al crecer el horizonte (1→10 min). Convierte la debilidad a 1 min en el argumento principal.
-- [ ] Test de significancia estadística (Diebold-Mariano o Wilcoxon pareado).
+- [x] MAE y RMSE por modelo, empresa y horizonte (CSVs versionados en `docs/resultados/csv-multihorizon/`).
+- [x] **Curva de degradación por horizonte (persistencia vs DL) — figura central del paper**: muestra cómo B1 se desploma y los modelos profundos aguantan al crecer el horizonte (1→10 min). Convierte la debilidad a 1 min en el argumento principal. Anotada con significancia en los 4 paneles (`docs/resultados/curva-degradacion.png`).
+- [x] Test de significancia estadística (Diebold-Mariano + Wilcoxon pareado): DL gana en las 18 celdas, efecto crece con el horizonte. Tabla en `significance_multihorizon.csv` (36 filas). Única excepción honesta: LSTM/E59/h3 Wilcoxon no significativo (la ventaja a 3 min en E59 está en la media/colas, no en la mediana).
 - [ ] Análisis por franja horaria (pico vs. valle).
 - [ ] Análisis por posición en el vector de headways.
 - [ ] Robustez frente a días atípicos.
 - [ ] Tablas y figuras candidatas a paper, congeladas.
 
-**Artefacto:** Notebook `09_evaluacion` + carpeta `results/` con CSVs crudos.
+**Artefacto:** `src/evaluation/significance.py` + `src/build_significance_table.py` + `src/build_degradation_curve.py` + CSVs en `docs/resultados/csv-multihorizon/` + figura `curva-degradacion.png`.
 
 **Criterio de cierre:** Tablas y figuras del paper aprobadas; el criterio de éxito de `objetivo.md` (p<0.05) está verificado en Empresas 2 y 59.
+
+**Estado:** En curso. El núcleo (métricas + curva + significancia) está cerrado y verificado. Faltan los tres análisis complementarios (franja horaria, posición en el vector, días atípicos) y congelar el set final de tablas/figuras.
 
 ---
 
