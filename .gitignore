@@ -22,6 +22,9 @@ data/processed/*
 
 # Excepción: resultados de métricas (chicos, reproducibilidad del paper — no son datos crudos)
 !docs/resultados/csv-multihorizon/*.csv
+
+# Residuos por-muestra descargados de Kaggle (CSVs ~165MB c/u + logs): regenerables, no se versionan
+docs/resultados/residuos-multihorizon/
 !tests/fixtures/*.parquet
 *.feather
 *.h5
