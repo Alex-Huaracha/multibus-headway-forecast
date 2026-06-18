@@ -219,8 +219,8 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 - [x] MAE y RMSE por modelo, empresa y horizonte (CSVs versionados en `docs/resultados/csv-multihorizon/`).
 - [x] **Curva de degradación por horizonte (persistencia vs DL) — figura central del paper**: muestra cómo B1 se desploma y los modelos profundos aguantan al crecer el horizonte (1→10 min). Convierte la debilidad a 1 min en el argumento principal. Anotada con significancia en los 4 paneles (`docs/resultados/curva-degradacion.png`).
 - [x] Test de significancia estadística (Diebold-Mariano + Wilcoxon pareado): DL gana en las 18 celdas, efecto crece con el horizonte. Tabla en `significance_multihorizon.csv` (36 filas). Única excepción honesta: LSTM/E59/h3 Wilcoxon no significativo (la ventaja a 3 min en E59 está en la media/colas, no en la mediana).
-- [ ] Análisis por franja horaria (pico vs. valle).
-- [ ] Análisis por posición en el vector de headways.
+- [ ] Análisis por franja horaria (pico vs. valle): donde el headway varía más, el DL debería separarse más de la persistencia (foto operativa).
+- [x] Estratificación por magnitud real de cambio del headway (régimen de volatilidad): mecanismo causal de la curva de degradación. Confirmado un **crossover** en las 36 celdas (modelo×corredor×horizonte): en ventanas estables (Δ<1 min) la persistencia gana (Δ MAE ≈ +2.4…+3.4); en ventanas de alto cambio (Δ>3 min, media ~9 min) el DL gana decisivo (Δ MAE ≈ −3.2…−3.7). Y el horizonte corre la masa hacia el régimen de alto cambio (E59: 38.6%→54.4% de h=3 a h=10) → por eso la curva agregada diverge. Tabla `volatility_multihorizon.csv` (108 filas) + figura `volatilidad-crossover.png`. (Reemplaza el análisis por posición en el vector, descartado: el diagnóstico ya estableció que la señal espacial entre buses vecinos no aporta — `diagnostico-y-plan-paper.md` línea 40.)
 - [ ] Robustez frente a días atípicos.
 - [ ] Tablas y figuras candidatas a paper, congeladas.
 
@@ -228,7 +228,7 @@ Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada f
 
 **Criterio de cierre:** Tablas y figuras del paper aprobadas; el criterio de éxito de `objetivo.md` (p<0.05) está verificado en Empresas 2 y 59.
 
-**Estado:** En curso. El núcleo (métricas + curva + significancia) está cerrado y verificado. Faltan los tres análisis complementarios (franja horaria, posición en el vector, días atípicos) y congelar el set final de tablas/figuras.
+**Estado:** En curso. El núcleo (métricas + curva + significancia) está cerrado y verificado, y los dos criterios técnicos de `objetivo.md` (p<0.05, ≥2 corredores) ya se cumplen. Faltan tres análisis de blindaje (franja horaria, estratificación por volatilidad, días atípicos) y congelar el set final de tablas/figuras.
 
 ---
 
