@@ -161,9 +161,9 @@ Los splits temporales se derivan en-kernel mediante `split_temporal` de `src/eva
 
 | Split | Período |
 |---|---|
-| train | comienzo del dataset → 2024-01-14 |
-| val   | 2024-01-15 → 2024-02-04 |
-| test  | 2024-02-05 → fin del dataset |
+| train | 2023-10-01 → 2024-01-15 |
+| val   | 2024-01-16 → 2024-02-07 |
+| test  | 2024-02-08 → 2024-02-29 |
 
 > No existen `splits/{train,val,test}.parquet` en disco ni en `/kaggle/working`. Si se necesitan extraer, volver a ejecutar NB05 y agregar un `write_parquet` ad-hoc dentro del kernel.
 
