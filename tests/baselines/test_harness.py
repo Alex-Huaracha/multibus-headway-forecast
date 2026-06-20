@@ -91,14 +91,15 @@ class TestEvaluateCorridorSchema:
         )
 
     def test_harness_row_count(self):
-        """AC-CSV-2: 42 rows per corridor (3 directions × 7 baselines × 2 metrics)."""
+        """AC-CSV-2: 48 rows per corridor (3 directions × 8 baselines × 2 metrics),
+        with the fitted baseline B5_XGB included by default."""
         from src.baselines.harness import evaluate_corridor
 
         df = _make_corridor_frame()
         result = evaluate_corridor(df, "E2")
 
-        assert len(result) == 42, (
-            f"Expected 42 rows per corridor, got {len(result)}"
+        assert len(result) == 48, (
+            f"Expected 48 rows per corridor (8 baselines), got {len(result)}"
         )
 
         # Verify the corridor name propagated correctly
@@ -108,10 +109,25 @@ class TestEvaluateCorridorSchema:
         metrics = set(result["metric"].unique().to_list())
         assert metrics == {"MAE", "RMSE"}, f"Unexpected metrics: {metrics}"
 
-        # Verify baselines
+        # Verify baselines (now includes the fitted B5_XGB).
         baselines = set(result["baseline"].unique().to_list())
-        expected_baselines = {"B0", "B1", "B2_w5", "B2_w10", "B2_w15", "B3", "B4_HA"}
+        expected_baselines = {
+            "B0", "B1", "B2_w5", "B2_w10", "B2_w15", "B3", "B4_HA", "B5_XGB"
+        }
         assert baselines == expected_baselines, f"Unexpected baselines: {baselines}"
+
+    def test_formulaic_only_excludes_fitted(self):
+        """include_fitted=False → 42 rows, no B5_XGB (formulaic-only path)."""
+        from src.baselines.harness import evaluate_corridor
+
+        df = _make_corridor_frame()
+        result = evaluate_corridor(df, "E2", include_fitted=False)
+
+        assert len(result) == 42, (
+            f"Expected 42 rows without the fitted baseline, got {len(result)}"
+        )
+        baselines = set(result["baseline"].unique().to_list())
+        assert "B5_XGB" not in baselines, "B5_XGB must be absent when include_fitted=False"
 
     def test_harness_deterministic(self):
         """AC-B3-5 / B3-VAL-UNUSED: two identical calls produce equal DataFrames."""
@@ -228,10 +244,10 @@ class TestEvaluateCorridorHorizon:
                 f"h1={vals_h1}, h3={vals_h3}"
             )
 
-    def test_horizon_call_returns_42_rows(self):
-        """evaluate_corridor with horizon=3 must still return 42 rows."""
+    def test_horizon_call_returns_48_rows(self):
+        """evaluate_corridor with horizon=3 must still return 48 rows (with B5_XGB)."""
         from src.baselines.harness import evaluate_corridor
 
         df = _make_corridor_frame()
         result = evaluate_corridor(df, "E2", horizon=3)
-        assert len(result) == 42, f"Expected 42 rows, got {len(result)}"
+        assert len(result) == 48, f"Expected 48 rows, got {len(result)}"

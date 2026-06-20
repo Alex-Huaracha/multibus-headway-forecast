@@ -101,12 +101,12 @@ md(
 
 Evalúa baselines clásicos (B0 media global, B1 persistencia naive,
 B2 media móvil w∈{5,10,15}, B3 suavizado exponencial simple α=0.3,
-B4 promedio histórico por hora del día) sobre los corredores **E2** y **E59**
-a horizontes **h ∈ {1, 3, 5, 10} minutos**.
+B4 promedio histórico por hora del día) **y un baseline ajustado**
+(B5_XGB, gradient boosting sobre 12 lags + features de calendario/slot)
+sobre los corredores **E2** y **E59** a horizontes **h ∈ {1, 3, 5, 10} minutos**.
 
-B1/B2/B3 son horizon-aware (implementados en Ola 3 de Fase 6.5).
-B0/B4 son horizon-agnósticos: su predicción no depende del horizonte.
-El CSV de salida incluye columna `horizon` para comparación cruzada.
+B1/B2/B3/B5_XGB son horizon-aware. B0/B4 son horizon-agnósticos: su predicción
+no depende del horizonte. El CSV de salida incluye columna `horizon`.
 """,
     cell_id="cell-10-title",
 )
@@ -185,12 +185,26 @@ All operate per slot `(empresaid, direction, pair_rank)`.
 )
 
 embed_module(
+    "baselines/fitted.py",
+    """## Module: baselines/fitted
+
+`predict_b5_xgb` — fitted gradient-boosted baseline (B5_XGB). Sees the same
+12-lag window as the DL models (lag_1 == B1 persistence) plus calendar/slot
+features. Answers the "where is a fitted/ML baseline?" reviewer reflex.
+Must be embedded BEFORE harness, which calls it.
+""",
+    cell_id_md="cell-10-embed-fitted-md",
+    cell_id_code="cell-10-embed-fitted",
+)
+
+embed_module(
     "baselines/harness.py",
     """## Module: baselines/harness
 
-`evaluate_corridor` composes split → winsorize → all baselines → metrics per
-(direction × baseline) and returns a tidy 42-row long DataFrame.
-Accepts `horizon` parameter (Ola 3) to thread h to B1/B2/B3.
+`evaluate_corridor` composes split → winsorize → all baselines (B0-B4 plus the
+fitted B5_XGB when include_fitted=True, the default) → metrics per
+(direction × baseline), returning a tidy 48-row long DataFrame.
+Accepts `horizon` to thread h to B1/B2/B3/B5_XGB.
 """,
     cell_id_md="cell-10-embed-harness-md",
     cell_id_code="cell-10-embed-harness",
@@ -276,7 +290,7 @@ for h in HORIZONS:
         pl.concat([r_e2, r_e59]).with_columns(pl.lit(h, dtype=pl.Int64).alias("horizon"))
     )
 results = pl.concat(frames)
-print(f"Total rows: {results.height}  (expected 336 = 4 horizons x 2 corridors x 42)")
+print(f"Total rows: {results.height}  (expected 384 = 4 horizons x 2 corridors x 48)")
 print(results.head(10))
 """,
     cell_id="cell-10-run-harness",

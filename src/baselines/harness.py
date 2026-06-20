@@ -5,6 +5,7 @@ Public API:
 
 The function composes the full pipeline for one corridor:
     split_temporal → winsorize_train_p99 → predict_b0/b1/b2(×3)/b3/b4_ha
+    [→ predict_b5_xgb when include_fitted]
     → filter test rows → compute MAE + RMSE per (direction, baseline)
     → return tidy long-form DataFrame.
 
@@ -12,17 +13,23 @@ Output schema (design §6):
     corridor   Utf8
     direction  Utf8   — "-1", "+1", "aggregate"
     baseline   Utf8   — "B0", "B1", "B2_w5", "B2_w10", "B2_w15", "B3", "B4_HA"
+                        [, "B5_XGB" when include_fitted]
     metric     Utf8   — "MAE", "RMSE"
     value      Float64 — minutes
 
-Rows per corridor: 3 directions × 7 baselines × 2 metrics = 42.
-Both corridors together (notebook caller): 84 rows.
+Rows per corridor: 3 directions × N baselines × 2 metrics.
+    include_fitted=True  (default): N = 8 → 48 rows per corridor.
+    include_fitted=False (formulaic-only): N = 7 → 42 rows per corridor.
 
 Design decisions (locked in design §6 and §9):
   - "aggregate" direction = MAE/RMSE over POOLED test rows (both directions
     concatenated), NOT mean of per-direction metrics.
-  - val rows are NEVER consumed (B3-VAL-UNUSED).
-  - No new pyproject.toml dependencies.
+  - val rows are NEVER consumed by the formulaic baselines B0-B4 (B3-VAL-UNUSED).
+    The fitted baseline B5_XGB MAY use val rows for early stopping (only when
+    there are enough), which is correct practice for a learned model and mirrors
+    how the DL models were tuned.
+  - B5_XGB (the fitted ML baseline) adds an xgboost dependency; it lives in
+    fitted.py and is opt-out via include_fitted=False.
   - harness.py does NOT read parquets or write CSV (notebook does those).
 """
 from __future__ import annotations
@@ -31,6 +38,7 @@ import polars as pl
 
 from ..evaluation.metrics import mae, rmse
 from ..evaluation.splits import split_temporal, winsorize_train_p99
+from .fitted import predict_b5_xgb
 from .statistical import (
     BASELINE_B2_WINDOWS,
     predict_b0,
@@ -51,12 +59,16 @@ _BASELINE_MAP: list[tuple[str, str]] = [
     ("y_pred_b4_ha", "B4_HA"),
 ]
 
+# The fitted ML baseline is appended only when include_fitted=True.
+_FITTED_ENTRY: tuple[str, str] = ("y_pred_b5_xgb", "B5_XGB")
+
 
 def evaluate_corridor(
     headways: pl.DataFrame,
     corridor_name: str,
     *,
     horizon: int = 1,
+    include_fitted: bool = True,
 ) -> pl.DataFrame:
     """Run all classical baselines on one corridor and return a tidy metrics table.
 
@@ -70,13 +82,16 @@ def evaluate_corridor(
         Label for the `corridor` column in the output (e.g. "E2", "E59").
     horizon:
         Prediction horizon in steps. Default 1 reproduces the original behavior
-        exactly. B1, B2, and B3 are horizon-aware and receive this value.
+        exactly. B1, B2, B3, and B5_XGB are horizon-aware and receive this value.
         B0 and B4_HA are horizon-agnostic (constant/lookup predictors) and are
         not affected.
+    include_fitted:
+        When True (default), also runs the fitted ML baseline B5_XGB (xgboost).
+        When False, only the formulaic baselines B0-B4 run (no xgboost import).
 
     Returns
     -------
-    pl.DataFrame — 42-row tidy long-form table with schema:
+    pl.DataFrame — tidy long-form table (48 rows with include_fitted, else 42):
         [corridor, direction, baseline, metric, value]
 
     Notes
@@ -97,13 +112,18 @@ def evaluate_corridor(
     df = predict_b3(df, horizon=horizon)
     df = predict_b4_ha(df)
 
+    baseline_map = list(_BASELINE_MAP)
+    if include_fitted:
+        df = predict_b5_xgb(df, horizon=horizon)
+        baseline_map = baseline_map + [_FITTED_ENTRY]
+
     # --- Filter to test rows only (B3-VAL-UNUSED) ---
     test_df = df.filter(pl.col("split") == "test")
 
     # --- Compute metrics per (direction × baseline) ---
     rows: list[dict] = []
 
-    for pred_col, baseline_name in _BASELINE_MAP:
+    for pred_col, baseline_name in baseline_map:
         for direction_val in (-1, 1, "aggregate"):
             if direction_val == "aggregate":
                 # Pool all test rows regardless of direction.
