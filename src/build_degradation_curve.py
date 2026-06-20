@@ -36,10 +36,13 @@ RESULTS_DIR = REPO_ROOT / "docs" / "resultados" / "csv-multihorizon"
 OUT_DIR = REPO_ROOT / "docs" / "resultados"
 
 # Models to plot, in legend order. Persistence (B1) is the reference the deep
-# models must beat; B3 is the strongest statistical baseline (see fase-6b doc).
+# models must beat; B3 is the strongest formulaic baseline (see fase-6b doc);
+# B5_XGB is the fitted ML baseline (gradient boosting) — a strong learned
+# competitor the deep models must also beat.
 MODELS = [
     ("B1", "Persistencia (B1)", "tab:gray", "o", "--", 2.4),
-    ("B3", "Mejor baseline est. (B3)", "tab:olive", "s", ":", 1.6),
+    ("B3", "Mejor baseline form. (B3)", "tab:olive", "s", ":", 1.6),
+    ("B5_XGB", "XGBoost (B5, fitted)", "tab:brown", "P", "--", 1.6),
     ("LSTM", "LSTM", "tab:blue", "^", "-", 1.8),
     ("SpatialConvLSTM", "ConvLSTM", "tab:green", "D", "-", 1.8),
     ("SpatialTransformer", "Transformer", "tab:red", "v", "-", 1.8),

@@ -30,6 +30,14 @@ Enfrentamos dos familias de modelos sobre exactamente los mismos datos y la mism
 | B3 | Suavizado exponencial | Promedio que pondera más lo reciente (α = 0.3) |
 | B4 | Media histórica horaria | Promedio típico para esa hora del día |
 
+### Baseline ajustado (*fitted ML*)
+
+| ID | Modelo | Qué hace |
+|----|--------|----------|
+| **B5_XGB** | **Gradient boosting (XGBoost[^xgboost])** | Modelo **entrenado** que ve la **misma ventana de 12 pasos** que el LSTM (su primer *lag* es exactamente la persistencia) más hora, día y dirección — el competidor *aprendido* a batir |
+
+> **Por qué sumamos un baseline ajustado.** Ganarle solo a fórmulas naive (B0–B4) podría descartarse como "vencer rivales débiles". B5_XGB es un aprendiz de verdad: se entrena, se ajusta sobre validación y recibe **exactamente la misma información que la red neuronal**. Si el DL le gana también a esto, la ventaja deja de ser un artefacto de *baselines* pobres.
+
 ### Modelos de Deep Learning
 
 | Modelo | Idea de la arquitectura |
@@ -56,7 +64,7 @@ Enfrentamos dos familias de modelos sobre exactamente los mismos datos y la mism
 
 ![Curva de degradación](curva-degradacion.png)
 
-*Figura 1 — MAE y RMSE frente al horizonte de predicción, para E2 y E59. Cuanto más bajo, mejor. El símbolo ⊘ marca comparaciones no significativas.*
+*Figura 1 — MAE y RMSE frente al horizonte de predicción, para E2 y E59. Cuanto más bajo, mejor. Se grafican la persistencia (B1), el mejor baseline formulaico (B3), el baseline ajustado XGBoost (B5) y los tres modelos profundos. El símbolo ⊘ marca comparaciones no significativas.*
 
 **El mensaje:** a 1 minuto la persistencia es imbatible pero **operativamente inútil** (nadie puede reaccionar con 1 minuto de aviso). El valor del DL **emerge al anticipar a 3, 5 y 10 minutos** — justo el margen que un operador necesita para intervenir.
 
@@ -75,6 +83,19 @@ Mirá el cruce (*crossover*[^crossover]) en el extremo izquierdo de cada panel (
 > Los valores de la tabla anterior están redondeados a 2 decimales; los porcentajes se calculan sobre los valores con 3 decimales para que la aritmética sea exacta.
 
 > **Nota honesta sobre los modelos espaciales.** El mejor DL terminó siendo el **LSTM plano** en ambos corredores; las variantes con convolución y atención no aportaron mejora clara. Esto se reporta tal cual: añadir complejidad espacial **no** mejoró el pronóstico en estos datos.
+
+### El DL también le gana al competidor ajustado (no solo a los naive)
+
+La objeción natural a "el DL le gana a la persistencia" es: *¿y si los baselines son demasiado débiles?* Por eso entrenamos **B5_XGB** (gradient boosting) con la misma ventana de 12 pasos que ve el LSTM. Es un competidor **creíble**: le gana a la persistencia y al mejor baseline formulaico en casi todas las celdas (p. ej. E59 a h=10: mejor clásico 4.81 → XGBoost **4.64**). Y aun así:
+
+| Corredor | h = 1 | h = 3 | h = 5 | h = 10 |
+|----------|-------|-------|-------|--------|
+| **E2** — Δ MAE (XGBoost − LSTM) | +0.07 | +0.08 | +0.09 | +0.09 |
+| **E59** — Δ MAE (XGBoost − LSTM) | +0.05 | +0.19 | +0.28 | **+0.42** |
+
+**El LSTM le gana al XGBoost en las 8 celdas**, y —de nuevo— **la brecha crece con el horizonte** (E59: de +0.05 a +0.42 min). Es la misma curva de degradación, ahora contra un **aprendiz fuerte** en vez de una fórmula naive. La ventaja del DL no es un artefacto de comparar contra rivales pobres.
+
+> En E59 a h=1 la persistencia (3.10) sigue siendo la mejor de todos —incluido el XGBoost (3.39)—, coherente con que a 1 minuto el pronóstico es trivial.
 
 ---
 
@@ -194,6 +215,8 @@ La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo
 [^hiperparametros]: **Hiperparámetros** — los ajustes de configuración de un modelo que NO se aprenden de los datos sino que se fijan antes de entrenar (p. ej. cuántas capas, tamaño de la red, tasa de aprendizaje). Se eligen probando sobre el conjunto de validación.
 
 [^dropout]: **Dropout** — técnica de regularización que, durante el entrenamiento, "apaga" al azar una fracción de las neuronas en cada paso para evitar que la red memorice el conjunto de entrenamiento (*overfitting*). Es uno de los hiperparámetros del mini-grid de sensibilidad (Sección 4); un valor de 0.2 apaga el 20 % de las unidades, 0.0 desactiva la técnica.
+
+[^xgboost]: **XGBoost** — biblioteca de *gradient boosting*: construye un conjunto de árboles de decisión donde cada árbol corrige el error del anterior. Es un modelo de ML *ajustado* (se entrena con datos), a diferencia de los baselines B0–B4 que son fórmulas fijas. Aquí se usa como baseline B5_XGB con la misma ventana de 12 pasos que ve el LSTM, para que la comparación sea justa.
 
 [^snapshot]: **Snapshot** — una "foto" del estado de todos los buses del corredor en un mismo instante: el vector de *headways* de cada bus en ese momento. Los modelos espaciales miran cada *snapshot* para relacionar buses entre sí.
 
