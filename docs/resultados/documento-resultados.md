@@ -94,6 +94,19 @@ Que un número sea más bajo no basta: podría ser ruido. Para descartarlo aplic
 
 **Conclusión de esta sección:** la ventaja del DL a h ≥ 3 **no es ruido**. Es un efecto sistemático y medible.
 
+### ¿O es casualidad del hiperparámetro?
+
+Queda un último flanco: ¿el resultado del LSTM depende de haber acertado un ajuste fino y frágil? Para descartarlo corrimos un **mini-grid de sensibilidad** a h = 10. Para cada corredor se entrenaron 4 configuraciones —la **ganadora congelada** del grid de Fase 5 más **3 vecinas**, cada una alterando **un solo** hiperparámetro (capacidad oculta, *dropout*[^dropout] o tasa de aprendizaje)— con el **mismo seed, pipeline y *splits***. La comparación es interna: no depende de números históricos.
+
+| Corredor | Vecindario (4 configs) | MAE de la ganadora | Rango de MAE del vecindario | Dispersión |
+|---|---|---|---|---|
+| **E2** | hidden∈{32,64}, dropout∈{0,0.2}, lr∈{5e-4,1e-3} | 5.163 | 5.138 – 5.165 | **0.5 %** |
+| **E59** | hidden∈{32,64}, dropout∈{0,0.2}, lr∈{5e-4,1e-3} | 4.225 | 4.225 – 4.264 | **0.9 %** |
+
+*Datos: [`csv-multihorizon/lstm_minigrid_h10.csv`](csv-multihorizon/lstm_minigrid_h10.csv) (8 filas: 2 corredores × 4 configs).*
+
+**El rendimiento es estable: mover cualquier perilla mueve el MAE menos del 1 %.** En E59 la configuración elegida es además la **mejor** del vecindario; en E2 queda en el pelotón —una vecina la supera por ~0.5 %, distancia indistinguible del ruido de re-entrenamiento—. En ningún caso el rendimiento se desploma al perturbar el ajuste. La ventaja del DL **no es un artefacto de un hiperparámetro afortunado**: es robusta a su propia configuración.
+
 ---
 
 ## 5. ¿Por qué gana el DL? — El mecanismo de la volatilidad
@@ -179,6 +192,8 @@ La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo
 [^crossover]: **Crossover (cruce)** — el punto donde dos curvas se cruzan e invierten quién va ganando. Aquí marca el horizonte a partir del cual el DL pasa a superar a la persistencia (h ≥ 3 min en E59).
 
 [^hiperparametros]: **Hiperparámetros** — los ajustes de configuración de un modelo que NO se aprenden de los datos sino que se fijan antes de entrenar (p. ej. cuántas capas, tamaño de la red, tasa de aprendizaje). Se eligen probando sobre el conjunto de validación.
+
+[^dropout]: **Dropout** — técnica de regularización que, durante el entrenamiento, "apaga" al azar una fracción de las neuronas en cada paso para evitar que la red memorice el conjunto de entrenamiento (*overfitting*). Es uno de los hiperparámetros del mini-grid de sensibilidad (Sección 4); un valor de 0.2 apaga el 20 % de las unidades, 0.0 desactiva la técnica.
 
 [^snapshot]: **Snapshot** — una "foto" del estado de todos los buses del corredor en un mismo instante: el vector de *headways* de cada bus en ese momento. Los modelos espaciales miran cada *snapshot* para relacionar buses entre sí.
 
