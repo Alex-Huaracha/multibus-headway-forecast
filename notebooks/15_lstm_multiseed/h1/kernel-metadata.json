@@ -1,0 +1,18 @@
+{
+  "id": "alexhuaracha/15-lstm-multiseed-h1",
+  "title": "15 LSTM Multiseed h1",
+  "code_file": "15_lstm_multiseed_h1.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "accelerator": "GPU_T4X2",
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [
+    "alexhuaracha/04-preprocessing",
+    "alexhuaracha/10-baselines-multi-horizonte"
+  ],
+  "competition_sources": []
+}
