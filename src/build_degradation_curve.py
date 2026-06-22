@@ -55,6 +55,12 @@ DL_MODELS = {"LSTM", "SpatialConvLSTM", "SpatialTransformer"}
 SIG_CSV = RESULTS_DIR / "significance_multihorizon.csv"
 ALPHA = 0.05  # two-tailed threshold for both DM and Wilcoxon
 
+# Multi-seed confidence intervals (C2 / NB15). The LSTM was re-run with 5 seeds;
+# its 95% interval is drawn as error bars on the LSTM line (proxy for the whole
+# DL family, see fase-c2 doc). Missing file -> the curve renders without bars.
+MULTISEED_CI_CSV = RESULTS_DIR / "multiseed_ci_multihorizon.csv"
+MULTISEED_MODEL = "LSTM"
+
 
 def _horizon_axis(table_cols: list[str]) -> list[int]:
     """Extract sorted horizon integers from h{H} column names."""
@@ -77,6 +83,23 @@ def _load_significance(sig_csv: Path) -> dict[tuple[str, str, str, int], bool]:
     return verdict
 
 
+def _load_multiseed_ci(ci_csv: Path) -> dict[tuple[str, str, int], float]:
+    """Map (model, metric, corridor, horizon) -> 95% CI half-width (aggregate dir).
+
+    Reads the versioned multiseed_ci_multihorizon.csv. Only the ``aggregate``
+    direction is kept, since that is the slice the degradation curve plots.
+    Missing file -> empty map (the curve renders without error bars).
+    """
+    if not ci_csv.exists():
+        return {}
+    ci = pl.read_csv(ci_csv).filter(pl.col("direction") == "aggregate")
+    half: dict[tuple[str, str, int], float] = {}
+    for row in ci.iter_rows(named=True):
+        key = (row["baseline"], row["metric"], row["corridor"], int(row["horizon"]))
+        half[key] = float(row["ci_half"])
+    return half
+
+
 def build(results_dir: Path = RESULTS_DIR, out_dir: Path = OUT_DIR) -> Path:
     """Consolidate results, export the master CSV, render the figure.
 
@@ -91,6 +114,7 @@ def build(results_dir: Path = RESULTS_DIR, out_dir: Path = OUT_DIR) -> Path:
     df.sort(["corridor", "metric", "baseline", "horizon"]).write_csv(master_csv)
 
     significance = _load_significance(SIG_CSV)
+    multiseed_ci = _load_multiseed_ci(MULTISEED_CI_CSV)
 
     fig, axes = plt.subplots(2, 2, figsize=(11, 8), sharex=True)
     for row, metric in enumerate(METRICS):
@@ -111,6 +135,16 @@ def build(results_dir: Path = RESULTS_DIR, out_dir: Path = OUT_DIR) -> Path:
                     xs, ys, label=label, color=color, marker=marker,
                     linestyle=ls, linewidth=lw, markersize=6,
                 )
+                # Multi-seed 95% CI error bars (C2). Only the model re-run with
+                # 5 seeds carries them; the intervals are sub-marker-sized — that
+                # tininess IS the result (the LSTM is stable across seeds).
+                if name == MULTISEED_MODEL and multiseed_ci:
+                    yerr = [multiseed_ci.get((name, metric, corridor, x), 0.0) for x in xs]
+                    if any(e > 0 for e in yerr):
+                        ax.errorbar(
+                            xs, ys, yerr=yerr, fmt="none", ecolor=color,
+                            elinewidth=1.2, capsize=4, capthick=1.2, zorder=6,
+                        )
                 # Ring + label the rare DL-vs-persistence point that is NOT
                 # statistically significant (verdict explicitly False; h=1 and
                 # baselines have no paired test and are left unmarked).
@@ -142,11 +176,20 @@ def build(results_dir: Path = RESULTS_DIR, out_dir: Path = OUT_DIR) -> Path:
         handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.945),
         ncol=len(labels), frameon=False,
     )
+    footnotes = []
     if significance:
-        fig.text(
-            0.5, 0.005,
+        footnotes.append(
             "Comparación DL vs. persistencia (B1) a h∈{3,5,10}: todas significativas "
-            "(Diebold-Mariano y Wilcoxon, p<0.001); ⊘ ns = no significativa.",
+            "(Diebold-Mariano y Wilcoxon, p<0.001); ⊘ ns = no significativa."
+        )
+    if multiseed_ci:
+        footnotes.append(
+            "Barras de error en LSTM = IC 95% sobre 5 seeds [42,123,456,789,999] "
+            "(NB15); su ancho sub-marcador confirma estabilidad frente al seed."
+        )
+    if footnotes:
+        fig.text(
+            0.5, 0.005, "\n".join(footnotes),
             ha="center", fontsize=9, style="italic",
         )
     fig.tight_layout(rect=(0, 0.03, 1, 0.90))
