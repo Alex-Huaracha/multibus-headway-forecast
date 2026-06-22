@@ -10,7 +10,7 @@
 
 > **¿Cuándo vale la pena usar un modelo de Deep Learning[^dl] para predecir el *headway* de buses, en lugar de un método estadístico clásico?**
 
-La respuesta corta —y el aporte de este trabajo— es que **no siempre conviene**. El Deep Learning (DL) gana, pero solo bajo condiciones concretas: cuando se predice con suficiente anticipación (horizonte[^horizonte] ≥ 3 min) y cuando el servicio está **desestabilizándose**. En servicio estable, un método clásico simple es igual de bueno o mejor.
+La respuesta corta —y el aporte de este trabajo— es que **no siempre conviene**. El Deep Learning (DL) gana, pero solo bajo condiciones concretas: cuando se predice con suficiente anticipación (horizonte[^horizonte] ≥ 3 min) y en los tramos de **alta volatilidad**[^volatilidad] del servicio —cuando el *headway* da saltos grandes—. En servicio estable, un método clásico simple es igual de bueno o mejor.
 
 Este documento demuestra esa afirmación en tres pasos: **(1)** el DL gana → **(2)** la diferencia es estadísticamente real → **(3)** explicamos *por qué* gana.
 
@@ -64,7 +64,7 @@ Enfrentamos dos familias de modelos sobre exactamente los mismos datos y la mism
 
 ![Curva de degradación](curva-degradacion.png)
 
-*Figura 1 — MAE y RMSE frente al horizonte de predicción, para E2 y E59. Cuanto más bajo, mejor. Se grafican la persistencia (B1), el mejor baseline formulaico (B3), el baseline ajustado XGBoost (B5) y los tres modelos profundos. El símbolo ⊘ marca comparaciones no significativas.*
+*Figura 1 — MAE y RMSE frente al horizonte de predicción, para E2 y E59. Cuanto más bajo, mejor. Se grafican la persistencia (B1), el mejor baseline formulaico (B3), el baseline ajustado XGBoost (B5) y los tres modelos profundos. El símbolo ⊘ marca comparaciones no significativas. Las barras de error del LSTM son el IC 95 % sobre 5 seeds (ver Sección 4, "¿O es casualidad del seed?"); su ancho sub-marcador refleja la estabilidad frente al seed.*
 
 **El mensaje:** a 1 minuto la persistencia es imbatible pero **operativamente inútil** (nadie puede reaccionar con 1 minuto de aviso). El valor del DL **emerge al anticipar a 3, 5 y 10 minutos** — justo el margen que un operador necesita para intervenir.
 
@@ -128,6 +128,21 @@ Queda un último flanco: ¿el resultado del LSTM depende de haber acertado un aj
 
 **El rendimiento es estable: mover cualquier perilla mueve el MAE menos del 1 %.** En E59 la configuración elegida es además la **mejor** del vecindario; en E2 queda en el pelotón —una vecina la supera por ~0.5 %, distancia indistinguible del ruido de re-entrenamiento—. En ningún caso el rendimiento se desploma al perturbar el ajuste. La ventaja del DL **no es un artefacto de un hiperparámetro afortunado**: es robusta a su propia configuración.
 
+### ¿O es casualidad del seed?
+
+El reclamo más automático contra cualquier resultado de Deep Learning: *todos los números salen de una sola corrida con un único seed[^seed] — ¿y si esa inicialización tuvo suerte?* Para cerrarlo re-entrenamos la **misma configuración ganadora congelada del LSTM** con **5 seeds** `[42, 123, 456, 789, 999]`, en cada horizonte (h ∈ {1, 3, 5, 10}) y ambos corredores, y reportamos **media ± intervalo de confianza del 95 %** (t de Student, n = 5).
+
+| Corredor (MAE agregado, h=10) | Media de 5 seeds | IC 95 % | CV entre seeds |
+|---|---|---|---|
+| **E2** | 5.146 | [5.133, 5.156] | 0.18 % |
+| **E59** | 4.225 | [4.218, 4.231] | 0.13 % |
+
+*Datos: [`csv-multihorizon/multiseed_ci_multihorizon.csv`](csv-multihorizon/multiseed_ci_multihorizon.csv) (48 celdas: 2 corredores × 3 direcciones × 2 métricas × 4 horizontes, 5 seeds c/u). Las barras de error de la Figura 1 son justamente estos intervalos.*
+
+**Los intervalos son diminutos: en las 48 celdas el coeficiente de variación entre seeds nunca supera 0.28 %, y el IC 95 % más ancho es de ±0.02 min** — más angosto que el grosor del marcador en la curva. El valor canónico de la sección 3 proviene de una corrida **independiente** del lote de 5 seeds; difiere de la media multi-seed en **a lo sumo 0.03 min** en las 48 celdas (cae dentro del IC —angostísimo— en 32 de 48, y a ≤ 0.02 min del borde en el resto). A escala operativa es indistinguible de la media: el resultado canónico es **representativo**, no un golpe de suerte.
+
+¿Por qué un IC tan angosto? No por un entrenamiento casi determinista, sino por dos razones legítimas: **(a)** el conjunto de test es enorme (0.5–2.2 M observaciones por celda), así que el estimador del MAE/RMSE es muy estable; y **(b)** el *early stopping* sobre validación lleva a todos los seeds a óptimos muy parecidos. Los seeds están realmente cableados (init de pesos, barajado y *dropout* vía `torch`/`cuda`/`numpy`, ver `src/train.py:set_seed`) y producen modelos **distintos** — el desvío entre seeds es **no nulo** (0.002–0.02 min). Como las tres arquitecturas profundas comparten curva (spread < 0.03 min), la varianza por seed del LSTM **acota a toda la familia DL**. La ventaja del DL **no depende de un seed afortunado**: es estable frente al azar del entrenamiento.
+
 ---
 
 ## 5. ¿Por qué gana el DL? — El mecanismo de la volatilidad
@@ -151,7 +166,7 @@ Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] se
 **El hallazgo clave:** el DL **no mejora el promedio mejorando todo un poco**. El promedio "el DL le gana" es en realidad la **suma de dos regímenes opuestos**:
 
 - En servicio **estable**, predecir es trivial (el *headway* casi no cambia) → la persistencia gana, pero es una victoria **sin valor operativo**.
-- En servicio que se **desestabiliza** —el inicio del *bunching*[^bunching]— (saltos ≥ 3 min) → el DL gana de forma decisiva, **justo cuando importa** para intervenir.
+- En servicio que se **desestabiliza** —el inicio del *bunching*[^bunching]— (saltos ≥ 3 min) → el DL gana de forma decisiva: **es el régimen donde un pronóstico preciso tendría más valor operativo** (siempre que pueda anticiparse el régimen — ver Sección 6).
 
 **Y esto explica por qué la brecha crece con el horizonte** (Sección 3): a mayor horizonte, más muestras caen en el régimen de alto cambio.
 
@@ -162,7 +177,7 @@ Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] se
 
 ## 6. Conclusión
 
-> **El Deep Learning conviene para predecir el *headway* a horizontes operativos (≥ 3 min) y, sobre todo, en los tramos donde el servicio se está desestabilizando. En condiciones estables, un método clásico como la persistencia es igual de bueno o mejor.**
+> **El Deep Learning conviene para predecir el *headway* a horizontes operativos (≥ 3 min) y, sobre todo, en los tramos de alta volatilidad del servicio. En condiciones estables, un método clásico como la persistencia es igual de bueno o mejor.**
 
 La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo domina un régimen distinto. Esto abre la puerta a combinarlos (ver trabajo futuro).
 
@@ -215,6 +230,8 @@ La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo
 [^hiperparametros]: **Hiperparámetros** — los ajustes de configuración de un modelo que NO se aprenden de los datos sino que se fijan antes de entrenar (p. ej. cuántas capas, tamaño de la red, tasa de aprendizaje). Se eligen probando sobre el conjunto de validación.
 
 [^dropout]: **Dropout** — técnica de regularización que, durante el entrenamiento, "apaga" al azar una fracción de las neuronas en cada paso para evitar que la red memorice el conjunto de entrenamiento (*overfitting*). Es uno de los hiperparámetros del mini-grid de sensibilidad (Sección 4); un valor de 0.2 apaga el 20 % de las unidades, 0.0 desactiva la técnica.
+
+[^seed]: **Seed (semilla)** — el número que fija el azar del entrenamiento: pesos iniciales de la red, barajado de los datos y *dropout*. Mismo seed → entrenamiento idéntico y reproducible; distinto seed → un modelo ligeramente distinto. Entrenar con varios seeds y reportar media ± intervalo de confianza demuestra que el resultado es estable frente a ese azar, no producto de una inicialización afortunada.
 
 [^xgboost]: **XGBoost** — biblioteca de *gradient boosting*: construye un conjunto de árboles de decisión donde cada árbol corrige el error del anterior. Es un modelo de ML *ajustado* (se entrena con datos), a diferencia de los baselines B0–B4 que son fórmulas fijas. Aquí se usa como baseline B5_XGB con la misma ventana de 12 pasos que ve el LSTM, para que la comparación sea justa.
 
