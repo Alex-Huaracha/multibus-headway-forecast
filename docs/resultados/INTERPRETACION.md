@@ -156,6 +156,7 @@ uv run python -m src.build_degradation_curve     # consolidated_multihorizon.csv
 uv run python -m src.build_volatility_table       # volatility_multihorizon.csv
 uv run python -m src.build_volatility_curve       # volatilidad-crossover.png
 uv run python -m src.build_exante_volatility      # exante_volatility_multihorizon.csv (requiere headways_E*.parquet de Kaggle en data/processed/)
+uv run python -m src.build_exante_curve           # volatilidad-exante.png (desde el CSV ex-ante, no requiere parquets)
 ```
 
 Las figuras y tablas se reconstruyen desde los CSV versionados; no requieren los

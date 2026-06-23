@@ -197,6 +197,10 @@ Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] se
 
 El análisis anterior agrupa por el cambio *realizado* del *headway* (conocido a posteriori), lo que lo vuelve **descriptivo**. Para convertirlo en una afirmación **operativa** —ejecutable en el momento de decidir— repetimos el corte usando un estratificador **ex-ante**: la **volatilidad de la ventana de entrada** (el desvío estándar de los últimos 12 minutos de *headway* observados), que se conoce *antes* de predecir. Partimos el test en terciles por esa volatilidad reciente y medimos quién gana en cada uno.
 
+![Estratificación ex-ante de volatilidad](volatilidad-exante.png)
+
+*Figura 3 — Δ MAE (DL − persistencia) por tercil de volatilidad **ex-ante** (el desvío de la ventana de entrada, conocido al momento de predecir), por corredor, una línea por horizonte. Por debajo de cero gana el DL. La pendiente descendente es el hallazgo: la ventaja del DL se acentúa cuanto más errático venía el servicio. A diferencia de la Figura 2 (régimen retrospectivo), aquí el régimen se asigna con información disponible a priori, así que el patrón es operativamente accionable.*
+
 **El patrón clave se sostiene en los tres corredores y los tres horizontes (h = 3, 5, 10):** la ventaja del DL **crece monótonamente** con la volatilidad reciente —es máxima justo cuando el servicio venía más errático—, y en el tercil de **alta** volatilidad ex-ante el DL le gana a la persistencia en los nueve casos. En ese tercil alto a h = 10:
 
 | Corredor | Persistencia | LSTM | Δ MAE |
