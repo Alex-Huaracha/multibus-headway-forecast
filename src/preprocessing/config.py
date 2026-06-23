@@ -126,6 +126,14 @@ class EmpresaConfig:
 EMPRESA_CONFIG: Mapping[int, EmpresaConfig] = {
     2:  EmpresaConfig(empresaid=2,  has_heading=True,  centerline_strategy_override="two-pass"),
     59: EmpresaConfig(empresaid=59, has_heading=False, centerline_strategy_override="two-pass"),
+    # E4 — third (validation) corridor for external validity (added 2026-06-22).
+    # has_heading=True: E4 reports a `direccion` field (like E2).
+    # centerline_strategy_override left None (→ "single", global default) PROVISIONALLY:
+    # E2/E59 were set to "two-pass" only after Kaggle NB04 calibration evidence
+    # (multi-filar projection). E4 has no such evidence yet — run NB04 for E4,
+    # inspect the stale-crossing / headway sanity outputs, and flip to "two-pass"
+    # here (1-line change) if it shows the same multi-filar behaviour.
+    4:  EmpresaConfig(empresaid=4,  has_heading=True),
 }
 
 
@@ -167,9 +175,11 @@ def lateral_threshold_for(empresaid: int) -> float:
 
     Checks EmpresaConfig.lateral_offset_threshold_m_override first; falls
     back to PRODUCTIVE_PARAMS.lateral_offset_threshold_m (Caveat 3 hook).
+    Returns the global default for empresas not in EMPRESA_CONFIG (graceful
+    missing-key handling, mirroring the other resolvers).
     """
-    cfg = EMPRESA_CONFIG[empresaid]
-    if cfg.lateral_offset_threshold_m_override is not None:
+    cfg = EMPRESA_CONFIG.get(empresaid)
+    if cfg is not None and cfg.lateral_offset_threshold_m_override is not None:
         return cfg.lateral_offset_threshold_m_override
     return PRODUCTIVE_PARAMS.lateral_offset_threshold_m
 

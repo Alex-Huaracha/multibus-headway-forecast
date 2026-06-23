@@ -58,16 +58,23 @@ class TestProductiveParamsFreeze:
 
 
 class TestEmpresaConfig:
-    """Assert EMPRESA_CONFIG has exactly {2, 59} with correct has_heading."""
+    """Assert EMPRESA_CONFIG has exactly {2, 59, 4} with correct has_heading.
+
+    E4 added 2026-06-22 as the third (validation) corridor for external validity.
+    E4 reports a `direccion` field (has_heading=True, like E2).
+    """
 
     def test_keys(self):
-        assert set(EMPRESA_CONFIG.keys()) == {2, 59}
+        assert set(EMPRESA_CONFIG.keys()) == {2, 59, 4}
 
     def test_e2_has_heading(self):
         assert EMPRESA_CONFIG[2].has_heading is True
 
     def test_e59_no_heading(self):
         assert EMPRESA_CONFIG[59].has_heading is False
+
+    def test_e4_has_heading(self):
+        assert EMPRESA_CONFIG[4].has_heading is True
 
 
 class TestModuleConstants:
@@ -96,6 +103,16 @@ class TestLateralThreshold:
     def test_default_no_override(self):
         assert lateral_threshold_for(2) == 300.0
         assert lateral_threshold_for(59) == 300.0
+        assert lateral_threshold_for(4) == 300.0
+
+    def test_missing_empresa_returns_global_default(self):
+        """Resolver must not KeyError on an empresa absent from EMPRESA_CONFIG.
+
+        Regression: lateral_threshold_for used EMPRESA_CONFIG[empresaid] (direct
+        index) and would raise KeyError for any new corridor. It must mirror the
+        other resolvers and fall back to the global default via .get().
+        """
+        assert lateral_threshold_for(999) == PRODUCTIVE_PARAMS.lateral_offset_threshold_m
 
 
 class TestProductiveParamsFreezeLateralPair:
@@ -163,7 +180,9 @@ class TestCenterlineStrategy:
     R-CFG1: PRODUCTIVE_PARAMS.centerline_min_pings_per_direction == 1_000.
     R-CFG1: centerline_strategy_for(2) == "two-pass".
     R-CFG1: centerline_strategy_for(59) == "two-pass".
-    R-CFG1: centerline_strategy_for(4) == "single" (fallback to global default).
+    R-CFG1: centerline_strategy_for(4) == "single" (E4 in config, override=None →
+            global default; provisional pending NB04 calibration evidence).
+    R-CFG1: centerline_strategy_for(999) == "single" (empresa absent → fallback).
     """
 
     def test_centerline_strategy_global_default(self):
@@ -173,8 +192,13 @@ class TestCenterlineStrategy:
         assert PRODUCTIVE_PARAMS.centerline_min_pings_per_direction == 1_000
 
     def test_centerline_strategy_override_E2_E59(self):
-        """E2 and E59 must resolve to 'two-pass'; E4 must fall back to 'single'."""
+        """E2 and E59 must resolve to 'two-pass'; E4 resolves to 'single' (no override yet)."""
         from src.preprocessing.config import centerline_strategy_for
         assert centerline_strategy_for(2) == "two-pass"
         assert centerline_strategy_for(59) == "two-pass"
         assert centerline_strategy_for(4) == "single"
+
+    def test_centerline_strategy_missing_empresa(self):
+        """An empresa absent from EMPRESA_CONFIG falls back to the global default."""
+        from src.preprocessing.config import centerline_strategy_for
+        assert centerline_strategy_for(999) == "single"
