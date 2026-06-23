@@ -80,7 +80,7 @@ Mirá el cruce (*crossover*[^crossover]) en el extremo izquierdo de cada panel (
 
 - **E2 a 10 min:** persistencia 7.026 vs LSTM **5.153** → **−1.87 min de error (−26.7 %)**.
 - **E59 a 10 min:** persistencia 5.593 vs LSTM **4.225** → **−1.37 min de error (−24.5 %)**.
-- **E4 a 10 min:** persistencia 7.070 vs LSTM **5.334** → **−1.74 min de error (−24.6 %)**.
+- **E4 a 10 min:** persistencia 7.070 vs LSTM **5.334** → **−1.74 min de error (−24.5 %)**.
 
 > Los valores de la tabla anterior están redondeados a 2 decimales; los porcentajes se calculan sobre los valores con 3 decimales para que la aritmética sea exacta.
 
@@ -115,17 +115,21 @@ Lo reportamos tal cual porque refuerza el mensaje central del trabajo: la ventaj
 Que un número sea más bajo no basta: podría ser ruido. Para descartarlo aplicamos dos tests pareados a cada comparación DL-vs-persistencia.
 
 - **Tests usados:** Diebold-Mariano[^dm] (compara el error medio) y Wilcoxon[^wilcoxon] (compara las medianas por rangos).
-- **Resultado: 51 de 54 comparaciones muestran ventaja significativa del DL** con p-valor[^pvalor] < 0.001. Las 54 comparaciones surgen de 3 modelos DL × 3 corredores × 3 horizontes (h = 3, 5, 10; se excluye h=1, donde la persistencia gana) × 2 métricas.
+- **Advertencia sobre el p-valor.** Con n = 0.5–2.2 M muestras pareadas por celda, cualquier diferencia mínima da p ≈ 0: el p-valor confirma que el **signo** del efecto no es ruido, pero **no mide su importancia práctica**. Por eso esta sección lidera con el **tamaño del efecto** (Δ MAE en minutos, Sección 3) y trata la significancia como un **piso de sanidad**, no como la evidencia principal.
+- **Resultado (tamaño del efecto):** el DL tiene el menor error en **52 de las 54** comparaciones (3 modelos DL × 3 corredores × 3 horizontes h ∈ {3,5,10} × 2 métricas; se excluye h=1, donde la persistencia gana).
+- **Resultado (significancia como piso):** de esas, **50 son significativas a p[^pvalor] < 0.001** en *ambos* tests, y **51 a p < 0.05**.
 
-| | Resultado |
-|---|---|
-| Comparaciones con ventaja DL significativa | **51 / 54** (p < 0.001) |
-| Excepción 1 (efecto débil) | LSTM · E59 · h=3 · Wilcoxon p = 0.277 |
-| Excepción 2 (gana persistencia) | Transformer · E4 · h=3 · MAE y RMSE |
+Las cuatro desviaciones, declaradas en su totalidad:
 
-> **Las excepciones no contradicen el patrón.** En la primera (E59), Diebold-Mariano sí detecta la ventaja (p ≈ 0) pero Wilcoxon no: el DL gana **en promedio** pero el efecto es débil en mediana. En la segunda (E4), el Transformer queda apenas por detrás de la persistencia a 3 minutos (Δ MAE +0.06) —pero a ese horizonte el LSTM y el ConvLSTM **sí** la superan, y a h ≥ 5 los tres modelos ganan con holgura—. Son dos casos límite a 3 minutos; en el resto de la grilla la ventaja del DL es contundente.
+| Desviación | Caso | Lectura |
+|---|---|---|
+| Gana la persistencia (2 celdas) | Transformer · E4 · h=3 (MAE y RMSE) | El Transformer queda apenas detrás (Δ MAE +0.06); a ese mismo h el LSTM y el ConvLSTM **sí** ganan |
+| DL gana, significativo solo a p<0.05 | ConvLSTM · E4 · h=3 (MAE) | DM p = 0.005 (pasa 0.05, no 0.001); efecto chico pero a favor del DL |
+| DL gana en media, no en mediana | LSTM · E59 · h=3 (Wilcoxon p = 0.277) | DM sí detecta la ventaja (p ≈ 0); el efecto es débil en mediana |
 
-**Conclusión de esta sección:** la ventaja del DL a h ≥ 3 **no es ruido**. Es un efecto sistemático y medible.
+> **Las desviaciones no contradicen el patrón.** Las cuatro se concentran en **h=3** (el horizonte más corto de los testeados) y en E4/E59; a h ≥ 5 los tres modelos ganan con holgura en los tres corredores. Son casos límite, no contraejemplos.
+
+**Conclusión de esta sección:** la ventaja del DL a h ≥ 3, **medida en minutos de error**, es sistemática y consistente; la significancia estadística la respalda como piso, no como su justificación.
 
 ### ¿O es casualidad del hiperparámetro?
 

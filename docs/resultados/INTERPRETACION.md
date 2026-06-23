@@ -125,11 +125,13 @@ autocrítica.
 ## Tablas de respaldo
 
 - **`csv-multihorizon/significance_multihorizon.csv`** (54 filas) — test pareado
-  Diebold-Mariano + Wilcoxon por modelo × métrica × corredor × horizonte. El DL gana
-  con significancia en 51 de las 54 celdas (p<0.001 en DM y Wilcoxon). Dos excepciones
-  honestas: LSTM/E59/h3 en Wilcoxon (la ventaja a 3 min en E59 está en la media/colas,
-  no en la mediana) y Transformer/E4/h3 (la persistencia gana por poco; LSTM y ConvLSTM
-  sí la superan a ese horizonte).
+  Diebold-Mariano + Wilcoxon por modelo × métrica × corredor × horizonte. El DL tiene
+  el menor error en 52 de las 54 celdas; de esas, **50 son significativas a p<0.001** en
+  ambos tests (51 a p<0.05). Con n en los millones el p-valor colapsa a ~0, así que se
+  usa como piso de sanidad, no como evidencia (la evidencia es el Δ MAE en minutos).
+  Las cuatro desviaciones, todas a h=3: Transformer/E4/h3 (MAE y RMSE, gana la
+  persistencia por poco), ConvLSTM/E4/h3/MAE (DL gana, DM p=0.005 → solo signif. a 0.05)
+  y LSTM/E59/h3 (DL gana en media pero Wilcoxon p=0.277, débil en mediana).
 - **`csv-multihorizon/volatility_multihorizon.csv`** (162 filas) — el mismo test
   pareado pero estratificado por régimen de volatilidad. Sostiene la figura del
   crossover.

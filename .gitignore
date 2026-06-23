@@ -22,6 +22,8 @@ data/processed/*
 
 # Excepción: resultados de métricas (chicos, reproducibilidad del paper — no son datos crudos)
 !docs/resultados/csv-multihorizon/*.csv
+# Excepción: tabla maestra consolidada (citada por el documento como fuente de la Figura 1)
+!docs/resultados/consolidated_multihorizon.csv
 
 # Residuos por-muestra descargados de Kaggle (CSVs ~165MB c/u + logs): regenerables, no se versionan
 docs/resultados/residuos-multihorizon/
