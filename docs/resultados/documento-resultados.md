@@ -10,7 +10,7 @@
 
 > **¿Cuándo vale la pena usar un modelo de Deep Learning[^dl] para predecir el *headway* de buses, en lugar de un método estadístico clásico?**
 
-La respuesta corta —y el aporte de este trabajo— es que **no siempre conviene**. El Deep Learning (DL) gana, pero solo bajo condiciones concretas: cuando se predice con suficiente anticipación (horizonte[^horizonte] ≥ 3 min) y en los tramos de **alta volatilidad**[^volatilidad] del servicio —cuando el *headway* da saltos grandes—. En servicio estable, un método clásico simple es igual de bueno o mejor.
+La respuesta corta —y el aporte de este trabajo— es que **no siempre conviene**. El Deep Learning (DL) gana cuando se predice con suficiente anticipación (horizonte[^horizonte] **≥ 3 min**); a 1 minuto un método clásico simple es igual de bueno o mejor. Esa condición —el horizonte— se conoce de antemano, así que la recomendación es directamente accionable. Además mostramos *de dónde* viene la ventaja: se concentra en los tramos de **alta volatilidad**[^volatilidad] del servicio —cuando el *headway* da saltos grandes—, que es donde un pronóstico preciso más valdría.
 
 Este documento demuestra esa afirmación en tres pasos: **(1)** el DL gana → **(2)** la diferencia es estadísticamente real → **(3)** explicamos *por qué* gana.
 
@@ -197,7 +197,7 @@ Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] se
 
 ## 6. Conclusión
 
-> **El Deep Learning conviene para predecir el *headway* a horizontes operativos (≥ 3 min) y, sobre todo, en los tramos de alta volatilidad del servicio. En condiciones estables, un método clásico como la persistencia es igual de bueno o mejor.**
+> **El Deep Learning conviene para predecir el *headway* a horizontes operativos (≥ 3 min): a partir de ahí le gana a la persistencia, y la ventaja se concentra en los tramos de alta volatilidad del servicio (descriptivo). A 1 minuto, o en servicio estable, un método clásico como la persistencia es igual de bueno o mejor. La recomendación accionable se apoya en el horizonte —conocido de antemano—, no en el régimen de volatilidad, que solo se conoce a posteriori.**
 
 La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo domina un régimen distinto. Esto abre la puerta a combinarlos (ver trabajo futuro).
 
