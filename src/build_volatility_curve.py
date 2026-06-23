@@ -42,7 +42,7 @@ VOL_CSV = RESULTS_DIR / "volatility_multihorizon.csv"
 
 MODEL = "LSTM"  # representative deep model; spatial models match within noise
 METRIC = "MAE"  # headline effect size (delta_mae)
-CORRIDORS = ["E2", "E59"]
+CORRIDORS = ["E2", "E59", "E4"]
 
 # Regime display order + Spanish labels for the paper x-axis.
 REGIME_ORDER = ["low", "moderate", "high"]
@@ -77,7 +77,7 @@ def build(vol_csv: Path = VOL_CSV, out_dir: Path = OUT_DIR) -> Path:
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.8), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(16, 4.8), sharey=True)
     xs = list(range(len(REGIME_ORDER)))
     for col, corridor in enumerate(CORRIDORS):
         ax = axes[col]

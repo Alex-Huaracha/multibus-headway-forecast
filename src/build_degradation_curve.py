@@ -10,7 +10,7 @@ Usage:
 
 Outputs (written to docs/resultados/):
     consolidated_multihorizon.csv   — single tidy table (all models/horizons)
-    curva-degradacion.png           — 2x2 grid: rows MAE/RMSE, cols E2/E59
+    curva-degradacion.png           — 2x3 grid: rows MAE/RMSE, cols E2/E59/E4
 
 Significance: each deep-model point is tested against persistence (B1) with the
 paired Diebold-Mariano and Wilcoxon tests (see build_significance_table.py). All
@@ -48,7 +48,7 @@ MODELS = [
     ("SpatialTransformer", "Transformer", "tab:red", "v", "-", 1.8),
 ]
 METRICS = ["MAE", "RMSE"]
-CORRIDORS = ["E2", "E59"]
+CORRIDORS = ["E2", "E59", "E4"]
 
 # Deep models whose points are tested against persistence (B1).
 DL_MODELS = {"LSTM", "SpatialConvLSTM", "SpatialTransformer"}
@@ -116,7 +116,7 @@ def build(results_dir: Path = RESULTS_DIR, out_dir: Path = OUT_DIR) -> Path:
     significance = _load_significance(SIG_CSV)
     multiseed_ci = _load_multiseed_ci(MULTISEED_CI_CSV)
 
-    fig, axes = plt.subplots(2, 2, figsize=(11, 8), sharex=True)
+    fig, axes = plt.subplots(2, 3, figsize=(16, 8), sharex=True)
     for row, metric in enumerate(METRICS):
         for col, corridor in enumerate(CORRIDORS):
             ax = axes[row][col]

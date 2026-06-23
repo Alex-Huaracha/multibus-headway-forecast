@@ -1,0 +1,7 @@
+corridor,direction,baseline,metric,value,horizon
+E4,-1,SpatialConvLSTM,MAE,5.522357869385152,5
+E4,-1,SpatialConvLSTM,RMSE,7.142913861613279,5
+E4,+1,SpatialConvLSTM,MAE,3.967525728900848,5
+E4,+1,SpatialConvLSTM,RMSE,5.400288253073051,5
+E4,aggregate,SpatialConvLSTM,MAE,5.018491679846604,5
+E4,aggregate,SpatialConvLSTM,RMSE,6.6285577939886045,5
