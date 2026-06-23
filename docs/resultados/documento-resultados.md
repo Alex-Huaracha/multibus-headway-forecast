@@ -165,7 +165,7 @@ El reclamo más automático contra cualquier resultado de Deep Learning: *todos 
 
 Esta sección descompone el promedio global en regímenes para mostrar **dónde** se concentra la ventaja del DL. Convierte un número agregado en un patrón interpretable.
 
-> **Advertencia metodológica (leer primero).** El régimen de volatilidad se define **de forma retrospectiva**, como la magnitud del cambio real del *headway* (`|y_real − persistencia|`), conocida solo *después* del hecho. Esto introduce una **dependencia parcial con el error de la persistencia**: el régimen "alto" es, por construcción, donde la persistencia más se equivoca. Por eso este análisis es **descriptivo, no causal**: muestra que la ventaja del DL se concentra en las ventanas que *resultaron* volátiles, no que el DL "detecte" la volatilidad por adelantado. La parte informativa —que sobrevive a la circularidad— es que el **error absoluto del DL se mantiene acotado** mientras el de la persistencia se dispara con la magnitud del cambio (ver más abajo). El uso operativo (anticipar el régimen) requiere un predictor *ex-ante* y queda como trabajo futuro (Sección 6).
+> **Advertencia metodológica (leer primero).** El régimen de volatilidad se define **de forma retrospectiva**, como la magnitud del cambio real del *headway* (`|y_real − persistencia|`), conocida solo *después* del hecho. Esto introduce una **dependencia parcial con el error de la persistencia**: el régimen "alto" es, por construcción, donde la persistencia más se equivoca. Por eso este análisis es **descriptivo, no causal**: muestra que la ventaja del DL se concentra en las ventanas que *resultaron* volátiles, no que el DL "detecte" la volatilidad por adelantado. La parte informativa —que sobrevive a la circularidad— es que el **error absoluto del DL se mantiene acotado** mientras el de la persistencia se dispara con la magnitud del cambio (ver más abajo). Y para cerrar la objeción de raíz, repetimos el análisis con un estratificador **ex-ante** —volatilidad conocida *antes* de predecir— en la última parte de esta sección: la ventaja del DL no solo se sostiene, sino que se acentúa.
 
 Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] según cuánto cambió realmente el *headway*:
 
@@ -193,11 +193,27 @@ Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] se
 - En E59, las ventanas de alto cambio pasan de **38.6 %** (h=3) a **54.4 %** (h=10).
 - A 10 minutos, **más de la mitad de los casos** caen en el terreno donde el DL domina.
 
+### El test ex-ante: la ventaja se confirma con información disponible al predecir
+
+El análisis anterior agrupa por el cambio *realizado* del *headway* (conocido a posteriori), lo que lo vuelve **descriptivo**. Para convertirlo en una afirmación **operativa** —ejecutable en el momento de decidir— repetimos el corte usando un estratificador **ex-ante**: la **volatilidad de la ventana de entrada** (el desvío estándar de los últimos 12 minutos de *headway* observados), que se conoce *antes* de predecir. Partimos el test en terciles por esa volatilidad reciente y medimos quién gana en cada uno.
+
+**El resultado se sostiene en los tres corredores y los dos horizontes (h = 5, 10):** el DL le gana a la persistencia en los tres terciles, y la ventaja **crece monótonamente** con la volatilidad reciente —es máxima justo cuando el servicio venía más errático—. En el tercil de **alta** volatilidad ex-ante a h = 10:
+
+| Corredor | Persistencia | LSTM | Δ MAE |
+|----------|--------------|------|-------|
+| **E2** | 8.69 | 5.78 | **−2.91** |
+| **E59** | 6.73 | 4.80 | **−1.93** |
+| **E4** | 8.52 | 6.23 | **−2.29** |
+
+*Datos: [`csv-multihorizon/exante_volatility_multihorizon.csv`](csv-multihorizon/exante_volatility_multihorizon.csv) (18 filas: 3 corredores × 2 horizontes × 3 terciles). La estratificación corre sobre las muestras con desvío de ventana computable —se descarta ~1 % con datos de entrada insuficientes—. La alineación con los residuos se verificó muestra a muestra (la persistencia y el objetivo reconstruidos desde los datos crudos coinciden con los residuos a precisión de punto flotante).*
+
+**Por qué esto importa:** la regla pasa a ser **ejecutable en vivo**. Un operador, al momento de decidir, mira qué tan errático vino el servicio en los últimos minutos y —si venía movido— confía en el DL. La ventaja del DL **no** es un artefacto de definir el régimen a posteriori: se confirma con información disponible *antes* de predecir, y se **acentúa** (no se desvanece) al asignar el régimen ex-ante. Esto vuelve creíble y construible el sistema híbrido de la Sección 6.
+
 ---
 
 ## 6. Conclusión
 
-> **El Deep Learning conviene para predecir el *headway* a horizontes operativos (≥ 3 min): a partir de ahí le gana a la persistencia, y la ventaja se concentra en los tramos de alta volatilidad del servicio (descriptivo). A 1 minuto, o en servicio estable, un método clásico como la persistencia es igual de bueno o mejor. La recomendación accionable se apoya en el horizonte —conocido de antemano—, no en el régimen de volatilidad, que solo se conoce a posteriori.**
+> **El Deep Learning conviene para predecir el *headway* a horizontes operativos (≥ 3 min): a partir de ahí le gana a la persistencia, y la ventaja se concentra —y se acentúa— en los tramos de alta volatilidad del servicio. Esa ventaja se confirma con un estratificador ex-ante (la volatilidad reciente observada, conocida al momento de predecir), así que la recomendación es ejecutable en vivo, no solo a posteriori. A 1 minuto, o en servicio estable, un método clásico como la persistencia es igual de bueno o mejor.**
 
 La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo domina un régimen distinto. Esto abre la puerta a combinarlos (ver trabajo futuro).
 
@@ -210,7 +226,7 @@ La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo
 - La ventaja del DL **sobre el baseline aprendido (XGBoost)** depende de la escala del corredor: es clara en E2 y E59, pero en el corredor más chico (E4) el XGBoost es competitivo y el LSTM solo lo supera al horizonte más largo (h = 10). Frente a la persistencia, en cambio, el DL gana a h ≥ 3 en los tres corredores.
 - Los modelos espaciales (Conv, Transformer) no superaron al LSTM plano en estos datos; queda abierto si lo harían con más buses por *snapshot*[^snapshot].
 
-**Trabajo futuro: sistema híbrido.** Los resultados sugieren un enrutador que use persistencia en régimen estable y DL en régimen de alta volatilidad. Construirlo, sin embargo, requiere **predecir el régimen de volatilidad por adelantado**, lo cual es un problema abierto en sí mismo: en este estudio la volatilidad se midió de forma **retrospectiva** (con el cambio real del *headway*, conocido solo a posteriori). Por ello el sistema híbrido se plantea como dirección futura y no se evaluó en operación real.
+**Trabajo futuro: sistema híbrido.** Los resultados sugieren un enrutador que use persistencia en régimen estable y DL en régimen de alta volatilidad. La Sección 5 da el primer paso clave: un estratificador **ex-ante** —la volatilidad reciente observada, conocida al momento de predecir— ya separa los regímenes con información disponible a priori, y el DL mantiene (y acentúa) su ventaja bajo ese corte. Lo que falta es construir y evaluar el enrutador en operación: elegir el umbral de conmutación, medir el costo de los errores de clasificación de régimen y validar la ganancia neta en una corrida real. Eso se plantea como dirección futura; el componente que antes era un problema abierto —disponer de una señal de régimen ex-ante— queda resuelto.
 
 ---
 

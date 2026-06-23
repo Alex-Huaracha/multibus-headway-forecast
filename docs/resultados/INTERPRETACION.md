@@ -92,6 +92,10 @@ estable) y terminan abajo (en alto cambio). Es idéntico en las 54 celdas
 > parte tautológico. El análisis es **descriptivo, no causal**. Lo que NO es circular: el
 > error absoluto del DL se mantiene acotado mientras el de la persistencia explota
 > (E59/h10: persist 0.49→8.67 vs LSTM 3.33→4.95). Ese es el hallazgo defendible.
+> **Confirmación ex-ante:** al re-estratificar por la volatilidad de la ventana de
+> entrada (conocida ANTES de predecir), el DL sigue ganando en los 3 corredores y la
+> ventaja crece con la volatilidad reciente — ver `exante_volatility_multihorizon.csv`
+> y §5 del documento. Eso vuelve la afirmación operativa, no solo descriptiva.
 
 **Por qué importa (la lectura completa):**
 
@@ -151,6 +155,7 @@ uv run python -m src.build_significance_table   # significance_multihorizon.csv
 uv run python -m src.build_degradation_curve     # consolidated_multihorizon.csv + curva-degradacion.png
 uv run python -m src.build_volatility_table       # volatility_multihorizon.csv
 uv run python -m src.build_volatility_curve       # volatilidad-crossover.png
+uv run python -m src.build_exante_volatility      # exante_volatility_multihorizon.csv (requiere headways_E*.parquet de Kaggle en data/processed/)
 ```
 
 Las figuras y tablas se reconstruyen desde los CSV versionados; no requieren los
