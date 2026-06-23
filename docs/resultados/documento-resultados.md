@@ -161,11 +161,13 @@ El reclamo más automático contra cualquier resultado de Deep Learning: *todos 
 
 ---
 
-## 5. ¿Por qué gana el DL? — El mecanismo de la volatilidad
+## 5. ¿Dónde gana el DL? — El patrón de la volatilidad
 
-Esta es la parte más interesante y la que convierte un número promedio en una **historia con sentido**.
+Esta sección descompone el promedio global en regímenes para mostrar **dónde** se concentra la ventaja del DL. Convierte un número agregado en un patrón interpretable.
 
-Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] según cuánto cambia realmente el *headway*:
+> **Advertencia metodológica (leer primero).** El régimen de volatilidad se define **de forma retrospectiva**, como la magnitud del cambio real del *headway* (`|y_real − persistencia|`), conocida solo *después* del hecho. Esto introduce una **dependencia parcial con el error de la persistencia**: el régimen "alto" es, por construcción, donde la persistencia más se equivoca. Por eso este análisis es **descriptivo, no causal**: muestra que la ventaja del DL se concentra en las ventanas que *resultaron* volátiles, no que el DL "detecte" la volatilidad por adelantado. La parte informativa —que sobrevive a la circularidad— es que el **error absoluto del DL se mantiene acotado** mientras el de la persistencia se dispara con la magnitud del cambio (ver más abajo). El uso operativo (anticipar el régimen) requiere un predictor *ex-ante* y queda como trabajo futuro (Sección 6).
+
+Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] según cuánto cambió realmente el *headway*:
 
 ![Crossover de volatilidad](volatilidad-crossover.png)
 
@@ -183,6 +185,8 @@ Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] se
 
 - En servicio **estable**, predecir es trivial (el *headway* casi no cambia) → la persistencia gana, pero es una victoria **sin valor operativo**.
 - En servicio que se **desestabiliza** —el inicio del *bunching*[^bunching]— (saltos ≥ 3 min) → el DL gana de forma decisiva: **es el régimen donde un pronóstico preciso tendría más valor operativo** (siempre que pueda anticiparse el régimen — ver Sección 6).
+
+> **El punto que NO depende de la circularidad.** Aunque el régimen se defina por el error de la persistencia, hay un hecho genuino: el **error absoluto del DL se mantiene acotado** a través de los regímenes, mientras el de la persistencia *es* la volatilidad. En E59 a h=10, el MAE de la persistencia salta 0.49 → 1.88 → **8.67** min (estable → moderado → alto), pero el del LSTM apenas se mueve: 3.33 → 3.25 → **4.95**. En E4 a h=10, ídem: persistencia 0.48 → 1.88 → **10.12** vs LSTM 3.57 → 3.79 → **6.35**. El DL no "gana porque definimos el régimen a su favor": gana porque **es robusto a la volatilidad** justo donde la persistencia se rompe.
 
 **Y esto explica por qué la brecha crece con el horizonte** (Sección 3): a mayor horizonte, más muestras caen en el régimen de alto cambio.
 

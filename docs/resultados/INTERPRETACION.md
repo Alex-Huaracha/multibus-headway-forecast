@@ -87,11 +87,17 @@ estable) y terminan abajo (en alto cambio). Es idéntico en las 54 celdas
 | moderado (1–3 min) | ~1.9 min | +0.85 … +1.9 | Persistencia (achicándose) |
 | alto (>3 min) | ~9 min | **−2.6 … −3.8** | **DL, decisivo** |
 
+> **Caveat de circularidad (declararlo en el paper).** El eje X (`|y_real − persistencia|`)
+> *es* el error de la persistencia, así que "la persistencia pierde en alto cambio" es en
+> parte tautológico. El análisis es **descriptivo, no causal**. Lo que NO es circular: el
+> error absoluto del DL se mantiene acotado mientras el de la persistencia explota
+> (E59/h10: persist 0.49→8.67 vs LSTM 3.33→4.95). Ese es el hallazgo defendible.
+
 **Por qué importa (la lectura completa):**
 
 El promedio "el DL le gana a la persistencia" es débil por sí solo — un revisor lo
 descarta como una mejora marginal. El crossover lo convierte en una historia
-mecánica: ese promedio es la **suma de dos regímenes opuestos**.
+descriptiva: ese promedio es la **suma de dos regímenes opuestos**.
 
 1. **En ventanas estables el DL pierde, y está bien que pierda.** Si el headway no
    se mueve, repetir el último valor es casi exacto; el DL solo agrega ruido. Pero a
