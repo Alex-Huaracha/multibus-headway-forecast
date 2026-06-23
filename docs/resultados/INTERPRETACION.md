@@ -4,9 +4,10 @@
 > leen los ejes, qué número citar y qué argumento sostiene en el paper. Una
 > figura sin interpretación es decoración, no evidencia.
 
-Empresas evaluadas: **E2** y **E59** (los dos corredores de mayor flota). Métrica
-principal: **MAE** (minutos); RMSE como respaldo. Todos los valores citados son
-del agregado de ambas direcciones, salvo aclaración.
+Empresas evaluadas: **E2**, **E59** y **E4** (E2 y E59 son los corredores de mayor
+flota; E4 es el más chico —19 buses— e ingresa como validación externa del patrón).
+Métrica principal: **MAE** (minutos); RMSE como respaldo. Todos los valores citados
+son del agregado de ambas direcciones, salvo aclaración.
 
 ---
 
@@ -15,7 +16,7 @@ del agregado de ambas direcciones, salvo aclaración.
 **Qué es:** la figura central del paper. Error de pronóstico (MAE arriba, RMSE
 abajo) en función del **horizonte** (1, 3, 5, 10 min), comparando la persistencia
 (B1) y el mejor baseline estadístico (B3) contra los tres modelos profundos. Una
-columna por corredor (E2, E59).
+columna por corredor (E2, E59, E4).
 
 **Cómo se leen los ejes:**
 - **X** = horizonte de predicción en minutos (cuán adelante se predice).
@@ -40,9 +41,12 @@ línea recta y los modelos profundos aguantan.
 | E59 | LSTM | 3.337 | 3.847 | 4.032 | **4.225** |
 | E2 | Persistencia (B1) | 4.757 | 6.075 | 6.493 | 7.026 |
 | E2 | LSTM | 4.471 | 4.940 | 5.052 | **5.153** |
+| E4 | Persistencia (B1) | **3.130** | 4.783 | 5.740 | 7.070 |
+| E4 | LSTM | 3.763 | 4.668 | 5.009 | **5.334** |
 
-A h=10 el DL le saca **1.37 min** de MAE a la persistencia en E59 y **1.87 min** en
-E2. La brecha crece monótonamente con el horizonte.
+A h=10 el DL le saca **1.37 min** de MAE a la persistencia en E59, **1.87 min** en
+E2 y **1.74 min** en E4. La brecha crece monótonamente con el horizonte en los tres
+corredores.
 
 **¿Bueno o malo?** Bueno. Convierte la debilidad a 1 min (donde la persistencia
 gana) en el argumento principal: el aporte del DL se demuestra en los horizontes
@@ -74,14 +78,14 @@ realmente el headway** en ese intervalo y muestra quién gana en cada régimen.
   espaciales dan un crossover casi idéntico).
 
 **Qué muestra — el crossover:** las líneas *cruzan* el cero. Arrancan arriba (en
-estable) y terminan abajo (en alto cambio). Es idéntico en las 36 celdas
-(modelo × corredor × horizonte):
+estable) y terminan abajo (en alto cambio). Es idéntico en las 54 celdas
+(modelo × corredor × horizonte × métrica), con la magnitud variando algo por corredor:
 
 | Régimen | Cambio típico | Δ MAE | Quién gana |
 |---|---|---|---|
-| estable (<1 min) | ~0.46 min | **+2.4 … +3.4** | Persistencia |
-| moderado (1–3 min) | ~1.9 min | +0.85 … +1.6 | Persistencia (achicándose) |
-| alto (>3 min) | ~9 min | **−3.2 … −3.7** | **DL, decisivo** |
+| estable (<1 min) | ~0.46 min | **+2.3 … +3.4** | Persistencia |
+| moderado (1–3 min) | ~1.9 min | +0.85 … +1.9 | Persistencia (achicándose) |
+| alto (>3 min) | ~9 min | **−2.6 … −3.8** | **DL, decisivo** |
 
 **Por qué importa (la lectura completa):**
 
@@ -120,12 +124,13 @@ autocrítica.
 
 ## Tablas de respaldo
 
-- **`csv-multihorizon/significance_multihorizon.csv`** (36 filas) — test pareado
+- **`csv-multihorizon/significance_multihorizon.csv`** (54 filas) — test pareado
   Diebold-Mariano + Wilcoxon por modelo × métrica × corredor × horizonte. El DL gana
-  con significancia en las 18 celdas (p<0.001 en DM y Wilcoxon). Única excepción
-  honesta: LSTM/E59/h3 en Wilcoxon (la ventaja a 3 min en E59 está en la media/colas,
-  no en la mediana).
-- **`csv-multihorizon/volatility_multihorizon.csv`** (108 filas) — el mismo test
+  con significancia en 51 de las 54 celdas (p<0.001 en DM y Wilcoxon). Dos excepciones
+  honestas: LSTM/E59/h3 en Wilcoxon (la ventaja a 3 min en E59 está en la media/colas,
+  no en la mediana) y Transformer/E4/h3 (la persistencia gana por poco; LSTM y ConvLSTM
+  sí la superan a ese horizonte).
+- **`csv-multihorizon/volatility_multihorizon.csv`** (162 filas) — el mismo test
   pareado pero estratificado por régimen de volatilidad. Sostiene la figura del
   crossover.
 - **`consolidated_multihorizon.csv`** — tabla maestra tidy (todos los modelos,

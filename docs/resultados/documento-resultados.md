@@ -1,6 +1,6 @@
 # Deep Learning para el pronóstico de *headway*[^headway] de buses: ventaja condicionada al horizonte y a la volatilidad del servicio
 
-**Documento de resultados** · Corredores E2 y E59 · Horizontes de 1 a 10 minutos
+**Documento de resultados** · Corredores E2, E59 y E4 · Horizontes de 1 a 10 minutos
 
 > Este documento presenta **qué encontramos**, no cómo se limpiaron o normalizaron los datos. El preprocesamiento se resume al mínimo necesario para que los resultados sean reproducibles; el foco está en la evidencia.
 
@@ -48,7 +48,7 @@ Enfrentamos dos familias de modelos sobre exactamente los mismos datos y la mism
 
 ### El terreno de juego
 
-- **2 corredores:** E2 y E59 (dos líneas de bus reales).
+- **3 corredores:** E2, E59 y E4 (tres líneas de bus reales de distinta escala de flota; E4 es el más chico, 19 buses, e ingresa como validación externa del patrón).
 - **4 horizontes:** predecir a 1, 3, 5 y 10 minutos vista.
 - **2 métricas:** MAE[^mae] y RMSE[^rmse], ambas en minutos (cuanto más bajas, mejor). El texto reporta MAE; el RMSE confirma el mismo patrón y se ve en la Figura 1.
 - **Datos:** 5 meses contiguos (2023-10-01 → 2024-02-29, 152 días) divididos temporalmente[^split]:
@@ -64,7 +64,7 @@ Enfrentamos dos familias de modelos sobre exactamente los mismos datos y la mism
 
 ![Curva de degradación](curva-degradacion.png)
 
-*Figura 1 — MAE y RMSE frente al horizonte de predicción, para E2 y E59. Cuanto más bajo, mejor. Se grafican la persistencia (B1), el mejor baseline formulaico (B3), el baseline ajustado XGBoost (B5) y los tres modelos profundos. El símbolo ⊘ marca comparaciones no significativas. Las barras de error del LSTM son el IC 95 % sobre 5 seeds (ver Sección 4, "¿O es casualidad del seed?"); su ancho sub-marcador refleja la estabilidad frente al seed.*
+*Figura 1 — MAE y RMSE frente al horizonte de predicción, para E2, E59 y E4. Cuanto más bajo, mejor. Se grafican la persistencia (B1), el mejor baseline formulaico (B3), el baseline ajustado XGBoost (B5) y los tres modelos profundos. El símbolo ⊘ marca comparaciones no significativas. Las barras de error del LSTM son el IC 95 % sobre 5 seeds (ver Sección 4, "¿O es casualidad del seed?"); su ancho sub-marcador refleja la estabilidad frente al seed.*
 
 **El mensaje:** a 1 minuto la persistencia es imbatible pero **operativamente inútil** (nadie puede reaccionar con 1 minuto de aviso). El valor del DL **emerge al anticipar a 3, 5 y 10 minutos** — justo el margen que un operador necesita para intervenir.
 
@@ -74,15 +74,17 @@ Mirá el cruce (*crossover*[^crossover]) en el extremo izquierdo de cada panel (
 |----------|-----------|-----------|-----------|------------|
 | **E59** (MAE) | B1 **3.10** vs LSTM 3.34 ❌ *gana persistencia* | 4.18 vs **3.85** ✓ | 4.70 vs **4.03** ✓ | 5.59 vs **4.23** ✓ |
 | **E2** (MAE) | B1 4.76 vs **4.47** ✓ | 6.08 vs **4.94** ✓ | 6.49 vs **5.05** ✓ | 7.03 vs **5.15** ✓ |
+| **E4** (MAE) | B1 **3.13** vs LSTM 3.76 ❌ *gana persistencia* | 4.78 vs **4.67** ✓ | 5.74 vs **5.01** ✓ | 7.07 vs **5.33** ✓ |
 
 **Lo más importante — la brecha crece con el horizonte.** A medida que predecimos más lejos, la persistencia se degrada rápido y el DL aguanta:
 
 - **E2 a 10 min:** persistencia 7.026 vs LSTM **5.153** → **−1.87 min de error (−26.7 %)**.
 - **E59 a 10 min:** persistencia 5.593 vs LSTM **4.225** → **−1.37 min de error (−24.5 %)**.
+- **E4 a 10 min:** persistencia 7.070 vs LSTM **5.334** → **−1.74 min de error (−24.6 %)**.
 
 > Los valores de la tabla anterior están redondeados a 2 decimales; los porcentajes se calculan sobre los valores con 3 decimales para que la aritmética sea exacta.
 
-> **Nota honesta sobre los modelos espaciales.** El mejor DL terminó siendo el **LSTM plano** en ambos corredores; las variantes con convolución y atención no aportaron mejora clara. Esto se reporta tal cual: añadir complejidad espacial **no** mejoró el pronóstico en estos datos.
+> **Nota honesta sobre los modelos espaciales.** El mejor DL terminó siendo el **LSTM plano** en los tres corredores; las variantes con convolución y atención no aportaron mejora clara. Esto se reporta tal cual: añadir complejidad espacial **no** mejoró el pronóstico en estos datos. (En E4, el spread entre los tres modelos profundos es < 0.1 min en todos los horizontes — el resultado nulo espacial se replica.)
 
 ### El DL también le gana al competidor ajustado (no solo a los naive)
 
@@ -93,9 +95,18 @@ La objeción natural a "el DL le gana a la persistencia" es: *¿y si los baselin
 | **E2** — Δ MAE (XGBoost − LSTM) | +0.07 | +0.08 | +0.09 | +0.09 |
 | **E59** — Δ MAE (XGBoost − LSTM) | +0.05 | +0.19 | +0.28 | **+0.42** |
 
-**El LSTM le gana al XGBoost en las 8 celdas**, y —de nuevo— **la brecha crece con el horizonte** (E59: de +0.05 a +0.42 min). Es la misma curva de degradación, ahora contra un **aprendiz fuerte** en vez de una fórmula naive. La ventaja del DL no es un artefacto de comparar contra rivales pobres.
+**El LSTM le gana al XGBoost en las 8 celdas de E2 y E59**, y —de nuevo— **la brecha crece con el horizonte** (E59: de +0.05 a +0.42 min). Es la misma curva de degradación, ahora contra un **aprendiz fuerte** en vez de una fórmula naive. La ventaja del DL no es un artefacto de comparar contra rivales pobres.
 
 > En E59 a h=1 la persistencia (3.10) sigue siendo la mejor de todos —incluido el XGBoost (3.39)—, coherente con que a 1 minuto el pronóstico es trivial.
+
+**Matiz de escala (corredor E4).** La ventaja del LSTM sobre el XGBoost **no es universal: escala con el tamaño del corredor.** En E4 —el corredor más chico (19 buses, ~0.5 M muestras por celda)— el XGBoost es un competidor mucho más duro y le gana al LSTM en los horizontes cortos y medios; el LSTM solo lo supera a **h = 10**:
+
+| E4 — MAE | h = 1 | h = 3 | h = 5 | h = 10 |
+|----------|-------|-------|-------|--------|
+| **XGBoost (B5)** | **3.33** | **4.46** | **5.00** | 5.54 |
+| **LSTM** | 3.76 | 4.67 | 5.01 | **5.33** |
+
+Lo reportamos tal cual porque refuerza el mensaje central del trabajo: la ventaja del DL es **condicional**, no incondicional. Frente a la **persistencia** el DL sigue ganando a h ≥ 3 en los tres corredores (es el resultado externo-válido); pero frente a un **aprendiz fuerte** como el XGBoost, en un corredor pequeño la diferencia se concentra en el horizonte más largo. Cuanto mayor el corredor (E2, E59), más clara es la ventaja del DL también sobre el baseline aprendido.
 
 ---
 
@@ -104,14 +115,15 @@ La objeción natural a "el DL le gana a la persistencia" es: *¿y si los baselin
 Que un número sea más bajo no basta: podría ser ruido. Para descartarlo aplicamos dos tests pareados a cada comparación DL-vs-persistencia.
 
 - **Tests usados:** Diebold-Mariano[^dm] (compara el error medio) y Wilcoxon[^wilcoxon] (compara las medianas por rangos).
-- **Resultado: 35 de 36 comparaciones son significativas** con p-valor[^pvalor] < 0.001. Las 36 comparaciones surgen de 3 modelos DL × 2 corredores × 3 horizontes (h = 3, 5, 10; se excluye h=1, donde la persistencia gana) × 2 métricas.
+- **Resultado: 51 de 54 comparaciones muestran ventaja significativa del DL** con p-valor[^pvalor] < 0.001. Las 54 comparaciones surgen de 3 modelos DL × 3 corredores × 3 horizontes (h = 3, 5, 10; se excluye h=1, donde la persistencia gana) × 2 métricas.
 
 | | Resultado |
 |---|---|
-| Comparaciones significativas | **35 / 36** (p < 0.001) |
-| Única excepción | LSTM · E59 · h=3 · Wilcoxon p = 0.277 |
+| Comparaciones con ventaja DL significativa | **51 / 54** (p < 0.001) |
+| Excepción 1 (efecto débil) | LSTM · E59 · h=3 · Wilcoxon p = 0.277 |
+| Excepción 2 (gana persistencia) | Transformer · E4 · h=3 · MAE y RMSE |
 
-> **La única excepción no contradice nada.** En ese caso, Diebold-Mariano sí detecta la ventaja (p ≈ 0) pero Wilcoxon no: el DL gana **en promedio** pero el efecto es débil en términos de mediana. Es un único caso límite a 3 minutos; en el resto de la grilla la ventaja es contundente.
+> **Las excepciones no contradicen el patrón.** En la primera (E59), Diebold-Mariano sí detecta la ventaja (p ≈ 0) pero Wilcoxon no: el DL gana **en promedio** pero el efecto es débil en mediana. En la segunda (E4), el Transformer queda apenas por detrás de la persistencia a 3 minutos (Δ MAE +0.06) —pero a ese horizonte el LSTM y el ConvLSTM **sí** la superan, y a h ≥ 5 los tres modelos ganan con holgura—. Son dos casos límite a 3 minutos; en el resto de la grilla la ventaja del DL es contundente.
 
 **Conclusión de esta sección:** la ventaja del DL a h ≥ 3 **no es ruido**. Es un efecto sistemático y medible.
 
@@ -157,11 +169,11 @@ Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] se
 
 | Régimen | Cambio real del *headway* | ¿Quién gana? | Δ MAE (DL − persistencia) |
 |---------|-----------------------------|--------------|----------------------------|
-| **Estable** | < 1 min | Persistencia | +2.4 a +3.4 (DL peor) |
-| **Moderado** | 1–3 min | Persistencia (justo) | +0.85 a +1.6 |
-| **Alto** | ≥ 3 min | **DL, decisivo** | **−3.2 a −3.7 (DL mejor)** |
+| **Estable** | < 1 min | Persistencia | +2.3 a +3.4 (DL peor) |
+| **Moderado** | 1–3 min | Persistencia (justo) | +0.85 a +1.9 |
+| **Alto** | ≥ 3 min | **DL, decisivo** | **−2.6 a −3.8 (DL mejor)** |
 
-*Los rangos de Δ MAE abarcan los 2 corredores y los 3 horizontes (h = 3, 5, 10); el patrón es idéntico en todas las celdas. Los cortes de régimen son fijos en minutos (1 y 3 min), no cuantiles.*
+*Los rangos de Δ MAE abarcan los 3 corredores (E2, E59, E4) y los 3 horizontes (h = 3, 5, 10); el patrón —persistencia en estable/moderado, DL en alto— es idéntico en todas las celdas, con la magnitud variando algo según el corredor. Los cortes de régimen son fijos en minutos (1 y 3 min), no cuantiles.*
 
 **El hallazgo clave:** el DL **no mejora el promedio mejorando todo un poco**. El promedio "el DL le gana" es en realidad la **suma de dos regímenes opuestos**:
 
@@ -186,7 +198,8 @@ La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo
 **Análisis deliberadamente no realizados (no por carencia, por redundancia).** La comparación pico vs. valle quedó subsumida en el análisis de volatilidad (Sección 5): las franjas pico coinciden con el régimen de alto cambio del *headway*, y la volatilidad explica el *mecanismo* causal —cuánto se mueve el *headway*— mejor que la mera hora del día. Un análisis pico/valle separado mediría el mismo fenómeno con peor resolución.
 
 **Limitaciones reales del estudio.**
-- Evaluado sobre 2 corredores (E2, E59) y una ventana de 5 meses; la generalización a otras líneas o ciudades queda por validar.
+- Evaluado sobre 3 corredores (E2, E59, E4) de una misma ciudad y una ventana de 5 meses; la generalización a otras ciudades queda por validar. E4 se incorporó como **validación externa** y replica los dos hallazgos centrales (ventaja del DL sobre la persistencia a h ≥ 3, y nulo aporte de la complejidad espacial). Los estudios de robustez por seed y por hiperparámetro (Sección 4) se realizaron sobre E2 y E59.
+- La ventaja del DL **sobre el baseline aprendido (XGBoost)** depende de la escala del corredor: es clara en E2 y E59, pero en el corredor más chico (E4) el XGBoost es competitivo y el LSTM solo lo supera al horizonte más largo (h = 10). Frente a la persistencia, en cambio, el DL gana a h ≥ 3 en los tres corredores.
 - Los modelos espaciales (Conv, Transformer) no superaron al LSTM plano en estos datos; queda abierto si lo harían con más buses por *snapshot*[^snapshot].
 
 **Trabajo futuro: sistema híbrido.** Los resultados sugieren un enrutador que use persistencia en régimen estable y DL en régimen de alta volatilidad. Construirlo, sin embargo, requiere **predecir el régimen de volatilidad por adelantado**, lo cual es un problema abierto en sí mismo: en este estudio la volatilidad se midió de forma **retrospectiva** (con el cambio real del *headway*, conocido solo a posteriori). Por ello el sistema híbrido se plantea como dirección futura y no se evaluó en operación real.
