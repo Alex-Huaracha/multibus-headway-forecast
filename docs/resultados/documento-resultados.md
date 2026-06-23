@@ -197,7 +197,7 @@ Partimos las predicciones en tres **regímenes de volatilidad**[^volatilidad] se
 
 El análisis anterior agrupa por el cambio *realizado* del *headway* (conocido a posteriori), lo que lo vuelve **descriptivo**. Para convertirlo en una afirmación **operativa** —ejecutable en el momento de decidir— repetimos el corte usando un estratificador **ex-ante**: la **volatilidad de la ventana de entrada** (el desvío estándar de los últimos 12 minutos de *headway* observados), que se conoce *antes* de predecir. Partimos el test en terciles por esa volatilidad reciente y medimos quién gana en cada uno.
 
-**El resultado se sostiene en los tres corredores y los dos horizontes (h = 5, 10):** el DL le gana a la persistencia en los tres terciles, y la ventaja **crece monótonamente** con la volatilidad reciente —es máxima justo cuando el servicio venía más errático—. En el tercil de **alta** volatilidad ex-ante a h = 10:
+**El patrón clave se sostiene en los tres corredores y los tres horizontes (h = 3, 5, 10):** la ventaja del DL **crece monótonamente** con la volatilidad reciente —es máxima justo cuando el servicio venía más errático—, y en el tercil de **alta** volatilidad ex-ante el DL le gana a la persistencia en los nueve casos. En ese tercil alto a h = 10:
 
 | Corredor | Persistencia | LSTM | Δ MAE |
 |----------|--------------|------|-------|
@@ -205,7 +205,9 @@ El análisis anterior agrupa por el cambio *realizado* del *headway* (conocido a
 | **E59** | 6.73 | 4.80 | **−1.93** |
 | **E4** | 8.52 | 6.23 | **−2.29** |
 
-*Datos: [`csv-multihorizon/exante_volatility_multihorizon.csv`](csv-multihorizon/exante_volatility_multihorizon.csv) (18 filas: 3 corredores × 2 horizontes × 3 terciles). La estratificación corre sobre las muestras con desvío de ventana computable —se descarta ~1 % con datos de entrada insuficientes—. La alineación con los residuos se verificó muestra a muestra (la persistencia y el objetivo reconstruidos desde los datos crudos coinciden con los residuos a precisión de punto flotante).*
+**Matiz honesto por horizonte.** A h = 5 y h = 10 el DL gana en los **tres** terciles (incluido el calmo). A h = 3 la ventaja queda **concentrada** en el régimen volátil: el DL gana el tercil alto en los tres corredores, pero en el tercil calmo la persistencia todavía iguala o supera (E59 +0.16, E4 +0.29 de Δ MAE). Esto refuerza —no debilita— la lectura operativa: cuanto más corto el horizonte, más se confina la ventaja del DL a los momentos que importan (servicio errático), que es precisamente cuando la regla ex-ante lo activa.
+
+*Datos: [`csv-multihorizon/exante_volatility_multihorizon.csv`](csv-multihorizon/exante_volatility_multihorizon.csv) (27 filas: 3 corredores × 3 horizontes × 3 terciles). La estratificación corre sobre las muestras con desvío de ventana computable —se descarta ~1 % con datos de entrada insuficientes—. La alineación con los residuos se verificó muestra a muestra: la persistencia y el objetivo reconstruidos desde los datos crudos coinciden con los residuos a precisión de punto flotante (Δ máx ≈ 3e-6 en los nueve corredor×horizonte).*
 
 **Por qué esto importa:** la regla pasa a ser **ejecutable en vivo**. Un operador, al momento de decidir, mira qué tan errático vino el servicio en los últimos minutos y —si venía movido— confía en el DL. La ventaja del DL **no** es un artefacto de definir el régimen a posteriori: se confirma con información disponible *antes* de predecir, y se **acentúa** (no se desvanece) al asignar el régimen ex-ante. Esto vuelve creíble y construible el sistema híbrido de la Sección 6.
 
@@ -219,7 +221,7 @@ La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo
 
 ### Alcance y limitaciones
 
-**Análisis deliberadamente no realizados (no por carencia, por redundancia).** La comparación pico vs. valle quedó subsumida en el análisis de volatilidad (Sección 5): las franjas pico coinciden con el régimen de alto cambio del *headway*, y la volatilidad explica el *mecanismo* causal —cuánto se mueve el *headway*— mejor que la mera hora del día. Un análisis pico/valle separado mediría el mismo fenómeno con peor resolución.
+**Análisis deliberadamente no realizados (no por carencia, por redundancia).** La comparación pico vs. valle quedó subsumida en el análisis de volatilidad (Sección 5): las franjas pico coinciden con el régimen de alto cambio del *headway*, y la volatilidad caracteriza el régimen —cuánto se mueve el *headway*— mejor que la mera hora del día (y, validada ex-ante en la Sección 5, de forma operativa). Un análisis pico/valle separado mediría el mismo fenómeno con peor resolución.
 
 **Limitaciones reales del estudio.**
 - Evaluado sobre 3 corredores (E2, E59, E4) de una misma ciudad y una ventana de 5 meses; la generalización a otras ciudades queda por validar. E4 se incorporó como **validación externa** y replica los dos hallazgos centrales (ventaja del DL sobre la persistencia a h ≥ 3, y nulo aporte de la complejidad espacial). Los estudios de robustez por seed y por hiperparámetro (Sección 4) se realizaron sobre E2 y E59.

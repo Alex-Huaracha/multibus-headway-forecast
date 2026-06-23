@@ -4,7 +4,7 @@ Computes std of the 12 raw input-window headway values (ex-ante feature)
 for each test-set sample, stratifies into terciles, and checks whether
 the DL model beats persistence in the high-volatility tercile.
 
-Covers corridors: E2, E59, E4 at horizons h=5 and h=10.
+Covers corridors: E2, E59, E4 at horizons h=3, h=5 and h=10.
 
 Usage:
     uv run python src/build_exante_volatility.py
@@ -392,7 +392,7 @@ def main() -> None:
     print("Ex-ante Volatility Stratification")
     print("=" * 70)
 
-    horizons = [5, 10]
+    horizons = [3, 5, 10]
     all_rows: list[dict] = []
 
     # E2
