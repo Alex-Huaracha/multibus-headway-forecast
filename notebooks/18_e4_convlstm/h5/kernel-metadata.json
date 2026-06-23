@@ -1,0 +1,17 @@
+{
+  "id": "alexhuaracha/18-e4-convlstm-h5",
+  "title": "18 e4 convlstm h5",
+  "code_file": "18_e4_convlstm_h5.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "accelerator": "GPU_T4X2",
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [
+    "alexhuaracha/16-e4-data-baselines"
+  ],
+  "competition_sources": []
+}
