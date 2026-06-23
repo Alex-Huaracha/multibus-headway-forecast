@@ -1,0 +1,17 @@
+{
+  "id": "alexhuaracha/19-e4-transformer-h10",
+  "title": "19 e4 transformer h10",
+  "code_file": "19_e4_transformer_h10.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "accelerator": "GPU_T4X2",
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [
+    "alexhuaracha/16-e4-data-baselines"
+  ],
+  "competition_sources": []
+}
