@@ -1,0 +1,16 @@
+{
+  "id": "alexhuaracha/16-e4-data-baselines",
+  "title": "16 E4 data baselines",
+  "code_file": "16_e4_data.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [
+    "alexhuaracha/multibus-headway-forecast-clean"
+  ],
+  "kernel_sources": [],
+  "competition_sources": []
+}
