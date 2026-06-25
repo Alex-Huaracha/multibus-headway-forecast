@@ -206,12 +206,12 @@ def materialize_corridor(
     stats: NormalizationStats,
     empresaid: int,
     horizon: int,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Materialize both directions for one corridor; return concatenated kept samples.
 
     Order: dir=-1 then dir=+1 (matching residual CSV order).
-    Returns (targets, persist, dl_preds_placeholder, keep_mask_applied, ex_ante_std)
-    All arrays are already kept (only valid samples).
+    Returns (targets, persist, ex_ante_std), each already filtered to the kept
+    (valid target & persistence) samples.
     """
     train_df = df.filter(pl.col("split") == "train")
     test_df = df.filter(pl.col("split") == "test")
