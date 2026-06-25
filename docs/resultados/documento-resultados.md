@@ -48,7 +48,7 @@ Enfrentamos dos familias de modelos sobre exactamente los mismos datos y la mism
 
 ### El terreno de juego
 
-- **3 corredores:** E2, E59 y E4 (tres líneas de bus reales de distinta escala de flota; E4 es el más chico, 19 buses, e ingresa como validación externa del patrón).
+- **3 corredores:** E2, E59 y E4 (tres líneas de bus reales de distinta escala de flota; E4 es el más chico, 19 buses, e ingresa como **validez externa acotada a la escala de flota** —una línea independiente y mucho más pequeña, no otra ciudad: la generalización geográfica queda fuera de alcance, ver Sección 6).
 - **4 horizontes:** predecir a 1, 3, 5 y 10 minutos vista.
 - **2 métricas:** MAE[^mae] y RMSE[^rmse], ambas en minutos (cuanto más bajas, mejor). El texto reporta MAE; el RMSE confirma el mismo patrón y se ve en la Figura 1.
 - **Datos:** 5 meses contiguos (2023-10-01 → 2024-02-29, 152 días) divididos temporalmente[^split]:
@@ -84,9 +84,9 @@ Mirá el cruce (*crossover*[^crossover]) en el extremo izquierdo de cada panel (
 
 > Los valores de la tabla anterior están redondeados a 2 decimales; los porcentajes se calculan sobre los valores con 3 decimales para que la aritmética sea exacta.
 
-> **Nota honesta sobre los modelos espaciales.** El mejor DL terminó siendo el **LSTM plano** en los tres corredores; las variantes con convolución y atención no aportaron mejora clara. Esto se reporta tal cual: añadir complejidad espacial **no** mejoró el pronóstico en estos datos. (En E4, el spread entre los tres modelos profundos es < 0.1 min en todos los horizontes — el resultado nulo espacial se replica.)
+> **Nota honesta sobre los modelos espaciales.** El mejor DL terminó siendo el **LSTM plano** en agregado en los tres corredores (promediando horizontes); las variantes con convolución y atención no aportaron mejora clara. En celdas puntuales el ConvLSTM iguala o supera al LSTM por márgenes diminutos (< 0.03 min, p. ej. E2 a h=10 y E4 a h=1), pero a h ≥ 5 el LSTM lidera en los tres corredores. Esto se reporta tal cual: añadir complejidad espacial **no** mejoró el pronóstico en estos datos. (En E4, el spread entre los tres modelos profundos es < 0.1 min a h ≥ 5 — el resultado nulo espacial se replica.)
 
-### El DL también le gana al competidor ajustado (no solo a los naive)
+### El DL también le gana al competidor ajustado — pero esto escala con el tamaño del corredor
 
 La objeción natural a "el DL le gana a la persistencia" es: *¿y si los baselines son demasiado débiles?* Por eso entrenamos **B5_XGB** (gradient boosting) con la misma ventana de 12 pasos que ve el LSTM. Es un competidor **creíble**: le gana a la persistencia y al mejor baseline formulaico en casi todas las celdas (p. ej. E59 a h=10: mejor clásico 4.81 → XGBoost **4.64**). Y aun así:
 
@@ -95,7 +95,7 @@ La objeción natural a "el DL le gana a la persistencia" es: *¿y si los baselin
 | **E2** — Δ MAE (XGBoost − LSTM) | +0.07 | +0.08 | +0.09 | +0.09 |
 | **E59** — Δ MAE (XGBoost − LSTM) | +0.05 | +0.19 | +0.28 | **+0.42** |
 
-**El LSTM le gana al XGBoost en las 8 celdas de E2 y E59**, y —de nuevo— **la brecha crece con el horizonte** (E59: de +0.05 a +0.42 min). Es la misma curva de degradación, ahora contra un **aprendiz fuerte** en vez de una fórmula naive. La ventaja del DL no es un artefacto de comparar contra rivales pobres.
+**El LSTM le gana al XGBoost en las 8 celdas de E2 y E59**, y —de nuevo— **la brecha crece con el horizonte** (E59: de +0.05 a +0.42 min). Es la misma curva de degradación, ahora contra un **aprendiz fuerte** en vez de una fórmula naive. La ventaja del DL no es un artefacto de comparar contra rivales pobres. **Esta ventaja sobre el XGBoost, sin embargo, no es universal: depende de la escala del corredor**, como muestra de inmediato el corredor chico E4.
 
 > En E59 a h=1 la persistencia (3.10) sigue siendo la mejor de todos —incluido el XGBoost (3.39)—, coherente con que a 1 minuto el pronóstico es trivial.
 
@@ -106,7 +106,12 @@ La objeción natural a "el DL le gana a la persistencia" es: *¿y si los baselin
 | **XGBoost (B5)** | **3.33** | **4.46** | **5.00** | 5.54 |
 | **LSTM** | 3.76 | 4.67 | 5.01 | **5.33** |
 
-Lo reportamos tal cual porque refuerza el mensaje central del trabajo: la ventaja del DL es **condicional**, no incondicional. Frente a la **persistencia** el DL sigue ganando a h ≥ 3 en los tres corredores (es el resultado externo-válido); pero frente a un **aprendiz fuerte** como el XGBoost, en un corredor pequeño la diferencia se concentra en el horizonte más largo. Cuanto mayor el corredor (E2, E59), más clara es la ventaja del DL también sobre el baseline aprendido.
+Lo reportamos tal cual porque refuerza el mensaje central del trabajo. Conviene separar **dos tesis de distinta fuerza**:
+
+- **Tesis robusta (se replica en los tres corredores, incluido el chico):** frente a la **persistencia**, el DL gana a h ≥ 3 en E2, E59 y E4. Este es el hallazgo que sobrevive al cambio de escala de flota.
+- **Tesis condicional (depende de la escala):** frente a un **aprendiz fuerte** como el XGBoost, la ventaja del DL es clara en los corredores grandes (E2, E59) pero **se desvanece en el chico (E4)**, donde el XGBoost gana en los horizontes corto y medio y el LSTM solo lo supera a h = 10.
+
+La ventaja del DL es, por lo tanto, **condicional, no incondicional**: cuanto mayor el corredor, más clara es también sobre el baseline aprendido.
 
 ---
 
@@ -114,8 +119,8 @@ Lo reportamos tal cual porque refuerza el mensaje central del trabajo: la ventaj
 
 Que un número sea más bajo no basta: podría ser ruido. Para descartarlo aplicamos dos tests pareados a cada comparación DL-vs-persistencia.
 
-- **Tests usados:** Diebold-Mariano[^dm] (compara el error medio) y Wilcoxon[^wilcoxon] (compara las medianas por rangos).
-- **Advertencia sobre el p-valor.** Con n = 0.5–2.2 M muestras pareadas por celda, cualquier diferencia mínima da p ≈ 0: el p-valor confirma que el **signo** del efecto no es ruido, pero **no mide su importancia práctica**. Por eso esta sección lidera con el **tamaño del efecto** (Δ MAE en minutos, Sección 3) y trata la significancia como un **piso de sanidad**, no como la evidencia principal.
+- **Tests usados:** Diebold-Mariano[^dm] (compara el error medio) y Wilcoxon[^wilcoxon] (compara las medianas por rangos). El estadístico DM se calcula con una **varianza de largo plazo Newey-West (HAC)** —lag de truncación data-driven ⌊n^{1/3}⌋, kernel de Bartlett—, de modo que la **autocorrelación serial** que introducen las ventanas de entrada solapadas **no infla la significancia**: está corregida por construcción.
+- **Advertencia sobre el p-valor.** Aun con esa corrección HAC, con n = 0.5–2.2 M muestras pareadas por celda cualquier diferencia mínima da p ≈ 0: el p-valor confirma que el **signo** del efecto no es ruido, pero **no mide su importancia práctica**. Por eso esta sección lidera con el **tamaño del efecto** (Δ MAE en minutos, Sección 3) y trata la significancia como un **piso de sanidad**, no como la evidencia principal.
 - **Resultado (tamaño del efecto):** el DL tiene el menor error en **52 de las 54** comparaciones (3 modelos DL × 3 corredores × 3 horizontes h ∈ {3,5,10} × 2 métricas; se excluye h=1, donde la persistencia gana).
 - **Resultado (significancia como piso):** de esas, **50 son significativas a p[^pvalor] < 0.001** en *ambos* tests, y **51 a p < 0.05**.
 
@@ -211,7 +216,11 @@ El análisis anterior agrupa por el cambio *realizado* del *headway* (conocido a
 
 **Matiz honesto por horizonte.** A h = 5 y h = 10 el DL gana en los **tres** terciles (incluido el calmo). A h = 3 la ventaja queda **concentrada** en el régimen volátil: el DL gana el tercil alto en los tres corredores, pero en el tercil calmo la persistencia todavía iguala o supera (E59 +0.16, E4 +0.29 de Δ MAE). Esto refuerza —no debilita— la lectura operativa: cuanto más corto el horizonte, más se confina la ventaja del DL a los momentos que importan (servicio errático), que es precisamente cuando la regla ex-ante lo activa.
 
-*Datos: [`csv-multihorizon/exante_volatility_multihorizon.csv`](csv-multihorizon/exante_volatility_multihorizon.csv) (27 filas: 3 corredores × 3 horizontes × 3 terciles). La estratificación corre sobre las muestras con desvío de ventana computable —se descarta ~1 % con datos de entrada insuficientes—. La alineación con los residuos se verificó muestra a muestra: la persistencia y el objetivo reconstruidos desde los datos crudos coinciden con los residuos a precisión de punto flotante (Δ máx ≈ 3e-6 en los nueve corredor×horizonte).*
+*Datos: [`csv-multihorizon/exante_volatility_multihorizon.csv`](csv-multihorizon/exante_volatility_multihorizon.csv) (27 filas: 3 corredores × 3 horizontes × 3 terciles). La estratificación corre sobre las muestras con desvío de ventana computable —se descarta ~1 % con datos de entrada insuficientes—. La alineación con los residuos se verificó muestra a muestra: la persistencia y el objetivo reconstruidos desde los datos crudos coinciden con los residuos a precisión de punto flotante (Δ máx **observado** ≈ 3e-6 en los nueve corredor×horizonte, muy por debajo de la tolerancia de 1e-2 del chequeo de alineación).*
+
+**¿La señal ex-ante no es el régimen retrospectivo disfrazado?** La objeción natural es que la volatilidad reciente esté tan correlacionada con el cambio realizado del *headway* que el corte ex-ante reprodujera, encubierto, el régimen retrospectivo de la Figura 2 —y con él, su circularidad—. Lo medimos de frente. La correlación entre la σ de la ventana de entrada y el cambio realizado |y_real − persistencia| (la variable que *define* el régimen retrospectivo) es **moderada**: Pearson r ≈ 0.25 y Spearman ρ ≈ 0.22 (r² ≈ 0.06) en los nueve corredor×horizonte —la señal ex-ante explica **menos del 8 %** de la varianza del régimen retrospectivo—. La tabla de contingencia lo confirma: el tercil de **alta** volatilidad ex-ante es apenas **1.1–1.3× más propenso** a caer en el régimen alto retrospectivo que la media (no el ~2× que implicaría un solapamiento fuerte), y entre el **28 % y el 54 %** de ese tercil corresponde a ventanas que *no* resultaron volátiles —régimen estable o moderado— y aun ahí el DL gana. El corte ex-ante no es, por lo tanto, un proxy del retrospectivo: comparten poca información, de modo que la ventaja del DL en el tercil de alta volatilidad ex-ante **no puede atribuirse a la circularidad** del estratificador a posteriori.
+
+*Datos: [`csv-multihorizon/exante_correlation_multihorizon.csv`](csv-multihorizon/exante_correlation_multihorizon.csv) (9 filas: 3 corredores × 3 horizontes).*
 
 **Por qué esto importa:** la regla pasa a ser **ejecutable en vivo**. Un operador, al momento de decidir, mira qué tan errático vino el servicio en los últimos minutos y —si venía movido— confía en el DL. La ventaja del DL **no** es un artefacto de definir el régimen a posteriori: se confirma con información disponible *antes* de predecir, y se **acentúa** (no se desvanece) al asignar el régimen ex-ante. Esto vuelve creíble y construible el sistema híbrido de la Sección 6.
 
@@ -228,9 +237,9 @@ La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo
 **Análisis deliberadamente no realizados (no por carencia, por redundancia).** La comparación pico vs. valle quedó subsumida en el análisis de volatilidad (Sección 5): las franjas pico coinciden con el régimen de alto cambio del *headway*, y la volatilidad caracteriza el régimen —cuánto se mueve el *headway*— mejor que la mera hora del día (y, validada ex-ante en la Sección 5, de forma operativa). Un análisis pico/valle separado mediría el mismo fenómeno con peor resolución.
 
 **Limitaciones reales del estudio.**
-- Evaluado sobre 3 corredores (E2, E59, E4) de una misma ciudad y una ventana de 5 meses; la generalización a otras ciudades queda por validar. E4 se incorporó como **validación externa** y replica los dos hallazgos centrales (ventaja del DL sobre la persistencia a h ≥ 3, y nulo aporte de la complejidad espacial). Los estudios de robustez por seed y por hiperparámetro (Sección 4) se realizaron sobre E2 y E59.
+- Evaluado sobre 3 corredores (E2, E59, E4) de una misma ciudad y una ventana de 5 meses; la generalización a otras ciudades queda por validar. E4 aporta **validez externa acotada a la escala de flota** —una línea independiente y mucho más chica (19 buses), no otra ciudad ni otro período— y replica los dos hallazgos centrales (ventaja del DL sobre la persistencia a h ≥ 3, y nulo aporte de la complejidad espacial). La validez externa **geográfica y temporal** sigue abierta. Los estudios de robustez por seed y por hiperparámetro (Sección 4) se realizaron sobre E2 y E59.
 - La ventaja del DL **sobre el baseline aprendido (XGBoost)** depende de la escala del corredor: es clara en E2 y E59, pero en el corredor más chico (E4) el XGBoost es competitivo y el LSTM solo lo supera al horizonte más largo (h = 10). Frente a la persistencia, en cambio, el DL gana a h ≥ 3 en los tres corredores.
-- Los modelos espaciales (Conv, Transformer) no superaron al LSTM plano en estos datos; queda abierto si lo harían con más buses por *snapshot*[^snapshot].
+- Los modelos espaciales (Conv, Transformer) no superaron de forma consistente al LSTM plano en estos datos (solo lo igualan o superan en celdas aisladas por márgenes < 0.03 min); queda abierto si lo harían con más buses por *snapshot*[^snapshot].
 
 **Trabajo futuro: sistema híbrido.** Los resultados sugieren un enrutador que use persistencia en régimen estable y DL en régimen de alta volatilidad. La Sección 5 da el primer paso clave: un estratificador **ex-ante** —la volatilidad reciente observada, conocida al momento de predecir— ya separa los regímenes con información disponible a priori, y el DL mantiene (y acentúa) su ventaja bajo ese corte. Lo que falta es construir y evaluar el enrutador en operación: elegir el umbral de conmutación, medir el costo de los errores de clasificación de régimen y validar la ganancia neta en una corrida real. Eso se plantea como dirección futura; el componente que antes era un problema abierto —disponer de una señal de régimen ex-ante— queda resuelto.
 
@@ -260,7 +269,7 @@ La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo
 
 [^split]: **División train / validación / prueba** — los datos se separan en tres bloques temporales: *entrenamiento* (el modelo aprende), *validación* (se ajustan los hiperparámetros) y *prueba* (evaluación final sobre datos nunca vistos). Reportar sobre prueba evita engañarse con resultados inflados.
 
-[^dm]: **Test de Diebold-Mariano (DM)** — prueba estadística específica para comparar la precisión de dos modelos de pronóstico. Responde: ¿la diferencia de error medio entre los dos modelos es real o producto del azar?
+[^dm]: **Test de Diebold-Mariano (DM)** — prueba estadística específica para comparar la precisión de dos modelos de pronóstico. Responde: ¿la diferencia de error medio entre los dos modelos es real o producto del azar? Aquí se usa su forma robusta (varianza Newey-West/HAC), que ajusta el cálculo para que la correlación entre los errores de minutos consecutivos no exagere la significancia.
 
 [^wilcoxon]: **Test de Wilcoxon (pareado, de rangos con signo)** — prueba no paramétrica que compara dos modelos mirando las *medianas* de sus errores por rangos, sin asumir que los datos siguen una distribución normal. Complementa a Diebold-Mariano.
 
