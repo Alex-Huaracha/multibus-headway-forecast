@@ -526,6 +526,12 @@ def grid_search(
                 "Set one to None."
             )
 
+        # Seed BEFORE instantiating the model so weight initialization is
+        # controlled by config.seed (train_model re-seeds again before the
+        # training loop). Without this, init weights depend on prior RNG state
+        # and per-seed runs are not exactly reproducible.
+        set_seed(config.seed)
+
         # Fase 6b: nhead-first dispatch → SpatialTransformer.
         if config.nhead is not None:
             model: nn.Module = SpatialTransformer(

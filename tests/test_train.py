@@ -284,6 +284,39 @@ class TestGridSearch:
         assert len(GRID) == 24, f"GRID must have 24 entries, got {len(GRID)}"
         assert all(isinstance(c, TrainConfig) for c in GRID), "All GRID items must be TrainConfig"
 
+    def test_grid_search_is_reproducible_across_calls(self) -> None:
+        """grid_search must seed BEFORE instantiating the model, so two calls with
+        the same config + seed yield identical weights and validation loss.
+
+        Regression (paper-audit seed-wiring gap): set_seed previously ran inside
+        train_model AFTER the model was instantiated, leaving weight
+        initialization uncontrolled by config.seed. With dropout=0.0 and a fixed
+        list loader, init weights are the only randomness source, so a mismatch
+        across calls isolates exactly the wiring bug.
+        """
+        from src.train import grid_search
+
+        max_N, ctx_dim = 3, 5
+        configs = [TrainConfig(
+            hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3,
+            max_epochs=3, patience=5, seed=2024,
+        )]
+        train_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=2)
+        val_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=1)
+
+        first = grid_search(train_dl, val_dl, max_N=max_N, configs=configs, device="cpu")
+        # Perturb the global RNG so any reliance on ambient state surfaces.
+        _ = torch.randn(1000)
+        second = grid_search(train_dl, val_dl, max_N=max_N, configs=configs, device="cpu")
+
+        assert first[0].best_val_loss == second[0].best_val_loss, (
+            "grid_search must be reproducible across calls — seed before instantiation"
+        )
+        for key in first[0].state_dict:
+            assert torch.allclose(first[0].state_dict[key], second[0].state_dict[key]), (
+                f"Weights differ across runs for {key!r} — init not controlled by seed"
+            )
+
     def test_grid_search_returns_results_list(self) -> None:
         """grid_search must return a list of TrainResult with one entry per config, sorted by best_val_loss."""
         from src.train import TrainResult, grid_search
