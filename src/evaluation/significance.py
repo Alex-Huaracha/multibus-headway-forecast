@@ -241,9 +241,12 @@ def significance_table(
 
     For each ``(corridor, horizon)`` group in ``df`` (filtered to ``direction``),
     computes the loss differential and runs both tests, returning one row with:
-    ``corridor, horizon, n, delta_mae, dm_stat, dm_p, wilcoxon_p, dl_better``.
-    ``delta_mae`` is the mean MAE differential (the effect size the paper leads
-    with); ``dl_better`` is ``delta_mae < 0``.
+    ``corridor, horizon, n, delta_loss, delta_mae, dm_stat, dm_p, wilcoxon_p,
+    dl_better``. ``delta_loss`` is the mean differential for the row's metric
+    (MAE absolute-error units; RMSE squared-error units because the paired test
+    runs on squared errors). ``delta_mae`` is the mean MAE differential (the
+    headline effect size the paper leads with). ``dl_better`` follows
+    ``delta_loss < 0`` so RMSE rows are internally consistent.
 
     Parameters
     ----------
@@ -286,17 +289,19 @@ def significance_table(
         d_metric = loss_differential(sub, metric)
         d_mae = loss_differential(sub, "MAE")  # effect size always in MAE units
         dm = diebold_mariano(d_metric)
+        delta_loss = float(np.mean(d_metric))
         delta_mae = float(np.mean(d_mae))
         rows.append(
             {
                 "corridor": corridor,
                 "horizon": int(horizon),
                 "n": int(sub.height),
+                "delta_loss": delta_loss,
                 "delta_mae": delta_mae,
                 "dm_stat": dm.stat,
                 "dm_p": dm.p_value,
                 "wilcoxon_p": wilcoxon_signed_rank(d_metric),
-                "dl_better": delta_mae < 0,
+                "dl_better": delta_loss < 0,
             }
         )
 

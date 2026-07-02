@@ -7,8 +7,9 @@ Diebold-Mariano and Wilcoxon tests (``src.evaluation.significance``) over the
 PER-SAMPLE residuals exported by NB11/12/13 and downloaded from Kaggle.
 
 It is the reproducible entrypoint that turns the tested library into the actual
-paper artifact: one consolidated CSV with the effect size (Δ MAE) and the two
-p-values per model × corridor × horizon.
+paper artifact: one consolidated CSV with the row-metric loss differential, the
+headline effect size (Δ MAE), and the two p-values per model × corridor ×
+horizon.
 
 Usage:
     uv run python -m src.build_significance_table
@@ -18,12 +19,13 @@ Inputs (downloaded from Kaggle, NOT versioned — see .gitignore):
 
 Output (versioned — small, paper reproducibility):
     docs/resultados/csv-multihorizon/significance_multihorizon.csv
-    columns: model, metric, corridor, horizon, n, delta_mae, dm_stat, dm_p,
-             wilcoxon_p, dl_better
-    One row per model × metric × corridor × horizon (36 rows). ``dm_*`` and
-    ``wilcoxon_p`` are computed on the row's ``metric`` loss; ``delta_mae`` is
-    the headline effect size, always in MAE units. The §6.6 table is the
-    ``metric == "MAE"`` slice; the RMSE rows back the figure's RMSE panels.
+    columns: model, metric, corridor, horizon, n, delta_loss, delta_mae,
+             dm_stat, dm_p, wilcoxon_p, dl_better
+    One row per model × metric × corridor × horizon (54 rows). ``dm_*``,
+    ``wilcoxon_p``, ``delta_loss`` and ``dl_better`` are computed on the row's
+    ``metric`` loss; ``delta_mae`` is the headline effect size, always in MAE
+    units. The §6.6 table is the ``metric == "MAE"`` slice; the RMSE rows back
+    the figure's RMSE panels.
 
 Note on n: with millions of paired samples both p-values collapse to ~0; the
 paper leads with Δ MAE (effect size) and uses the p-values only to confirm the
@@ -78,6 +80,7 @@ def build(resid_dir: Path = RESID_DIR, out_dir: Path = OUT_DIR) -> Path:
             "corridor",
             "horizon",
             "n",
+            "delta_loss",
             "delta_mae",
             "dm_stat",
             "dm_p",

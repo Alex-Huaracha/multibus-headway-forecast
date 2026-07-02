@@ -121,18 +121,18 @@ Que un número sea más bajo no basta: podría ser ruido. Para descartarlo aplic
 
 - **Tests usados:** Diebold-Mariano[^dm] (compara el error medio) y Wilcoxon[^wilcoxon] (compara las medianas por rangos). El estadístico DM se calcula con una **varianza de largo plazo Newey-West (HAC)** —lag de truncación data-driven ⌊n^{1/3}⌋, kernel de Bartlett—, de modo que la **autocorrelación serial** que introducen las ventanas de entrada solapadas **no infla la significancia**: está corregida por construcción.
 - **Advertencia sobre el p-valor.** Aun con esa corrección HAC, con n = 0.5–2.2 M muestras pareadas por celda cualquier diferencia mínima da p ≈ 0: el p-valor confirma que el **signo** del efecto no es ruido, pero **no mide su importancia práctica**. Por eso esta sección lidera con el **tamaño del efecto** (Δ MAE en minutos, Sección 3) y trata la significancia como un **piso de sanidad**, no como la evidencia principal.
-- **Resultado (tamaño del efecto):** el DL tiene el menor error en **52 de las 54** comparaciones (3 modelos DL × 3 corredores × 3 horizontes h ∈ {3,5,10} × 2 métricas; se excluye h=1, donde la persistencia gana).
-- **Resultado (significancia como piso):** de esas, **50 son significativas a p[^pvalor] < 0.001** en *ambos* tests, y **51 a p < 0.05**.
+- **Resultado (tamaño del efecto):** el DL tiene el menor error en **53 de las 54** comparaciones (3 modelos DL × 3 corredores × 3 horizontes h ∈ {3,5,10} × 2 métricas; se excluye h=1, donde la persistencia gana). Cada comparación se juzga sobre **su propia métrica**: la victoria/derrota en RMSE se decide por el diferencial de error cuadrático, no por el de MAE.
+- **Resultado (significancia como piso):** de esas, **51 son significativas a p[^pvalor] < 0.001** en *ambos* tests, y **52 a p < 0.05**.
 
-Las cuatro desviaciones, declaradas en su totalidad:
+Las tres desviaciones, declaradas en su totalidad:
 
 | Desviación | Caso | Lectura |
 |---|---|---|
-| Gana la persistencia (2 celdas) | Transformer · E4 · h=3 (MAE y RMSE) | El Transformer queda apenas detrás (Δ MAE +0.06); a ese mismo h el LSTM y el ConvLSTM **sí** ganan |
+| Gana la persistencia (1 celda) | Transformer · E4 · h=3 (solo MAE) | El Transformer queda apenas detrás en MAE (Δ MAE +0.06); en RMSE ese mismo Transformer **sí** gana (significativo), igual que el LSTM y el ConvLSTM |
 | DL gana, significativo solo a p<0.05 | ConvLSTM · E4 · h=3 (MAE) | DM p = 0.005 (pasa 0.05, no 0.001); efecto chico pero a favor del DL |
 | DL gana en media, no en mediana | LSTM · E59 · h=3 (Wilcoxon p = 0.277) | DM sí detecta la ventaja (p ≈ 0); el efecto es débil en mediana |
 
-> **Las desviaciones no contradicen el patrón.** Las cuatro se concentran en **h=3** (el horizonte más corto de los testeados) y en E4/E59; a h ≥ 5 los tres modelos ganan con holgura en los tres corredores. Son casos límite, no contraejemplos.
+> **Las desviaciones no contradicen el patrón.** Las tres se concentran en **h=3** (el horizonte más corto de los testeados) y en E4/E59; a h ≥ 5 los tres modelos ganan con holgura en los tres corredores. Son casos límite, no contraejemplos.
 
 **Conclusión de esta sección:** la ventaja del DL a h ≥ 3, **medida en minutos de error**, es sistemática y consistente; la significancia estadística la respalda como piso, no como su justificación.
 

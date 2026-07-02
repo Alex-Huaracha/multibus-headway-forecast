@@ -26,7 +26,7 @@ Acceptance criteria:
     AC-DM-3     HAC (Newey-West) variance with lag>0 differs from the iid variance
     AC-WX-1     wilcoxon_signed_rank returns a p-value in [0, 1]
     AC-TABLE-1  significance_table: one row per (corridor, horizon)
-    AC-TABLE-2  significance_table reports n, delta_mae (effect size) and p-values
+    AC-TABLE-2  significance_table reports n, delta_loss, delta_mae and p-values
 """
 from __future__ import annotations
 
@@ -201,10 +201,27 @@ class TestSignificanceTable:
         assert set(table["corridor"]) == {"E2", "E59"}
 
     def test_reports_effect_size_and_pvalues(self, residuals_dir):
-        """AC-TABLE-2: n, delta_mae and p-value columns present."""
+        """AC-TABLE-2: n, delta_loss, delta_mae and p-value columns present."""
         df = load_residuals(residuals_dir)
         table = significance_table(df, metric="MAE")
-        for col in ("n", "delta_mae", "dm_stat", "dm_p", "wilcoxon_p"):
+        for col in ("n", "delta_loss", "delta_mae", "dm_stat", "dm_p", "wilcoxon_p"):
             assert col in table.columns
         e2 = table.filter(pl.col("corridor") == "E2")
+        assert e2["delta_loss"].item() == pytest.approx(e2["delta_mae"].item())
         assert e2["delta_mae"].item() < 0  # DL better on E2
+
+    def test_rmse_rows_use_metric_loss_for_verdict_but_keep_mae_effect_size(self) -> None:
+        """RMSE rows must not reuse the MAE sign for dl_better."""
+        df = _resid_frame(
+            "E4",
+            3,
+            y_true=[0.0, 0.0],
+            y_dl=[3.0, 3.0],
+            y_persist=[0.0, 5.0],
+        )
+        table = significance_table(df, metric="RMSE")
+        row = table.row(0, named=True)
+
+        assert row["delta_mae"] > 0
+        assert row["delta_loss"] < 0
+        assert row["dl_better"] is True
