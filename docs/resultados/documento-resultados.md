@@ -64,7 +64,7 @@ Enfrentamos dos familias de modelos sobre exactamente los mismos datos y la mism
 
 ![Curva de degradación](curva-degradacion.png)
 
-*Figura 1 — MAE y RMSE frente al horizonte de predicción, para E2, E59 y E4. Cuanto más bajo, mejor. Se grafican la persistencia (B1), el mejor baseline formulaico (B3), el baseline ajustado XGBoost (B5) y los tres modelos profundos. El símbolo ⊘ marca comparaciones no significativas. Las barras de error del LSTM son el IC 95 % sobre 5 seeds (ver Sección 4, "¿O es casualidad del seed?"); su ancho sub-marcador refleja la estabilidad frente al seed.*
+*Figura 1 — MAE y RMSE frente al horizonte de predicción, para E2, E59 y E4. Cuanto más bajo, mejor. Se grafican la persistencia (B1), los baselines formulaicos B0/B3/B4_HA como contexto, el baseline ajustado XGBoost (B5) y los tres modelos profundos. El símbolo ⊘ marca comparaciones no significativas. Las barras de error del LSTM son el IC 95 % sobre 5 seeds (ver Sección 4, "¿O es casualidad del seed?"); su ancho sub-marcador refleja la estabilidad frente al seed.*
 
 **El mensaje:** a 1 minuto la persistencia es imbatible pero **operativamente inútil** (nadie puede reaccionar con 1 minuto de aviso). El valor del DL **emerge al anticipar a 3, 5 y 10 minutos** — justo el margen que un operador necesita para intervenir.
 
@@ -76,13 +76,29 @@ Mirá el cruce (*crossover*[^crossover]) en el extremo izquierdo de cada panel (
 | **E2** (MAE) | B1 4.76 vs **4.47** ✓ | 6.08 vs **4.94** ✓ | 6.49 vs **5.05** ✓ | 7.03 vs **5.15** ✓ |
 | **E4** (MAE) | B1 **3.13** vs LSTM 3.76 ❌ *gana persistencia* | 4.78 vs **4.67** ✓ | 5.74 vs **5.01** ✓ | 7.07 vs **5.33** ✓ |
 
-**Lo más importante — la brecha crece con el horizonte.** A medida que predecimos más lejos, la persistencia se degrada rápido y el DL aguanta:
+**Lo más importante — la brecha crece con el horizonte frente a la persistencia.** A medida que predecimos más lejos, la persistencia se degrada rápido y el DL aguanta:
 
 - **E2 a 10 min:** persistencia 7.026 vs LSTM **5.153** → **−1.87 min de error (−26.7 %)**.
 - **E59 a 10 min:** persistencia 5.593 vs LSTM **4.225** → **−1.37 min de error (−24.5 %)**.
 - **E4 a 10 min:** persistencia 7.070 vs LSTM **5.334** → **−1.74 min de error (−24.5 %)**.
 
 > Los valores de la tabla anterior están redondeados a 2 decimales; los porcentajes se calculan sobre los valores con 3 decimales para que la aritmética sea exacta.
+
+**Chequeo contra el mejor baseline simple (h = 3, 5, 10).** La persistencia es la referencia operativa central, pero no siempre es el baseline simple con menor MAE: el rival más duro **cambia con el horizonte** —persistencia (B1) en el muy corto plazo, suavizado exponencial (B3) en el medio y media horaria (B4_HA) en el largo—. Contra ese mejor baseline simple **por celda**, el LSTM gana en los tres corredores en todos los horizontes operativos (h ≥ 3), aunque con márgenes más chicos que frente a la sola persistencia:
+
+| Corredor | Horizonte | Mejor baseline simple | LSTM | Mejora LSTM |
+|---|---|---:|---:|---:|
+| **E2** | h = 3 | B4_HA 5.259 | **4.940** | −0.32 min (−6.1 %) |
+| **E2** | h = 5 | B4_HA 5.259 | **5.052** | −0.21 min (−3.9 %) |
+| **E2** | h = 10 | B4_HA 5.259 | **5.153** | −0.11 min (−2.0 %) |
+| **E59** | h = 3 | B3 (SES) 4.068 | **3.847** | −0.22 min (−5.4 %) |
+| **E59** | h = 5 | B3 (SES) 4.438 | **4.032** | −0.41 min (−9.1 %) |
+| **E59** | h = 10 | B4_HA 4.805 | **4.225** | −0.58 min (−12.1 %) |
+| **E4** | h = 3 | B1 (persist.) 4.783 | **4.668** | −0.12 min (−2.4 %) |
+| **E4** | h = 5 | B3 (SES) 5.492 | **5.009** | −0.48 min (−8.8 %) |
+| **E4** | h = 10 | B4_HA 5.746 | **5.334** | −0.41 min (−7.2 %) |
+
+El margen más ajustado es E2 a h = 10 (−2.0 %) y E4 a h = 3 (−2.4 %); aun así el signo favorece al DL en las nueve celdas. Esto no cambia la tesis operativa contra persistencia, pero evita sobredimensionar la magnitud del margen cuando el rival es el mejor baseline simple por celda. (A h = 1 el mejor baseline simple aún supera al DL en E59 y E4 —el *crossover* ya discutido—; por eso este chequeo se acota a los horizontes operativamente accionables.)
 
 > **Nota honesta sobre los modelos espaciales.** El mejor DL terminó siendo el **LSTM plano** en agregado en los tres corredores (promediando horizontes); las variantes con convolución y atención no aportaron mejora clara. En celdas puntuales el ConvLSTM iguala o supera al LSTM por márgenes diminutos (< 0.03 min, p. ej. E2 a h=10 y E4 a h=1), pero a h ≥ 5 el LSTM lidera en los tres corredores. Esto se reporta tal cual: añadir complejidad espacial **no** mejoró el pronóstico en estos datos. (En E4, el spread entre los tres modelos profundos es < 0.1 min a h ≥ 5 — el resultado nulo espacial se replica.)
 
