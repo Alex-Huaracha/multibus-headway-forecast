@@ -15,7 +15,8 @@ son del agregado de ambas direcciones, salvo aclaración.
 
 **Qué es:** la figura central del paper. Error de pronóstico (MAE arriba, RMSE
 abajo) en función del **horizonte** (1, 3, 5, 10 min), comparando la persistencia
-(B1) y el mejor baseline estadístico (B3) contra los tres modelos profundos. Una
+(B1), los baselines formulaicos de contexto (B0 media global, B3/SES, B4_HA media
+horaria) y el baseline ajustado XGBoost (B5) contra los tres modelos profundos. Una
 columna por corredor (E2, E59, E4).
 
 **Cómo se leen los ejes:**

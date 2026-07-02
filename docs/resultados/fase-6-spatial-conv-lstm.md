@@ -52,7 +52,7 @@ ocurre es que la convolución espacial le saque ventaja al LSTM.
 |---|---|---|
 | B4_HA | 5.259 | — |
 | B2_w5 | 5.030 | — |
-| B3 (mejor baseline estadístico) | 4.777 | — |
+| B3 (SES) | 4.777 | — |
 | **LSTM** (Fase 5) | **4.4707** | **6.110** |
 | **SpatialConvLSTM** (Fase 6) | **4.4721** | **6.114** |
 
@@ -85,7 +85,7 @@ colapsa al LSTM plano.
 
 | Modelo | MAE | RMSE |
 |---|---|---|
-| B3 (mejor baseline estadístico) | 3.51 | 5.09 |
+| B3 (SES) | 3.51 | 5.09 |
 | **LSTM** (Fase 5) | **3.34** | **4.67** |
 | **SpatialConvLSTM** (Fase 6) | **3.3371** | **4.6720** |
 
