@@ -72,8 +72,8 @@ Mirá el cruce (*crossover*[^crossover]) en el extremo izquierdo de cada panel (
 
 | Corredor | h = 1 min | h = 3 min | h = 5 min | h = 10 min |
 |----------|-----------|-----------|-----------|------------|
-| **E59** (MAE) | B1 **3.10** vs LSTM 3.34 ❌ *gana persistencia* | 4.18 vs **3.85** ✓ | 4.70 vs **4.03** ✓ | 5.59 vs **4.23** ✓ |
-| **E2** (MAE) | B1 4.76 vs **4.47** ✓ | 6.08 vs **4.94** ✓ | 6.49 vs **5.05** ✓ | 7.03 vs **5.15** ✓ |
+| **E59** (MAE) | B1 **3.10** vs LSTM 3.34 ❌ *gana persistencia* | 4.18 vs **3.85** ✓ | 4.70 vs **4.03** ✓ | 5.59 vs **4.22** ✓ |
+| **E2** (MAE) | B1 4.76 vs **4.47** ✓ | 6.07 vs **4.94** ✓ | 6.49 vs **5.05** ✓ | 7.03 vs **5.15** ✓ |
 | **E4** (MAE) | B1 **3.13** vs LSTM 3.76 ❌ *gana persistencia* | 4.78 vs **4.67** ✓ | 5.74 vs **5.01** ✓ | 7.07 vs **5.33** ✓ |
 
 **Lo más importante — la brecha crece con el horizonte frente a la persistencia.** A medida que predecimos más lejos, la persistencia se degrada rápido y el DL aguanta:
@@ -171,7 +171,7 @@ El reclamo más automático contra cualquier resultado de Deep Learning: *todos 
 
 | Corredor (MAE agregado, h=10) | Media de 5 seeds | IC 95 % | CV entre seeds |
 |---|---|---|---|
-| **E2** | 5.146 | [5.133, 5.156] | 0.18 % |
+| **E2** | 5.145 | [5.133, 5.156] | 0.18 % |
 | **E59** | 4.225 | [4.218, 4.231] | 0.13 % |
 
 *Datos: [`csv-multihorizon/multiseed_ci_multihorizon.csv`](csv-multihorizon/multiseed_ci_multihorizon.csv) (48 celdas: 2 corredores × 3 direcciones × 2 métricas × 4 horizontes, 5 seeds c/u). Las barras de error de la Figura 1 son justamente estos intervalos.*
