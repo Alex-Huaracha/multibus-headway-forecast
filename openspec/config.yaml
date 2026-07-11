@@ -1,0 +1,95 @@
+schema: spec-driven
+project: multibus-headway-forecast
+artifact_store:
+  mode: openspec
+detected: 2026-07-05
+strict_tdd: true
+
+context: |
+  Tech stack: Python 3.12 managed with uv; Polars/NumPy/SciPy for data processing; PyTorch/XGBoost for forecasting models; Jupyter/Kaggle notebooks for experiments.
+  Architecture: notebook-driven research pipeline with reusable src modules for preprocessing, data windows, evaluation, baselines, models, and notebook builders.
+  Testing: pytest configured in pyproject.toml; pytest-cov available; 752 tests collected with unit, integration, model, training, and notebook-builder coverage.
+  Style: project documentation is mostly Spanish; generated SDD artifacts stay in English unless explicitly requested otherwise.
+  Data: raw and processed data are gitignored, versioned externally in Kaggle, and internal processed artifacts use Parquet.
+
+testing:
+  strict_tdd:
+    enabled: true
+    source: "Strict TDD markers found in tests plus pytest runner fallback"
+  runner:
+    framework: pytest
+    command: "uv run pytest"
+    collect_command: "uv run pytest --collect-only -q"
+    collected_tests: 752
+    config:
+      file: pyproject.toml
+      testpaths:
+        - tests
+      addopts: "-ra --strict-markers"
+  layers:
+    unit:
+      available: true
+      tool: pytest
+      evidence: "tests/data, tests/evaluation, tests/models, tests/baselines, and tests/test_train.py"
+    integration:
+      available: true
+      tool: pytest with synthetic Parquet fixtures
+      evidence: "tests/preprocessing/test_integration.py and tests/fixtures"
+    notebook_build:
+      available: true
+      tool: pytest plus nbformat
+      evidence: "tests/test_builder.py and tests/test_build_notebook_*.py"
+    e2e:
+      available: false
+      tool: null
+      evidence: "No Playwright/Cypress/Selenium or equivalent E2E tooling detected"
+  coverage:
+    available: true
+    tool: pytest-cov
+    command: "uv run pytest --cov=src"
+    threshold: 0
+  quality:
+    linter:
+      available: false
+      command: null
+      evidence: "ruff is not configured or installed in the project environment"
+    type_checker:
+      available: false
+      command: null
+      evidence: "mypy is not configured or installed in the project environment"
+    formatter:
+      available: false
+      command: null
+      evidence: "black is not configured or installed in the project environment"
+  ci:
+    available: false
+    evidence: "No .github workflow files detected"
+
+rules:
+  proposal:
+    - State the research or product goal, affected pipeline phase, and rollback plan for risky changes.
+    - Keep review slices under 400 changed lines unless the user approves a larger PR.
+  specs:
+    - Use RFC 2119 keywords for requirements.
+    - Use Given/When/Then scenarios and preserve domain invariants already encoded in tests.
+  design:
+    - Document architectural decisions with rationale and compatibility impact.
+    - Call out data-contract changes for Parquet schemas, Kaggle notebook outputs, and model tensor shapes.
+  tasks:
+    - Group tasks by phase and keep each task small enough for one focused session.
+    - Keep tests and implementation in the same reviewable work unit.
+  apply:
+    tdd: true
+    test_command: "uv run pytest"
+    guidance:
+      - Follow existing src package boundaries and notebook-builder patterns.
+      - Do not introduce raw CSV pipeline dependencies for internal processed data.
+  verify:
+    test_command: "uv run pytest"
+    build_command: ""
+    coverage_threshold: 0
+    guidance:
+      - Run targeted tests first, then broaden to the full pytest suite when scope warrants it.
+  archive:
+    - Merge completed delta specs into openspec/specs and preserve archived change folders as an audit trail.
+    - Warn before destructive or behavior-removing spec deltas.
