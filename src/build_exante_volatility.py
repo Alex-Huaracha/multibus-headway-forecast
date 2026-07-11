@@ -54,15 +54,12 @@ def load_parquet(empresaid: int) -> pl.DataFrame:
 
 
 def prepare_df(empresaid: int) -> tuple[pl.DataFrame, NormalizationStats]:
-    """Full preprocessing pipeline: split → winsorize train → zscore."""
+    """Full preprocessing pipeline: split → train-p99 winsorize full frame → zscore."""
     df = load_parquet(empresaid)
     df = split_temporal(df)
 
-    # Winsorize TRAIN ONLY, then concat non-train
-    train_rows = df.filter(pl.col("split") == "train")
-    non_train = df.filter(pl.col("split") != "train")
-    train_winsor, threshold = winsorize_train_p99(train_rows)
-    df = pl.concat([train_winsor, non_train])
+    # Threshold is computed from train rows and applied to every split row.
+    df, _threshold = winsorize_train_p99(df)
 
     # Normalization stats from winsorized train only
     train_only = df.filter(pl.col("split") == "train")

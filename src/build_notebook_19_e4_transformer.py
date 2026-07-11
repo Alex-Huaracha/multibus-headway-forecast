@@ -315,11 +315,11 @@ print(f"E4: {hw_e4.height:,} rows, {hw_e4.width} cols")
 
 def _add_split_cell() -> None:
     md(
-        """## Split temporal + winsorización
+        """## Temporal split + winsorization
 
-Aplica `split_temporal` y `winsorize_train_p99` (INV-1, INV-6).
-El umbral de winsorización se computa exclusivamente sobre el split `train`
-(AC-WINSOR-1, AC-WINSOR-2 — leakage guard).
+Applies `split_temporal` and `winsorize_train_p99` (INV-1, INV-6).
+The winsorization threshold is computed only from the `train` split and then
+applied to the full split frame (AC-WINSOR-1, AC-WINSOR-2 — leakage guard).
 """,
         cell_id="cell-19-split-md",
     )
@@ -327,13 +327,10 @@ El umbral de winsorización se computa exclusivamente sobre el split `train`
         """
 def prepare_corridor(hw: pl.DataFrame, label: str) -> pl.DataFrame:
     df_split = split_temporal(hw)
-    train_df = df_split.filter(pl.col("split") == "train")
-    df_winsor, threshold = winsorize_train_p99(train_df)
-    non_train = df_split.filter(pl.col("split") != "train")
-    df_full = pl.concat([df_winsor, non_train])
+    df_winsor, threshold = winsorize_train_p99(df_split)
     print(f"{label}: split counts = {df_split.group_by('split').agg(pl.len()).sort('split')}")
     print(f"{label}: winsorize threshold = {threshold:.4f} min")
-    return df_full
+    return df_winsor
 
 df_e4 = prepare_corridor(hw_e4, "E4")
 """,
