@@ -21,9 +21,10 @@
 ## Capabilities
 
 ### New Capabilities
-- `exante-volatility-calibration`: frozen train-derived tercile thresholds applied to test for operational ("live-executable") volatility regimes.
+- `exante-volatility-calibration`: frozen train+val-derived tercile thresholds applied to test for operational ("live-executable") volatility regimes.
 - `notebook-generation-integrity`: generated Kaggle notebooks must match corrected builders; guard blocks stale preprocessing patterns.
 - `reproducibility-manifest`: documented path to rebuild tables/figures from pinned Kaggle datasets/kernels.
+- `post-kaggle-regeneration`: Kaggle-gated regeneration of residuals, result CSVs, figures, and the results document with paired metrics as the canonical comparison.
 
 ### Modified Capabilities
 - None (no existing specs).
@@ -71,7 +72,7 @@ Each phase is an independent slice under 400 changed lines. Revert per commit: s
 
 ## Proposal question round
 
-Direct interactive questions were not possible in this executor context. Assumptions for user review:
-1. Tercile thresholds: assume **train+val** volatility distribution (more samples, still no test leakage) — confirm or switch to train-only.
-2. Older notebooks 05-09/14/15: assumed **out of scope** (exploratory/superseded) — confirm.
-3. No-clipping sensitivity: assumed **documented as a planned check** in the Kaggle re-run design, not implemented locally this change — confirm.
+Resolved with the user (2026-07-11):
+1. Tercile thresholds: **train+val** volatility distribution (more samples, still no test leakage) — CONFIRMED.
+2. Older notebooks 05-09/14/15: **out of scope** (exploratory/superseded) — CONFIRMED.
+3. No-clipping sensitivity: **documented as a planned check** in the Kaggle re-run design, not implemented locally this change — CONFIRMED.
