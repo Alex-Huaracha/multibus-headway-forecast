@@ -25,7 +25,7 @@ The system MUST compute p33/p66 percentile thresholds for ex-ante volatility exc
 
 ### Requirement: NaN Exclusion Before Threshold Computation
 
-NaN entries in the train+val calibration array MUST be excluded before computing p33/p66 (ex-ante σ is NaN by construction for windows with fewer than 2 valid input timesteps — `src/build_exante_volatility.py:178-189`). Threshold computation MUST fail loudly, not return NaN, if the filtered calibration array is empty or too small to define three terciles.
+Non-finite entries (NaN, positive infinity, and negative infinity) in the train+val calibration array MUST be excluded before computing p33/p66 (ex-ante σ is NaN by construction for windows with fewer than 2 valid input timesteps — `src/build_exante_volatility.py:178-189`). Threshold computation MUST fail loudly, not return NaN or infinity, if the filtered calibration array is empty or too small to define three terciles.
 
 #### Scenario: NaN entries excluded from calibration array
 
@@ -40,6 +40,13 @@ NaN entries in the train+val calibration array MUST be excluded before computing
 - WHEN threshold computation is invoked
 - THEN it raises an explicit error instead of returning NaN or degenerate thresholds
 
+#### Scenario: Infinite calibration entries are excluded
+
+- GIVEN a train+val calibration array containing positive or negative infinity
+- WHEN p33/p66 thresholds are computed
+- THEN infinite entries are excluded with NaN entries
+- AND the resulting thresholds and `calib_n` reflect finite entries only
+
 ### Requirement: Frozen Thresholds Applied To Test Classification
 
 Test-set rows MUST be classified into low/mid/high tercile using the frozen train+val thresholds; thresholds MUST NOT be recomputed from the test split.
@@ -51,9 +58,9 @@ Test-set rows MUST be classified into low/mid/high tercile using the frozen trai
 - WHEN the row is classified
 - THEN it is labeled "high"
 
-#### Scenario: NaN ex-ante rows excluded consistently
+#### Scenario: Non-finite ex-ante rows excluded consistently
 
-- GIVEN test rows with NaN `ex_ante_std`
+- GIVEN test rows with NaN, positive infinity, or negative infinity `ex_ante_std`
 - WHEN classification runs
 - THEN those rows are excluded from classified output and do not affect the frozen thresholds
 

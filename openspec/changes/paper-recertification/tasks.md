@@ -34,10 +34,10 @@ Legend: EVC=exante-volatility-calibration, NGI=notebook-generation-integrity, RM
 
 ## Phase 1: Frozen Threshold Module (PR1)
 
-- [ ] 1.1 RED/GREEN `tests/evaluation/test_exante_terciles.py` + `src/evaluation/exante_terciles.py`: thresholds from train+val only, test extremes ignored [EVC1].
-- [ ] 1.2 RED/GREEN: NaN-contaminated input yields finite p33/p66, `calib_n` = post-filter count [EVC2].
-- [ ] 1.3 RED/GREEN: empty/too-small filtered array raises explicit error [EVC2].
-- [ ] 1.4 RED/GREEN: `assign_terciles` classifies against frozen thresholds; NaN rows excluded [EVC3].
+- [x] 1.1 RED/GREEN `tests/evaluation/test_exante_terciles.py` + `src/evaluation/exante_terciles.py`: thresholds from train+val only, test extremes ignored [EVC1].
+- [x] 1.2 RED/GREEN: NaN-contaminated input yields finite p33/p66, `calib_n` = post-filter count [EVC2].
+- [x] 1.3 RED/GREEN: empty/too-small filtered array raises explicit error [EVC2].
+- [x] 1.4 RED/GREEN: `assign_terciles` classifies against frozen thresholds; non-finite rows excluded [EVC3].
 
 ## Phase 2: Wire Calibration Into Builders (PR2, needs PR1)
 
