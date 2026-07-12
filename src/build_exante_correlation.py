@@ -28,8 +28,11 @@ Usage:
 from __future__ import annotations
 
 import math
+import os
 import sys
 from pathlib import Path
+
+os.environ.setdefault("POLARS_MAX_THREADS", "1")
 
 import numpy as np
 from scipy import stats as sp_stats
@@ -38,6 +41,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.build_exante_volatility import prepare_df, materialize_corridor
+from src.evaluation.exante_terciles import TercileThresholds, assign_terciles, compute_frozen_thresholds
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -75,22 +79,21 @@ def classify_retro_regime(persist_err: np.ndarray) -> np.ndarray:
     return labels
 
 
-def compute_exante_terciles(ex_ante: np.ndarray) -> np.ndarray:
-    """Assign ex-ante tercile codes 0/1/2 by percentile 33/66.
+def compute_exante_terciles(
+    ex_ante: np.ndarray, thresholds: TercileThresholds
+) -> np.ndarray:
+    """Assign ex-ante tercile codes with frozen train+val thresholds.
 
-    Mirrors the tercile logic in build_exante_volatility.compute_stratification.
     Values <= p33 → 0, (p33, p66] → 1, > p66 → 2.
 
     Args:
-        ex_ante: 1-D array of ex-ante sigma values (NaN-free expected).
+        ex_ante: 1-D array of finite ex-ante sigma values.
+        thresholds: Frozen thresholds calibrated from train+val values.
 
     Returns:
         Integer array of same shape with values in {0, 1, 2}.
     """
-    p33 = float(np.percentile(ex_ante, 100 / 3))
-    p66 = float(np.percentile(ex_ante, 200 / 3))
-    terciles = np.where(ex_ante <= p33, 0, np.where(ex_ante <= p66, 1, 2))
-    return terciles.astype(int)
+    return assign_terciles(ex_ante, thresholds)
 
 
 def compute_lift(retro: np.ndarray, ex_terciles: np.ndarray) -> float:
@@ -138,22 +141,23 @@ def build_csv_row(
     horizon: int,
     ex_ante_full: np.ndarray,
     persist_err_full: np.ndarray,
+    thresholds: TercileThresholds,
 ) -> dict:
     """Build one CSV row for a corridor × horizon cell.
 
-    Handles NaN filtering internally (drops rows where ex_ante is NaN).
+    Handles non-finite filtering internally before frozen classification.
 
     Returns a dict with all 10 CSV columns:
       corridor, horizon, n, pearson_r, spearman_rho, r2,
       frac_highexante_stable, frac_highexante_moderate, frac_highexante_high,
       lift_high.
     """
-    valid = ~np.isnan(ex_ante_full)
+    valid = np.isfinite(ex_ante_full)
     ex = ex_ante_full[valid]
     err = persist_err_full[valid]
 
     corr = compute_correlation_stats(ex, err)
-    ex_terc = compute_exante_terciles(ex)
+    ex_terc = compute_exante_terciles(ex, thresholds)
     retro = classify_retro_regime(err)
 
     # Composition of HIGH ex-ante tercile by retrospective regime
@@ -202,9 +206,13 @@ def main() -> None:
         df, stats = prepare_df(empresaid)
         for h in HORIZONS:
             print(f"  h={h} ...", end=" ", flush=True)
+            _, _, calibration_ex_ante = materialize_corridor(
+                df, stats, empresaid, h, splits=("train", "val")
+            )
+            thresholds = compute_frozen_thresholds(calibration_ex_ante)
             targets, persist, ex_ante = materialize_corridor(df, stats, empresaid, h)
             persist_err = np.abs(targets - persist)
-            row = build_csv_row(corridor, h, ex_ante, persist_err)
+            row = build_csv_row(corridor, h, ex_ante, persist_err, thresholds)
             rows.append(row)
             print(
                 f"n={row['n']:,}  "

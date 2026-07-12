@@ -41,11 +41,11 @@ Legend: EVC=exante-volatility-calibration, NGI=notebook-generation-integrity, RM
 
 ## Phase 2: Wire Calibration Into Builders (PR2, needs PR1)
 
-- [ ] 2.1 RED/GREEN `src/build_exante_volatility.py`: `materialize_corridor` gets `splits` arg (default `("test",)`) for train+val materialization (D2).
-- [ ] 2.2 GREEN: `compute_stratification` uses `assign_terciles`; emits `p33_threshold`, `p66_threshold`, `calib_split`, `calib_n`.
-- [ ] 2.3 GREEN: `src/build_exante_correlation.py` `compute_exante_terciles` uses shared `assign_terciles`; drop in-cell recompute.
-- [ ] 2.4 RED/GREEN: integration test — both entrypoints produce identical (p33, p66) on fixture [EVC4].
-- [ ] 2.5 Pin `POLARS_MAX_THREADS=1` before first polars import in both files (before line-40 import in correlation builder, D4).
+- [x] 2.1 RED/GREEN `src/build_exante_volatility.py`: `materialize_corridor` gets `splits` arg (default `("test",)`) for train+val materialization (D2), with real-path regression coverage for the public default `("test",)`.
+- [x] 2.2 GREEN: `compute_stratification` uses `assign_terciles`; emits `p33_threshold`, `p66_threshold`, `calib_split`, `calib_n`.
+- [x] 2.3 GREEN: `src/build_exante_correlation.py` `compute_exante_terciles` uses shared `assign_terciles`; drop in-cell recompute.
+- [x] 2.4 RED/GREEN: integration test — both entrypoints independently materialize and calibrate non-overlapping train+val fixture windows; extreme test-only perturbations leave both public threshold pairs invariant [EVC4].
+- [x] 2.5 Pin `POLARS_MAX_THREADS=1` before first polars import in both files (before line-40 import in correlation builder, D4).
 
 ## Phase 3: Determinism Thread-Pin, Other Builders (PR3)
 

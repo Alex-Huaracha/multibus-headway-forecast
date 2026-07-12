@@ -9,7 +9,7 @@ incidence by ~1.1–1.3x.
 Because the full materialization pipeline is expensive (reads large parquets),
 these tests ONLY cover pure functions using small synthetic arrays:
   - classify_retro_regime: fixed-minute-cut labelling
-  - compute_exante_terciles: percentile-33/66 tercile assignment
+  - compute_exante_terciles: frozen-threshold tercile assignment
   - compute_lift: lift of retrospective-high in the high ex-ante tercile
   - compute_correlation_stats: Pearson r, Spearman rho, r^2
   - build_csv_row: assembles one dict with the expected CSV schema
@@ -18,7 +18,7 @@ these tests ONLY cover pure functions using small synthetic arrays:
 Acceptance criteria:
   AC-REGIME-1  classify_retro_regime bins by fixed minute cuts <1/1-3/>=3
   AC-REGIME-2  classify_retro_regime preserves array length
-  AC-TERCILE-1 compute_exante_terciles assigns 0/1/2 by p33/p66 percentiles
+   AC-TERCILE-1 compute_exante_terciles assigns 0/1/2 by frozen p33/p66 thresholds
   AC-TERCILE-2 compute_exante_terciles handles ties at boundaries correctly
   AC-LIFT-1    compute_lift returns lift = P(retro_high | ex_high) / P(retro_high)
   AC-LIFT-2    compute_lift returns NaN when marginal P(retro_high) == 0
@@ -41,6 +41,7 @@ from src.build_exante_correlation import (
     compute_correlation_stats,
     build_csv_row,
 )
+from src.evaluation.exante_terciles import compute_frozen_thresholds
 
 # ---------------------------------------------------------------------------
 # AC-REGIME-1 / AC-REGIME-2 — fixed-minute-cut labelling
@@ -92,18 +93,18 @@ class TestClassifyRetroRegime:
 
 
 # ---------------------------------------------------------------------------
-# AC-TERCILE-1 / AC-TERCILE-2 — percentile-33/66 tercile assignment
+# AC-TERCILE-1 / AC-TERCILE-2 — frozen-threshold tercile assignment
 # ---------------------------------------------------------------------------
 
 
 class TestComputeExanteTerciles:
-    """AC-TERCILE-1/2: ex-ante tercile assignment by p33/p66."""
+    """AC-TERCILE-1/2: ex-ante tercile assignment by frozen p33/p66."""
 
     def test_assigns_terciles_by_percentiles(self):
         """AC-TERCILE-1: values ≤p33 → 0, (p33, p66] → 1, >p66 → 2."""
         # 9 values: sorted as 1..9; p33~3, p66~6
         ex = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])
-        terciles = compute_exante_terciles(ex)
+        terciles = compute_exante_terciles(ex, compute_frozen_thresholds(ex))
         assert terciles.shape == ex.shape
         # lowest values should be in tercile 0, highest in tercile 2
         assert terciles[0] == 0
@@ -113,7 +114,7 @@ class TestComputeExanteTerciles:
         """AC-TERCILE-1: with uniform data each tercile gets ~1/3 of samples."""
         rng = np.random.default_rng(42)
         ex = rng.uniform(0, 10, size=300)
-        terciles = compute_exante_terciles(ex)
+        terciles = compute_exante_terciles(ex, compute_frozen_thresholds(ex))
         for t in range(3):
             frac = float((terciles == t).mean())
             assert 0.28 < frac < 0.38, f"tercile {t} fraction {frac:.3f} out of expected range"
@@ -121,7 +122,7 @@ class TestComputeExanteTerciles:
     def test_all_same_value_handled(self):
         """AC-TERCILE-2: degenerate input (all values identical) does not crash."""
         ex = np.ones(30)
-        terciles = compute_exante_terciles(ex)
+        terciles = compute_exante_terciles(ex, compute_frozen_thresholds(ex))
         assert terciles.shape == (30,)
 
 
@@ -225,24 +226,28 @@ class TestBuildCsvRow:
         persist_err = rng.exponential(2.0, n)
         return ex_ante, persist_err
 
+    @staticmethod
+    def _thresholds(ex_ante):
+        return compute_frozen_thresholds(ex_ante[np.isfinite(ex_ante)])
+
     def test_row_has_all_expected_columns(self):
         """AC-ROW-1: all 10 expected column names present in the returned dict."""
         ex_ante, persist_err = self._make_inputs()
-        row = build_csv_row("E2", 3, ex_ante, persist_err)
+        row = build_csv_row("E2", 3, ex_ante, persist_err, self._thresholds(ex_ante))
         for col in EXPECTED_COLUMNS:
             assert col in row, f"Column '{col}' missing from build_csv_row output"
 
     def test_row_corridor_and_horizon(self):
         """AC-ROW-1: corridor and horizon are passed through correctly."""
         ex_ante, persist_err = self._make_inputs()
-        row = build_csv_row("E59", 10, ex_ante, persist_err)
+        row = build_csv_row("E59", 10, ex_ante, persist_err, self._thresholds(ex_ante))
         assert row["corridor"] == "E59"
         assert row["horizon"] == 10
 
     def test_high_tercile_fractions_sum_to_one(self):
         """AC-ROW-2: frac_highexante_{stable,moderate,high} sum to 1.0."""
         ex_ante, persist_err = self._make_inputs()
-        row = build_csv_row("E4", 5, ex_ante, persist_err)
+        row = build_csv_row("E4", 5, ex_ante, persist_err, self._thresholds(ex_ante))
         total = (
             row["frac_highexante_stable"]
             + row["frac_highexante_moderate"]
@@ -256,5 +261,7 @@ class TestBuildCsvRow:
         # inject some NaNs
         ex_ante_with_nan = ex_ante.copy()
         ex_ante_with_nan[:5] = np.nan
-        row = build_csv_row("E2", 3, ex_ante_with_nan, persist_err)
+        row = build_csv_row(
+            "E2", 3, ex_ante_with_nan, persist_err, self._thresholds(ex_ante_with_nan)
+        )
         assert row["n"] == int((~np.isnan(ex_ante_with_nan)).sum())

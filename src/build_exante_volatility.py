@@ -11,8 +11,11 @@ Usage:
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
+
+os.environ.setdefault("POLARS_MAX_THREADS", "1")
 
 import numpy as np
 import polars as pl
@@ -28,6 +31,11 @@ from src.data.normalization import (
 )
 from src.data.windowing import compute_max_N, make_window_index
 from src.evaluation.splits import split_temporal, winsorize_train_p99
+from src.evaluation.exante_terciles import (
+    TercileThresholds,
+    assign_terciles,
+    compute_frozen_thresholds,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -203,15 +211,16 @@ def materialize_corridor(
     stats: NormalizationStats,
     empresaid: int,
     horizon: int,
+    splits: tuple[str, ...] = ("test",),
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Materialize both directions for one corridor; return concatenated kept samples.
+    """Materialize selected splits for one corridor; return kept samples.
 
     Order: dir=-1 then dir=+1 (matching residual CSV order).
     Returns (targets, persist, ex_ante_std), each already filtered to the kept
     (valid target & persistence) samples.
     """
     train_df = df.filter(pl.col("split") == "train")
-    test_df = df.filter(pl.col("split") == "test")
+    selected_df = df.filter(pl.col("split").is_in(splits))
 
     max_n = compute_max_N(train_df, quantile=0.99)
     global_max_N = max(max_n.values())
@@ -222,8 +231,8 @@ def materialize_corridor(
 
     for direction in [-1, 1]:
         targets_flat, persist_flat, tmask_flat, pmask_flat, ex_ante_flat = \
-            materialize_direction(test_df, global_max_N, horizon, stats,
-                                  empresaid, direction)
+            materialize_direction(selected_df, global_max_N, horizon, stats,
+                                   empresaid, direction)
         keep = tmask_flat & pmask_flat
         all_targets.append(targets_flat[keep])
         all_persist.append(persist_flat[keep])
@@ -292,10 +301,10 @@ def compute_stratification(
     y_pred_dl: np.ndarray,
     y_pred_persist: np.ndarray,
     ex_ante_std: np.ndarray,
+    thresholds: TercileThresholds,
 ) -> list[dict]:
-    """Split by ex-ante std terciles and compute MAE per tercile."""
-    # Drop NaN ex_ante_std rows
-    valid_mask = ~np.isnan(ex_ante_std)
+    """Apply frozen ex-ante terciles and compute MAE per tercile."""
+    valid_mask = np.isfinite(ex_ante_std)
     y_true_v = y_true[valid_mask]
     y_dl_v = y_pred_dl[valid_mask]
     y_persist_v = y_pred_persist[valid_mask]
@@ -305,14 +314,8 @@ def compute_stratification(
         print(f"  WARNING [{corridor} h={horizon}]: no valid ex_ante_std samples")
         return []
 
-    p33 = float(np.percentile(ex_v, 100 / 3))
-    p66 = float(np.percentile(ex_v, 200 / 3))
-
-    tercile_masks = [
-        ex_v <= p33,
-        (ex_v > p33) & (ex_v <= p66),
-        ex_v > p66,
-    ]
+    tercile_codes = assign_terciles(ex_v, thresholds)
+    tercile_masks = [tercile_codes == code for code in range(3)]
     tercile_names = ["low", "mid", "high"]
 
     rows = []
@@ -334,6 +337,10 @@ def compute_stratification(
             "mae_persist": mae_persist,
             "mae_dl": mae_dl,
             "delta_mae": delta_mae,
+            "p33_threshold": thresholds.p33,
+            "p66_threshold": thresholds.p66,
+            "calib_split": thresholds.calib_split,
+            "calib_n": thresholds.calib_n,
         })
 
     return rows
@@ -357,6 +364,10 @@ def run_corridor(
     all_rows = []
     for horizon in horizons:
         print(f"\n  Horizon h={horizon}")
+        _, _, calibration_ex_ante = materialize_corridor(
+            df, stats, empresaid, horizon, splits=("train", "val")
+        )
+        thresholds = compute_frozen_thresholds(calibration_ex_ante)
         targets, persist, ex_ante = materialize_corridor(df, stats, empresaid, horizon)
 
         csv_path = resid_path_fn(horizon)
@@ -377,7 +388,7 @@ def run_corridor(
         y_pred_dl = csv_df["y_pred_dl"].to_numpy()
 
         rows = compute_stratification(
-            corridor, horizon, targets, y_pred_dl, persist, ex_ante
+            corridor, horizon, targets, y_pred_dl, persist, ex_ante, thresholds
         )
         all_rows.extend(rows)
 
