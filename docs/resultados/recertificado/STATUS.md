@@ -23,8 +23,8 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 | 11-lstm (E2+E59) | ⬜ | ✅ | ⬜ | ⬜ |
 | 12-spatialconvlstm (E2+E59) | ⬜ | ✅ | ⬜ | ⬜ |
 | 13-spatialtransformer (E2+E59) | ⬜ | ✅ | ⬜ | ⬜ |
-| 17-e4-lstm | ⬜ | ⬜ | ⬜ | ⬜ |
-| 18-e4-convlstm | ⬜ | ⬜ | ⬜ | ⬜ |
+| 17-e4-lstm | ⬜ | ✅ | ⬜ | ⬜ |
+| 18-e4-convlstm | ⬜ | ✅ | ⬜ | ⬜ |
 | 19-e4-transformer | ⬜ | ⬜ | ⬜ | ⬜ |
 
 ## Números validados (DL vs persistencia B1, misma muestra)
@@ -37,6 +37,8 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 | 12-spatialconvlstm h3 | E59 | 3.726 | 3.899 | −0.17 |
 | 13-spatialtransformer h3 | E2 | 4.878 | 5.762 | −0.88 |
 | 13-spatialtransformer h3 | E59 | 3.753 | 3.899 | −0.15 |
+| 17-e4-lstm h3 | E4 | 4.398 | 4.438 | −0.04 |
+| 18-e4-convlstm h3 | E4 | 4.418 | 4.438 | −0.02 |
 
 El DL le gana a la persistencia en ambos corredores con el pipeline corregido. Falta completar
 el resto de la grilla antes de recalcular significancia/degradación/paired-audit (fase 10).
