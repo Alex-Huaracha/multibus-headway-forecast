@@ -284,38 +284,92 @@ class TestGridSearch:
         assert len(GRID) == 24, f"GRID must have 24 entries, got {len(GRID)}"
         assert all(isinstance(c, TrainConfig) for c in GRID), "All GRID items must be TrainConfig"
 
-    def test_grid_search_is_reproducible_across_calls(self) -> None:
-        """grid_search must seed BEFORE instantiating the model, so two calls with
-        the same config + seed yield identical weights and validation loss.
+    def test_grid_search_seeds_before_model_construction(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Each config seed must be applied before its model initializes weights."""
+        import src.train as train
 
-        Regression (paper-audit seed-wiring gap): set_seed previously ran inside
-        train_model AFTER the model was instantiated, leaving weight
-        initialization uncontrolled by config.seed. With dropout=0.0 and a fixed
-        list loader, init weights are the only randomness source, so a mismatch
-        across calls isolates exactly the wiring bug.
-        """
-        from src.train import grid_search
+        events: list[str] = []
 
-        max_N, ctx_dim = 3, 5
-        configs = [TrainConfig(
-            hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3,
-            max_epochs=3, patience=5, seed=2024,
-        )]
-        train_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=2)
-        val_dl = _make_synthetic_dataloader(max_N=max_N, context_dim=ctx_dim, n_batches=1)
+        class FakeModel:
+            def __init__(self, **_kwargs) -> None:
+                events.append("model")
 
-        first = grid_search(train_dl, val_dl, max_N=max_N, configs=configs, device="cpu")
-        # Perturb the global RNG so any reliance on ambient state surfaces.
-        _ = torch.randn(1000)
-        second = grid_search(train_dl, val_dl, max_N=max_N, configs=configs, device="cpu")
-
-        assert first[0].best_val_loss == second[0].best_val_loss, (
-            "grid_search must be reproducible across calls — seed before instantiation"
+        monkeypatch.setattr(train, "set_seed", lambda _seed: events.append("seed"))
+        monkeypatch.setattr(train, "HeadwayLSTM", FakeModel)
+        monkeypatch.setattr(
+            train,
+            "train_model",
+            lambda model, _train_dl, _val_dl, config, _device: train.TrainResult(
+                0.0, 0, state_dict={}, config=config,
+            ),
         )
-        for key in first[0].state_dict:
-            assert torch.allclose(first[0].state_dict[key], second[0].state_dict[key]), (
-                f"Weights differ across runs for {key!r} — init not controlled by seed"
-            )
+
+        train.grid_search(
+            [], [], max_N=3,
+            configs=[TrainConfig(hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3)],
+        )
+
+        assert events == ["seed", "model"]
+
+    def test_grid_search_initial_weights_ignore_ambient_rng(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Identical config seeds must reproduce initial weights after RNG perturbation."""
+        import copy
+        import src.train as train
+
+        captured_weights: list[dict[str, torch.Tensor]] = []
+
+        def capture_initial_weights(model, _train_dl, _val_dl, config, _device):
+            captured_weights.append(copy.deepcopy(model.state_dict()))
+            return train.TrainResult(0.0, 0, state_dict={}, config=config)
+
+        monkeypatch.setattr(train, "train_model", capture_initial_weights)
+        config = TrainConfig(
+            hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3, seed=2024,
+        )
+
+        train.grid_search([], [], max_N=3, configs=[config])
+        _ = torch.randn(1000)
+        train.grid_search([], [], max_N=3, configs=[config])
+
+        assert len(captured_weights) == 2
+        assert captured_weights[0].keys() == captured_weights[1].keys()
+        assert all(
+            torch.equal(captured_weights[0][name], captured_weights[1][name])
+            for name in captured_weights[0]
+        )
+
+    def test_grid_search_uses_config_seed_not_a_constant(
+        self, monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Configs differing ONLY in seed must produce different initial weights.
+
+        Guards against a regression where grid_search calls set_seed with a
+        hardcoded constant instead of config.seed — the identical-weights test
+        above cannot distinguish those two cases."""
+        import copy
+        import src.train as train
+
+        captured_weights: list[dict[str, torch.Tensor]] = []
+
+        def capture_initial_weights(model, _train_dl, _val_dl, config, _device):
+            captured_weights.append(copy.deepcopy(model.state_dict()))
+            return train.TrainResult(0.0, 0, state_dict={}, config=config)
+
+        monkeypatch.setattr(train, "train_model", capture_initial_weights)
+        base = dict(hidden_size=8, num_layers=1, dropout=0.0, lr=1e-3)
+
+        train.grid_search([], [], max_N=3, configs=[TrainConfig(**base, seed=2024)])
+        train.grid_search([], [], max_N=3, configs=[TrainConfig(**base, seed=7)])
+
+        assert len(captured_weights) == 2
+        assert any(
+            not torch.equal(captured_weights[0][name], captured_weights[1][name])
+            for name in captured_weights[0]
+        ), "different config.seed values must yield different initial weights"
 
     def test_grid_search_returns_results_list(self) -> None:
         """grid_search must return a list of TrainResult with one entry per config, sorted by best_val_loss."""
