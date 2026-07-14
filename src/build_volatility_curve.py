@@ -27,7 +27,10 @@ all three would only clutter the panels. Change ``MODEL`` to switch.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+os.environ.setdefault("POLARS_MAX_THREADS", "1")
 
 import polars as pl
 import matplotlib
