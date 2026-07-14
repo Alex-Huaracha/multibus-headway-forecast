@@ -12,7 +12,8 @@
   "dataset_sources": [],
   "kernel_sources": [
     "alexhuaracha/04-preprocessing",
-    "alexhuaracha/10-baselines-multi-horizonte"
+    "alexhuaracha/10-baselines-multi-horizonte",
+    "alexhuaracha/02-eda-corridors"
   ],
   "competition_sources": []
 }

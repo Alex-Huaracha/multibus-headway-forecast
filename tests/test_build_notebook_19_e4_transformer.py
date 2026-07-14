@@ -187,7 +187,7 @@ class TestNotebook19E4Only:
         if not nb_path.exists():
             assert _run_builder().returncode == 0
         src = _cell_source(nb_path, "cell-19-load")
-        assert "E4" in src and "_find_parquet(4)" in src
+        assert "E4" in src and '_resolve_input("headways_E4.parquet")' in src
 
 
 class TestNotebook19KernelMetadata:
@@ -226,7 +226,10 @@ class TestNotebook19KernelMetadata:
     def test_kernel_metadata_gpu_and_kernel_sources(self, horizon: int):
         self._ensure_built()
         meta = json.loads(META_PATHS[horizon].read_text(encoding="utf-8"))
-        assert meta["kernel_sources"] == ["alexhuaracha/16-e4-data-baselines"]
+        assert meta["kernel_sources"] == [
+            "alexhuaracha/16-e4-data-baselines",
+            "alexhuaracha/02-eda-corridors",
+        ]
         assert meta["enable_gpu"] is True
         assert meta.get("accelerator") == "GPU_T4X2"
 

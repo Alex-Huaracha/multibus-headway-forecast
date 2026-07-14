@@ -11,7 +11,8 @@
   "keywords": [],
   "dataset_sources": [],
   "kernel_sources": [
-    "alexhuaracha/16-e4-data-baselines"
+    "alexhuaracha/16-e4-data-baselines",
+    "alexhuaracha/02-eda-corridors"
   ],
   "competition_sources": []
 }

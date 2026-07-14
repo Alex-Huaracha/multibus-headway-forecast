@@ -419,7 +419,10 @@ class TestNotebook12KernelMetadata:
         )
         for h in HORIZONS:
             meta = json.loads(META_PATHS[h].read_text(encoding="utf-8"))
-            expected_id = f"alexhuaracha/12-spatialconvlstm-multihorizon-h{h}"
+            # h10 uses the "h10b" replacement slug: the original h10 kernel is
+            # corrupt on Kaggle (commit e0757b6) and must never be pushed again.
+            suffix = "h10b" if h == 10 else f"h{h}"
+            expected_id = f"alexhuaracha/12-spatialconvlstm-multihorizon-{suffix}"
             assert meta["id"] == expected_id, (
                 f"h{h}/kernel-metadata.json id must be {expected_id!r}, got: {meta['id']!r}"
             )
@@ -439,7 +442,10 @@ class TestNotebook12KernelMetadata:
         )
         assert "alexhuaracha/10-baselines-multi-horizonte" in meta["kernel_sources"], (
             f"kernel_sources must contain 'alexhuaracha/10-baselines-multi-horizonte', "
-            f"got: {meta['kernel_sources']!r}"
+            f"got: {meta['kernel_sources']!r}")
+        assert "alexhuaracha/02-eda-corridors" in meta["kernel_sources"], (
+            f"kernel_sources must contain 'alexhuaracha/02-eda-corridors' "
+            f"(mounts the required atypical_days.csv), got: {meta['kernel_sources']!r}"
         )
         assert meta["enable_gpu"] is True, (
             f"enable_gpu must be True for DL notebook, got: {meta['enable_gpu']!r}"

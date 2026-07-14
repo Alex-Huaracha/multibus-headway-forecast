@@ -393,7 +393,10 @@ class TestNotebook11KernelMetadata:
         )
         assert "alexhuaracha/10-baselines-multi-horizonte" in meta["kernel_sources"], (
             f"kernel_sources must contain 'alexhuaracha/10-baselines-multi-horizonte', "
-            f"got: {meta['kernel_sources']!r}"
+            f"got: {meta['kernel_sources']!r}")
+        assert "alexhuaracha/02-eda-corridors" in meta["kernel_sources"], (
+            f"kernel_sources must contain 'alexhuaracha/02-eda-corridors' "
+            f"(mounts the required atypical_days.csv), got: {meta['kernel_sources']!r}"
         )
         assert meta["enable_gpu"] is True, (
             f"enable_gpu must be True for DL notebook, got: {meta['enable_gpu']!r}"
