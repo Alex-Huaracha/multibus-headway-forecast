@@ -1,0 +1,157 @@
+[{"stream_name":"stderr","time":11.421085711,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":11.421186635,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":11.421194368,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":11.421199238,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":12.212857885,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":12.212897013,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":12.212902173,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":12.212905843,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":23.252813711,"data":"Output dir: /kaggle/working\n"}
+,{"stream_name":"stdout","time":23.252872937,"data":"Horizon:    3\n"}
+,{"stream_name":"stdout","time":23.252879404,"data":"Device:     cuda\n"}
+,{"stream_name":"stdout","time":26.081310721,"data":"E2:  1,590,659 rows, 14 cols\n"}
+,{"stream_name":"stdout","time":26.081382499,"data":"E59: 2,684,878 rows, 14 cols\n"}
+,{"stream_name":"stdout","time":26.57827811,"data":"E2: split counts = shape: (3, 2)\n"}
+,{"stream_name":"stdout","time":26.578316144,"data":"┌───────┬─────────┐\n"}
+,{"stream_name":"stdout","time":26.578323384,"data":"│ split ┆ len     │\n"}
+,{"stream_name":"stdout","time":26.578328034,"data":"│ ---   ┆ ---     │\n"}
+,{"stream_name":"stdout","time":26.578332701,"data":"│ str   ┆ u32     │\n"}
+,{"stream_name":"stdout","time":26.578337246,"data":"╞═══════╪═════════╡\n"}
+,{"stream_name":"stdout","time":26.578342396,"data":"│ test  ┆ 222656  │\n"}
+,{"stream_name":"stdout","time":26.578346895,"data":"│ train ┆ 1127043 │\n"}
+,{"stream_name":"stdout","time":26.578351264,"data":"│ val   ┆ 240960  │\n"}
+,{"stream_name":"stdout","time":26.57835568,"data":"└───────┴─────────┘\n"}
+,{"stream_name":"stdout","time":26.578360342,"data":"E2: winsorize threshold = 28.4679 min\n"}
+,{"stream_name":"stdout","time":26.601462427,"data":"E59: split counts = shape: (3, 2)\n"}
+,{"stream_name":"stdout","time":26.601499199,"data":"┌───────┬─────────┐\n"}
+,{"stream_name":"stdout","time":26.601504291,"data":"│ split ┆ len     │\n"}
+,{"stream_name":"stdout","time":26.601507662,"data":"│ ---   ┆ ---     │\n"}
+,{"stream_name":"stdout","time":26.601510876,"data":"│ str   ┆ u32     │\n"}
+,{"stream_name":"stdout","time":26.601514013,"data":"╞═══════╪═════════╡\n"}
+,{"stream_name":"stdout","time":26.601517237,"data":"│ test  ┆ 389308  │\n"}
+,{"stream_name":"stdout","time":26.60152035,"data":"│ train ┆ 1892620 │\n"}
+,{"stream_name":"stdout","time":26.601523336,"data":"│ val   ┆ 402950  │\n"}
+,{"stream_name":"stdout","time":26.60152643,"data":"└───────┴─────────┘\n"}
+,{"stream_name":"stdout","time":26.601529587,"data":"E59: winsorize threshold = 27.9969 min\n"}
+,{"stream_name":"stdout","time":26.803557554,"data":"\n"}
+,{"stream_name":"stdout","time":26.803605219,"data":"E2 normalization stats:\n"}
+,{"stream_name":"stdout","time":26.803638696,"data":"  (empresa=2, dir=-1): mean=8.9699, std=7.5389\n"}
+,{"stream_name":"stdout","time":26.803643507,"data":"  (empresa=2, dir=1): mean=6.6704, std=5.9567\n"}
+,{"stream_name":"stdout","time":26.85451892,"data":"\n"}
+,{"stream_name":"stdout","time":26.854561795,"data":"E59 normalization stats:\n"}
+,{"stream_name":"stdout","time":26.854567419,"data":"  (empresa=59, dir=-1): mean=8.8935, std=6.3367\n"}
+,{"stream_name":"stdout","time":26.854571926,"data":"  (empresa=59, dir=1): mean=9.2094, std=6.4743\n"}
+,{"stream_name":"stdout","time":26.932988217,"data":"Atypical days loaded: 0 dates (path=None)\n"}
+,{"stream_name":"stdout","time":27.141749162,"data":"E2  context columns: ['hour_sin', 'hour_cos', 'dow_sin', 'dow_cos', 'atypical_flag']\n"}
+,{"stream_name":"stdout","time":27.141791944,"data":"E59 context columns: ['hour_sin', 'hour_cos', 'dow_sin', 'dow_cos', 'atypical_flag']\n"}
+,{"stream_name":"stdout","time":27.345877672,"data":"\n"}
+,{"stream_name":"stdout","time":27.345920288,"data":"E2 max_N per direction: {(2, -1): 12, (2, 1): 22}\n"}
+,{"stream_name":"stdout","time":27.345924938,"data":"E2 global max_N (for model): 22\n"}
+,{"stream_name":"stdout","time":30.634527265,"data":"  E2 train: lookup built in 2.2s (195,055 snapshots, 35 slots)\n"}
+,{"stream_name":"stdout","time":54.730256448,"data":"  E2 train: 1,126,587 windows -\u003e 8,802 batches in 26.1s\n"}
+,{"stream_name":"stdout","time":55.436592487,"data":"  E2 val: lookup built in 0.5s (41,466 snapshots, 31 slots)\n"}
+,{"stream_name":"stdout","time":60.537578295,"data":"  E2 val: 240,555 windows -\u003e 1,880 batches in 5.6s\n"}
+,{"stream_name":"stdout","time":60.807662134,"data":"  E2 test dir=-1: lookup built in 0.2s (19,884 snapshots, 14 slots)\n"}
+,{"stream_name":"stdout","time":62.914654686,"data":"  E2 test dir=-1: 97,407 windows -\u003e 761 batches in 2.3s\n"}
+,{"stream_name":"stdout","time":63.183874439,"data":"  E2 test dir=+1: lookup built in 0.2s (20,046 snapshots, 16 slots)\n"}
+,{"stream_name":"stdout","time":65.79486666,"data":"  E2 test dir=+1: 124,858 windows -\u003e 976 batches in 2.8s\n"}
+,{"stream_name":"stdout","time":65.794917431,"data":"\n"}
+,{"stream_name":"stdout","time":65.794923371,"data":"E59 max_N per direction: {(59, -1): 17, (59, 1): 19}\n"}
+,{"stream_name":"stdout","time":65.794928175,"data":"E59 global max_N (for model): 19\n"}
+,{"stream_name":"stdout","time":70.827919512,"data":"  E59 train: lookup built in 3.3s (269,514 snapshots, 41 slots)\n"}
+,{"stream_name":"stdout","time":112.597915221,"data":"  E59 train: 1,892,077 windows -\u003e 14,782 batches in 44.8s\n"}
+,{"stream_name":"stdout","time":113.669309176,"data":"  E59 val: lookup built in 0.6s (54,651 snapshots, 39 slots)\n"}
+,{"stream_name":"stdout","time":122.491101568,"data":"  E59 val: 402,441 windows -\u003e 3,145 batches in 9.2s\n"}
+,{"stream_name":"stdout","time":122.81677482,"data":"  E59 test dir=-1: lookup built in 0.3s (27,316 snapshots, 20 slots)\n"}
+,{"stream_name":"stdout","time":127.358339195,"data":"  E59 test dir=-1: 207,647 windows -\u003e 1,623 batches in 4.7s\n"}
+,{"stream_name":"stdout","time":127.65519809,"data":"  E59 test dir=+1: lookup built in 0.3s (27,125 snapshots, 17 slots)\n"}
+,{"stream_name":"stdout","time":131.34877634,"data":"  E59 test dir=+1: 181,168 windows -\u003e 1,416 batches in 4.2s\n"}
+,{"stream_name":"stdout","time":131.348825083,"data":"\n"}
+,{"stream_name":"stdout","time":131.348845941,"data":"Dataset construction complete.\n"}
+,{"stream_name":"stdout","time":131.539646982,"data":"\n"}
+,{"stream_name":"stdout","time":131.539717238,"data":"E2 LSTM training: max_N=22, device=cuda\n"}
+,{"stream_name":"stdout","time":456.348235749,"data":"  E2 config: hidden=32, layers=1, dropout=0.0, lr=0.0005\n"}
+,{"stream_name":"stdout","time":456.348283195,"data":"  E2 val loss: 0.944633 (epoch 4)\n"}
+,{"stream_name":"stdout","time":456.3482882,"data":"\n"}
+,{"stream_name":"stdout","time":456.348291623,"data":"E59 LSTM training: max_N=19, device=cuda\n"}
+,{"stream_name":"stdout","time":1127.81966164,"data":"  E59 config: hidden=32, layers=2, dropout=0.2, lr=0.0005\n"}
+,{"stream_name":"stdout","time":1127.819755629,"data":"  E59 val loss: 0.643252 (epoch 5)\n"}
+,{"stream_name":"stdout","time":1128.769351816,"data":"E2 dir=-1 LSTM: MAE=5.9426 min, RMSE=7.4667 min (n_valid=416,829)\n"}
+,{"stream_name":"stdout","time":1129.592030353,"data":"E2 dir=+1 LSTM: MAE=4.1529 min, RMSE=5.8050 min (n_valid=559,525)\n"}
+,{"stream_name":"stdout","time":1130.985800713,"data":"E59 dir=-1 LSTM: MAE=3.8934 min, RMSE=5.2097 min (n_valid=1,615,345)\n"}
+,{"stream_name":"stdout","time":1132.03705083,"data":"E59 dir=+1 LSTM: MAE=3.7628 min, RMSE=4.9525 min (n_valid=1,121,642)\n"}
+,{"stream_name":"stdout","time":1132.230175209,"data":"E2 aggregate LSTM: MAE=4.9170 min, RMSE=6.5661 min (n_valid=976,354)\n"}
+,{"stream_name":"stdout","time":1132.298065664,"data":"E59 aggregate LSTM: MAE=3.8399 min, RMSE=5.1059 min (n_valid=2,736,987)\n"}
+,{"stream_name":"stdout","time":1132.298102036,"data":"\n"}
+,{"stream_name":"stdout","time":1132.29810883,"data":"LSTM results written to: /kaggle/working/lstm_results_h3.csv  (12 rows)\n"}
+,{"stream_name":"stdout","time":1132.298113958,"data":"shape: (12, 6)\n"}
+,{"stream_name":"stdout","time":1132.298118992,"data":"┌──────────┬───────────┬──────────┬────────┬──────────┬─────────┐\n"}
+,{"stream_name":"stdout","time":1132.298125312,"data":"│ corridor ┆ direction ┆ baseline ┆ metric ┆ value    ┆ horizon │\n"}
+,{"stream_name":"stdout","time":1132.298129892,"data":"│ ---      ┆ ---       ┆ ---      ┆ ---    ┆ ---      ┆ ---     │\n"}
+,{"stream_name":"stdout","time":1132.298134457,"data":"│ str      ┆ str       ┆ str      ┆ str    ┆ f64      ┆ i64     │\n"}
+,{"stream_name":"stdout","time":1132.298138977,"data":"╞══════════╪═══════════╪══════════╪════════╪══════════╪═════════╡\n"}
+,{"stream_name":"stdout","time":1132.298144187,"data":"│ E2       ┆ -1        ┆ LSTM     ┆ MAE    ┆ 5.94262  ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.298148627,"data":"│ E2       ┆ -1        ┆ LSTM     ┆ RMSE   ┆ 7.466731 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.298153054,"data":"│ E2       ┆ +1        ┆ LSTM     ┆ MAE    ┆ 4.152877 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.298157507,"data":"│ E2       ┆ +1        ┆ LSTM     ┆ RMSE   ┆ 5.804994 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.298162634,"data":"│ E2       ┆ aggregate ┆ LSTM     ┆ MAE    ┆ 4.916961 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.298167566,"data":"│ …        ┆ …         ┆ …        ┆ …      ┆ …        ┆ …       │\n"}
+,{"stream_name":"stdout","time":1132.298173132,"data":"│ E59      ┆ -1        ┆ LSTM     ┆ RMSE   ┆ 5.209715 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.298178399,"data":"│ E59      ┆ +1        ┆ LSTM     ┆ MAE    ┆ 3.762839 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.298183584,"data":"│ E59      ┆ +1        ┆ LSTM     ┆ RMSE   ┆ 4.952512 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.298199513,"data":"│ E59      ┆ aggregate ┆ LSTM     ┆ MAE    ┆ 3.839883 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.298203905,"data":"│ E59      ┆ aggregate ┆ LSTM     ┆ RMSE   ┆ 5.105878 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1132.29820795,"data":"└──────────┴───────────┴──────────┴────────┴──────────┴─────────┘\n"}
+,{"stream_name":"stdout","time":1135.011851445,"data":"Residuals written to: /kaggle/working/lstm_residuals_h3.csv  (2,768,950 rows)\n"}
+,{"stream_name":"stdout","time":1135.370856625,"data":"Provenance written to: /kaggle/working/lstm_provenance_h3.json\n"}
+,{"stream_name":"stdout","time":1135.370917363,"data":"  E2 h=3: DL MAE=4.8580  persist(B1) MAE=5.7622  n=599,117\n"}
+,{"stream_name":"stdout","time":1135.370924576,"data":"  E59 h=3: DL MAE=3.7148  persist(B1) MAE=3.8985  n=2,169,833\n"}
+,{"stream_name":"stdout","time":1135.479580093,"data":"Baselines loaded from: /kaggle/input/notebooks/alexhuaracha/10-baselines-multi-horizonte/baselines_results_multih.csv (576 rows total)\n"}
+,{"stream_name":"stdout","time":1135.47962119,"data":"Baselines filtered to horizon=3: 144 rows\n"}
+,{"stream_name":"stdout","time":1135.479627662,"data":"\n"}
+,{"stream_name":"stdout","time":1135.479632142,"data":"MAE comparison (minutes) at horizon=3 — lower is better:\n"}
+,{"stream_name":"stdout","time":1135.47963811,"data":"shape: (78, 6)\n"}
+,{"stream_name":"stdout","time":1135.479643057,"data":"┌──────────┬───────────┬──────────┬────────┬──────────┬─────────┐\n"}
+,{"stream_name":"stdout","time":1135.479648301,"data":"│ corridor ┆ direction ┆ baseline ┆ metric ┆ value    ┆ horizon │\n"}
+,{"stream_name":"stdout","time":1135.479652896,"data":"│ ---      ┆ ---       ┆ ---      ┆ ---    ┆ ---      ┆ ---     │\n"}
+,{"stream_name":"stdout","time":1135.479658005,"data":"│ str      ┆ str       ┆ str      ┆ str    ┆ f64      ┆ i64     │\n"}
+,{"stream_name":"stdout","time":1135.479663299,"data":"╞══════════╪═══════════╪══════════╪════════╪══════════╪═════════╡\n"}
+,{"stream_name":"stdout","time":1135.479668915,"data":"│ E2       ┆ +1        ┆ B0       ┆ MAE    ┆ 4.491108 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479673563,"data":"│ E2       ┆ +1        ┆ B1       ┆ MAE    ┆ 5.317934 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479678999,"data":"│ E2       ┆ +1        ┆ B2_w10   ┆ MAE    ┆ 4.776425 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479683774,"data":"│ E2       ┆ +1        ┆ B2_w15   ┆ MAE    ┆ 4.723686 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479688487,"data":"│ E2       ┆ +1        ┆ B2_w5    ┆ MAE    ┆ 4.859505 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479708452,"data":"│ …        ┆ …         ┆ …        ┆ …      ┆ …        ┆ …       │\n"}
+,{"stream_name":"stdout","time":1135.479715443,"data":"│ E59      ┆ aggregate ┆ B2_w5    ┆ MAE    ┆ 4.228793 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479720195,"data":"│ E59      ┆ aggregate ┆ B3       ┆ MAE    ┆ 4.068237 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479724964,"data":"│ E59      ┆ aggregate ┆ B4_HA    ┆ MAE    ┆ 4.805227 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479741215,"data":"│ E59      ┆ aggregate ┆ B5_XGB   ┆ MAE    ┆ 4.035239 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479745174,"data":"│ E59      ┆ aggregate ┆ LSTM     ┆ MAE    ┆ 3.839883 ┆ 3       │\n"}
+,{"stream_name":"stdout","time":1135.479748971,"data":"└──────────┴───────────┴──────────┴────────┴──────────┴─────────┘\n"}
+,{"stream_name":"stdout","time":1135.479754016,"data":"\n"}
+,{"stream_name":"stdout","time":1135.479758309,"data":"Pivot table:\n"}
+,{"stream_name":"stdout","time":1135.479762187,"data":"shape: (9, 12)\n"}
+,{"stream_name":"stdout","time":1135.479768947,"data":"┌──────────┬───────────┬────────┬──────────┬───┬──────────┬──────────┬──────────┬──────────┐\n"}
+,{"stream_name":"stdout","time":1135.47977422,"data":"│ corridor ┆ direction ┆ metric ┆ B0       ┆ … ┆ B3       ┆ B4_HA    ┆ B5_XGB   ┆ LSTM     │\n"}
+,{"stream_name":"stdout","time":1135.479778132,"data":"│ ---      ┆ ---       ┆ ---    ┆ ---      ┆   ┆ ---      ┆ ---      ┆ ---      ┆ ---      │\n"}
+,{"stream_name":"stdout","time":1135.479781679,"data":"│ str      ┆ str       ┆ str    ┆ f64      ┆   ┆ f64      ┆ f64      ┆ f64      ┆ f64      │\n"}
+,{"stream_name":"stdout","time":1135.479790892,"data":"╞══════════╪═══════════╪════════╪══════════╪═══╪══════════╪══════════╪══════════╪══════════╡\n"}
+,{"stream_name":"stdout","time":1135.479795397,"data":"│ E2       ┆ +1        ┆ MAE    ┆ 4.491108 ┆ … ┆ 4.665339 ┆ 4.466023 ┆ 4.321296 ┆ 4.152877 │\n"}
+,{"stream_name":"stdout","time":1135.479798054,"data":"│ E2       ┆ -1        ┆ MAE    ┆ 6.162477 ┆ … ┆ 6.121109 ┆ 6.130749 ┆ 5.784697 ┆ 5.94262  │\n"}
+,{"stream_name":"stdout","time":1135.479800518,"data":"│ E2       ┆ aggregate ┆ MAE    ┆ 5.287081 ┆ … ┆ 5.358635 ┆ 5.258844 ┆ 5.018227 ┆ 4.916961 │\n"}
+,{"stream_name":"stdout","time":1135.479803015,"data":"│ E4       ┆ +1        ┆ MAE    ┆ 5.089078 ┆ … ┆ 4.016844 ┆ 5.048905 ┆ 3.628579 ┆ null     │\n"}
+,{"stream_name":"stdout","time":1135.47980543,"data":"│ E4       ┆ -1        ┆ MAE    ┆ 6.247414 ┆ … ┆ 5.441988 ┆ 6.231091 ┆ 5.046414 ┆ null     │\n"}
+,{"stream_name":"stdout","time":1135.479807912,"data":"│ E4       ┆ aggregate ┆ MAE    ┆ 5.771816 ┆ … ┆ 4.856843 ┆ 5.745762 ┆ 4.464269 ┆ null     │\n"}
+,{"stream_name":"stdout","time":1135.479810335,"data":"│ E59      ┆ +1        ┆ MAE    ┆ 4.971361 ┆ … ┆ 3.986911 ┆ 4.911498 ┆ 3.906067 ┆ 3.762839 │\n"}
+,{"stream_name":"stdout","time":1135.479814717,"data":"│ E59      ┆ -1        ┆ MAE    ┆ 4.77402  ┆ … ┆ 4.133441 ┆ 4.720022 ┆ 4.138805 ┆ 3.893379 │\n"}
+,{"stream_name":"stdout","time":1135.479834372,"data":"│ E59      ┆ aggregate ┆ MAE    ┆ 4.861834 ┆ … ┆ 4.068237 ┆ 4.805227 ┆ 4.035239 ┆ 3.839883 │\n"}
+,{"stream_name":"stdout","time":1135.479839567,"data":"└──────────┴───────────┴────────┴──────────┴───┴──────────┴──────────┴──────────┴──────────┘\n"}
+,{"stream_name":"stderr","time":1141.712863247,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":1141.712911932,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":1141.943496222,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":1141.943565436,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":1142.678973731,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":1143.00863327,"data":"[NbConvertApp] Writing 148651 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":1145.423722746,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":1146.564841392,"data":"[NbConvertApp] Writing 636615 bytes to __results__.html\n"}
+]

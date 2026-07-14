@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "receipt_kind": "terminal_failure_quarantine",
+  "created_at_utc": "2026-07-12T23:34:05Z",
+  "submitted_kernel": "alexhuaracha/11-lstm-multihorizon-h3",
+  "assigned_kernel_version": 12,
+  "explicit_version_ref": "alexhuaracha/11-lstm-multihorizon-h3/12",
+  "terminal_status": "ERROR",
+  "failure_message": null,
+  "authorization": {
+    "amendment_file": "../nb11-e2-h3-addendum-ledger/20260712T233107Z-replacement-authorization.json",
+    "amendment_sha256": "4f4bbe313d4efbf10cb5d0ebb90e39d85836f72dad4ba3ad7fd7a863dfeba0f4"
+  },
+  "source": {
+    "notebook_path": "notebooks/11_lstm_multihorizon/h3/11_lstm_h3.ipynb",
+    "notebook_sha256": "883115ff02e84ec1b06a7fd87315e5ec034727d24a11c338b2c194b57caa14bb",
+    "generator_path": "src/build_notebook_11.py",
+    "generator_sha256": "fec9396ed70534192b000ede2dfb9ae9c00d4d8b451b85c39ee64cd0b867427d",
+    "metadata_sha256": "a0e61322065db7c1015f2df006a21283d1289f1e0e7333bdebabb77a3f7f0663"
+  },
+  "expected_input_hashes": {
+    "headways_E2.parquet": "82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4",
+    "headways_E59.parquet": "0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448",
+    "atypical_days.csv": "d6582cf3804fe2e99b1074a60702a17f4c25f80a4a57c59d83b0255f21b7d609"
+  },
+  "output_download": {
+    "performed": false,
+    "reason": "The explicit submitted version reached ERROR, not COMPLETE."
+  },
+  "audit": {
+    "input_hashes": "not_observable_without_a_completed_runtime_sidecar",
+    "schema_v2_sidecar": "missing_due_to_terminal_failure",
+    "six_field_primary_key_uniqueness": "not_auditable_without_residual_export",
+    "source_identity": "local submitted source verified before push",
+    "keyed_reconstruction": "not_auditable_without_residual_export"
+  },
+  "validation_status": "failed",
+  "promotion": "quarantined",
+  "production_action": "none",
+  "retry": "prohibited"
+}

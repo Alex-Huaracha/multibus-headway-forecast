@@ -9,6 +9,7 @@
 ### In Scope
 - Fix ex-ante volatility tercile calibration: derive p33/p66 thresholds from train (or train+val) volatility, freeze them, apply to test in `compute_stratification` (`src/build_exante_volatility.py`) and the mirrored `compute_exante_terciles` (`src/build_exante_correlation.py`). TDD: tests first.
 - Regenerate the 6 corrected notebook families (11/12/13 multihorizon, 17/18/19 E4) from builders; add an automated guard asserting no train-only winsorization (`non_train`) pattern in generated `.ipynb`.
+- Frozen input-hash gate across the 6 families: resolve `headways_E{2,59,4}.parquet` and `atypical_days.csv` by filename + frozen SHA-256 (fail closed before training on missing or altered bytes); declare `alexhuaracha/02-eda-corridors` as kernel source. Discovery (2026-07-14): the atypical-day feature (DL-2) was silently inert (all zeros) in every prior Kaggle run because the CSV never mounted and notebooks fell back gracefully — the user decided to activate it properly in all 6 families for the re-run, keeping frozen winning configurations (no re-tuning).
 - Reproducibility docs: README reproduction section + `docs/dataset-manifest.md` (env, Kaggle download/rebuild commands, non-versioned artifacts, dataset/kernel versions).
 - Documented test-clipping sensitivity note (winsorizing test ground truth) + no-clipping sensitivity plan for the Kaggle re-run.
 - Post-Kaggle regeneration (BLOCKED on external re-run): residuals, significance, degradation, volatility, paired-audit CSVs, figures; rewrite `docs/resultados/documento-resultados.md` with PAIRED metrics as canonical, honestly.
@@ -76,3 +77,7 @@ Resolved with the user (2026-07-11):
 1. Tercile thresholds: **train+val** volatility distribution (more samples, still no test leakage) — CONFIRMED.
 2. Older notebooks 05-09/14/15: **out of scope** (exploratory/superseded) — CONFIRMED.
 3. No-clipping sensitivity: **documented as a planned check** in the Kaggle re-run design, not implemented locally this change — CONFIRMED.
+
+Resolved with the user (2026-07-14):
+4. Atypical-day feature (silently inert in all prior runs): **activate properly in all 6 families** with required, hash-verified `atypical_days.csv`; re-run keeps frozen winning configurations, no re-tuning — CONFIRMED.
+5. NB11 residual-provenance audit layer (keyed exports, sidecars, receipts, promotion gates): **removed as over-engineering**; only the simple input-hash gate is retained — CONFIRMED.

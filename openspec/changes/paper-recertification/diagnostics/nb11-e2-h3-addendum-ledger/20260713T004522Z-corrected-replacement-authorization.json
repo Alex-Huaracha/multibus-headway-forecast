@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "amendment_id": "paper-recertification-nb11-e2-h3-corrected-replacement-20260713T004522Z",
+  "created_at_utc": "2026-07-13T00:45:22Z",
+  "immutability": {
+    "mode": "append_only_amendment",
+    "prior_records": [
+      "authorization.json",
+      "20260712T233107Z-replacement-authorization.json"
+    ],
+    "rule": "This is a new immutable authorization record. Prior authorization and failure records are not modified."
+  },
+  "user_authorization": {
+    "authorized_by": "explicit_user_instruction",
+    "authorization_status": "authorized_corrected_replacement_not_submitted",
+    "authorized_action": "Submit exactly one corrected replacement of notebooks/11_lstm_multihorizon/h3 to alexhuaracha/11-lstm-multihorizon-h3, obtain its assigned version, poll that exact version to a terminal state, and never retry.",
+    "scope_lock": {
+      "kernel": "alexhuaracha/11-lstm-multihorizon-h3",
+      "corridor": "E2",
+      "horizon": 3,
+      "model": "HeadwayLSTM"
+    },
+    "maximum_submissions_under_this_amendment": 1,
+    "prohibited_actions": [
+      "grid",
+      "other horizon",
+      "other model",
+      "tuning",
+      "alternate configuration",
+      "general retry",
+      "additional submission after terminal state",
+      "Phase 5",
+      "Phase 9",
+      "Phase 10",
+      "production promotion without every receipt and audit gate"
+    ]
+  },
+  "replacement_rationale": {
+    "user_reported_reason": "Prior failures were pre-training manifest-path errors. This replacement uses the corrected explicit EDA declared path and frozen SHA-256 manifest.",
+    "known_prior_evidence": "Version 12 reached terminal ERROR; its authenticated status response exposed no failure message, and no outputs were downloaded. This amendment supersedes neither that immutable failure receipt nor its non-promotion decision.",
+    "eligibility_boundary": "The user explicitly authorizes this new, single corrected replacement attempt; its terminal state consumes this amendment regardless of outcome."
+  },
+  "frozen_contract": {
+    "winner": {
+      "E2": {
+        "hidden_size": 32,
+        "num_layers": 1,
+        "dropout": 0.0,
+        "lr": 0.0005
+      }
+    },
+    "data_semantics": "Direct h=3 target; closed three-input SHA-256 manifest; source-derived six-field residual key; C-order flattening; paired target/persistence mask."
+  },
+  "verified_submission_source": {
+    "notebook_path": "notebooks/11_lstm_multihorizon/h3/11_lstm_h3.ipynb",
+    "notebook_sha256": "972a31524a6b22bf477e347f7edcabec1442923bcae4f3c0de40f88a86d9044a",
+    "generator_path": "src/build_notebook_11.py",
+    "generator_sha256": "1cbeb51cd1121b6f9497ddb985a6184ab6372913961190f6e6022f9edcf45659",
+    "metadata_path": "notebooks/11_lstm_multihorizon/h3/kernel-metadata.json",
+    "metadata_sha256": "f3a7ae924b820242c76bb0cc13b101ebd995518c06091c3072f9fe35b7659dcb",
+    "metadata_kernel_sources": [
+      "alexhuaracha/04-preprocessing",
+      "alexhuaracha/10-baselines-multi-horizonte",
+      "alexhuaracha/02-eda-corridors"
+    ],
+    "source_parity_and_tests": {
+      "approved": true,
+      "command": "uv run pytest -p no:cacheprovider -q tests/test_nb11_residual_provenance.py tests/test_build_notebook_11.py",
+      "result": "70 passed"
+    }
+  },
+  "closed_input_manifest": {
+    "headways_E2.parquet": {
+      "declared_path": "04-preprocessing/headways_E2.parquet",
+      "sha256": "82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4"
+    },
+    "headways_E59.parquet": {
+      "declared_path": "04-preprocessing/headways_E59.parquet",
+      "sha256": "0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448"
+    },
+    "atypical_days.csv": {
+      "declared_path": "02-eda-corridors/atypical_days.csv",
+      "sha256": "2054245cc830e58b9397b75ea3b55d034581046b64e73b1630ca7d464e3ecb86"
+    }
+  }
+}

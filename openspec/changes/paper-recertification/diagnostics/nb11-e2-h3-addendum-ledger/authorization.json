@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "ledger_id": "paper-recertification-nb11-e2-h3-addendum-20260712T222921Z",
+  "created_at_utc": "2026-07-12T22:29:21Z",
+  "scope": {
+    "kernel": "alexhuaracha/11-lstm-multihorizon-h3",
+    "corridor": "E2",
+    "horizon": 3,
+    "model": "HeadwayLSTM",
+    "purpose": "sole addendum-authorized frozen-winner terminal Kaggle submission"
+  },
+  "authorization": {
+    "maximum_terminal_submissions": 1,
+    "prior_addendum_authorized_terminal_submissions": [],
+    "authorization_status": "authorized_not_submitted",
+    "denial_rule": "Any recorded addendum-authorized terminal submission denies a further submission."
+  },
+  "excluded_pre_addendum_diagnostics": [
+    {
+      "versions": [5, 6, 7, 8],
+      "reason": "Preserved diagnostic versions predating this addendum ledger; they are not addendum-authorized terminal submissions."
+    }
+  ],
+  "frozen_source": {
+    "notebook_path": "notebooks/11_lstm_multihorizon/h3/11_lstm_h3.ipynb",
+    "notebook_sha256": "aa761245e2057a42f8b8959df3b709b993957ccf1bca0427df3490cfcfd0f1b1",
+    "generator_path": "src/build_notebook_11.py",
+    "generator_sha256": "8cd2a5f8173b6542ab1aee14a14970f1a41c184f3fdcdc7dee47b52fd0ae0031",
+    "metadata_path": "notebooks/11_lstm_multihorizon/h3/kernel-metadata.json",
+    "metadata_sha256": "a0e61322065db7c1015f2df006a21283d1289f1e0e7333bdebabb77a3f7f0663"
+  },
+  "frozen_winner": {
+    "E2": {
+      "hidden_size": 32,
+      "num_layers": 1,
+      "dropout": 0.0,
+      "lr": 0.0005
+    },
+    "E59": {
+      "hidden_size": 32,
+      "num_layers": 2,
+      "dropout": 0.2,
+      "lr": 0.0005
+    }
+  },
+  "expected_input_hashes": {
+    "headways_E2.parquet": "82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4",
+    "headways_E59.parquet": "0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448",
+    "atypical_days.csv": "d6582cf3804fe2e99b1074a60702a17f4c25f80a4a57c59d83b0255f21b7d609"
+  }
+}

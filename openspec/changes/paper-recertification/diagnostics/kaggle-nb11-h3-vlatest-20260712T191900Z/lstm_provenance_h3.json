@@ -1,0 +1,58 @@
+{
+  "inputs": [
+    {
+      "external_version": null,
+      "name": "headways_E2.parquet",
+      "path": "/kaggle/input/notebooks/alexhuaracha/04-preprocessing/headways_E2.parquet",
+      "sha256": "82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4"
+    },
+    {
+      "external_version": null,
+      "name": "headways_E59.parquet",
+      "path": "/kaggle/input/notebooks/alexhuaracha/04-preprocessing/headways_E59.parquet",
+      "sha256": "0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448"
+    }
+  ],
+  "kaggle_kernel_version": null,
+  "kernel_sources": [
+    {
+      "id": "alexhuaracha/04-preprocessing",
+      "version": null
+    },
+    {
+      "id": "alexhuaracha/10-baselines-multi-horizonte",
+      "version": null
+    }
+  ],
+  "notebook_generator_sha256": "9fe85f60b9ddd8cd538b9cee799f9a03ca6a948d4452a3a459475002969f5192",
+  "preprocessing": {
+    "train_p99_ceiling": {
+      "E2": 28.4679230336,
+      "E59": 27.9969488128
+    }
+  },
+  "schema_version": 1,
+  "split_window_contract": {
+    "flatten_order": "C",
+    "horizon": 3,
+    "paired_mask": "target_mask & input_mask[:, T_IN - 1, :]",
+    "split": "temporal train=2023-10-01..2024-01-15; val=2024-01-16..2024-02-07; test=2024-02-08..2024-02-29",
+    "t_in": 12,
+    "t_out": 1,
+    "target_offset": "T_IN + HORIZON - 1"
+  },
+  "winner_hyperparameters": {
+    "E2": {
+      "dropout": 0.0,
+      "hidden_size": 32,
+      "lr": 0.0005,
+      "num_layers": 1
+    },
+    "E59": {
+      "dropout": 0.2,
+      "hidden_size": 32,
+      "lr": 0.0005,
+      "num_layers": 2
+    }
+  }
+}

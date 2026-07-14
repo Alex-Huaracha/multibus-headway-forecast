@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "amendment_id": "paper-recertification-nb11-e2-h3-replacement-20260712T233107Z",
+  "created_at_utc": "2026-07-12T23:31:07Z",
+  "amends_ledger_id": "paper-recertification-nb11-e2-h3-addendum-20260712T222921Z",
+  "immutability": {
+    "mode": "append_only_amendment",
+    "amended_file": "authorization.json",
+    "amended_file_sha256": "c37ec34ff81946e524eda967b2c7b4126530f0ced164bbc5271a65e6eab57029",
+    "rule": "This amendment is a new immutable record. The original authorization is not modified."
+  },
+  "prior_attempt": {
+    "scope": "alexhuaracha/11-lstm-multihorizon-h3 E2/h=3",
+    "outcome": "failed_pre_training",
+    "failure_classification": "declared_path_ambiguity",
+    "failure_detail": "The prior attempt could not uniquely locate atypical_days.csv because the manifest resolver used filename candidate discovery.",
+    "replacement_eligibility": "The prior failure did not begin model training and this user-authorized replacement is limited to correcting that declared-path ambiguity."
+  },
+  "authorization": {
+    "authorized_by": "explicit_user_instruction",
+    "authorization_status": "authorized_replacement_not_submitted",
+    "maximum_submissions_under_this_amendment": 1,
+    "permitted_action": "Submit exactly one replacement version to alexhuaracha/11-lstm-multihorizon-h3 and poll that explicit version to terminal state.",
+    "prohibited_actions": [
+      "grid",
+      "tuning",
+      "alternate_configuration",
+      "general_retry",
+      "additional_submission_after_terminal_state",
+      "production_promotion_without_all_receipt_and_audit_gates"
+    ]
+  },
+  "frozen_contract": {
+    "kernel": "alexhuaracha/11-lstm-multihorizon-h3",
+    "corridor": "E2",
+    "horizon": 3,
+    "model": "HeadwayLSTM",
+    "winner": {
+      "E2": {"hidden_size": 32, "num_layers": 1, "dropout": 0.0, "lr": 0.0005},
+      "E59": {"hidden_size": 32, "num_layers": 2, "dropout": 0.2, "lr": 0.0005}
+    },
+    "data_semantics": "Unchanged: direct h=3 target, closed three-input SHA-256 manifest, source-derived six-field residual key, C-order flattening, and paired target/persistence mask."
+  },
+  "permitted_source_delta": {
+    "description": "Only declared Kaggle-relative input paths are pinned and canonical pre-construction seeding is restored.",
+    "declared_input_paths": {
+      "headways_E2.parquet": "04-preprocessing/headways_E2.parquet",
+      "headways_E59.parquet": "04-preprocessing/headways_E59.parquet",
+      "atypical_days.csv": "04-preprocessing/atypical_days.csv"
+    },
+    "canonical_seed_rule": "set_seed(config.seed) executes before HeadwayLSTM construction."
+  },
+  "approved_source": {
+    "notebook_path": "notebooks/11_lstm_multihorizon/h3/11_lstm_h3.ipynb",
+    "notebook_sha256": "883115ff02e84ec1b06a7fd87315e5ec034727d24a11c338b2c194b57caa14bb",
+    "generator_path": "src/build_notebook_11.py",
+    "generator_sha256": "fec9396ed70534192b000ede2dfb9ae9c00d4d8b451b85c39ee64cd0b867427d",
+    "metadata_path": "notebooks/11_lstm_multihorizon/h3/kernel-metadata.json",
+    "metadata_sha256": "a0e61322065db7c1015f2df006a21283d1289f1e0e7333bdebabb77a3f7f0663"
+  },
+  "expected_input_hashes": {
+    "headways_E2.parquet": "82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4",
+    "headways_E59.parquet": "0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448",
+    "atypical_days.csv": "d6582cf3804fe2e99b1074a60702a17f4c25f80a4a57c59d83b0255f21b7d609"
+  }
+}

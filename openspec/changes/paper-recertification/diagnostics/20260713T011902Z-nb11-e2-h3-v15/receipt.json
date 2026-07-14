@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "receipt_kind": "terminal_failure_quarantine",
+  "created_at_utc": "2026-07-13T01:19:02Z",
+  "submitted_kernel": "alexhuaracha/11-lstm-multihorizon-h3",
+  "assigned_kernel_version": 15,
+  "explicit_version_ref": "alexhuaracha/11-lstm-multihorizon-h3/15",
+  "terminal_status": "ERROR",
+  "failure_message": "ValueError: Missing declared input path: headways_E2.parquet (04-preprocessing/headways_E2.parquet)",
+  "authorization": {
+    "amendment_file": "../nb11-e2-h3-addendum-ledger/20260713T004522Z-corrected-replacement-authorization.json",
+    "amendment_sha256": "10df1de324016ef6d372089b77cb39bec198bede48dd6660409fcae7522c35ec"
+  },
+  "source": {
+    "notebook_path": "notebooks/11_lstm_multihorizon/h3/11_lstm_h3.ipynb",
+    "notebook_sha256": "972a31524a6b22bf477e347f7edcabec1442923bcae4f3c0de40f88a86d9044a",
+    "generator_path": "src/build_notebook_11.py",
+    "generator_sha256": "1cbeb51cd1121b6f9497ddb985a6184ab6372913961190f6e6022f9edcf45659",
+    "metadata_sha256": "f3a7ae924b820242c76bb0cc13b101ebd995518c06091c3072f9fe35b7659dcb"
+  },
+  "closed_input_manifest": {
+    "headways_E2.parquet": {
+      "declared_path": "04-preprocessing/headways_E2.parquet",
+      "sha256": "82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4"
+    },
+    "headways_E59.parquet": {
+      "declared_path": "04-preprocessing/headways_E59.parquet",
+      "sha256": "0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448"
+    },
+    "atypical_days.csv": {
+      "declared_path": "02-eda-corridors/atypical_days.csv",
+      "sha256": "2054245cc830e58b9397b75ea3b55d034581046b64e73b1630ca7d464e3ecb86"
+    }
+  },
+  "output_download": {
+    "performed": false,
+    "reason": "The explicit submitted version reached ERROR, not COMPLETE."
+  },
+  "audit": {
+    "source_parity": "passed locally before submission",
+    "input_hashes": "not_observable_without_a_completed_runtime_sidecar",
+    "schema_v2_sidecar": "missing_due_to_pre_training_terminal_failure",
+    "six_field_primary_key_uniqueness": "not_auditable_without_residual_export",
+    "keyed_direct_h3_reconstruction": "not_auditable_without_residual_export",
+    "remote_error_log": "kaggle-error-log.md"
+  },
+  "validation_status": "failed",
+  "promotion": "quarantined",
+  "production_action": "none",
+  "retry": "prohibited"
+}

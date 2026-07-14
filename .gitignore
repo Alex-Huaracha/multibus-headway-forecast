@@ -52,3 +52,4 @@ Thumbs.db
 # Agent / gentle-ai tooling state
 .atl/
 .gga
+.codegraph/
