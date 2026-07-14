@@ -27,6 +27,9 @@ data/processed/*
 
 # Residuos por-muestra descargados de Kaggle (CSVs ~165MB c/u + logs): regenerables, no se versionan
 docs/resultados/residuos-multihorizon/
+# Recertificado (fase 9, outputs frescos post-fix): residuos pesados fuera de git; results chicos sí
+docs/resultados/recertificado/residuos-multihorizon/
+!docs/resultados/recertificado/csv-multihorizon/*.csv
 !tests/fixtures/*.parquet
 *.feather
 *.h5

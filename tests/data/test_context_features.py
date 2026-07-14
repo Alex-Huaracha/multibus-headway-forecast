@@ -163,3 +163,19 @@ class TestLoadAtypicalDays:
         assert date(2023, 11, 6) in result
         assert date(2023, 12, 25) in result
         assert len(result) == 2
+
+    def test_returns_dates_when_day_column(self, tmp_path: Path) -> None:
+        """AC-CTX-4: `day` column is accepted as the date column.
+
+        The frozen `atypical_days.csv` produced by the 02-eda-corridors kernel
+        names its date column `day` (not `date`); the loader must parse it.
+        """
+        from src.data.context_features import load_atypical_days
+
+        csv_path = tmp_path / "atypical_days.csv"
+        csv_path.write_text(
+            "empresaid,day,records\n2,2023-10-28,53115\n2,2023-11-05,61527\n"
+        )
+
+        result = load_atypical_days(csv_path)
+        assert result == {date(2023, 10, 28), date(2023, 11, 5)}

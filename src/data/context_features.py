@@ -164,16 +164,19 @@ def load_atypical_days(
         return set()
 
     df = pl.read_csv(resolved, try_parse_dates=True)
-    if "date" not in df.columns:
+    # The frozen 02-eda-corridors CSV names its date column `day`; older
+    # fixtures use `date`. Accept either, preferring `date` when both exist.
+    date_col = next((c for c in ("date", "day") if c in df.columns), None)
+    if date_col is None:
         warnings.warn(
-            f"load_atypical_days: CSV at '{resolved}' has no 'date' column; "
+            f"load_atypical_days: CSV at '{resolved}' has no 'date' or 'day' column; "
             "falling back to empty set.",
             stacklevel=2,
         )
         return set()
 
     dates: set[date] = set()
-    for val in df["date"].to_list():
+    for val in df[date_col].to_list():
         if val is not None:
             if isinstance(val, date):
                 dates.add(val)
