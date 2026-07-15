@@ -25,7 +25,7 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 | 13-spatialtransformer (E2+E59) | ⬜ | ✅ | ✅ | ✅ |
 | 17-e4-lstm | ⬜ | ✅ | ✅ | ✅ |
 | 18-e4-convlstm | ⬜ | ✅ | ✅ | ✅ |
-| 19-e4-transformer | ⬜ | ✅ | ✅ | ⬜ |
+| 19-e4-transformer | ⬜ | ✅ | ✅ | ✅ |
 
 ## Números validados (DL vs persistencia B1, misma muestra)
 
@@ -57,6 +57,7 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 | 13-spatialtransformer h10 | E59 | 4.182 | 5.282 | −1.10 |
 | 17-e4-lstm h10 | E4 | 5.360 | 6.776 | −1.42 |
 | 18-e4-convlstm h10 | E4 | 5.381 | 6.776 | −1.40 |
+| 19-e4-transformer h10 | E4 | 5.407 | 6.776 | −1.37 |
 
 El DL le gana a la persistencia en ambos corredores con el pipeline corregido. Falta completar
 el resto de la grilla antes de recalcular significancia/degradación/paired-audit (fase 10).
