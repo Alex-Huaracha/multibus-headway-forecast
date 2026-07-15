@@ -21,8 +21,8 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 | Familia | h1 | h3 | h5 | h10 |
 |---|---|---|---|---|
 | 11-lstm (E2+E59) | ⬜ | ✅ | ✅ | ⬜ |
-| 12-spatialconvlstm (E2+E59) | ⬜ | ✅ | ⬜ | ⬜ |
-| 13-spatialtransformer (E2+E59) | ⬜ | ✅ | ⬜ | ⬜ |
+| 12-spatialconvlstm (E2+E59) | ⬜ | ✅ | ✅ | ⬜ |
+| 13-spatialtransformer (E2+E59) | ⬜ | ✅ | ✅ | ⬜ |
 | 17-e4-lstm | ⬜ | ✅ | ⬜ | ⬜ |
 | 18-e4-convlstm | ⬜ | ✅ | ⬜ | ⬜ |
 | 19-e4-transformer | ⬜ | ✅ | ⬜ | ⬜ |
@@ -42,6 +42,10 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 | 19-e4-transformer h3 | E4 | 4.477 | 4.438 | **+0.04 (gana persist)** |
 | 11-lstm h5 | E2 | 5.024 | 6.215 | −1.19 |
 | 11-lstm h5 | E59 | 3.930 | 4.396 | −0.47 |
+| 12-spatialconvlstm h5 | E2 | 5.025 | 6.215 | −1.19 |
+| 12-spatialconvlstm h5 | E59 | 3.940 | 4.396 | −0.46 |
+| 13-spatialtransformer h5 | E2 | 5.069 | 6.215 | −1.15 |
+| 13-spatialtransformer h5 | E59 | 3.948 | 4.396 | −0.45 |
 
 El DL le gana a la persistencia en ambos corredores con el pipeline corregido. Falta completar
 el resto de la grilla antes de recalcular significancia/degradación/paired-audit (fase 10).
