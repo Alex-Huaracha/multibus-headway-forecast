@@ -292,14 +292,16 @@ def _resolve_input(name: str) -> Path:
 # Report-only comparison input (NOT a training input): resolved by name with a
 # graceful fallback, deliberately outside the frozen-hash gate above.
 def _find_baselines_csv() -> Path | None:
-    name = "baselines_results_multih.csv"
-    if Path("/kaggle/input").exists():
-        candidates = list(Path("/kaggle/input").rglob(name))
-        if candidates:
-            return candidates[0]
-    candidates = list(Path(".").rglob(name))
-    if candidates:
-        return candidates[0]
+    # NB16 writes the E4-scoped file; the generic name (from 10-baselines,
+    # which also carries E4 rows) is accepted as a fallback.
+    names = ("baselines_E4_results_multih.csv", "baselines_results_multih.csv")
+    for root in (Path("/kaggle/input"), Path(".")):
+        if not root.exists():
+            continue
+        for name in names:
+            candidates = list(root.rglob(name))
+            if candidates:
+                return candidates[0]
     return None
 
 OUTPUT_DIR = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path(".")
