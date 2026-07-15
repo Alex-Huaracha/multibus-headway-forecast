@@ -20,9 +20,9 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 
 | Familia | h1 | h3 | h5 | h10 |
 |---|---|---|---|---|
-| 11-lstm (E2+E59) | ⬜ | ✅ | ✅ | ✅ |
+| 11-lstm (E2+E59) | ✅ | ✅ | ✅ | ✅ |
 | 12-spatialconvlstm (E2+E59) | ⬜ | ✅ | ✅ | ✅ |
-| 13-spatialtransformer (E2+E59) | ⬜ | ✅ | ✅ | ✅ |
+| 13-spatialtransformer (E2+E59) | ✅ | ✅ | ✅ | ✅ |
 | 17-e4-lstm | ⬜ | ✅ | ✅ | ✅ |
 | 18-e4-convlstm | ⬜ | ✅ | ✅ | ✅ |
 | 19-e4-transformer | ⬜ | ✅ | ✅ | ✅ |
@@ -58,6 +58,11 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 | 17-e4-lstm h10 | E4 | 5.360 | 6.776 | −1.42 |
 | 18-e4-convlstm h10 | E4 | 5.381 | 6.776 | −1.40 |
 | 19-e4-transformer h10 | E4 | 5.407 | 6.776 | −1.37 |
+| 11-lstm h1 | E2 | 4.274 | 4.237 | **+0.04 (gana persist)** |
+| 11-lstm h1 | E59 | 3.163 | 2.820 | **+0.34 (gana persist)** |
+| 13-spatialtransformer h1 | E2 | 4.294 | 4.237 | **+0.06 (gana persist)** |
+| 13-spatialtransformer h1 | E59 | 3.159 | 2.820 | **+0.34 (gana persist)** |
 
-El DL le gana a la persistencia en ambos corredores con el pipeline corregido. Falta completar
-el resto de la grilla antes de recalcular significancia/degradación/paired-audit (fase 10).
+El DL le gana a la persistencia en horizontes medios/largos (h3/h5/h10) y la ventaja crece con
+el horizonte. En h1 la persistencia gana (ancla esperada: a 1 paso el naive es imbatible). Falta
+completar la fila h1 (12/17/18/19) antes de recalcular significancia/degradación/paired-audit (fase 10).
