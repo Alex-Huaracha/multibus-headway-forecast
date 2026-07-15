@@ -78,7 +78,7 @@ Legend: EVC=exante-volatility-calibration, NGI=notebook-generation-integrity, RM
 
 ## Phase 9: Kaggle Re-run Gate (PR9, blocking, user-owned)
 
-- [ ] 9.1 **BLOCKING**: re-run 6 kernel families on Kaggle, frozen configs, per `docs/dataset-manifest.md`; download fresh residuals into `docs/resultados/residuos-multihorizon/`. All Phase 10 tasks depend on this.
+- [x] 9.1 **BLOCKING**: re-run 6 kernel families on Kaggle, frozen configs, per `docs/dataset-manifest.md`; download fresh residuals. Done 2026-07-15 (24/24 kernels: 6 families x h1/h3/h5/h10). Deviations from original plan, all validated per-log (`Atypical days loaded: 17 dates`, winsorize E2 28.4679 / E59 27.9969 / E4 29.0984, no traceback): (a) fresh residuals landed in `docs/resultados/recertificado/residuos-multihorizon/` (heavy, gitignored) + results CSVs in `docs/resultados/recertificado/csv-multihorizon/` (tracked), NOT the original `docs/resultados/residuos-multihorizon/` path — Phase 10 builders must point at `recertificado/`; (b) atypical CSV mounted via the `alexhuaracha/atypical-days-frozen` dataset (hash-pinned) instead of `02-eda-corridors`, because CLI push does not reliably attach new kernel_sources; (c) loader fix: `load_atypical_days` now reads the frozen CSV's `day` column (was `date`); (d) E4 baselines-name fix: NB16 writes `baselines_E4_results_multih.csv` — the E4 model notebooks now search that name first. All 24 committed to main.
 
 ## Phase 10: Post-Kaggle Regeneration (PR10, needs PR9)
 
