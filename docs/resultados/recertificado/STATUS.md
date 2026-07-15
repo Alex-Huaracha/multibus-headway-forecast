@@ -24,8 +24,8 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 | 12-spatialconvlstm (E2+E59) | ✅ | ✅ | ✅ | ✅ |
 | 13-spatialtransformer (E2+E59) | ✅ | ✅ | ✅ | ✅ |
 | 17-e4-lstm | ✅ | ✅ | ✅ | ✅ |
-| 18-e4-convlstm | ⬜ | ✅ | ✅ | ✅ |
-| 19-e4-transformer | ⬜ | ✅ | ✅ | ✅ |
+| 18-e4-convlstm | ✅ | ✅ | ✅ | ✅ |
+| 19-e4-transformer | ✅ | ✅ | ✅ | ✅ |
 
 ## Números validados (DL vs persistencia B1, misma muestra)
 
@@ -65,7 +65,11 @@ Leyenda: ✅ completo y bajado · 📤 código subido, falta paso web · ⬜ pen
 | 12-spatialconvlstm h1 | E2 | 4.274 | 4.237 | **+0.04 (gana persist)** |
 | 12-spatialconvlstm h1 | E59 | 3.153 | 2.820 | **+0.33 (gana persist)** |
 | 17-e4-lstm h1 | E4 | 3.367 | 2.844 | **+0.52 (gana persist)** |
+| 18-e4-convlstm h1 | E4 | 3.372 | 2.844 | **+0.53 (gana persist)** |
+| 19-e4-transformer h1 | E4 | 3.419 | 2.844 | **+0.57 (gana persist)** |
 
-El DL le gana a la persistencia en horizontes medios/largos (h3/h5/h10) y la ventaja crece con
-el horizonte. En h1 la persistencia gana (ancla esperada: a 1 paso el naive es imbatible). Falta
-completar la fila h1 (12/17/18/19) antes de recalcular significancia/degradación/paired-audit (fase 10).
+**Grilla completa: 24/24 kernels validados.** El DL le gana a la persistencia en horizontes
+medios/largos (h3/h5/h10) y la ventaja crece con el horizonte. En h1 la persistencia gana
+(ancla esperada: a 1 paso el naive es imbatible). Listo para fase 10:
+recalcular significancia (DM/Wilcoxon), degradación, volatilidad y paired-audit sobre estos
+residuos frescos, y reescribir `documento-resultados.md`.
