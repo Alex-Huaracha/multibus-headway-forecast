@@ -58,8 +58,8 @@ Legend: EVC=exante-volatility-calibration, NGI=notebook-generation-integrity, RM
 
 ## Phase 5: Local Calibration Regeneration (PR5, needs PR2+3)
 
-- [ ] 5.1 **Runtime warning (slow, ~6x test-row unvectorized pass)**: `uv run python src/build_exante_volatility.py` then `src/build_exante_correlation.py`; regenerates both ex-ante CSVs.
-- [ ] 5.2 `uv run pytest tests/evaluation/test_exante_terciles.py tests/evaluation/test_volatility.py -q`.
+- [x] 5.1 **Runtime warning (slow, ~6x test-row unvectorized pass)**: `uv run python src/build_exante_volatility.py` then `src/build_exante_correlation.py`; regenerates both ex-ante CSVs. Done 2026-07-16 on fresh recertified residuals. Both builders redirected to `docs/resultados/recertificado/` (RESID_DIR + OUT_DIR); `exante_volatility` 9/9 ALIGNMENT PASS (max|Δ| < 1e-2), DL beats persistence in the high-volatility tercile for all 9 corridor×horizon; `exante_correlation` confirms anti-circularity (Pearson r ≈ 0.22–0.27, r² ≈ 0.05–0.07, lift 1.11–1.29).
+- [x] 5.2 `uv run pytest tests/evaluation/test_exante_terciles.py tests/evaluation/test_volatility.py -q`. 16 passed.
 
 ## Phase 6: Notebook Regeneration (PR6, needs PR2-4)
 
