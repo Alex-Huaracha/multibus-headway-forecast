@@ -169,6 +169,94 @@ Los splits temporales se derivan en-kernel mediante `split_temporal` de `src/eva
 
 ---
 
+## Recertificación DL (Fase 9, re-corridas Kaggle 2026-07-15)
+
+Las 6 familias de notebooks DL se re-ejecutaron en Kaggle con el pipeline corregido
+(winsorización p99 aplicada a **todos** los splits + feature de día atípico **activa**
++ fix del loader `day`/`date`). El pin autoritativo de cada familia es la versión del
+kernel productor; los outputs frescos viven bajo `docs/resultados/recertificado/`.
+
+### Inputs de entrenamiento congelados (verificados por hash, fail-closed)
+
+Cada notebook DL fija el SHA-256 de cada input y aborta antes de entrenar si los bytes
+no coinciden (`_resolve_input`; ver `tests/test_notebook_input_gate.py`). Los hashes son
+independientes del punto de montaje: da igual de qué fuente Kaggle provenga el archivo,
+si sus bytes no matchean, la corrida falla.
+
+| Input | Familias | SHA-256 |
+|---|---|---|
+| `headways_E2.parquet` | 11/12/13 | `82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4` |
+| `headways_E59.parquet` | 11/12/13 | `0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448` |
+| `headways_E4.parquet` | 17/18/19 | `1dde7f38eea9bc7d9941c17cbc3d326cb864e70be815a1a7e3d0ae2691f19273` |
+| `atypical_days.csv` | todas | `2054245cc830e58b9397b75ea3b55d034581046b64e73b1630ca7d464e3ecb86` |
+
+Validación por-log de las 24 corridas: `Atypical days loaded: 17 dates`, umbral de
+winsorización `delta_t_min` p99 = **28.4679** (E2) / **27.9969** (E59) / **29.0984** (E4),
+sin traceback. El umbral idéntico entre modelos de un mismo corredor prueba que los inputs
+congelados son byte-idénticos.
+
+### Pins por familia (kernel productor)
+
+| Familia | Arquitectura | Corredores | Kernel ID (por horizonte h∈{1,3,5,10}) | Fuente de datos |
+|---|---|---|---|---|
+| 11 | LSTM | E2, E59 | `alexhuaracha/11-lstm-multihorizon-h{H}` | `04-preprocessing` (headways) + `10-baselines-multi-horizonte` |
+| 12 | SpatialConvLSTM | E2, E59 | `alexhuaracha/12-spatialconvlstm-multihorizon-h{H}` — **h10 usa el slug `-h10b`** (el `-h10` original quedó corrupto en Kaggle) | idem |
+| 13 | SpatialTransformer | E2, E59 | `alexhuaracha/13-spatialtransformer-multihorizon-h{H}` | idem |
+| 17 | LSTM | E4 | `alexhuaracha/17-e4-lstm-h{H}` | `16-e4-data-baselines` (headways **y** baselines E4) |
+| 18 | SpatialConvLSTM | E4 | `alexhuaracha/18-e4-convlstm-h{H}` | idem |
+| 19 | SpatialTransformer | E4 | `alexhuaracha/19-e4-transformer-h{H}` | idem |
+
+> Los kernels `14-lstm-minigrid-h10` y `15-lstm-multiseed` (estudios de sensibilidad por
+> hiperparámetro y por seed) **no** forman parte de las 24 re-corridas de recertificación;
+> sus CSV (`lstm_minigrid_h10.csv`, `multiseed_ci_multihorizon.csv`) provienen de las
+> corridas originales.
+
+### Desviación del montaje de `atypical_days.csv`
+
+La `kernel-metadata.json` de cada notebook declara `alexhuaracha/02-eda-corridors` como
+`kernel_source` (la **intención**). Pero las re-corridas montaron el CSV desde el **Kaggle
+Dataset `alexhuaracha/atypical-days-frozen`** (hash-pinneado, agregado por única vez vía web
+"Add Input"), porque un `push` por CLI no adjunta de forma confiable un `kernel_source`
+nuevo nunca antes adjuntado. Como el gate verifica por hash, ambas rutas de montaje son
+equivalentes: la única garantía real es que `atypical_days.csv` matchee `2054245c…`.
+
+### Inventario de artefactos de salida (recertificado)
+
+| Artefacto | Ruta | Git |
+|---|---|---|
+| Residuos por-muestra (`{lstm,…}_residuals_h{H}.csv`, E4 como `{…}_E4_residuals_h{H}.csv`) | `docs/resultados/recertificado/residuos-multihorizon/<familia>/h{H}/` | **gitignored** (pesado) |
+| CSV de resultados/análisis (`*_results_multih.csv`, `exante_*_multihorizon.csv`) | `docs/resultados/recertificado/csv-multihorizon/` | trackeado |
+
+Los residuos son la fuente de verdad para el análisis local (Fases 5 y 10): schema
+`corridor,direction,horizon,y_true,y_pred_dl,y_pred_persist` en todos los horizontes.
+
+### Nota de sensibilidad: clipping del test (winsorización)
+
+**Contrato aplicado en la recertificación.** El umbral p99 de `delta_t_min` se calcula
+**solo sobre train** y se aplica a **todos** los splits, incluido el **ground-truth de test**
+(`winsorize_train_p99` en `src/evaluation/splits.py`; guardado por
+`tests/test_preprocessing_winsorization_contract.py`). Esto es lo correcto para la
+comparación pareada: el DL y la persistencia se evalúan sobre exactamente los mismos targets
+clipeados, así que ningún modelo obtiene ventaja por el techo. El umbral efectivo es
+~28–29 min por corredor (28.4679 E2 / 27.9969 E59 / 29.0984 E4).
+
+**Implicación de sensibilidad.** Winsorizar el ground-truth de test **acota los headways
+reales extremos** al techo de train (~28–29 min). Como la ventaja del DL se concentra en el
+régimen de alta volatilidad (headways que dan saltos grandes), el clipping toca justamente la
+cola donde más se juega la comparación. El efecto neto sobre la brecha DL-vs-persistencia en
+esa cola **no está medido** en esta recertificación —es precisamente lo que el chequeo
+no-clipping cuantificaría—; lo único garantizado por el contrato es que ambos modelos se
+evalúan sobre los **mismos** targets clipeados, sin ventaja para ninguno.
+
+**Plan no-clipping (chequeo planeado, no ejecutado este ciclo).** Un variante que **no**
+clipee el ground-truth de test —reportando la comparación pareada sobre targets crudos— queda
+**documentada como chequeo de sensibilidad planeado** para una futura re-corrida Kaggle, no
+implementada en esta recertificación (confirmado en `proposal.md`). Mediría cuánto y en qué
+dirección cambia la brecha en la cola al remover el techo; hasta correrlo, el resultado queda
+abierto.
+
+---
+
 ## Política de pinning
 
 1. La versión Kaggle (`lastUpdated`) es el **pin autoritativo**. Si cambia, el manifest se re-emite.
@@ -187,4 +275,5 @@ Los splits temporales se derivan en-kernel mediante `split_temporal` de `src/eva
 |---|---|---|
 | 2026-05-19 | Manifest inicial al cierre de Fase 1 | (pendiente) |
 | 2026-05-23 | Registro de artefactos derivados de Fase 2 (NB04 v8 post H7 fix) | `86c4834` |
-| 2026-05-23 | Registro de artefactos de Fase 3 (NB05, DL-12 deferred); nota DL-4 splits en-kernel | (este commit) |
+| 2026-05-23 | Registro de artefactos de Fase 3 (NB05, DL-12 deferred); nota DL-4 splits en-kernel | `86c4834` |
+| 2026-07-16 | Sección de recertificación DL (Fase 9): hashes congelados, pins por familia, desviación del montaje atypical, inventario de salidas recertificadas | (este commit) |

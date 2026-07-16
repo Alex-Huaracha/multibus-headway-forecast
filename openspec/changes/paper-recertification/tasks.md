@@ -72,9 +72,9 @@ Legend: EVC=exante-volatility-calibration, NGI=notebook-generation-integrity, RM
 
 ## Phase 8: Reproducibility Docs (PR8, needs PR5)
 
-- [ ] 8.1 `README.md`: reproduction section (env, Kaggle download, local rebuild commands) [RM1].
-- [ ] 8.2 `docs/dataset-manifest.md`: recertification section — pins per family, non-versioned artifact inventory [RM2, RM3].
-- [ ] 8.3 Document test-clipping sensitivity note + no-clipping plan for Kaggle re-run.
+- [x] 8.1 `README.md`: reproduction section (env, Kaggle download, local rebuild commands) [RM1]. Done 2026-07-16: sección "Reproducción de resultados" (entorno + warning de reescritura de notebooks, descarga de residuos por familia, rebuild local de reportes, push Kaggle).
+- [x] 8.2 `docs/dataset-manifest.md`: recertification section — pins per family, non-versioned artifact inventory [RM2, RM3]. Done 2026-07-16: sección "Recertificación DL (Fase 9)" con hashes congelados (E2/E59/E4/atypical), pins por familia (incl. `h10b`), desviación del montaje atypical (02-eda-corridors intent vs atypical-days-frozen real), inventario de salidas recertificadas, fila en historial.
+- [x] 8.3 Document test-clipping sensitivity note + no-clipping plan for Kaggle re-run. Done 2026-07-16: subsección "Nota de sensibilidad: clipping del test" en el manifest — contrato train-p99→todos-los-splits, implicación honesta (efecto neto no medido), plan no-clipping documentado como chequeo planeado no ejecutado (per proposal.md).
 
 ## Phase 9: Kaggle Re-run Gate (PR9, blocking, user-owned)
 
