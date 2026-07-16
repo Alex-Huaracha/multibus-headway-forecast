@@ -68,7 +68,7 @@ Legend: EVC=exante-volatility-calibration, NGI=notebook-generation-integrity, RM
 
 ## Phase 7: Paired-Audit Error-Path Coverage (PR7)
 
-- [ ] 7.1 RED/GREEN `tests/evaluation/test_paired_audit.py`: missing-residual-column and duplicate-group `ValueError` cases against existing `src/evaluation/paired_audit.py` [PKR3].
+- [x] 7.1 RED/GREEN `tests/evaluation/test_paired_audit.py`: missing-residual-column and duplicate-group `ValueError` cases against existing `src/evaluation/paired_audit.py` [PKR3]. Done 2026-07-16: `test_rejects_frame_missing_residual_column` (drops `y_pred_persist` → `paired_metrics_table` raises "missing residual columns") + `test_rejects_duplicate_model_corridor_horizon_groups` (two slug-only `lstm_residuals_h3.csv` → `build_paired_metrics` raises "duplicate model/corridor/horizon groups"). 9 passed.
 
 ## Phase 8: Reproducibility Docs (PR8, needs PR5)
 

@@ -120,6 +120,30 @@ class TestPairedMetrics:
         assert row["delta_mae"] == pytest.approx(-1.5)
         assert row["delta_rmse"] == pytest.approx(math.sqrt(2.5) - 3.0)
 
+    def test_rejects_frame_missing_residual_column(self):
+        df = _residual_frame(
+            "E2", 3, y_true=[10.0], y_dl=[11.0], y_persist=[13.0]
+        ).drop("y_pred_persist")
+
+        with pytest.raises(
+            ValueError, match=r"missing residual columns \['y_pred_persist'\]"
+        ):
+            paired_metrics_table(df, model="LSTM")
+
+    def test_rejects_duplicate_model_corridor_horizon_groups(self, tmp_path):
+        # Two residual files resolving to the same (LSTM, E2, h3) via the
+        # filename slug alone (no model directory) collide on concatenation.
+        for sub in ("dir_a", "dir_b"):
+            residual = tmp_path / sub / "lstm_residuals_h3.csv"
+            residual.parent.mkdir(parents=True)
+            _residual_frame("E2", 3, [10.0], [11.0], [13.0]).write_csv(residual)
+
+        with pytest.raises(
+            ValueError,
+            match="duplicate model/corridor/horizon groups",
+        ):
+            build_paired_metrics(tmp_path)
+
 
 class TestAuditJoin:
     def _paired(self):
