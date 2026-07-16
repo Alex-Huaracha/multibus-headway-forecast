@@ -34,7 +34,8 @@ Kernel:
   id:          alexhuaracha/14-lstm-minigrid-h10
   GPU:         T4x2, enable_gpu=True
   kernel_sources: ["alexhuaracha/04-preprocessing",
-                   "alexhuaracha/10-baselines-multi-horizonte"]
+                   "alexhuaracha/10-baselines-multi-horizonte",
+                   "alexhuaracha/02-eda-corridors"]
 """
 import json
 import sys
@@ -67,6 +68,7 @@ _KERNEL_META = {
     "kernel_sources": [
         "alexhuaracha/04-preprocessing",
         "alexhuaracha/10-baselines-multi-horizonte",
+        "alexhuaracha/02-eda-corridors",
     ],
     "competition_sources": [],
 }
@@ -159,7 +161,8 @@ Constants: `DEFAULT_T_IN=12`, `DEFAULT_T_OUT=1`, `DEFAULT_STRIDE=1`.
         """## Module: data/context_features
 
 `encode_context` — add 5 cyclical + atypical-flag columns.
-`load_atypical_days` — graceful fallback to empty set when CSV absent (DL-2).
+`load_atypical_days` — in this notebook the CSV is a required, hash-verified
+input (DL-2); the run stops before training if it is absent or altered.
 """,
         cell_id_md="cell-14-embed-context-md",
         cell_id_code="cell-14-embed-context",
@@ -243,22 +246,41 @@ La comparación es **interna**: mismo seed, mismo entorno, mismo pipeline/splits
 def _add_setup_cell() -> None:
     code(
         """
+import hashlib
+
 import polars as pl
 import numpy as np
 from pathlib import Path
 
-# Locate headways parquets for E2 and E59 under /kaggle/input or local dir.
-def _find_parquet(empresa_id: int) -> Path:
-    name = f"headways_E{empresa_id}.parquet"
-    if Path("/kaggle/input").exists():
-        candidates = list(Path("/kaggle/input").rglob(name))
-        if candidates:
-            return candidates[0]
-    candidates = list(Path(".").rglob(name))
-    if candidates:
-        return candidates[0]
-    raise FileNotFoundError(
-        f"{name} not found. Expected at /kaggle/input/**/{name}"
+# Frozen SHA-256 of every required training input (recertification contract).
+# The run stops BEFORE training when a required file is missing or its bytes
+# differ from the pinned Kaggle snapshot; extra mounted copies are fine as
+# long as one matches.
+INPUT_HASHES = {
+    "headways_E2.parquet": "82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4",
+    "headways_E59.parquet": "0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448",
+    "atypical_days.csv": "2054245cc830e58b9397b75ea3b55d034581046b64e73b1630ca7d464e3ecb86",
+}
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+# Locate a required input by filename and verify its frozen SHA-256.
+def _resolve_input(name: str) -> Path:
+    roots = [Path("/kaggle/input"), Path(".")]
+    candidates = [p for root in roots if root.exists() for p in sorted(root.rglob(name))]
+    if not candidates:
+        raise FileNotFoundError(f"Required input not found anywhere: {name}")
+    for path in candidates:
+        if _sha256_file(path) == INPUT_HASHES[name]:
+            return path
+    raise ValueError(
+        f"No copy of {name} matches its frozen SHA-256 — "
+        f"candidates: {[str(p) for p in candidates]}"
     )
 
 OUTPUT_DIR = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path(".")
@@ -286,8 +308,8 @@ Inyecta `empresaid` como columna literal para cumplir el contrato de slot key.
     )
     code(
         """
-hw_e2  = pl.read_parquet(_find_parquet(2)).with_columns(pl.lit(2,  dtype=pl.Int64).alias("empresaid"))
-hw_e59 = pl.read_parquet(_find_parquet(59)).with_columns(pl.lit(59, dtype=pl.Int64).alias("empresaid"))
+hw_e2  = pl.read_parquet(_resolve_input("headways_E2.parquet")).with_columns(pl.lit(2,  dtype=pl.Int64).alias("empresaid"))
+hw_e59 = pl.read_parquet(_resolve_input("headways_E59.parquet")).with_columns(pl.lit(59, dtype=pl.Int64).alias("empresaid"))
 
 print(f"E2:  {hw_e2.height:,} rows, {hw_e2.width} cols")
 print(f"E59: {hw_e59.height:,} rows, {hw_e59.width} cols")
@@ -302,7 +324,7 @@ def _add_split_cell() -> None:
 
 Aplica `split_temporal` y `winsorize_train_p99` (INV-1, INV-6).
 El umbral de winsorización se computa exclusivamente sobre el split `train`
-(AC-WINSOR-1, AC-WINSOR-2 — leakage guard).
+y luego se aplica al frame completo de splits (AC-WINSOR-1, AC-WINSOR-2 — leakage guard).
 """,
         cell_id="cell-14-split-md",
     )
@@ -310,13 +332,10 @@ El umbral de winsorización se computa exclusivamente sobre el split `train`
         """
 def prepare_corridor(hw: pl.DataFrame, label: str) -> pl.DataFrame:
     df_split = split_temporal(hw)
-    train_df = df_split.filter(pl.col("split") == "train")
-    df_winsor, threshold = winsorize_train_p99(train_df)
-    non_train = df_split.filter(pl.col("split") != "train")
-    df_full = pl.concat([df_winsor, non_train])
+    df_winsor, threshold = winsorize_train_p99(df_split)
     print(f"{label}: split counts = {df_split.group_by('split').agg(pl.len()).sort('split')}")
     print(f"{label}: winsorize threshold = {threshold:.4f} min")
-    return df_full
+    return df_winsor
 
 df_e2  = prepare_corridor(hw_e2,  "E2")
 df_e59 = prepare_corridor(hw_e59, "E59")
@@ -358,23 +377,17 @@ def _add_context_cell() -> None:
         """## Features de contexto
 
 Codificación cíclica de hora y día de semana + flag de día atípico (DL-2).
-Fallback gracioso a `atypical_flag=0` si el CSV está ausente.
+`atypical_days.csv` es un input requerido y verificado por hash: la corrida
+se detiene antes de entrenar si falta o si sus bytes difieren del snapshot.
 """,
         cell_id="cell-14-context-md",
     )
     code(
         """
-atypical_path = None
-if Path("/kaggle/input").exists():
-    candidates = list(Path("/kaggle/input").rglob("atypical_days.csv"))
-    if candidates:
-        atypical_path = candidates[0]
-if atypical_path is None:
-    local_candidates = list(Path(".").rglob("atypical_days.csv"))
-    if local_candidates:
-        atypical_path = local_candidates[0]
-
+atypical_path = _resolve_input("atypical_days.csv")
 atypical_dates = load_atypical_days(atypical_path)
+if not atypical_dates:
+    raise ValueError(f"atypical_days.csv parsed to an empty date set: {atypical_path}")
 print(f"Atypical days loaded: {len(atypical_dates)} dates (path={atypical_path})")
 
 df_e2  = encode_context(df_e2,  atypical_dates=atypical_dates)

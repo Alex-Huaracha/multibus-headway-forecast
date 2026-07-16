@@ -80,6 +80,23 @@ Legend: EVC=exante-volatility-calibration, NGI=notebook-generation-integrity, RM
 
 - [x] 9.1 **BLOCKING**: re-run 6 kernel families on Kaggle, frozen configs, per `docs/dataset-manifest.md`; download fresh residuals. Done 2026-07-15 (24/24 kernels: 6 families x h1/h3/h5/h10). Deviations from original plan, all validated per-log (`Atypical days loaded: 17 dates`, winsorize E2 28.4679 / E59 27.9969 / E4 29.0984, no traceback): (a) fresh residuals landed in `docs/resultados/recertificado/residuos-multihorizon/` (heavy, gitignored) + results CSVs in `docs/resultados/recertificado/csv-multihorizon/` (tracked), NOT the original `docs/resultados/residuos-multihorizon/` path — Phase 10 builders must point at `recertificado/`; (b) atypical CSV mounted via the `alexhuaracha/atypical-days-frozen` dataset (hash-pinned) instead of `02-eda-corridors`, because CLI push does not reliably attach new kernel_sources; (c) loader fix: `load_atypical_days` now reads the frozen CSV's `day` column (was `date`); (d) E4 baselines-name fix: NB16 writes `baselines_E4_results_multih.csv` — the E4 model notebooks now search that name first. All 24 committed to main.
 
+### Scope extension (2026-07-16): recertify NB14/NB15 (seed/hyperparameter robustness)
+
+User decision: bring the previously out-of-scope sensitivity studies into the recert so §4 of
+`documento-resultados.md` (multi-seed CI + mini-grid) no longer cites pre-fix numbers.
+
+- [x] E1 Fix builders `src/build_notebook_14.py` (mini-grid h10) and `src/build_notebook_15.py`
+  (multi-seed h1/h3/h5/h10): they carried the **train-only winsorization bug**
+  (`winsorize_train_p99(train_df)` + `non_train` concat) and lacked the frozen input-hash gate.
+  Applied NB11's contract — `winsorize_train_p99(df_split)` (full-frame), `INPUT_HASHES` +
+  `_resolve_input` for headways_E2/E59 + atypical_days.csv (required, empty-set hard fail), and
+  added `alexhuaracha/02-eda-corridors` to kernel_sources. Regenerated 5 notebooks. Tests:
+  winsorization contract + build_14/build_15 (78) and input-gate + integrity-guard (89) green.
+- [ ] E2 **BLOCKING (user-owned Kaggle):** re-run the 5 kernels (14-lstm-minigrid-h10;
+  15-lstm-multiseed-h{1,3,5,10}) with `02-eda-corridors`/`atypical-days-frozen` attached; download
+  fresh `lstm_minigrid_h10.csv`, `lstm_multiseed_h*.csv`, `multiseed_ci_multihorizon.csv`.
+- [ ] E3 After download: promote §4 CSVs to the canonical path alongside the Phase 10 consolidation.
+
 ## Phase 10: Post-Kaggle Regeneration (PR10, needs PR9)
 
 - [ ] 10.1 Fail-fast if fresh residuals absent [PKR1].
