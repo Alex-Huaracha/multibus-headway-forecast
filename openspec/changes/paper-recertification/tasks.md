@@ -92,9 +92,13 @@ User decision: bring the previously out-of-scope sensitivity studies into the re
   `_resolve_input` for headways_E2/E59 + atypical_days.csv (required, empty-set hard fail), and
   added `alexhuaracha/02-eda-corridors` to kernel_sources. Regenerated 5 notebooks. Tests:
   winsorization contract + build_14/build_15 (78) and input-gate + integrity-guard (89) green.
-- [ ] E2 **BLOCKING (user-owned Kaggle):** re-run the 5 kernels (14-lstm-minigrid-h10;
-  15-lstm-multiseed-h{1,3,5,10}) with `02-eda-corridors`/`atypical-days-frozen` attached; download
-  fresh `lstm_minigrid_h10.csv`, `lstm_multiseed_h*.csv`, `multiseed_ci_multihorizon.csv`.
+- [x] E2 **BLOCKING (user-owned Kaggle):** re-run the 5 kernels (14-lstm-minigrid-h10;
+  15-lstm-multiseed-h{1,3,5,10}) with `atypical-days-frozen` attached. Done 2026-07-16, all 5
+  validated per-log (`Atypical days loaded: 17 dates`, winsorize E2 28.4679 / E59 27.9969, no
+  traceback). Fresh raw CSVs (`lstm_minigrid_h10.csv`, `lstm_multiseed_h{1,3,5,10}.csv`) downloaded
+  to `recertificado/csv-multihorizon/`. Numbers shifted vs June (E2 minigrid winner 5.1627→5.1282),
+  confirming the fix bit. Aggregate `multiseed_ci_multihorizon.csv` is NOT a kernel output — it is
+  regenerated locally by `src/build_multiseed_table.py` in Phase 10.2.
 - [ ] E3 After download: promote §4 CSVs to the canonical path alongside the Phase 10 consolidation.
 
 ## Phase 10: Post-Kaggle Regeneration (PR10, needs PR9)
