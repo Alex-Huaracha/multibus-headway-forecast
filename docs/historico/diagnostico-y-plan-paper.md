@@ -17,9 +17,9 @@
   SpatialConvLSTM, SpatialTransformer). Todo con suite de tests verde.
 - **Grid search completo corrido en Kaggle** para los 3 modelos en los 2 corredores
   obligatorios (E2 y E59). Las configuraciones ganadoras están guardadas en
-  [`resultados/configuraciones-ganadoras.md`](./resultados/configuraciones-ganadoras.md).
+  [`resultados/configuraciones-ganadoras.md`](../resultados/configuraciones-ganadoras.md).
 - **Resultados al horizonte de 1 minuto** consolidados (ver
-  [`resultados/fase-6b-spatial-transformer.md`](./resultados/fase-6b-spatial-transformer.md)).
+  [`fase-6b-spatial-transformer.md`](./fase-6b-spatial-transformer.md)).
 
 > **Importante**: encontrar las configuraciones ganadoras costó ~1 mes (no de programación,
 > sino de **esperar la cuota semanal de GPU de Kaggle** al correr 24–32 versiones × 3 modelos).
@@ -60,7 +60,7 @@ el headway casi no cambia — sobre todo en E59 (alta frecuencia) — así que "
 actual" es casi imbatible **por construcción**. No es una falla del modelo ni del código.
 
 **Por qué importa para el paper**:
-- El criterio de éxito del proyecto ([`objetivo.md`](./objetivo.md) §Criterios, #1) pide que el
+- El criterio de éxito del proyecto ([`objetivo.md`](../objetivo.md) §Criterios, #1) pide que el
   DL supere a los baselines **en MAE y RMSE** con consistencia en ambos corredores. Al horizonte
   de 1 minuto, **E59 no lo cumple** (la persistencia gana en MAE).
 - Un revisor de IJACSA detectaría esto de inmediato: *"si predecís a 1 minuto y la persistencia
@@ -108,7 +108,7 @@ comparación ahí.
 - [ ] **Paso 3 — (Opcional) Curva multi-horizonte** (1/3/5/10 min) si el tiempo lo permite, para
       reforzar el argumento.
 - [ ] **Paso 4 — Significancia estadística**: test de Diebold-Mariano o Wilcoxon pareado
-      (p < 0.05) sobre las diferencias DL vs baselines, como exige [`objetivo.md`](./objetivo.md).
+      (p < 0.05) sobre las diferencias DL vs baselines, como exige [`objetivo.md`](../objetivo.md).
 - [ ] **Paso 5 — Fase 8: detección de anomalías**: sobre las predicciones a 5 min, demostrar que
       el sistema marca bunching y gaps reales en los datos (análisis, no entrenamiento).
 - [ ] **Paso 6 — Redacción del paper** con el encuadre honesto: (a) comparación rigurosa

@@ -12,8 +12,8 @@
 ## Horizonte de estas corridas
 
 Todas estas configuraciones se hallaron prediciendo a **1 paso = 1 minuto** de horizonte
-(`T_in=12`, `T_out=1`, grilla de 60 s). Ver [`fase-6b-spatial-transformer.md`](./fase-6b-spatial-transformer.md)
-y el plan de re-corrida a 5 min en [`diagnostico-y-plan-paper.md`](../diagnostico-y-plan-paper.md).
+(`T_in=12`, `T_out=1`, grilla de 60 s). Ver [`fase-6b-spatial-transformer.md`](../historico/fase-6b-spatial-transformer.md)
+y el plan de re-corrida a 5 min en [`diagnostico-y-plan-paper.md`](../historico/diagnostico-y-plan-paper.md).
 
 ## Tabla de configuraciones ganadoras
 
