@@ -12,6 +12,7 @@ La fuente de verdad actual vive en `docs/resultados/documento-resultados.md`,
 | `fase-5-lstm-baseline.md` | Reporte de la fase LSTM single-horizonte (h=1). | `documento-resultados.md` (multi-horizonte) |
 | `fase-6-spatial-conv-lstm.md` | Reporte de la fase SpatialConvLSTM single-horizonte. | idem |
 | `fase-6b-spatial-transformer.md` | Reporte de la fase SpatialTransformer single-horizonte. | idem |
+| `INTERPRETACION.md` | Guía de lectura de figuras/tablas (qué muestra cada una, qué número citar). | `documento-resultados.md` embebe la interpretación; sus cifras son pre-recertificación |
 
 > Contienen **números pre-recertificación** (antes de winsorizar el test sobre todos
 > los splits). No citar de acá para el paper — usar `documento-resultados.md`.
