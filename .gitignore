@@ -25,11 +25,9 @@ data/processed/*
 # Excepción: tabla maestra consolidada (citada por el documento como fuente de la Figura 1)
 !docs/resultados/consolidated_multihorizon.csv
 
-# Residuos por-muestra descargados de Kaggle (CSVs ~165MB c/u + logs): regenerables, no se versionan
+# Residuos por-muestra descargados de Kaggle (CSVs ~165MB c/u + logs): regenerables, no se versionan.
+# Contienen los outputs recertificados (post-fix): winsorización full-split + día atípico activo.
 docs/resultados/residuos-multihorizon/
-# Recertificado (fase 9, outputs frescos post-fix): residuos pesados fuera de git; results chicos sí
-docs/resultados/recertificado/residuos-multihorizon/
-!docs/resultados/recertificado/csv-multihorizon/*.csv
 !tests/fixtures/*.parquet
 *.feather
 *.h5

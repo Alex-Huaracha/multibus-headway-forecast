@@ -42,8 +42,8 @@ from src.evaluation.exante_terciles import (
 # ---------------------------------------------------------------------------
 
 DATA_DIR = ROOT / "data" / "processed"
-RESID_DIR = ROOT / "docs" / "resultados" / "recertificado" / "residuos-multihorizon" / "11-lstm"
-OUT_DIR = ROOT / "docs" / "resultados" / "recertificado" / "csv-multihorizon"
+RESID_DIR = ROOT / "docs" / "resultados" / "residuos-multihorizon" / "11-lstm"
+OUT_DIR = ROOT / "docs" / "resultados" / "csv-multihorizon"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 T_IN = 12  # DEFAULT_T_IN

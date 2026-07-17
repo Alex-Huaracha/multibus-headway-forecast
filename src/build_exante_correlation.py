@@ -47,7 +47,7 @@ from src.evaluation.exante_terciles import TercileThresholds, assign_terciles, c
 # Constants
 # ---------------------------------------------------------------------------
 
-OUT_DIR = ROOT / "docs" / "resultados" / "recertificado" / "csv-multihorizon"
+OUT_DIR = ROOT / "docs" / "resultados" / "csv-multihorizon"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 CORRIDORS = [("E2", 2), ("E59", 59), ("E4", 4)]

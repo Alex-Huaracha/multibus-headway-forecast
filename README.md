@@ -68,7 +68,7 @@ uv run pytest -q               # suite completa (~880 tests)
 **2 — Descargar residuos frescos desde Kaggle** (fuente de verdad del análisis)
 
 Las 6 familias DL recertificadas (11/12/13 en E2/E59; 17/18/19 en E4) × h∈{1,3,5,10} se
-re-corrieron con el pipeline corregido. Bajar sus outputs a `docs/resultados/recertificado/`
+re-corrieron con el pipeline corregido. Bajar sus outputs a `docs/resultados/residuos-multihorizon/`
 (runbook completo en [`docs/correr-kaggle.md`](docs/correr-kaggle.md)):
 
 ```bash
@@ -84,7 +84,8 @@ uv run python src/build_exante_correlation.py     # chequeo anti-circularidad
 # … resto de builders de reporte (significancia, degradación, paired-audit) — Fase 10
 ```
 
-Los builders de reporte apuntan a `docs/resultados/recertificado/` y fijan
+Los builders de reporte leen `docs/resultados/residuos-multihorizon/` (residuos frescos
+recertificados) y escriben en `docs/resultados/csv-multihorizon/`, fijando
 `POLARS_MAX_THREADS=1` para salidas byte-idénticas.
 
 **4 — Lanzar una corrida en Kaggle** (opcional, requiere credenciales)

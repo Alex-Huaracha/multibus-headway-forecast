@@ -99,7 +99,11 @@ User decision: bring the previously out-of-scope sensitivity studies into the re
   to `recertificado/csv-multihorizon/`. Numbers shifted vs June (E2 minigrid winner 5.1627→5.1282),
   confirming the fix bit. Aggregate `multiseed_ci_multihorizon.csv` is NOT a kernel output — it is
   regenerated locally by `src/build_multiseed_table.py` in Phase 10.2.
-- [ ] E3 After download: promote §4 CSVs to the canonical path alongside the Phase 10 consolidation.
+- [x] E3 Consolidated 2026-07-17: promoted all fresh residuals + CSVs from `recertificado/` to
+  the canonical paths (`residuos-multihorizon/`, `csv-multihorizon/`), overwriting the June
+  (pre-fix) data in place — June preserved in git history. Reverted the two builder redirects
+  (`build_exante_volatility`, `build_exante_correlation`) back to canonical, deleted the
+  `recertificado/` scaffolding, and updated `.gitignore`, README and dataset-manifest paths.
 
 ## Phase 10: Post-Kaggle Regeneration (PR10, needs PR9)
 

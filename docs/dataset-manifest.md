@@ -174,7 +174,9 @@ Los splits temporales se derivan en-kernel mediante `split_temporal` de `src/eva
 Las 6 familias de notebooks DL se re-ejecutaron en Kaggle con el pipeline corregido
 (winsorización p99 aplicada a **todos** los splits + feature de día atípico **activa**
 + fix del loader `day`/`date`). El pin autoritativo de cada familia es la versión del
-kernel productor; los outputs frescos viven bajo `docs/resultados/recertificado/`.
+kernel productor; los outputs frescos ya son la fuente canónica bajo
+`docs/resultados/residuos-multihorizon/` (residuos) y `docs/resultados/csv-multihorizon/`
+(CSV chicos) — reemplazaron in situ a los de junio (pre-fix), preservados en el historial git.
 
 ### Inputs de entrenamiento congelados (verificados por hash, fail-closed)
 
@@ -206,10 +208,13 @@ congelados son byte-idénticos.
 | 18 | SpatialConvLSTM | E4 | `alexhuaracha/18-e4-convlstm-h{H}` | idem |
 | 19 | SpatialTransformer | E4 | `alexhuaracha/19-e4-transformer-h{H}` | idem |
 
-> Los kernels `14-lstm-minigrid-h10` y `15-lstm-multiseed` (estudios de sensibilidad por
-> hiperparámetro y por seed) **no** forman parte de las 24 re-corridas de recertificación;
-> sus CSV (`lstm_minigrid_h10.csv`, `multiseed_ci_multihorizon.csv`) provienen de las
-> corridas originales.
+> Los kernels `14-lstm-minigrid-h10` y `15-lstm-multiseed-h{1,3,5,10}` (estudios de
+> sensibilidad por hiperparámetro y por seed) se **recertificaron** en una extensión de
+> scope (2026-07-16): sus builders arrastraban el mismo bug de winsorización train-only y
+> carecían del gate de hash; se corrigieron y re-corrieron con el pipeline validado (mismos
+> umbrales E2 28.4679 / E59 27.9969, `17 dates`). Sus CSV frescos son `lstm_minigrid_h10.csv`
+> y `lstm_multiseed_h{1,3,5,10}.csv`. El agregado `multiseed_ci_multihorizon.csv` **no** es
+> output de kernel: se regenera localmente con `src/build_multiseed_table.py`.
 
 ### Desviación del montaje de `atypical_days.csv`
 
@@ -220,12 +225,12 @@ Dataset `alexhuaracha/atypical-days-frozen`** (hash-pinneado, agregado por únic
 nuevo nunca antes adjuntado. Como el gate verifica por hash, ambas rutas de montaje son
 equivalentes: la única garantía real es que `atypical_days.csv` matchee `2054245c…`.
 
-### Inventario de artefactos de salida (recertificado)
+### Inventario de artefactos de salida (recertificado, canónico)
 
 | Artefacto | Ruta | Git |
 |---|---|---|
-| Residuos por-muestra (`{lstm,…}_residuals_h{H}.csv`, E4 como `{…}_E4_residuals_h{H}.csv`) | `docs/resultados/recertificado/residuos-multihorizon/<familia>/h{H}/` | **gitignored** (pesado) |
-| CSV de resultados/análisis (`*_results_multih.csv`, `exante_*_multihorizon.csv`) | `docs/resultados/recertificado/csv-multihorizon/` | trackeado |
+| Residuos por-muestra (`{lstm,…}_residuals_h{H}.csv`, E4 como `{…}_E4_residuals_h{H}.csv`) | `docs/resultados/residuos-multihorizon/<familia>/h{H}/` | **gitignored** (pesado) |
+| CSV de resultados/análisis (`*_results_h{H}.csv`, `exante_*_multihorizon.csv`) | `docs/resultados/csv-multihorizon/` | trackeado |
 
 Los residuos son la fuente de verdad para el análisis local (Fases 5 y 10): schema
 `corridor,direction,horizon,y_true,y_pred_dl,y_pred_persist` en todos los horizontes.

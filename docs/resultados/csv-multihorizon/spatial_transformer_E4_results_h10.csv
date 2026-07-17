@@ -1,7 +1,7 @@
 corridor,direction,baseline,metric,value,horizon
-E4,-1,SpatialTransformer,MAE,5.953341919197445,10
-E4,-1,SpatialTransformer,RMSE,7.649573701223373,10
-E4,+1,SpatialTransformer,MAE,4.319773452148456,10
-E4,+1,SpatialTransformer,RMSE,5.819277371661641,10
-E4,aggregate,SpatialTransformer,MAE,5.4240020242390745,10
-E4,aggregate,SpatialTransformer,RMSE,7.108288965193815,10
+E4,-1,SpatialTransformer,MAE,5.900504368121631,10
+E4,-1,SpatialTransformer,RMSE,7.590798165310859,10
+E4,+1,SpatialTransformer,MAE,4.29464314451243,10
+E4,+1,SpatialTransformer,RMSE,5.790361804551949,10
+E4,aggregate,SpatialTransformer,MAE,5.380142700662042,10
+E4,aggregate,SpatialTransformer,RMSE,7.057867442104395,10
