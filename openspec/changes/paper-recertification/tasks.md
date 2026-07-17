@@ -124,7 +124,15 @@ User decision: bring the previously out-of-scope sensitivity studies into the re
   unchanged since May) and reads the same unregenerated headways, so a re-run is a no-op; the
   ~0.3 gap in `paired_vs_reported_audit` is a sample-set difference (DL drops cold-start window
   rows), not staleness (sign_mismatch ~all false).
-- [ ] 10.3 Rewrite `documento-resultados.md`: headline cites `paired_dl_persistence_metrics.csv`; DL-vs-XGBoost claims conditional [PKR2].
+- [x] 10.3 Rewrote `documento-resultados.md` (2026-07-17): headline §3 degradation now cites the
+  PAIRED comparison (`paired_dl_persistence_metrics.csv`, identical samples) with an honest
+  "pareado vs. agregado" note reconciling the two framings (sample-set difference, sign agrees in
+  53/54 cells); DL-vs-XGBoost stays conditional/aggregate with the June (correct) baselines. Every
+  §3/§4/§5 number refreshed from the fresh CSVs. Verdicts held: no sign flips, LSTM beats XGBoost
+  in all 8 E2+E59 cells, DL lower error in 53/54. Independently verified: 182/182 numeric claims
+  re-derived from CSVs match (3 minor rounding typos found and fixed: E2·h1 4.47→4.46, high-regime
+  range −3.8→−3.7, Spearman ρ 0.22→0.21). Verification script:
+  `scratchpad/verify_doc.py` (throwaway, not committed).
 
 ## Phase 11: Frozen Input-Hash Gate + Required Atypical Feature (work unit 11, done 2026-07-14)
 
