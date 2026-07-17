@@ -107,8 +107,23 @@ User decision: bring the previously out-of-scope sensitivity studies into the re
 
 ## Phase 10: Post-Kaggle Regeneration (PR10, needs PR9)
 
-- [ ] 10.1 Fail-fast if fresh residuals absent [PKR1].
-- [ ] 10.2 Regenerate significance, degradation, volatility, paired-audit CSVs and figures from fresh residuals [PKR1].
+- [x] 10.1 Fail-fast verified + locked with test (2026-07-17): the residual-consuming builders
+  already fail closed with a clear error when residuals are absent —
+  `significance.load_residuals` ("no CSV matching … found in") for `build_significance_table` /
+  `build_volatility_table`, and `paired_audit.discover_residual_files` ("no residual CSVs for
+  horizons …") for `build_paired_audit`; no degenerate CSV is written. Locked by
+  `tests/evaluation/test_regeneration_fail_fast.py` (6 passed). No builder code change needed.
+- [x] 10.2 Regenerated from fresh residuals (2026-07-17): `significance_multihorizon.csv`,
+  `volatility_multihorizon.csv`, `paired_dl_persistence_metrics.csv`, `paired_vs_reported_audit.csv`,
+  `multiseed_ci_multihorizon.csv`, `consolidated_multihorizon.csv` + the 3 figures
+  (curva-degradacion, volatilidad-crossover, volatilidad-exante). Core thesis holds (DL wins
+  persistence at h≥3, 53/54 significant), but the DL advantage narrowed vs the June doc (the fix
+  winsorized the test → persistence errors dropped): E2 h10 −1.87→−1.57, E59 h10 −1.37→−1.09,
+  E4 h10 −1.74→−1.42. Ex-ante CSVs re-run byte-identical to the Phase-5 commit. Baselines
+  (10/16, incl. XGBoost) NOT re-run: the harness winsorization was already correct (full-split,
+  unchanged since May) and reads the same unregenerated headways, so a re-run is a no-op; the
+  ~0.3 gap in `paired_vs_reported_audit` is a sample-set difference (DL drops cold-start window
+  rows), not staleness (sign_mismatch ~all false).
 - [ ] 10.3 Rewrite `documento-resultados.md`: headline cites `paired_dl_persistence_metrics.csv`; DL-vs-XGBoost claims conditional [PKR2].
 
 ## Phase 11: Frozen Input-Hash Gate + Required Atypical Feature (work unit 11, done 2026-07-14)
