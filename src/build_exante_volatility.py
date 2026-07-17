@@ -249,6 +249,12 @@ def materialize_corridor(
 # Alignment verification
 # ---------------------------------------------------------------------------
 
+# Tolerance for the sample-to-sample alignment gate between the reconstructed
+# targets/persistence and the downloaded residual CSVs. Well above the observed
+# float-reconstruction noise (~1e-6) so genuine misalignment fails closed.
+ALIGN_TOL = 1e-2
+
+
 def verify_alignment(
     corridor: str,
     horizon: int,
@@ -256,10 +262,11 @@ def verify_alignment(
     recon_persist: np.ndarray,
     csv_path: Path,
     csv_corridor_filter: str | None = None,
-) -> bool:
+) -> tuple[bool, float, float, int]:
     """Check that reconstructed targets and persistence match the residual CSV.
 
-    Returns True if alignment passes (max abs diff < 1e-2), False otherwise.
+    Returns ``(passed, max_abs_diff_target, max_abs_diff_persist, n_reconstructed)``.
+    ``passed`` is True when both max abs diffs are < ``ALIGN_TOL``.
     """
     csv_df = pl.read_csv(csv_path)
     if csv_corridor_filter is not None:
@@ -280,14 +287,14 @@ def verify_alignment(
         csv_persist = csv_df["y_pred_persist"].to_numpy()
         max_diff_target = float(np.max(np.abs(csv_targets - recon_targets)))
         max_diff_persist = float(np.max(np.abs(csv_persist - recon_persist)))
-        passed = max_diff_target < 1e-2 and max_diff_persist < 1e-2
+        passed = max_diff_target < ALIGN_TOL and max_diff_persist < ALIGN_TOL
         status = "PASS" if passed else "FAIL"
         print(f"  ALIGNMENT {status} [{corridor} h={horizon}]: "
               f"n_csv={n_csv}, n_rec={n_rec}, "
               f"max|Δtarget|={max_diff_target:.6f}, "
               f"max|Δpersist|={max_diff_persist:.6f}")
 
-    return passed
+    return passed, max_diff_target, max_diff_persist, n_rec
 
 
 # ---------------------------------------------------------------------------
@@ -356,6 +363,7 @@ def run_corridor(
     horizons: list[int],
     resid_path_fn,
     csv_corridor_filter: str | None = None,
+    alignment_sink: list[dict] | None = None,
 ) -> list[dict]:
     """Full pipeline for one corridor across multiple horizons."""
     print(f"\n=== {corridor} (empresaid={empresaid}) ===")
@@ -373,10 +381,20 @@ def run_corridor(
         csv_path = resid_path_fn(horizon)
 
         # Alignment check
-        passed = verify_alignment(
+        passed, max_diff_target, max_diff_persist, n_rec = verify_alignment(
             corridor, horizon, targets, persist, csv_path,
             csv_corridor_filter=csv_corridor_filter,
         )
+        if alignment_sink is not None:
+            alignment_sink.append({
+                "corridor": corridor,
+                "horizon": horizon,
+                "n": n_rec,
+                "max_abs_diff_target": max_diff_target,
+                "max_abs_diff_persist": max_diff_persist,
+                "tolerance": ALIGN_TOL,
+                "passed": passed,
+            })
         if not passed:
             print(f"  HARD GATE FAILED for {corridor} h={horizon} — stopping.")
             sys.exit(1)
@@ -402,6 +420,7 @@ def main() -> None:
 
     horizons = [3, 5, 10]
     all_rows: list[dict] = []
+    alignment_rows: list[dict] = []
 
     # E2
     all_rows.extend(run_corridor(
@@ -410,6 +429,7 @@ def main() -> None:
         horizons=horizons,
         resid_path_fn=lambda h: RESID_DIR / f"h{h}" / f"lstm_residuals_h{h}.csv",
         csv_corridor_filter="E2",
+        alignment_sink=alignment_rows,
     ))
 
     # E59
@@ -419,6 +439,7 @@ def main() -> None:
         horizons=horizons,
         resid_path_fn=lambda h: RESID_DIR / f"h{h}" / f"lstm_residuals_h{h}.csv",
         csv_corridor_filter="E59",
+        alignment_sink=alignment_rows,
     ))
 
     # E4
@@ -428,6 +449,7 @@ def main() -> None:
         horizons=horizons,
         resid_path_fn=lambda h: RESID_DIR / f"h{h}" / f"lstm_E4_residuals_h{h}.csv",
         csv_corridor_filter=None,
+        alignment_sink=alignment_rows,
     ))
 
     # Save output
@@ -435,6 +457,14 @@ def main() -> None:
     out_path = OUT_DIR / "exante_volatility_multihorizon.csv"
     result_df.write_csv(out_path)
     print(f"\nResults written to: {out_path}")
+
+    # Save the sample-to-sample alignment audit (max abs diff between the
+    # reconstructed targets/persistence and the residual CSVs, per corridor x
+    # horizon) so the §5 alignment claim traces to a CSV, not just stdout.
+    alignment_df = pl.DataFrame(alignment_rows)
+    align_path = OUT_DIR / "exante_alignment_multihorizon.csv"
+    alignment_df.write_csv(align_path)
+    print(f"Alignment audit written to: {align_path}")
 
     # Print full stratification table
     print("\n" + "=" * 70)
