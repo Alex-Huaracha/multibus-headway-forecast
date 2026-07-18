@@ -36,7 +36,10 @@ MODEL_SLUGS = {
     "spatial_transformer": "SpatialTransformer",
 }
 
-HORIZONS = (3, 5, 10)
+# h=1 is included deliberately: it is the horizon where the DL-vs-persistence verdict
+# reverses, so excluding it left the paper's canonical paired comparison blind to the
+# one cell whose aggregate-vs-paired sign actually disagrees (E2 h=1).
+HORIZONS = (1, 3, 5, 10)
 METRICS = ("MAE", "RMSE")
 
 PAIRED_METRIC_COLUMNS = [

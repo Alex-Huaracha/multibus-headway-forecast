@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import polars as pl
 
 from src.build_router import policy_eval_split
@@ -92,6 +93,28 @@ def test_positional_join_alignment_gate_passed_everywhere() -> None:
     worst = float(df["align_max_abs_diff"].max())
     assert worst < _ALIGN_REGRESSION_BOUND, f"alignment degraded: max abs diff {worst}"
     assert df.filter(pl.col("horizon") == 1).height == 3, "h=1 must be audited too"
+
+
+def test_gain_over_the_trivial_horizon_rule_is_small_and_sparse() -> None:
+    """The ablation the headline number hides.
+
+    The honest benchmark is not always-DL but the trivial rule the document already
+    derives (persistence at h=1, DL at h>=3). This locks the reported decomposition:
+    most of the gain comes from knowing the horizon, not from the volatility signal.
+    """
+    df = _load()
+    w = df["n_eval"].to_numpy()
+    horizon_only = np.where(
+        df["horizon"].to_numpy() == 1, df["mae_persist"].to_numpy(), df["mae_dl"].to_numpy()
+    )
+    ho_vs_dl = horizon_only - df["mae_dl"].to_numpy()
+    router_vs_dl = df["router_vs_dl"].to_numpy()
+    increment = router_vs_dl - ho_vs_dl
+
+    assert np.average(ho_vs_dl, weights=w) < -0.05, "trivial rule should carry most of the gain"
+    assert -0.03 < np.average(increment, weights=w) < -0.01, "volatility increment ~= -0.018 min"
+    assert (increment <= _TOL).all(), "router must never lose to the trivial horizon rule"
+    assert int((increment < -_TOL).sum()) == 3, "volatility helps in exactly 3 of 12 cells"
 
 
 def test_gain_over_dl_concentrates_at_short_horizons() -> None:
