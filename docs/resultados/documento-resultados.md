@@ -12,7 +12,9 @@
 
 La respuesta corta —y el aporte de este trabajo— es que **no siempre conviene**. El Deep Learning (DL) gana cuando se predice con suficiente anticipación (horizonte[^horizonte] **≥ 3 min**); a 1 minuto un método clásico simple es igual de bueno o mejor. Esa condición —el horizonte— se conoce de antemano, así que la recomendación es directamente accionable. Además mostramos *de dónde* viene la ventaja: se concentra en los tramos de **alta volatilidad**[^volatilidad] del servicio —cuando el *headway* da saltos grandes—, que es donde un pronóstico preciso más valdría.
 
-Este documento demuestra esa afirmación en tres pasos: **(1)** el DL gana → **(2)** la diferencia es estadísticamente real → **(3)** explicamos *por qué* gana.
+Y la respuesta no se queda en el diagnóstico: mostramos que la elección puede **automatizarse**. Una única regla que mira la volatilidad reciente del servicio —información disponible al momento de predecir— y conmuta entre persistencia y DL **empata o le gana a ambos modelos puros en las 12 combinaciones** de corredor y horizonte evaluadas.
+
+Este documento lo demuestra en cuatro pasos: **(1)** el DL gana → **(2)** la diferencia es estadísticamente real → **(3)** explicamos *por qué* gana → **(4)** convertimos ese "por qué" en una regla de decisión operativa.
 
 ---
 
@@ -238,7 +240,33 @@ El análisis anterior agrupa por el cambio *realizado* del *headway* (conocido a
 
 *Datos: [`csv-multihorizon/exante_correlation_multihorizon.csv`](csv-multihorizon/exante_correlation_multihorizon.csv) (9 filas: 3 corredores × 3 horizontes).*
 
-**Por qué esto importa:** la regla pasa a ser **ejecutable en vivo**. Un operador, al momento de decidir, mira qué tan errático vino el servicio en los últimos minutos y —si venía movido— confía en el DL. La ventaja del DL **no** es un artefacto de definir el régimen a posteriori: se confirma con información disponible *antes* de predecir, y se **acentúa** (no se desvanece) al asignar el régimen ex-ante. Esto vuelve creíble y construible el sistema híbrido de la Sección 6.
+**Por qué esto importa:** la regla pasa a ser **ejecutable en vivo**. Un operador, al momento de decidir, mira qué tan errático vino el servicio en los últimos minutos y —si venía movido— confía en el DL. La ventaja del DL **no** es un artefacto de definir el régimen a posteriori: se confirma con información disponible *antes* de predecir, y se **acentúa** (no se desvanece) al asignar el régimen ex-ante.
+
+### El enrutador ex-ante: una sola política que empata o gana contra ambos modelos puros
+
+La consecuencia natural de lo anterior es dejar de elegir entre persistencia y DL y **conmutar entre ellos** según el régimen ex-ante. Lo construimos y lo medimos: para cada corredor y horizonte, los terciles de volatilidad de entrada se **congelan en train+val**, la política —qué modelo usar en cada tercil— se **aprende sobre una porción retenida del test (60 %)** y el enrutador se **puntúa sobre el 40 % restante, disjunto**. El MAE reportado nunca informó la política.
+
+| Corredor | h | Política (bajo·medio·alto) | Persistencia | LSTM | **Enrutador** | Δ vs. LSTM |
+|---|---|---|---|---|---|---|
+| **E2** | 1 | P·P·D | 4.242 | 4.270 | **4.176** | **−0.094** |
+| **E59** | 1 | P·P·P | 2.822 | 3.162 | **2.822** | **−0.340** |
+| **E4** | 1 | P·P·P | 2.858 | 3.372 | **2.858** | **−0.514** |
+| **E59** | 3 | P·D·D | 3.901 | 3.723 | **3.668** | **−0.055** |
+| **E4** | 3 | P·P·D | 4.460 | 4.419 | **4.280** | **−0.139** |
+| **E2** | 3 | D·D·D | 5.748 | 4.855 | **4.855** | 0.000 |
+| *E2/E59/E4* | *5 y 10* | *D·D·D (6 celdas)* | — | — | *= LSTM* | *0.000* |
+
+**El resultado:** en las **12 celdas** (3 corredores × 4 horizontes) el enrutador **empata o le gana a los dos modelos puros a la vez** —nunca es peor que el LSTM y nunca es peor que la persistencia—. Ponderado por muestras, mejora **−0.10 min** sobre usar siempre el LSTM y **−0.53 min** sobre usar siempre la persistencia. La ganancia sobre el LSTM se concentra en **h = 1** (−0.32 min ponderado), justo el horizonte donde el DL puro pierde.
+
+**Los tres matices honestos, sin los cuales el número engaña:**
+
+- **A h ≥ 5 la ganancia es exactamente cero.** La política aprendida es `D·D·D` en las 6 celdas: el DL gana los tres terciles, así que el enrutador **se reduce a usar siempre el DL**. El aporte del enrutador es recuperar el terreno corto, no mejorar el largo.
+- **Los niveles de MAE de esta tabla no son comparables con los del resto del documento**, porque se calculan sobre el ~40 % del test retenido para evaluación, no sobre el test completo.
+- **La política se aprende sobre una sub-porción del test, no sobre train+val**, porque los kernels de Kaggle exportaron predicciones por muestra únicamente del split de test. Es una limitación real del pipeline: la disciplina anti-fuga se preserva (política y evaluación son disjuntas), pero un despliegue estricto calibraría la política sobre train+val.
+
+Como control, comparamos el enrutador contra un **oráculo** que elige el mejor modelo por tercil *mirando* el conjunto de evaluación (cota superior no desplegable): coinciden **exactamente** en las 12 celdas (Δ = 0.0). La política retenida no deja nada sobre la mesa: el régimen ex-ante es lo bastante estable entre porciones del test como para que aprenderlo a ciegas equivalga a conocerlo.
+
+*Datos: [`csv-multihorizon/router_multihorizon.csv`](csv-multihorizon/router_multihorizon.csv) (12 filas: 3 corredores × 4 horizontes; `policy_frac = 0.6`, `seed = 42`, 5 238 295 muestras de evaluación en total). Las predicciones del DL se emparejan **por posición** con el objetivo y la persistencia reconstruidos desde los datos crudos, así que cada celda pasa —como portón duro, antes de puntuar— la misma verificación muestra a muestra que la estratificación ex-ante: Δ máx observado = **2.7e-6** (tolerancia 1e-2), registrado por fila en las columnas `align_max_abs_diff` / `align_tolerance` del propio CSV. Generado por `src/build_router.py`; invariantes verificadas en `tests/test_router.py`, incluida la disyunción efectiva entre la porción de calibración y la de evaluación.*
 
 ---
 
@@ -246,7 +274,7 @@ El análisis anterior agrupa por el cambio *realizado* del *headway* (conocido a
 
 > **El Deep Learning conviene para predecir el *headway* a horizontes operativos (≥ 3 min): a partir de ahí le gana a la persistencia, y la ventaja se concentra —y se acentúa— en los tramos de alta volatilidad del servicio. Esa ventaja se confirma con un estratificador ex-ante (la volatilidad reciente observada, conocida al momento de predecir), así que la recomendación es ejecutable en vivo, no solo a posteriori. A 1 minuto, o en servicio estable, un método clásico como la persistencia es igual de bueno o mejor.**
 
-La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo domina un régimen distinto. Esto abre la puerta a combinarlos (ver trabajo futuro).
+La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo domina un régimen distinto. Y esa complementariedad es **explotable, no solo observable**: el enrutador ex-ante de la Sección 5 —una sola política que conmuta según la volatilidad reciente— **empata o le gana a ambos modelos puros en las 12 celdas** corredor×horizonte, recuperando el terreno de la persistencia a h = 1 sin ceder la ventaja del DL a horizontes largos. El aporte del trabajo, entonces, no es "el DL gana", sino **dónde y cuándo gana cada uno, y cómo decidirlo con información disponible al predecir**.
 
 ### Alcance y limitaciones
 
@@ -256,8 +284,9 @@ La conclusión madura **no** es "el DL reemplaza a la persistencia": cada modelo
 - Evaluado sobre 3 corredores (E2, E59, E4) de una misma ciudad y una ventana de 5 meses; la generalización a otras ciudades queda por validar. E4 aporta **validez externa acotada a la escala de flota** —una línea independiente y mucho más chica (19 buses), no otra ciudad ni otro período— y replica los dos hallazgos centrales (ventaja del DL sobre la persistencia a h ≥ 3, y nulo aporte de la complejidad espacial). La validez externa **geográfica y temporal** sigue abierta. Los estudios de robustez por seed y por hiperparámetro (Sección 4) se realizaron sobre E2 y E59.
 - La ventaja del DL **sobre el baseline aprendido (XGBoost)** depende de la escala del corredor: es clara en E2 y E59, pero en el corredor más chico (E4) el XGBoost es competitivo y el LSTM solo lo supera al horizonte más largo (h = 10). Frente a la persistencia, en cambio, el DL gana a h ≥ 3 en los tres corredores.
 - Los modelos espaciales (Conv, Transformer) no superaron de forma consistente al LSTM plano en estos datos (solo lo igualan o superan en celdas aisladas por márgenes < 0.01 min); queda abierto si lo harían con más buses por *snapshot*[^snapshot].
+- El **enrutador** (Sección 5) se evalúa sobre el ~40 % del test retenido, y su política se calibra sobre el 60 % restante del test —no sobre train+val— porque los kernels de Kaggle exportaron predicciones por muestra solo del split de test. Política y evaluación son disjuntas, así que la ganancia reportada no está contaminada, pero los niveles de MAE del enrutador no son comparables con los del test completo.
 
-**Trabajo futuro: sistema híbrido.** Los resultados sugieren un enrutador que use persistencia en régimen estable y DL en régimen de alta volatilidad. La Sección 5 da el primer paso clave: un estratificador **ex-ante** —la volatilidad reciente observada, conocida al momento de predecir— ya separa los regímenes con información disponible a priori, y el DL mantiene (y acentúa) su ventaja bajo ese corte. Lo que falta es construir y evaluar el enrutador en operación: elegir el umbral de conmutación, medir el costo de los errores de clasificación de régimen y validar la ganancia neta en una corrida real. Eso se plantea como dirección futura; el componente que antes era un problema abierto —disponer de una señal de régimen ex-ante— queda resuelto.
+**Trabajo futuro: enrutador de producción.** El enrutador de la Sección 5 demuestra que la complementariedad de regímenes es explotable con una política ex-ante: empata o gana contra ambos modelos puros en las 12 celdas. Lo que queda abierto es llevarlo a operación: reemplazar los terciles fijos por un **umbral de conmutación ajustado**, incorporar el **costo asimétrico de los errores de clasificación de régimen** (equivocarse hacia la persistencia en un tramo que se desestabiliza cuesta más que lo inverso), calibrar la política sobre train+val con predicciones DL de todos los splits, y validar la ganancia neta en una corrida en vivo.
 
 ---
 
