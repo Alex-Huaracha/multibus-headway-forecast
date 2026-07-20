@@ -54,3 +54,6 @@ Thumbs.db
 .atl/
 .gga
 .codegraph/
+
+# Generated documents (pandoc output — regenerables desde .md)
+*.docx
