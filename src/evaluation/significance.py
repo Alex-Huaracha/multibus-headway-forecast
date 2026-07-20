@@ -29,9 +29,11 @@ Public API:
     diebold_mariano(d, lag) -> DMResult
     wilcoxon_signed_rank(d) -> float
     significance_table(df, metric, direction) -> pl.DataFrame
+    sign_test_across_cells(model_losses, reference_losses) -> SignTestResult
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -306,3 +308,89 @@ def significance_table(
         )
 
     return pl.DataFrame(rows)
+
+
+@dataclass(frozen=True)
+class SignTestResult:
+    """Cell-level binomial sign test for "model beats reference across cells".
+
+    A coarse companion to the per-sample DM/Wilcoxon test, for comparisons where
+    per-sample pairing is NOT available — notably DL vs XGBoost, whose residual
+    exports differ in granularity (the DL export emits one row per overlapping
+    window x bus, overcounting each target ~4.5x, while the baseline emits one
+    row per test target) and share no per-sample key to realign or de-duplicate.
+
+    Each (corridor, horizon) cell contributes ONE Bernoulli trial: does ``model``
+    have the strictly lower aggregate loss? Under H0 (models equal) each trial is
+    a fair coin, so the win count is Binomial(n_trials, 0.5). This deliberately
+    sidesteps the overlapping-window overcounting that would inflate a naive
+    per-sample n and understate the p-value.
+
+    Attributes
+    ----------
+    n_cells:
+        Number of (corridor, horizon) cells compared.
+    n_model_wins:
+        Cells where ``model`` loss is strictly below ``reference`` loss.
+    n_ties:
+        Cells with exactly equal loss (dropped from the binomial, per the
+        standard sign-test convention).
+    p_one_sided:
+        P(>= n_model_wins wins | fair coin) — evidence that ``model`` is better.
+    p_two_sided:
+        Two-sided binomial p-value (no directional assumption).
+    """
+
+    n_cells: int
+    n_model_wins: int
+    n_ties: int
+    p_one_sided: float
+    p_two_sided: float
+
+
+def sign_test_across_cells(
+    model_losses: Sequence[float], reference_losses: Sequence[float]
+) -> SignTestResult:
+    """Binomial sign test over per-cell losses (see :class:`SignTestResult`).
+
+    Parameters
+    ----------
+    model_losses, reference_losses:
+        Aligned per-cell aggregate losses (e.g. MAE per (corridor, horizon)).
+        Element ``i`` of both must describe the SAME cell. Lower is better.
+
+    Ties (exactly equal loss) are dropped before the binomial, so the trial
+    count is ``n_cells - n_ties``.
+
+    Raises
+    ------
+    ValueError
+        If the inputs differ in length, or if every non-tie cell is absent
+        (nothing to test).
+    """
+    from scipy import stats
+
+    model = np.asarray(model_losses, dtype=float)
+    reference = np.asarray(reference_losses, dtype=float)
+    if model.shape != reference.shape:
+        raise ValueError(
+            "sign_test_across_cells: model_losses and reference_losses must have "
+            f"the same length ({model.size} vs {reference.size})"
+        )
+    n_cells = int(model.size)
+    wins = int(np.sum(model < reference))
+    losses = int(np.sum(model > reference))
+    n_trials = wins + losses
+    if n_trials == 0:
+        raise ValueError(
+            "sign_test_across_cells: every cell ties — no signal to test"
+        )
+    p_one = float(stats.binomtest(wins, n_trials, 0.5, alternative="greater").pvalue)
+    p_two = float(stats.binomtest(wins, n_trials, 0.5, alternative="two-sided").pvalue)
+    return SignTestResult(
+        n_cells=n_cells,
+        n_model_wins=wins,
+        n_ties=n_cells - n_trials,
+        p_one_sided=p_one,
+        p_two_sided=p_two,
+    )
