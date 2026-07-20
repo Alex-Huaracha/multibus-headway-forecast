@@ -101,13 +101,13 @@ Los baselines naive B0–B4 son fórmulas deterministas: dan idéntico.
 le gana en E4. Si pasa, **el documento tiene que decirlo**. Ese es el precio de sacarle
 la objeción al revisor.
 
-- [ ] 2a bandera
-- [ ] 2b búsqueda
-- [ ] 2c builders + metadata
+- [x] 2a bandera (commit `629c8d5`) — vía `encode_context`, contrato set-vacío-lanza
+- [x] 2b búsqueda (commit `629c8d5`) — 24 configs, selección solo-validación, no-fuga verificada a ojo y por auditoría
+- [x] 2c builders + metadata (commit `629c8d5`) — ambos kernel_sources ya tienen `02-eda-corridors`; hash gate con SHA
+- [x] Código commiteado + 3 tests desactualizados corregidos; 194 tests puntuales en verde
 - [ ] **2c-manual: Add Input en la web (×2)** ← requiere persona
 - [ ] 2d push, bajar, regenerar tablas
-- [ ] Actualizar §2 y §3 del documento con los números nuevos
-- [ ] Commit
+- [ ] Actualizar §2 y §3 del documento con los números nuevos (y la frase de la línea 41: las asimetrías ya no existen)
 
 ---
 
