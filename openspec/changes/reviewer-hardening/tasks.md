@@ -213,6 +213,8 @@ Extra sugerido por el revisor adversarial (verificar antes de escribir):
   así que con `num_layers=1` la vecina con `dropout=0.2` **es el mismo modelo**. La grilla
   de E2 tendría 3 configuraciones distintas, no 4. **Verificar antes de corregir.**
 
-- [ ] Ocho amenazas agregadas a §6
-- [ ] Duplicado degenerado del mini-grid verificado y, si aplica, declarado
-- [ ] Commit
+- [x] Ocho amenazas agregadas a §6 (commit `14402d7`)
+- [x] Duplicado degenerado **confirmado y declarado** (commit `14402d7`) — `lstm.py:62` fuerza dropout=0 con `num_layers=1`; la vecina dropout=0.2 de E2 tiene MAE idéntico bit a bit (5.128151366538658) a la ganadora → grilla efectiva de E2 = 3 configs distintas, no 4. Corregido también el §4 que lo vendía como robustez.
+- [x] Commit
+
+**Tarea 5 COMPLETA.**
