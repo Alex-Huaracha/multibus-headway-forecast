@@ -132,7 +132,7 @@ class TestNotebook10Builder:
             "run-harness cell must define HORIZONS = [1, 3, 5, 10]"
         )
         assert "horizon=h" in src, (
-            "run-harness cell must pass 'horizon=h' to evaluate_corridor calls"
+            "run-harness cell must pass 'horizon=h' to run_corridor calls"
         )
         assert '.alias("horizon")' in src, (
             "run-harness cell must add a 'horizon' column via .alias(\"horizon\")"
@@ -191,11 +191,20 @@ class TestNotebook10KernelMetadata:
         )
 
     def test_kernel_metadata_kernel_sources_cpu_only(self):
-        """AC-NB10-6d: kernel_sources == ["alexhuaracha/04-preprocessing"] and enable_gpu is False."""
+        """AC-NB10-6d: kernel_sources pins preprocessing + eda-corridors, enable_gpu is False.
+
+        02-eda-corridors provides the hash-pinned atypical_days.csv that the
+        leveled B5_XGB baseline now consumes; it must be attached (one-time web
+        "Add Input" on the kernel — see CLAUDE.md).
+        """
         self._ensure_built()
         meta = json.loads(KERNEL_META_PATH.read_text(encoding="utf-8"))
-        assert meta["kernel_sources"] == ["alexhuaracha/04-preprocessing"], (
-            f"kernel_sources must be ['alexhuaracha/04-preprocessing'], got: {meta['kernel_sources']!r}"
+        assert meta["kernel_sources"] == [
+            "alexhuaracha/04-preprocessing",
+            "alexhuaracha/02-eda-corridors",
+        ], (
+            "kernel_sources must be ['alexhuaracha/04-preprocessing', "
+            f"'alexhuaracha/02-eda-corridors'], got: {meta['kernel_sources']!r}"
         )
         assert meta["enable_gpu"] is False, (
             f"enable_gpu must be False (CPU baselines), got: {meta['enable_gpu']!r}"

@@ -11,6 +11,8 @@
   "dataset_sources": [
     "alexhuaracha/multibus-headway-forecast-clean"
   ],
-  "kernel_sources": [],
+  "kernel_sources": [
+    "alexhuaracha/02-eda-corridors"
+  ],
   "competition_sources": []
 }

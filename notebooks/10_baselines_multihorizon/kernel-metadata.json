@@ -10,7 +10,8 @@
   "keywords": [],
   "dataset_sources": [],
   "kernel_sources": [
-    "alexhuaracha/04-preprocessing"
+    "alexhuaracha/04-preprocessing",
+    "alexhuaracha/02-eda-corridors"
   ],
   "competition_sources": []
 }

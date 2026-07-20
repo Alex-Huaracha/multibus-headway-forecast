@@ -12,7 +12,7 @@ Covers:
   AC-NB16-3: every cell ID matches 'cell-16-*' (no random UUIDs).
   AC-NB16-4: setup cell defines EMPRESAS = [4] (E4 ONLY — frozen corridors untouched).
   AC-NB16-5: builder embeds the preprocessing AND baselines library modules.
-  AC-NB16-6: run-harness cell loops over HORIZONS and calls evaluate_corridor
+  AC-NB16-6: run-harness cell loops over HORIZONS and calls run_corridor
               with corridor "E4" and horizon=h.
   AC-NB16-7: builder references the output filename 'baselines_E4_results_multih.csv'.
   AC-NB16-8: kernel-metadata.json is written next to the notebook with correct fields.
@@ -164,13 +164,13 @@ class TestNotebook16Builder:
             "run-harness cell must define HORIZONS = [1, 3, 5, 10]"
         )
         assert "horizon=h" in src, (
-            "run-harness cell must pass 'horizon=h' to evaluate_corridor"
+            "run-harness cell must pass 'horizon=h' to run_corridor"
         )
         assert '"E4"' in src, (
-            "run-harness cell must call evaluate_corridor with corridor label 'E4'"
+            "run-harness cell must call run_corridor with corridor label 'E4'"
         )
-        assert "evaluate_corridor" in src, (
-            "run-harness cell must call evaluate_corridor"
+        assert "run_corridor" in src, (
+            "run-harness cell must call run_corridor"
         )
         assert '.alias("horizon")' in src, (
             'run-harness cell must add a "horizon" column via .alias("horizon")'

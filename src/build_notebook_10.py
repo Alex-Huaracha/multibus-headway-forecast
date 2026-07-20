@@ -53,7 +53,12 @@ _KERNEL_META_BASE = {
     "enable_internet": True,
     "keywords": [],
     "dataset_sources": [],
-    "kernel_sources": ["alexhuaracha/04-preprocessing"],
+    # 02-eda-corridors provides the hash-pinned atypical_days.csv that B5_XGB
+    # now consumes (same required context feature as the DL models).
+    "kernel_sources": [
+        "alexhuaracha/04-preprocessing",
+        "alexhuaracha/02-eda-corridors",
+    ],
     "competition_sources": [],
 }
 
@@ -117,9 +122,39 @@ no depende del horizonte. El CSV de salida incluye columna `horizon`.
 
 code(
     """
+import hashlib
+
 import polars as pl
 import numpy as np
 from pathlib import Path
+
+# Frozen SHA-256 of the hash-gated inputs (same contract as the DL notebooks).
+# atypical_days.csv is a REQUIRED input for B5_XGB: the run stops before
+# fitting when it is missing or its bytes differ from the pinned snapshot.
+INPUT_HASHES = {
+    "atypical_days.csv": "2054245cc830e58b9397b75ea3b55d034581046b64e73b1630ca7d464e3ecb86",
+}
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+# Locate a required input by filename and verify its frozen SHA-256.
+def _resolve_input(name: str) -> Path:
+    roots = [Path("/kaggle/input"), Path(".")]
+    candidates = [p for root in roots if root.exists() for p in sorted(root.rglob(name))]
+    if not candidates:
+        raise FileNotFoundError(f"Required input not found anywhere: {name}")
+    for path in candidates:
+        if _sha256_file(path) == INPUT_HASHES[name]:
+            return path
+    raise ValueError(
+        f"No copy of {name} matches its frozen SHA-256 — "
+        f"candidates: {[str(p) for p in candidates]}"
+    )
 
 # Locate headways parquets for E2 and E59 under /kaggle/input or local dir.
 def _find_parquet(empresa_id: int) -> Path:
@@ -138,6 +173,8 @@ def _find_parquet(empresa_id: int) -> Path:
 OUTPUT_DIR = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path(".")
 OUTPUT_DIR.mkdir(exist_ok=True)
 CSV_OUT = OUTPUT_DIR / "baselines_results_multih.csv"
+RESID_OUT = OUTPUT_DIR / "xgb_residuals_multih.csv"
+SEARCH_OUT = OUTPUT_DIR / "xgb_search_config_multih.csv"
 
 print(f"Output dir: {OUTPUT_DIR}")
 """,
@@ -185,12 +222,26 @@ All operate per slot `(empresaid, direction, pair_rank)`.
 )
 
 embed_module(
+    "data/context_features.py",
+    """## Module: data/context_features
+
+`load_atypical_days` + `encode_context` — the SAME helpers the DL notebooks use
+to build the atypical-day flag. B5_XGB consumes `atypical_flag` through them, so
+the fitted baseline and the DL models cannot diverge on what an atypical day is.
+Must be embedded BEFORE fitted, which imports `encode_context`.
+""",
+    cell_id_md="cell-10-embed-context-md",
+    cell_id_code="cell-10-embed-context",
+)
+
+embed_module(
     "baselines/fitted.py",
     """## Module: baselines/fitted
 
-`predict_b5_xgb` — fitted gradient-boosted baseline (B5_XGB). Sees the same
-12-lag window as the DL models (lag_1 == B1 persistence) plus calendar/slot
-features. Answers the "where is a fitted/ML baseline?" reviewer reflex.
+`predict_b5_xgb` / `fit_predict_b5_xgb` — fitted gradient-boosted baseline
+(B5_XGB). Sees the same 12-lag window as the DL models (lag_1 == B1 persistence)
+plus calendar/slot features AND the atypical-day flag. Runs a seeded
+24-configuration random search selected strictly on the VALIDATION split.
 Must be embedded BEFORE harness, which calls it.
 """,
     cell_id_md="cell-10-embed-fitted-md",
@@ -201,10 +252,12 @@ embed_module(
     "baselines/harness.py",
     """## Module: baselines/harness
 
-`evaluate_corridor` composes split → winsorize → all baselines (B0-B4 plus the
+`run_corridor` composes split → winsorize → all baselines (B0-B4 plus the
 fitted B5_XGB when include_fitted=True, the default) → metrics per
-(direction × baseline), returning a tidy 48-row long DataFrame.
-Accepts `horizon` to thread h to B1/B2/B3/B5_XGB.
+(direction × baseline), returning a tidy 48-row long DataFrame plus the
+per-sample XGB residuals and the fitted-baseline search provenance.
+`evaluate_corridor` is the metrics-only wrapper. Accepts `horizon` to thread h
+to B1/B2/B3/B5_XGB and `atypical_dates` to feed B5_XGB the atypical-day flag.
 """,
     cell_id_md="cell-10-embed-harness-md",
     cell_id_code="cell-10-embed-harness",
@@ -271,10 +324,38 @@ for label, hw in [("E2", hw_e2), ("E59", hw_e59)]:
 # ---------------------------------------------------------------------------
 
 md(
+    """## Días atípicos — input requerido y verificado por hash
+
+`atypical_days.csv` (salida de NB02, kernel_source `alexhuaracha/02-eda-corridors`)
+alimenta el flag `atypical_flag` que ahora también recibe B5_XGB. Es un input
+**requerido**: si falta, si sus bytes no coinciden con el snapshot congelado, o
+si el set parsea vacío, el kernel falla ANTES de ajustar nada — nunca se degrada
+en silencio a un flag todo-ceros.
+""",
+    cell_id="cell-10-atypical-md",
+)
+
+code(
+    """
+atypical_path = _resolve_input("atypical_days.csv")
+atypical_dates = load_atypical_days(atypical_path)
+if not atypical_dates:
+    raise ValueError(f"atypical_days.csv parsed to an empty date set: {atypical_path}")
+print(f"Atypical days loaded: {len(atypical_dates)} dates (path={atypical_path})")
+""",
+    cell_id="cell-10-atypical",
+)
+
+md(
     """## Ejecutar harness — loop multi-horizonte
 
-Llama a `evaluate_corridor` para E2 y E59 a cada horizonte h ∈ {1, 3, 5, 10}
-y concatena todos los resultados agregando la columna `horizon`.
+Llama a `run_corridor` para E2 y E59 a cada horizonte h ∈ {1, 3, 5, 10} y
+concatena todos los resultados agregando la columna `horizon`.
+
+`run_corridor` devuelve además (a) los residuos por muestra de B5_XGB emparejados
+con la persistencia B1 sobre las MISMAS muestras de test (con la clave `t`), y
+(b) la configuración ganadora del random search de 24 configuraciones, elegida
+**solo** sobre el split de validación. Ambos se persisten a CSV para auditoría.
 """,
     cell_id="cell-10-run-harness-md",
 )
@@ -283,13 +364,30 @@ code(
     """
 HORIZONS = [1, 3, 5, 10]
 frames = []
+resid_frames = []
+search_rows = []
 for h in HORIZONS:
-    r_e2  = evaluate_corridor(hw_e2,  "E2",  horizon=h)
-    r_e59 = evaluate_corridor(hw_e59, "E59", horizon=h)
-    frames.append(
-        pl.concat([r_e2, r_e59]).with_columns(pl.lit(h, dtype=pl.Int64).alias("horizon"))
-    )
+    for label, hw in [("E2", hw_e2), ("E59", hw_e59)]:
+        run = run_corridor(hw, label, horizon=h, atypical_dates=atypical_dates)
+        frames.append(run.metrics.with_columns(pl.lit(h, dtype=pl.Int64).alias("horizon")))
+        resid_frames.append(run.residuals)
+        fit = run.fit_result
+        search_rows.append({
+            "corridor": label,
+            "horizon": h,
+            "n_configs_evaluated": fit.n_configs_evaluated,
+            "search_seed": fit.search_seed,
+            "best_val_rmse": fit.best_val_rmse,
+            "best_iteration": fit.best_iteration,
+            "used_atypical_flag": fit.used_atypical_flag,
+            **{f"param_{k}": str(v) for k, v in sorted(fit.best_params.items())},
+        })
+        print(f"{label} h={h}: best_val_rmse={fit.best_val_rmse:.5f} "
+              f"({fit.n_configs_evaluated} configs) params={fit.best_params}")
+
 results = pl.concat(frames)
+residuals = pl.concat(resid_frames)
+search_config = pl.DataFrame(search_rows)
 print(f"Total rows: {results.height}  (expected 384 = 4 horizons x 2 corridors x 48)")
 print(results.head(10))
 """,
@@ -301,10 +399,15 @@ print(results.head(10))
 # ---------------------------------------------------------------------------
 
 md(
-    """## Escribir CSV — baselines_results_multih.csv
+    """## Escribir CSVs — métricas, residuos y configuración ganadora
 
-Escribe la tabla long-form a `/kaggle/working/baselines_results_multih.csv`.
-Columnas: `corridor, direction, baseline, metric, value, horizon`.
+1. `baselines_results_multih.csv` — tabla long-form
+   (`corridor, direction, baseline, metric, value, horizon`).
+2. `xgb_residuals_multih.csv` — residuos por muestra de B5_XGB emparejados con
+   B1 (`corridor, direction, horizon, t, y_true, y_pred_xgb, y_pred_persist`),
+   entrada de los tests de significancia.
+3. `xgb_search_config_multih.csv` — hiperparámetros ganadores por
+   (corredor, horizonte), la semilla del search y el RMSE de validación.
 """,
     cell_id="cell-10-write-csv-md",
 )
@@ -314,6 +417,15 @@ code(
 results.write_csv(CSV_OUT)
 print(f"CSV written to: {CSV_OUT}")
 print(f"Rows: {results.height}  Columns: {results.columns}")
+
+# Per-sample paired residuals (B5_XGB vs B1) for the DM / Wilcoxon tests.
+residuals.write_csv(RESID_OUT)
+print(f"Residuals written to: {RESID_OUT}  ({residuals.height:,} rows)")
+
+# Winning hyperparameters per (corridor, horizon) — audit trail for the search.
+search_config.write_csv(SEARCH_OUT)
+print(f"Search config written to: {SEARCH_OUT}")
+print(search_config)
 """,
     cell_id="cell-10-write-csv",
 )
