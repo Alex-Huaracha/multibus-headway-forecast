@@ -124,13 +124,33 @@ la objeción al revisor.
   Si no, hay que agregar ese export en los builders → entra en la corrida de la Tarea 2.
   Comprobar antes de planificar.
 
-- [ ] Confirmado si existen las predicciones por muestra
-- [ ] Test implementado
-- [ ] Commit
+- [x] Confirmado: existen los residuos XGBoost, pero **el test pareado por muestra NO es viable**
+- [x] Test implementado (a nivel de celda) + Commit `7467f89`
+
+**Hallazgo (2026-07-20):** el DM/Wilcoxon por muestra DL-vs-XGBoost es inviable. Los
+residuos del DL emiten una fila por (ventana solapada × bus) → sobrecontan cada objetivo
+~4.5× y no llevan clave por muestra; el baseline emite una fila por objetivo. No hay clave
+compartida para emparejar/deduplicar, y re-generarlos exigiría re-entrenar los kernels DL
+(pesos no guardados). Un test pareado sobre esos residuos **inflaría la significancia** por
+el sobreconteo (la amenaza de validez #4 de la Tarea 5). Decisión (Camino A): test de
+**signos a nivel de celda**, inmune al sobreconteo. Resultado: E2+E59 el LSTM gana 8/8
+(p=0.004); E4 1/4 (no significativo). Plan B documentado si un revisor exige DM por muestra:
+notebook LSTM nuevo que exporte clave + granularidad deduplicada (re-entrena, reconcilia
+números — ver debate en el historial).
+
+**Tarea 3 COMPLETA** por el Camino A.
 
 ---
 
 ## Tarea 4 — Router con corte temporal por bloques
+
+⚠️ **RECONCILIAR `significance.py` ANTES DE APLICAR EL STASH.** El commit `7467f89`
+(Tarea 3) agregó `sign_test_across_cells` + `SignTestResult` al `significance.py`
+comprometido. El `significance.py` del stash es una reescritura distinta (generaliza a
+`model_col`/`reference_col`, agrega `merge_residuals_on_key`/`PAIR_KEY`). Aplicar el stash
+tal cual **pisaría** la función del test de signos. Al hacer la Tarea 4 hay que **fusionar
+las dos**: conservar `sign_test_across_cells` Y la generalización del stash. No hacer
+`git checkout stash@{0} -- src/evaluation/significance.py` a ciegas.
 
 **Problema (lo encontró el revisor de rigor):** `policy_eval_split()` en
 `src/build_router.py` hace una **permutación uniforme**. Las muestras son ventanas
