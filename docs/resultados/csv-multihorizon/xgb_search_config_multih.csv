@@ -1,0 +1,9 @@
+corridor,horizon,n_configs_evaluated,search_seed,best_val_rmse,best_iteration,used_atypical_flag,param_colsample_bytree,param_eta,param_lambda,param_max_depth,param_min_child_weight,param_nthread,param_objective,param_seed,param_subsample,param_tree_method
+E2,1,24,20240718,6.224128043491256,221,true,0.8,0.05,10.0,8,5,4,reg:squarederror,42,0.6,hist
+E59,1,24,20240718,4.712860179357716,104,true,0.9,0.08,2.0,10,20,4,reg:squarederror,42,1.0,hist
+E2,3,24,20240718,6.609186929814134,180,true,0.8,0.05,10.0,8,5,4,reg:squarederror,42,0.6,hist
+E59,3,24,20240718,5.305046509166003,157,true,0.9,0.08,2.0,10,20,4,reg:squarederror,42,1.0,hist
+E2,5,24,20240718,6.698835189596928,264,true,1.0,0.03,2.0,8,3,4,reg:squarederror,42,0.9,hist
+E59,5,24,20240718,5.561082275233551,372,true,0.8,0.05,10.0,8,5,4,reg:squarederror,42,0.6,hist
+E2,10,24,20240718,6.790499011835258,159,true,1.0,0.03,2.0,8,3,4,reg:squarederror,42,0.9,hist
+E59,10,24,20240718,5.867702857396805,124,true,0.9,0.08,2.0,10,20,4,reg:squarederror,42,1.0,hist

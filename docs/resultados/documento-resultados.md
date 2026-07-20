@@ -36,9 +36,9 @@ Enfrentamos dos familias de modelos sobre exactamente los mismos datos y la mism
 
 | ID | Modelo | Qué hace |
 |----|--------|----------|
-| **B5_XGB** | **Gradient boosting (XGBoost[^xgboost])** | Modelo **entrenado** que ve la **misma ventana de 12 pasos** que el LSTM (su primer *lag* es exactamente la persistencia) más hora, día y dirección — el competidor *aprendido* a batir |
+| **B5_XGB** | **Gradient boosting (XGBoost[^xgboost])** | Modelo **entrenado** que ve la **misma ventana de 12 pasos** que el LSTM (su primer *lag* es exactamente la persistencia) más hora, día, dirección y la **bandera de día atípico** — nivelado con la misma información que la red y con hiperparámetros elegidos por búsqueda en validación; el competidor *aprendido* a batir |
 
-> **Por qué sumamos un baseline ajustado.** Ganarle solo a fórmulas naive (B0–B4) podría descartarse como "vencer rivales débiles". B5_XGB es un aprendiz de verdad: se entrena y se ajusta sobre validación. Compite, además, en **desventaja deliberada** frente a la red en dos aspectos: (1) **no ve la bandera de día atípico** que sí reciben los modelos DL, y (2) sus **hiperparámetros se fijaron a priori** (un conjunto modesto y regularizado, no producto de búsqueda), mientras que los de la red salieron de búsqueda en grilla. Por eso B5_XGB debe leerse como una **cota inferior** de lo que lograría un aprendiz clásico bien ajustado: si el DL le gana también a esto, la ventaja no es un artefacto de *baselines* pobres. El matiz importa en la otra dirección: en E4, y en MAE agregado, el XGBoost ya **supera al LSTM en los horizontes cortos** (h=1: 3.33 vs 3.77; h=3: 4.46 vs 4.68), empata en h=5 y solo cede en h=10 — todo esto sin ninguna de esas ventajas.
+> **Por qué sumamos un baseline ajustado.** Ganarle solo a fórmulas naive (B0–B4) podría descartarse como "vencer rivales débiles". B5_XGB es un aprendiz de verdad y está **nivelado con la red**: recibe la **misma bandera de día atípico** (construida con el mismo *helper*, para que la semántica no difiera entre familias) y sus **hiperparámetros salen de una búsqueda de 24 configuraciones seleccionada estrictamente sobre validación** —la configuración ganadora por (corredor, horizonte) queda registrada en `xgb_search_config_multih.csv` para que sea auditable—. Ninguna de las ventajas que la red tenía sobre él sigue en pie. Aun así, **el LSTM le gana en los ocho pares (corredor × horizonte) de E2 y E59**, y la brecha crece con el horizonte: ganarle a un competidor con las mismas armas es evidencia mucho más fuerte que ganarle a un rival de paja. El matiz honesto va en la otra dirección: en el corredor chico E4, y en MAE agregado, el XGBoost **supera al LSTM en horizontes cortos y medios** (h=1: 3.30 vs 3.77; h=3: 4.43 vs 4.68; empata en h=5) y el LSTM solo se impone a h=10 — pese a competir ya en igualdad de condiciones.
 
 ### Modelos de Deep Learning
 
@@ -112,18 +112,18 @@ La objeción natural a "el DL le gana a la persistencia" es: *¿y si los baselin
 
 | Corredor | h = 1 | h = 3 | h = 5 | h = 10 |
 |----------|-------|-------|-------|--------|
-| **E2** — Δ MAE (XGBoost − LSTM) | +0.08 | +0.10 | +0.10 | +0.11 |
-| **E59** — Δ MAE (XGBoost − LSTM) | +0.05 | +0.19 | +0.28 | **+0.42** |
+| **E2** — Δ MAE (XGBoost − LSTM) | +0.07 | +0.10 | +0.10 | +0.11 |
+| **E59** — Δ MAE (XGBoost − LSTM) | +0.05 | +0.18 | +0.28 | **+0.41** |
 
-**El LSTM le gana al XGBoost en las 8 celdas de E2 y E59**, y —de nuevo— **la brecha crece con el horizonte** (E59: de +0.05 a +0.42 min). Es la misma curva de degradación, ahora contra un **aprendiz fuerte** en vez de una fórmula naive. La ventaja del DL no es un artefacto de comparar contra rivales pobres. **Esta ventaja sobre el XGBoost, sin embargo, no es universal: depende de la escala del corredor**, como muestra de inmediato el corredor chico E4.
+**El LSTM le gana al XGBoost en las 8 celdas de E2 y E59**, y —de nuevo— **la brecha crece con el horizonte** (E59: de +0.05 a +0.41 min). Es la misma curva de degradación, ahora contra un **aprendiz fuerte y nivelado** en vez de una fórmula naive. La ventaja del DL no es un artefacto de comparar contra rivales pobres. (Nivelar el XGBoost —darle la bandera de día atípico y buscarle los hiperparámetros sobre validación— movió su MAE ≤ 0.03 min: no estaba siendo frenado por esas asimetrías, de modo que la comparación ya era representativa antes de nivelarlo.) **Esta ventaja sobre el XGBoost, sin embargo, no es universal: depende de la escala del corredor**, como muestra de inmediato el corredor chico E4.
 
-> En E59 a h=1 la persistencia (3.10) sigue siendo la mejor de todos —incluido el XGBoost (3.39)—, coherente con que a 1 minuto el pronóstico es trivial.
+> En E59 a h=1 la persistencia (3.10) sigue siendo la mejor de todos —incluido el XGBoost (3.38)—, coherente con que a 1 minuto el pronóstico es trivial.
 
 **Matiz de escala (corredor E4).** La ventaja del LSTM sobre el XGBoost **no es universal: escala con el tamaño del corredor.** En E4 —el corredor más chico (19 buses, ~0.5 M muestras por celda)— el XGBoost es un competidor mucho más duro y le gana al LSTM en los horizontes cortos y medios; el LSTM solo lo supera a **h = 10**:
 
 | E4 — MAE | h = 1 | h = 3 | h = 5 | h = 10 |
 |----------|-------|-------|-------|--------|
-| **XGBoost (B5)** | **3.33** | **4.46** | **5.00** | 5.54 |
+| **XGBoost (B5)** | **3.30** | **4.43** | **4.98** | 5.53 |
 | **LSTM** | 3.77 | 4.68 | 5.01 | **5.35** |
 
 Lo reportamos tal cual porque refuerza el mensaje central del trabajo. Conviene separar **dos tesis de distinta fuerza**:
