@@ -105,9 +105,11 @@ la objeción al revisor.
 - [x] 2b búsqueda (commit `629c8d5`) — 24 configs, selección solo-validación, no-fuga verificada a ojo y por auditoría
 - [x] 2c builders + metadata (commit `629c8d5`) — ambos kernel_sources ya tienen `02-eda-corridors`; hash gate con SHA
 - [x] Código commiteado + 3 tests desactualizados corregidos; 194 tests puntuales en verde
-- [ ] **2c-manual: Add Input en la web (×2)** ← requiere persona
-- [ ] 2d push, bajar, regenerar tablas
-- [ ] Actualizar §2 y §3 del documento con los números nuevos (y la frase de la línea 41: las asimetrías ya no existen)
+- [x] **2c-manual: Add Input en la web (×2)** — hecho por el usuario (2026-07-20); verificado en el log: `atypical_days.csv` montado desde `02-eda-corridors`
+- [x] 2d push, bajar, regenerar tablas (commit `4098d32`) — kernels 10 y 16 en CPU, COMPLETE; residuos XGB preservados en `residuos-xgb-multihorizon/` (locales) para la Tarea 3
+- [x] §2/§3 + línea 41 actualizados (commit `4098d32`) — reencuadre a "XGBoost nivelado que aun así pierde en E2/E59"; números nivelados; asimetrías eliminadas del texto
+
+**Tarea 2 COMPLETA.** Resultado: nivelar apenas movió el XGBoost (≤0.03 min); el LSTM le gana en las 8 celdas de E2/E59, E4 sigue siendo el matiz de escala.
 
 ---
 
