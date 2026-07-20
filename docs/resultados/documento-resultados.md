@@ -38,7 +38,7 @@ Enfrentamos dos familias de modelos sobre exactamente los mismos datos y la mism
 |----|--------|----------|
 | **B5_XGB** | **Gradient boosting (XGBoost[^xgboost])** | Modelo **entrenado** que ve la **misma ventana de 12 pasos** que el LSTM (su primer *lag* es exactamente la persistencia) más hora, día y dirección — el competidor *aprendido* a batir |
 
-> **Por qué sumamos un baseline ajustado.** Ganarle solo a fórmulas naive (B0–B4) podría descartarse como "vencer rivales débiles". B5_XGB es un aprendiz de verdad: se entrena, se ajusta sobre validación y recibe **exactamente la misma información que la red neuronal**. Si el DL le gana también a esto, la ventaja deja de ser un artefacto de *baselines* pobres.
+> **Por qué sumamos un baseline ajustado.** Ganarle solo a fórmulas naive (B0–B4) podría descartarse como "vencer rivales débiles". B5_XGB es un aprendiz de verdad: se entrena y se ajusta sobre validación. Compite, además, en **desventaja deliberada** frente a la red en dos aspectos: (1) **no ve la bandera de día atípico** que sí reciben los modelos DL, y (2) sus **hiperparámetros se fijaron a priori** (un conjunto modesto y regularizado, no producto de búsqueda), mientras que los de la red salieron de búsqueda en grilla. Por eso B5_XGB debe leerse como una **cota inferior** de lo que lograría un aprendiz clásico bien ajustado: si el DL le gana también a esto, la ventaja no es un artefacto de *baselines* pobres. El matiz importa en la otra dirección: en E4, y en MAE agregado, el XGBoost ya **supera al LSTM en los horizontes cortos** (h=1: 3.33 vs 3.77; h=3: 4.46 vs 4.68), empata en h=5 y solo cede en h=10 — todo esto sin ninguna de esas ventajas.
 
 ### Modelos de Deep Learning
 

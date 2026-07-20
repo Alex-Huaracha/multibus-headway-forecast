@@ -36,8 +36,8 @@ horizontes cortos y medios sin ninguna de esas ventajas.
 dejarían de existir). Aun así corregirla YA: el documento no puede tener una afirmación
 falsa mientras tanto.
 
-- [ ] Frase corregida
-- [ ] Commit
+- [x] Frase corregida (2026-07-20) — verificada contra los CSV de E4: XGB gana h=1 y h=3, empata h=5, cede h=10
+- [x] Commit
 
 ---
 
