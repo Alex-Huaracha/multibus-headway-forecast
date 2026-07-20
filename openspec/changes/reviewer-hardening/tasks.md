@@ -144,13 +144,13 @@ números — ver debate en el historial).
 
 ## Tarea 4 — Router con corte temporal por bloques
 
-⚠️ **RECONCILIAR `significance.py` ANTES DE APLICAR EL STASH.** El commit `7467f89`
-(Tarea 3) agregó `sign_test_across_cells` + `SignTestResult` al `significance.py`
-comprometido. El `significance.py` del stash es una reescritura distinta (generaliza a
-`model_col`/`reference_col`, agrega `merge_residuals_on_key`/`PAIR_KEY`). Aplicar el stash
-tal cual **pisaría** la función del test de signos. Al hacer la Tarea 4 hay que **fusionar
-las dos**: conservar `sign_test_across_cells` Y la generalización del stash. No hacer
-`git checkout stash@{0} -- src/evaluation/significance.py` a ciegas.
+✅ **RESUELTO (2026-07-20).** La Tarea 4 solo necesitó `build_exante_volatility.py` del stash
+(exposición aditiva de timestamps, aplicada limpia). **NO** se aplicó el `significance.py` del
+stash: su generalización (`model_col`/`reference_col`, `merge_residuals_on_key`/`PAIR_KEY`)
+apuntaba a un emparejamiento por muestra que la Tarea 3 demostró inviable (sobreconteo + sin
+clave), así que quedó **superada** por el Camino A. El `significance.py` comprometido —con
+`sign_test_across_cells` del commit `7467f89`— es el bueno. El stash queda **totalmente
+superado**: todo lo útil está commiteado; se puede `git stash drop stash@{0}` cuando quieras.
 
 **Problema (lo encontró el revisor de rigor):** `policy_eval_split()` en
 `src/build_router.py` hace una **permutación uniforme**. Las muestras son ventanas
@@ -181,12 +181,17 @@ puede achicarse o desaparecer. **Eso es un resultado aceptable y esperable.** Pr
 tunear, rebarajar o ajustar fracciones buscando que quede lindo. Se reporta lo que dé la
 primera corrida honesta. Si empeora, se dice y se cuantifica.
 
-- [ ] Timestamps expuestos, orden preservado
-- [ ] Corte temporal implementado
-- [ ] CSV generado con ambas bases
-- [ ] Tests
-- [ ] Documento actualizado con el resultado real, sea cual sea
-- [ ] Commit
+- [x] Timestamps expuestos, orden preservado (del stash, aditivo — `d2683e5`)
+- [x] Corte temporal implementado (`temporal_block_split`, determinista sin RNG — `d2683e5`)
+- [x] CSV generado con ambas bases (`router_temporal_multihorizon.csv`, sin pisar el uniforme)
+- [x] Tests (10, incluido el cruce política==uniforme — `d2683e5`)
+- [x] Documento actualizado con el resultado real (§5, corte temporal)
+- [x] Commit `d2683e5`
+
+**Tarea 4 COMPLETA.** Resultado honesto: el corte temporal **confirma** el router — política
+idéntica en 12/12, iguala al oráculo en 12/12, ganancia sobre la regla trivial −0.016 min (vs
+−0.018 uniforme). El 12/12 no era artefacto del solapamiento; la modestia (~1 seg real) también
+aguanta. **Change `reviewer-hardening` COMPLETO: las 5 tareas cerradas.**
 
 ---
 
