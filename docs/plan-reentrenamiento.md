@@ -1,14 +1,34 @@
 # Plan de reentrenamiento: contrato previo
 
-**Fecha:** 2026-07-27 · **Estado:** propuesta, sin ejecutar
+**Escrito:** 2026-07-27 · **Estado: EJECUTADO ÍNTEGRAMENTE**, mergeado a `main`
+en el commit `a98d508`.
 
-Este documento se escribe **antes** de correr nada. Esa es su razón de ser: la
-causa raíz de todo el retrabajo registrado en [`auditoria-hallazgos.md`](./auditoria-hallazgos.md)
-fue validar al final en vez de al principio. Acá se fija qué se va a construir,
-se verifica que el contrato sea correcto, y recién después se entrena.
-
-Ninguna corrida de Kaggle se lanza hasta que las tres verificaciones de la
-sección 5 pasen en local.
+> ### Este documento se conserva como evidencia, no como plan
+>
+> Se escribió **antes** de correr nada, y esa fue su razón de ser: la causa raíz
+> de todo el retrabajo registrado en [`auditoria-hallazgos.md`](./auditoria-hallazgos.md)
+> fue **validar al final en vez de al principio**. Escribir el contrato primero
+> fue el arreglo a esa causa, así que el documento vale por haber existido antes
+> de la implementación —no por lo que queda por hacer, que es nada.
+>
+> **Todo lo que sigue está cumplido.** Verificación por sección:
+>
+> | Sección | Qué prometía | Dónde vive hoy |
+> |---|---|---|
+> | §2 C1 — identidad de muestra | Una muestra por `(empresaid, direction, start_ts, horizon)` | `src/data/sample_index.py` |
+> | §2 C2 — contigüidad temporal | Ventanas de minutos consecutivos | idem, `_contiguous_run_mask` |
+> | §2 C3 — frontera de información | Bandera de día atípico eliminada | `src/data/contiguous_dataset.py` |
+> | §3 — condiciones idénticas | Índice único congelado por SHA-256 | `src/build_sample_index.py` · **sesgo medido: 0.001 min** |
+> | §5 V1/V2/V3 | Tres verificaciones previas | `tests/data/test_sample_index.py`, `tests/test_sample_index_manifest.py` |
+> | §5 — cuánto encoge | Medir antes de entrenar | **81.9 %–90.2 %** de snapshots sobreviven |
+> | §6 — clave completa | Exportación con la clave entera | `src/evaluation/residual_export.py` |
+> | §7 — portón en builders locales | Fallar en vez de reportar con datos viejos | Compuertas de cobertura en los builders `contiguous_*` |
+>
+> **Lo que el plan no previó y apareció al ejecutarlo:** la métrica vectorial
+> (§9, declarada fuera de alcance) terminó **refutando el claim central del
+> paper**. Ver [`resultados/documento-resultados.md`](./resultados/documento-resultados.md) §5.
+>
+> Los pendientes vigentes están en [`pendientes.md`](./pendientes.md).
 
 ---
 

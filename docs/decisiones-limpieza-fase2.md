@@ -1,6 +1,6 @@
 # Decisiones de limpieza para Fase 2
 
-Este documento cierra el criterio de Fase 1 del [plan de desarrollo](./plan-de-desarrollo.md): consolida los problemas de calidad detectados en el EDA (notebook `02_eda_corredores`, ejecutado en Kaggle sobre `clean_gps.parquet`) y registra la decisión de limpieza adoptada para cada uno antes de iniciar Fase 2.
+Este documento cierra el criterio de Fase 1 del [plan de desarrollo](./historico/plan-de-desarrollo.md): consolida los problemas de calidad detectados en el EDA (notebook `02_eda_corredores`, ejecutado en Kaggle sobre `clean_gps.parquet`) y registra la decisión de limpieza adoptada para cada uno antes de iniciar Fase 2.
 
 > **Estado:** APROBADAS (2026-05-19) — cada decisión queda como contrato de Fase 2. Cualquier cambio posterior requiere re-emitir este documento con nueva versión y motivación explícita.
 
@@ -59,4 +59,4 @@ La metodología del §8 sobre-flagea fines de semana (compara contra mediana de 
 
 ## 4. Cierre de Fase 1
 
-Aprobado al cierre de Fase 1 con los hallazgos del notebook `02_eda_corredores` (kernel version 3 en Kaggle, ejecutado el 2026-05-19). Los checkboxes de Fase 1 en [`plan-de-desarrollo.md`](./plan-de-desarrollo.md) se consideran satisfechos y Fase 2 puede iniciar bajo estas decisiones como contrato.
+Aprobado al cierre de Fase 1 con los hallazgos del notebook `02_eda_corredores` (kernel version 3 en Kaggle, ejecutado el 2026-05-19). Los checkboxes de Fase 1 en [`plan-de-desarrollo.md`](./historico/plan-de-desarrollo.md) se consideran satisfechos y Fase 2 puede iniciar bajo estas decisiones como contrato.
