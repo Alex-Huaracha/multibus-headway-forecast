@@ -183,3 +183,71 @@ pendientes (ver `openspec/changes/paper-recertification/tasks.md`):
   sola semana. Respetar la prioridad del §2.
 - El gate de hashes corta ANTES de entrenar: una corrida bloqueada por el gate
   no consume GPU de entrenamiento y no deja outputs parciales aceptables.
+
+---
+
+## 8. Rolling origin: los cortes r1 y r2
+
+Todo resultado publicado sale de UNA ventana de test de 22 días (febrero 2024).
+Los cortes `r1` y `r2` re-corren el protocolo completo sobre dos ventanas
+anteriores, para responder si el hallazgo se sostiene fuera de ese período.
+
+| Corte | Entrena | Valida | Prueba |
+|---|---|---|---|
+| `r1` | 2023-10-01 → 2023-11-30 (61 d) | 2023-12-01 → 2023-12-22 | **2023-12-23 → 2024-01-13** |
+| `r2` | 2023-10-01 → 2023-12-22 (83 d) | 2023-12-23 → 2024-01-13 | **2024-01-14 → 2024-02-04** |
+| `main` | 2023-10-01 → 2024-01-15 (107 d) | 2024-01-16 → 2024-02-07 | **2024-02-08 → 2024-02-29** |
+
+`main` **ya está corrido**: es el último origen de la secuencia, no un análisis
+aparte. Solo hay que lanzar r1 y r2 → **16 kernels, ≈1.8 h de GPU**.
+
+### Lanzar
+
+```bash
+uv run python src/build_notebook_21_lstm_contiguous.py   # emite los 24 (3 cortes)
+
+for FOLD in r1 r2; do
+  for GRP in e2e59 e4; do
+    for H in 3 5 10 1; do
+      uv run kaggle kernels push -p notebooks/21_lstm_contiguous/$GRP/$FOLD/h$H/
+    done
+  done
+done
+```
+
+Kaggle admite **2 sesiones GPU simultáneas**: lanzar de a dos y esperar. Un
+`CANCEL_REQUESTED` con `Maximum batch GPU session count of 2 reached` significa
+exactamente eso, no un error del notebook.
+
+### Validar antes de aceptar outputs
+
+Además de los cuatro chequeos del §4, para estos kernels revisar:
+
+1. **`Fold: r1`** (o `r2`) en el log. Si dice `main`, el notebook se construyó
+   mal y estaría re-midiendo la ventana publicada.
+2. **`Fold r1: train 2023-10-01..2023-11-30 (61d) | ...`** — las fechas impresas
+   deben coincidir con la tabla de arriba.
+3. El portón de población compara contra los digests **de ese corte**; si pasa,
+   la población es la correcta por construcción.
+
+### Descargar
+
+Las salidas llevan el sufijo del corte (`lstm_contig_r1_residuals_h3.csv`), así
+que **no pisan** los residuos publicados:
+
+```bash
+for FOLD in r1 r2; do
+  for H in 1 3 5 10; do
+    uv run kaggle kernels output alexhuaracha/21-lstm-contiguous-h$H-$FOLD \
+      -p docs/resultados/residuos-multihorizon/21-lstm-contiguous/
+    uv run kaggle kernels output alexhuaracha/21-lstm-contiguous-e4-h$H-$FOLD \
+      -p docs/resultados/residuos-multihorizon/21-lstm-contiguous/
+  done
+done
+```
+
+### Qué NO se re-corre
+
+El XGBoost. Su papel es mostrar que el cruce no es una propiedad del Deep
+Learning, y eso ya está establecido sobre el corte publicado. Replicarlo en el
+tiempo agregaría ≈6 h de CPU para responder una pregunta que nadie hizo.

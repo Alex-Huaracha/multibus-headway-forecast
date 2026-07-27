@@ -1,0 +1,17 @@
+{
+  "id": "alexhuaracha/21-lstm-contiguous-e4-h5-r2",
+  "title": "21 LSTM Contiguous E4 h5 [r2]",
+  "code_file": "21_lstm_contiguous_e4_r2_h5.ipynb",
+  "kernel_sources": [
+    "alexhuaracha/04-preprocessing"
+  ],
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "accelerator": "GPU_T4X2",
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "competition_sources": []
+}
