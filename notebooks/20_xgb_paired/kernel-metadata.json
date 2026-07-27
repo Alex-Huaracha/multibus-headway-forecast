@@ -1,0 +1,18 @@
+{
+  "id": "alexhuaracha/20-xgb-paired-export",
+  "title": "20 XGB Paired Export",
+  "code_file": "20_xgb_paired.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [
+    "alexhuaracha/04-preprocessing",
+    "alexhuaracha/02-eda-corridors",
+    "alexhuaracha/16-e4-data-baselines"
+  ],
+  "competition_sources": []
+}
