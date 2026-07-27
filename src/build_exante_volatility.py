@@ -124,6 +124,7 @@ def materialize_direction(
     empresaid: int,
     direction: int,
     return_timestamps: bool = False,
+    return_slots: bool = False,
 ) -> tuple[np.ndarray, ...]:
     """Materialize one direction's test windows.
 
@@ -134,6 +135,15 @@ def materialize_direction(
     timestamp of each flattened sample (``datetime64[us]``), i.e. the snapshot
     time of the predicted step. It is opt-in so the historical 5-tuple contract
     — and every existing caller and test double — stays untouched.
+
+    When ``return_slots`` is True the target ``pair_rank`` of each flattened
+    sample is appended (int32). Because the flattening is a C-order ravel of
+    ``(n_windows, max_N)``, the slot index is exactly the column index and is
+    recovered without consulting the window index again. Together with the
+    timestamp and the direction it forms ``(direction, t, pair_rank)`` — the
+    unique key of the headways frame, which the per-sample residual exports do
+    not carry. Appended AFTER the timestamp when both flags are set, so each
+    flag is independently additive.
     """
     mean_val = stats.means[(empresaid, direction)]
     std_val = stats.stds[(empresaid, direction)]
@@ -149,6 +159,8 @@ def materialize_direction(
         out = (empty, empty, np.array([], dtype=bool), np.array([], dtype=bool), empty)
         if return_timestamps:
             out = out + (np.array([], dtype="datetime64[us]"),)
+        if return_slots:
+            out = out + (np.array([], dtype=np.int32),)
         return out
 
     window_size = T_IN + horizon
@@ -223,6 +235,11 @@ def materialize_direction(
         # property, so it is broadcast across the max_N slot columns before raveling.
         ts_flat = np.repeat(all_target_ts[:, None], max_N, axis=1).ravel()
         out = out + (ts_flat,)
+    if return_slots:
+        # Column index of the C-order ravel of (n_windows, max_N): the slot column
+        # cycles fastest, so tiling arange(max_N) reproduces it exactly.
+        slot_flat = np.tile(np.arange(max_N, dtype=np.int32), n_windows)
+        out = out + (slot_flat,)
     return out
 
 
@@ -233,6 +250,7 @@ def materialize_corridor(
     horizon: int,
     splits: tuple[str, ...] = ("test",),
     return_timestamps: bool = False,
+    return_slots: bool = False,
 ) -> tuple[np.ndarray, ...]:
     """Materialize selected splits for one corridor; return kept samples.
 
@@ -245,6 +263,12 @@ def materialize_corridor(
     mask and concatenated in the same dir=-1 then dir=+1 order. This is additive:
     the default 3-tuple return — and therefore the positional-join contract that
     ``verify_alignment`` gates — is unchanged.
+
+    When ``return_slots`` is True TWO further arrays are appended, in order: the
+    target ``pair_rank`` (int32) and the ``direction`` (int8) of each kept sample.
+    With the timestamp these complete ``(direction, t, pair_rank)``, the unique
+    key of the headways frame. Both flags are independently additive and append
+    after the timestamp, so every existing caller keeps its exact return shape.
     """
     train_df = df.filter(pl.col("split") == "train")
     selected_df = df.filter(pl.col("split").is_in(splits))
@@ -256,35 +280,50 @@ def materialize_corridor(
     all_persist = []
     all_ex_ante = []
     all_ts = []
+    all_slots = []
+    all_dirs = []
 
     for direction in [-1, 1]:
-        if return_timestamps:
-            (targets_flat, persist_flat, tmask_flat, pmask_flat, ex_ante_flat,
-             ts_flat) = materialize_direction(
+        if return_timestamps or return_slots:
+            extra = materialize_direction(
                 selected_df, global_max_N, horizon, stats, empresaid, direction,
-                return_timestamps=True,
+                return_timestamps=return_timestamps,
+                return_slots=return_slots,
             )
+            targets_flat, persist_flat, tmask_flat, pmask_flat, ex_ante_flat = extra[:5]
+            tail = list(extra[5:])
+            ts_flat = tail.pop(0) if return_timestamps else None
+            slot_flat = tail.pop(0) if return_slots else None
         else:
-            # Called without the extra kwarg so existing test doubles that patch
+            # Called without the extra kwargs so existing test doubles that patch
             # materialize_direction with the historical 6-arg signature still work.
             targets_flat, persist_flat, tmask_flat, pmask_flat, ex_ante_flat = \
                 materialize_direction(selected_df, global_max_N, horizon, stats,
                                        empresaid, direction)
             ts_flat = None
+            slot_flat = None
         keep = tmask_flat & pmask_flat
         all_targets.append(targets_flat[keep])
         all_persist.append(persist_flat[keep])
         all_ex_ante.append(ex_ante_flat[keep])
         if ts_flat is not None:
             all_ts.append(ts_flat[keep])
+        if slot_flat is not None:
+            all_slots.append(slot_flat[keep])
+            all_dirs.append(
+                np.full(int(keep.sum()), direction, dtype=np.int8)
+            )
 
     targets = np.concatenate(all_targets)
     persist = np.concatenate(all_persist)
     ex_ante = np.concatenate(all_ex_ante)
 
+    out: tuple[np.ndarray, ...] = (targets, persist, ex_ante)
     if return_timestamps:
-        return targets, persist, ex_ante, np.concatenate(all_ts)
-    return targets, persist, ex_ante
+        out = out + (np.concatenate(all_ts),)
+    if return_slots:
+        out = out + (np.concatenate(all_slots), np.concatenate(all_dirs))
+    return out
 
 
 # ---------------------------------------------------------------------------
