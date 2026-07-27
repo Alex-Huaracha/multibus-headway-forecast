@@ -13,18 +13,46 @@ Outputs (written to docs/resultados/):
     curva-degradacion.png           — 2x3 grid: rows MAE/RMSE, cols E2/E59/E4
 
 Significance: each deep-model point is tested against persistence (B1) with the
-paired Diebold-Mariano and Wilcoxon tests (see build_significance_table.py). All
-DL-vs-persistence comparisons are significant; the single exception is ringed and
-labelled ``ns`` on the figure, with a footnote stating the global claim. The
-significance verdicts are read from the versioned significance_multihorizon.csv,
-so the figure rebuilds without the (unversioned) raw per-sample residuals.
+paired Diebold-Mariano and Wilcoxon tests (see build_significance_table.py). The
+verdicts are read from the versioned significance_multihorizon.csv, so the figure
+rebuilds without the (unversioned) raw per-sample residuals.
+
+Three annotation rules, all derived from the data rather than asserted:
+
+* ``B1`` + square ring — persistence is significantly BETTER than the deep model
+  (``dl_better`` is false). These must be marked: an earlier version of this
+  builder tested only ``dm_p``/``wilcoxon_p`` and ignored ``dl_better``, so a
+  significant win *for persistence* rendered as an unannotated point, implying
+  the opposite of the truth. ``SpatialTransformer / E4 / h=3 / MAE`` is exactly
+  such a cell and it sits inside the h∈{3,5,10} band the footnote describes.
+* ``ns`` + circle ring — the gap is not significant at ALPHA in both tests.
+* Nothing — the deep model wins significantly.
+
+Framing caveat, stated on the figure itself: these panels plot the AGGREGATE
+metric over the full test split, whereas the paper's canonical DL-vs-persistence
+claim is the PAIRED one over identical samples. The two framings disagree in
+sign for a handful of cells (read from paired_vs_reported_audit.csv and counted
+into the footnote), all of them at the crossover where the true margin is
+smaller than the framing bias. Every such cell also has ``dl_better`` false, so
+the ``B1`` marker already flags it visually; the footnote names the cause.
+
+The significance footnote is COMPUTED from significance_multihorizon.csv, never
+hardcoded — the previous text claimed "todas significativas ... p<0.001", which
+was false in three separate ways.
 """
 from __future__ import annotations
 
-from pathlib import Path
+import os
 
-import polars as pl
-import matplotlib
+# Byte-identical consolidated CSV across runs (see CLAUDE.md determinism
+# contract). Must precede the polars import.
+os.environ.setdefault("POLARS_MAX_THREADS", "1")
+
+import textwrap  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import polars as pl  # noqa: E402
+import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")  # headless: no display in WSL/CI
 import matplotlib.pyplot as plt  # noqa: E402
@@ -54,7 +82,24 @@ CORRIDORS = ["E2", "E59", "E4"]
 # Deep models whose points are tested against persistence (B1).
 DL_MODELS = {"LSTM", "SpatialConvLSTM", "SpatialTransformer"}
 SIG_CSV = RESULTS_DIR / "significance_multihorizon.csv"
+# Paired-vs-aggregate reconciliation: names the cells where this figure's framing
+# disagrees in sign with the paper's canonical paired base.
+PAIRED_AUDIT_CSV = RESULTS_DIR / "paired_vs_reported_audit.csv"
 ALPHA = 0.05  # two-tailed threshold for both DM and Wilcoxon
+
+# Verdict markers. "B1"/"B1≠" (persistence wins / and the paired framing also
+# reverses this panel) are deliberately louder than "ns": a reader skimming the
+# panels is far more likely to misread a persistence win as a DL win than to
+# over-read a non-significant gap.
+MARK_STYLES = {
+    "B1":  {"marker": "s", "color": "darkred", "s": 210, "lw": 1.8},
+    "B1≠": {"marker": "s", "color": "darkred", "s": 210, "lw": 1.8},
+    "ns":  {"marker": "o", "color": "black", "s": 190, "lw": 1.5},
+}
+
+# Footnote wrapping width in characters. The figure is 16 in wide at fontsize 9;
+# unwrapped captions ran off both edges and were silently clipped.
+FOOTNOTE_WRAP = 155
 
 # Multi-seed confidence intervals (C2 / NB15). The LSTM was re-run with 5 seeds;
 # its 95% interval is drawn as error bars on the LSTM line (proxy for the whole
@@ -68,20 +113,74 @@ def _horizon_axis(table_cols: list[str]) -> list[int]:
     return sorted(int(c[1:]) for c in table_cols if c.startswith("h"))
 
 
-def _load_significance(sig_csv: Path) -> dict[tuple[str, str, str, int], bool]:
-    """Map (model, metric, corridor, horizon) -> is the gap significant?
+def _load_significance(
+    sig_csv: Path,
+) -> dict[tuple[str, str, str, int], tuple[bool, bool]]:
+    """Map (model, metric, corridor, horizon) -> (is_significant, dl_better).
 
     A point is significant when BOTH the Diebold-Mariano and the Wilcoxon p-value
-    fall below ``ALPHA``. Missing file -> empty map (figure renders unannotated).
+    fall below ``ALPHA``. ``dl_better`` carries the DIRECTION of the effect and is
+    kept separate on purpose: significance without direction cannot distinguish
+    "the deep model wins" from "persistence wins", and conflating them is what
+    made an earlier version of this figure assert the reverse of its own table.
+    Missing file -> empty map (figure renders unannotated).
     """
     if not sig_csv.exists():
         return {}
     sig = pl.read_csv(sig_csv)
-    verdict: dict[tuple[str, str, str, int], bool] = {}
+    verdict: dict[tuple[str, str, str, int], tuple[bool, bool]] = {}
     for row in sig.iter_rows(named=True):
         key = (row["model"], row["metric"], row["corridor"], int(row["horizon"]))
-        verdict[key] = (row["dm_p"] < ALPHA) and (row["wilcoxon_p"] < ALPHA)
+        significant = (row["dm_p"] < ALPHA) and (row["wilcoxon_p"] < ALPHA)
+        verdict[key] = (significant, bool(row["dl_better"]))
     return verdict
+
+
+def _significance_footnote(sig_csv: Path, horizons: tuple[int, ...] = (3, 5, 10)) -> str:
+    """Build the significance caption FROM the table, for the operational band.
+
+    Counts, over the DL-vs-persistence cells at ``horizons``: how many favour the
+    deep model, how many of those clear p<0.001 in both tests, how many only
+    clear p<0.05, and how many favour persistence instead. Hardcoding this text
+    is how the figure came to overstate its own evidence.
+    """
+    if not sig_csv.exists():
+        return ""
+    sig = pl.read_csv(sig_csv).filter(pl.col("horizon").is_in(list(horizons)))
+    total = sig.height
+    dl_win = sig.filter(pl.col("dl_better"))
+    p001 = dl_win.filter((pl.col("dm_p") < 1e-3) & (pl.col("wilcoxon_p") < 1e-3)).height
+    p05 = dl_win.filter((pl.col("dm_p") < ALPHA) & (pl.col("wilcoxon_p") < ALPHA)).height
+    reversed_cells = total - dl_win.height
+    band = "{" + ",".join(str(h) for h in horizons) + "}"
+    parts = [
+        f"DL vs. persistencia (B1) a h∈{band}: el DL tiene menor error en "
+        f"{dl_win.height} de {total} celdas; {p001} a p<0.001 y {p05} a p<0.05 "
+        f"en ambos tests (Diebold-Mariano y Wilcoxon)."
+    ]
+    if reversed_cells:
+        parts.append(
+            f"En {reversed_cells} celda(s) gana la persistencia (marcada B1 ▪)."
+        )
+    parts.append("⊘ ns = diferencia no significativa.")
+    return " ".join(parts)
+
+
+def _load_sign_mismatch(audit_csv: Path) -> set[tuple[str, str, str, int]]:
+    """Cells where the AGGREGATE framing disagrees in sign with the PAIRED one.
+
+    The figure plots aggregate metrics (the only framing in which the formulaic
+    and fitted baselines exist at all), but the paper's canonical claim is paired
+    over identical samples. Where the two disagree the figure must say so rather
+    than let the reader take the panel as the verdict.
+    """
+    if not audit_csv.exists():
+        return set()
+    audit = pl.read_csv(audit_csv).filter(pl.col("sign_mismatch"))
+    return {
+        (r["model"], r["metric"], r["corridor"], int(r["horizon"]))
+        for r in audit.iter_rows(named=True)
+    }
 
 
 def _load_multiseed_ci(ci_csv: Path) -> dict[tuple[str, str, int], float]:
@@ -116,6 +215,7 @@ def build(results_dir: Path = RESULTS_DIR, out_dir: Path = OUT_DIR) -> Path:
 
     significance = _load_significance(SIG_CSV)
     multiseed_ci = _load_multiseed_ci(MULTISEED_CI_CSV)
+    sign_mismatch = _load_sign_mismatch(PAIRED_AUDIT_CSV)
 
     fig, axes = plt.subplots(2, 3, figsize=(16, 8), sharex=True)
     for row, metric in enumerate(METRICS):
@@ -126,6 +226,7 @@ def build(results_dir: Path = RESULTS_DIR, out_dir: Path = OUT_DIR) -> Path:
             )
             horizons = _horizon_axis(table.columns)
             present = set(table["baseline"])
+            marks: dict[str, list[tuple[int, float]]] = {}
             for name, label, color, marker, ls, lw in MODELS:
                 if name not in present:
                     continue
@@ -146,20 +247,44 @@ def build(results_dir: Path = RESULTS_DIR, out_dir: Path = OUT_DIR) -> Path:
                             xs, ys, yerr=yerr, fmt="none", ecolor=color,
                             elinewidth=1.2, capsize=4, capthick=1.2, zorder=6,
                         )
-                # Ring + label the rare DL-vs-persistence point that is NOT
-                # statistically significant (verdict explicitly False; h=1 and
-                # baselines have no paired test and are left unmarked).
+                # Collect the DL points whose verdict is not "the deep model wins
+                # significantly". Rings are drawn per model (three stacked rings
+                # is itself information), but the text label is emitted ONCE per
+                # (horizon, verdict) after the loop — at h=1 the three models
+                # land on nearly the same y and three copies of the same label
+                # overlap into noise.
                 if name in DL_MODELS:
                     for x, y in zip(xs, ys):
-                        if significance.get((name, metric, corridor, x)) is False:
-                            ax.scatter(
-                                [x], [y], s=190, facecolors="none",
-                                edgecolors="black", linewidths=1.5, zorder=5,
-                            )
-                            ax.annotate(
-                                "ns", (x, y), textcoords="offset points",
-                                xytext=(7, 6), fontsize=9, fontweight="bold",
-                            )
+                        verdict = significance.get((name, metric, corridor, x))
+                        if verdict is None:
+                            continue
+                        significant, dl_better = verdict
+                        if not dl_better:
+                            kind = ("B1≠" if (name, metric, corridor, x)
+                                    in sign_mismatch else "B1")
+                        elif not significant:
+                            kind = "ns"
+                        else:
+                            continue
+                        marks.setdefault(kind, []).append((x, y))
+            # Draw the collected verdict marks: a ring on every affected model
+            # point, one text label per (horizon, verdict) placed above the
+            # topmost ring of that group.
+            for kind, pts in marks.items():
+                style = MARK_STYLES[kind]
+                ax.scatter(
+                    [p[0] for p in pts], [p[1] for p in pts],
+                    s=style["s"], facecolors="none",
+                    edgecolors=style["color"], linewidths=style["lw"],
+                    marker=style["marker"], zorder=5,
+                )
+                for x in sorted({p[0] for p in pts}):
+                    top = max(p[1] for p in pts if p[0] == x)
+                    ax.annotate(
+                        kind, (x, top), textcoords="offset points",
+                        xytext=(9, 8), fontsize=9, fontweight="bold",
+                        color=style["color"],
+                    )
             ax.set_title(f"{corridor} — {metric} agregado")
             ax.grid(True, alpha=0.3)
             ax.set_xticks(horizons)
@@ -179,21 +304,32 @@ def build(results_dir: Path = RESULTS_DIR, out_dir: Path = OUT_DIR) -> Path:
     )
     footnotes = []
     if significance:
-        footnotes.append(
-            "Comparación DL vs. persistencia (B1) a h∈{3,5,10}: todas significativas "
-            "(Diebold-Mariano y Wilcoxon, p<0.001); ⊘ ns = no significativa."
-        )
+        footnotes.append(_significance_footnote(SIG_CSV))
+    # The framing caveat is not optional: without it a reader takes these
+    # aggregate panels as the paper's verdict, which at the crossover they are not.
+    footnotes.append(
+        "Estos paneles son el MAE/RMSE AGREGADO sobre el test completo; la "
+        "comparación canónica del trabajo es la PAREADA sobre muestras idénticas "
+        "(Sección 3). El encuadre agregado favorece al DL en 0.28–0.53 min, así "
+        f"que en {len(sign_mismatch)} celda(s) el signo que se ve acá se invierte "
+        "en la base pareada (marcadas B1≠); no leer el cruce desde esta figura."
+    )
     if multiseed_ci:
         footnotes.append(
             "Barras de error en LSTM = IC 95% sobre 5 seeds [42,123,456,789,999] "
             "(NB15); su ancho sub-marcador confirma estabilidad frente al seed."
         )
     if footnotes:
-        fig.text(
-            0.5, 0.005, "\n".join(footnotes),
-            ha="center", fontsize=9, style="italic",
+        wrapped = "\n".join(
+            textwrap.fill(f, width=FOOTNOTE_WRAP) for f in footnotes if f
         )
-    fig.tight_layout(rect=(0, 0.03, 1, 0.90))
+        fig.text(
+            0.5, 0.004, wrapped,
+            ha="center", va="bottom", fontsize=9, style="italic",
+        )
+    # Bottom margin scales with the wrapped caption so it is never clipped.
+    n_lines = wrapped.count("\n") + 1 if footnotes else 0
+    fig.tight_layout(rect=(0, 0.018 * n_lines, 1, 0.90))
 
     fig_path = out_dir / "curva-degradacion.png"
     fig.savefig(fig_path, dpi=150)
