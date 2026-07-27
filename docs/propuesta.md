@@ -1,3 +1,21 @@
+> ## ⚠️ Documento histórico — no describe el trabajo entregado
+>
+> Esta es la propuesta **original**. Se conserva sin reescribir como registro de
+> lo que se planificó. Tres cosas cambiaron durante la ejecución, y el documento
+> las contradice a lo largo de todo el texto:
+>
+> | Lo que dice la propuesta | Lo que se entregó |
+> |---|---|
+> | Arquitectura **GNN+LSTM** | **Nunca se construyó una GNN.** Se implementaron SpatialConvLSTM y SpatialTransformer; ninguna supera al LSTM plano. El nulo espacial es un resultado, no un pendiente. |
+> | **Cuatro** corredores (2, 4, 58, 59) | **Tres**: E2, E4 y E59. E58 nunca entró — no tiene parquet, ni resultados, ni referencias en el código. |
+> | Aporte: *«anticipar bunching, gaps y congestión antes de que se materialicen»* | **No sostenido por estos modelos.** La detección conjunta de bunching de la persistencia supera a la del LSTM en las 12 celdas, por hasta 253×. El aporte se reformuló: los modelos óptimos en MAE sub-reportan sistemáticamente la irregularidad del servicio, y una evaluación escalar no puede detectarlo. |
+>
+> El alcance, los resultados y el aporte vigentes están en
+> [`resultados/documento-resultados.md`](resultados/documento-resultados.md).
+> La evidencia de las tres correcciones está en
+> [`auditoria-hallazgos.md`](auditoria-hallazgos.md) y en las tablas bajo
+> `resultados/csv-multihorizon/`.
+
 **PROPUESTA DE INVESTIGACIÓN**
 
 *Actualización basada en análisis de viabilidad del dataset*

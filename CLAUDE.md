@@ -25,7 +25,8 @@ uv run kaggle kernels push -p notebooks/11_lstm_multihorizon/h3/   # launch a Ka
 ```
 
 The Kaggle CLI is a project dependency and **must be invoked as `uv run kaggle ...`**,
-not a global `kaggle`. Credentials live in `~/.kaggle/kaggle.json` (chmod 600).
+not a global `kaggle`. Credentials live in `~/.kaggle/access_token` (chmod 600) —
+not `kaggle.json`, which is what this machine actually has.
 
 ⚠️ **Running the full suite rewrites generated notebooks in place.** The
 `tests/test_build_notebook_*.py` tests execute the builders, which write the
@@ -114,6 +115,9 @@ These are enforced by tests — breaking them silently invalidates the paper's r
 
 - **Composite key is always `(empresaid, unidadid)`** — `unidadid` is reused across
   companies (34 of 150 appear in 3+); never key on `unidadid` alone.
-- Corridors in scope: companies **2, 4, 58, 59** (referred to as E2/E4/E58/E59).
+- Corridors in scope: companies **2, 4, 59** (referred to as E2/E4/E59). The
+  proposal also names company 58, but E58 never entered the pipeline — no
+  processed parquet, no results, no builder references it. Treat any mention of
+  four corridors as stale.
 - Processed data is **Parquet only**; no CSV in the internal pipeline. Raw/processed
   data is gitignored and lives in Kaggle Datasets (pinned in `docs/dataset-manifest.md`).
