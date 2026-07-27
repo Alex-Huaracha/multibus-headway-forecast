@@ -2,19 +2,17 @@
 
 The degradation curve (``degradation.py``) and the paired significance tests
 (``significance.py``) show that DL beats persistence by a margin that GROWS with
-the horizon. This module explains WHY, which is the causal story a reviewer
-wants: persistence predicts ``y(t+H) = y(t)``, so it is only wrong when the
-headway actually moves. The DL advantage should therefore concentrate in the
-windows where the headway changed a lot.
+the horizon. This module describes the mechanism: persistence predicts
+``y(t+H) = y(t)``, so it is only wrong when the headway actually moves, and the
+DL advantage concentrates in the windows where the headway changed a lot.
 
 We measure the realized change per paired sample as
 
     headway_change = |y_true - y_pred_persist|
 
 (``y_pred_persist`` is the last observed headway, so its error magnitude IS the
-realized change), bin it into volatility regimes with FIXED minute thresholds,
-and run the same paired effect-size + significance summary as
-``significance.py`` within each regime.
+realized change) and bin it into volatility regimes with FIXED minute
+thresholds.
 
 Fixed minute edges (not quantiles) are deliberate. They tell two stories at
 once: (1) within a horizon, the DL advantage is larger in high-change regimes;
@@ -22,21 +20,29 @@ once: (1) within a horizon, the DL advantage is larger in high-change regimes;
 which is exactly why the aggregate persistence error degrades as the horizon
 lengthens. Quantile bins would force equal mass per regime and hide (2).
 
+**No inference is reported here, deliberately (audit pending #2).** The regime
+is ``|y_true - y_pred_persist|`` — persistence's own error, i.e. one of the two
+quantities the loss differential is built from. Conditioning on it and then
+testing that differential conditions on the dependent variable, so the verdict
+is forced arithmetically: the "high" bin is *defined* as where persistence is
+wrong. The 432 p-values this module used to emit were all of that kind and are
+gone. What survives is descriptive and honest — the per-regime MAEs and the
+mass shift across regimes — and it is the part that carries the mechanism.
+
+For an inferential answer to the same question, stratify by a variable
+observable BEFORE the target: ``evaluation/exante_volatility.py`` uses the
+dispersion of the input window, which is independent of the outcome, so the
+paired tests it feeds are legitimate.
+
 Public API:
     headway_change(df) -> np.ndarray
     assign_volatility_regime(df, edges, labels) -> pl.DataFrame
-    volatility_significance_table(df, metric, direction, edges) -> pl.DataFrame
+    volatility_effect_table(df, direction, edges) -> pl.DataFrame
 """
 from __future__ import annotations
 
 import numpy as np
 import polars as pl
-
-from src.evaluation.significance import (
-    diebold_mariano,
-    loss_differential,
-    wilcoxon_signed_rank,
-)
 
 # Default regime labels for 3 bins separated by 2 edges, ordered ascending.
 DEFAULT_LABELS = ("low", "moderate", "high")
@@ -122,33 +128,39 @@ def assign_volatility_regime(
     )
 
 
-def volatility_significance_table(
+def volatility_effect_table(
     df: pl.DataFrame,
-    metric: str = "MAE",
     direction: str = "aggregate",
     edges: tuple[float, ...] = DEFAULT_EDGES,
     labels: tuple[str, ...] | None = None,
 ) -> pl.DataFrame:
-    """Per (corridor, horizon, regime) effect-size + significance summary.
+    """Per (corridor, horizon, regime) descriptive error summary.
 
-    Mirrors :func:`significance.significance_table` but adds a volatility regime
-    to the grouping, so each row answers "within this corridor/horizon, on the
-    samples whose headway moved by THIS much, how much does DL beat persistence
-    and is it significant?". Only regimes that actually contain samples produce
-    a row.
+    Each row answers "within this corridor/horizon, on the samples whose headway
+    moved by THIS much, what does each model's MAE look like?". Only regimes
+    that actually contain samples produce a row.
 
-    Columns: ``corridor, horizon, regime, regime_order, n, mean_change,
-    delta_mae, dm_stat, dm_p, wilcoxon_p, dl_better``. ``delta_mae`` is the mean
-    MAE differential (negative => DL better); ``mean_change`` is the descriptive
-    mean headway change in the bin. ``regime_order`` is the ascending bin index,
+    Columns: ``corridor, horizon, regime, regime_order, n, share, mean_change,
+    mae_persist, mae_dl, delta_mae, dl_better``. ``delta_mae`` is
+    ``mae_dl - mae_persist`` (negative => DL better); ``share`` is the regime's
+    fraction of the corridor/horizon's samples, which is what makes the mass
+    shift across horizons readable. ``regime_order`` is the ascending bin index,
     for stable sorting/plotting independent of the label strings.
+
+    No p-value is returned and none should be computed downstream: the regime is
+    a function of persistence's error, so any test of the loss differential
+    within it is circular (see the module docstring). ``dl_better`` is the sign
+    of a descriptive difference, not a verdict.
+
+    There is no ``metric`` parameter. It only ever selected the loss for the
+    removed tests — the effect size was always reported in MAE — so with the
+    tests gone the ``"MAE"`` and ``"RMSE"`` variants of a row were byte-identical
+    duplicates.
 
     Parameters
     ----------
     df:
         Long residual frame (``significance.load_residuals``).
-    metric:
-        Loss for the DM/Wilcoxon differential (``"MAE"`` or ``"RMSE"``).
     direction:
         ``"aggregate"`` pools both directions; pass an integer (``-1``/``1``) to
         restrict to one travel direction.
@@ -171,7 +183,7 @@ def volatility_significance_table(
         work = df.filter(pl.col("direction") == direction)
     if work.height == 0:
         raise ValueError(
-            f"volatility_significance_table: no rows for direction={direction!r}"
+            f"volatility_effect_table: no rows for direction={direction!r}"
         )
 
     work = assign_volatility_regime(work, edges=edges, labels=labels)
@@ -189,6 +201,14 @@ def volatility_significance_table(
         .sort(["corridor", "horizon", "volatility_regime"])
     )
 
+    # Denominator of `share`: the corridor/horizon population the regimes partition.
+    cell_totals = {
+        (corridor, int(horizon)): int(height)
+        for corridor, horizon, height in work.group_by(["corridor", "horizon"])
+        .len()
+        .iter_rows()
+    }
+
     rows: list[dict] = []
     for corridor, horizon, regime in groups.iter_rows():
         sub = work.filter(
@@ -196,10 +216,10 @@ def volatility_significance_table(
             & (pl.col("horizon") == horizon)
             & (pl.col("volatility_regime") == regime)
         )
-        d_metric = loss_differential(sub, metric)
-        d_mae = loss_differential(sub, "MAE")  # effect size always in MAE units
-        dm = diebold_mariano(d_metric)
-        delta_mae = float(np.mean(d_mae))
+        y_true = sub["y_true"].to_numpy()
+        mae_persist = float(np.mean(np.abs(y_true - sub["y_pred_persist"].to_numpy())))
+        mae_dl = float(np.mean(np.abs(y_true - sub["y_pred_dl"].to_numpy())))
+        delta_mae = mae_dl - mae_persist
         rows.append(
             {
                 "corridor": corridor,
@@ -207,11 +227,11 @@ def volatility_significance_table(
                 "regime": regime,
                 "regime_order": order_of[regime],
                 "n": int(sub.height),
+                "share": sub.height / cell_totals[(corridor, int(horizon))],
                 "mean_change": float(sub["headway_change"].mean()),
+                "mae_persist": mae_persist,
+                "mae_dl": mae_dl,
                 "delta_mae": delta_mae,
-                "dm_stat": dm.stat,
-                "dm_p": dm.p_value,
-                "wilcoxon_p": wilcoxon_signed_rank(d_metric),
                 "dl_better": delta_mae < 0,
             }
         )

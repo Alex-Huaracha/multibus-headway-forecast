@@ -14,14 +14,20 @@ realized change. Fixed minute thresholds (not quantiles) are used on purpose:
 they tell two stories at once — within a horizon DL wins more on high-change
 samples, AND the share of high-change samples grows with the horizon.
 
+The table is DESCRIPTIVE. Because the regime is persistence's own error, a
+significance test inside it conditions on the dependent variable, so the p-value
+columns were removed (audit pending #2) and ``TestNoCircularInference`` keeps
+them from coming back.
+
 Acceptance criteria:
     AC-CHANGE-1   headway_change = |y_true - y_pred_persist|
     AC-REGIME-1   assign_volatility_regime bins by the minute edges
     AC-REGIME-2   assign_volatility_regime adds columns and preserves every row
     AC-TABLE-1    one row per (corridor, horizon, regime) actually present
-    AC-TABLE-2    reports n, mean_change, delta_mae, dm_p, wilcoxon_p, dl_better
+    AC-TABLE-2    reports n, share, mean_change, mae_persist, mae_dl, delta_mae
     AC-TABLE-3    the DL advantage (negative delta_mae) is stronger in the
                   high-change regime than in the stable regime — the paper claim
+    AC-TABLE-4    no inferential column is emitted, and shares sum to 1 per cell
 """
 from __future__ import annotations
 
@@ -32,7 +38,7 @@ import pytest
 from src.evaluation.volatility import (
     headway_change,
     assign_volatility_regime,
-    volatility_significance_table,
+    volatility_effect_table,
 )
 
 
@@ -123,41 +129,78 @@ def stratified_residuals():
 class TestVolatilityTable:
     def test_one_row_per_present_regime(self, stratified_residuals):
         """AC-TABLE-1: one row per (corridor, horizon, regime) with samples."""
-        table = volatility_significance_table(
-            stratified_residuals, metric="MAE", edges=(1.0, 3.0)
-        )
+        table = volatility_effect_table(stratified_residuals, edges=(1.0, 3.0))
         assert set(table["regime"].unique()) <= {"low", "moderate", "high"}
         # both populated regimes (low and high) appear exactly once
-        counts = table.group_by("regime").len().sort("regime")
         assert table.filter(pl.col("regime") == "low").height == 1
         assert table.filter(pl.col("regime") == "high").height == 1
 
-    def test_reports_effect_and_pvalues(self, stratified_residuals):
+    def test_reports_descriptive_columns(self, stratified_residuals):
         """AC-TABLE-2: required reporting columns present."""
-        table = volatility_significance_table(
-            stratified_residuals, metric="MAE", edges=(1.0, 3.0)
-        )
+        table = volatility_effect_table(stratified_residuals, edges=(1.0, 3.0))
         for col in (
             "corridor",
             "horizon",
             "regime",
+            "regime_order",
             "n",
+            "share",
             "mean_change",
+            "mae_persist",
+            "mae_dl",
             "delta_mae",
-            "dm_stat",
-            "dm_p",
-            "wilcoxon_p",
             "dl_better",
         ):
             assert col in table.columns
 
+    def test_delta_is_the_difference_of_the_two_maes(self, stratified_residuals):
+        """delta_mae must be reconstructible from the reported MAEs."""
+        table = volatility_effect_table(stratified_residuals, edges=(1.0, 3.0))
+        delta = table["mae_dl"].to_numpy() - table["mae_persist"].to_numpy()
+        assert np.allclose(delta, table["delta_mae"].to_numpy())
+
     def test_advantage_concentrates_in_high_change(self, stratified_residuals):
         """AC-TABLE-3: DL advantage is stronger (more negative) at high change."""
-        table = volatility_significance_table(
-            stratified_residuals, metric="MAE", edges=(1.0, 3.0)
-        )
+        table = volatility_effect_table(stratified_residuals, edges=(1.0, 3.0))
         low = table.filter(pl.col("regime") == "low")["delta_mae"].item()
         high = table.filter(pl.col("regime") == "high")["delta_mae"].item()
         assert high < low  # DL wins by more where the headway actually moved
         assert high < 0  # and DL genuinely beats persistence there
         assert low == pytest.approx(0.0, abs=0.05)  # ~tie when nothing moves
+
+
+class TestNoCircularInference:
+    """AC-TABLE-4 — pending #2: the regime IS persistence's error.
+
+    Testing the loss differential within a bin defined by one of its own terms
+    conditions on the dependent variable: the "high" bin is by construction the
+    set where persistence is wrong, so a significant result there is arithmetic,
+    not evidence. These assertions are what stops the columns being restored by
+    someone who reads the table as if it were inferential.
+    """
+
+    FORBIDDEN = ("dm_stat", "dm_p", "wilcoxon_p", "p_value", "significant")
+
+    def test_emits_no_inferential_column(self, stratified_residuals):
+        table = volatility_effect_table(stratified_residuals, edges=(1.0, 3.0))
+        leaked = [
+            c for c in table.columns
+            if any(bad in c.lower() for bad in self.FORBIDDEN)
+        ]
+        assert leaked == [], f"circular inference columns reintroduced: {leaked}"
+
+    def test_shares_partition_each_cell(self, stratified_residuals):
+        """The mass shift across regimes is the informative part; it must total 1."""
+        table = volatility_effect_table(stratified_residuals, edges=(1.0, 3.0))
+        per_cell = table.group_by(["corridor", "horizon"]).agg(
+            pl.col("share").sum().alias("total"), pl.col("n").sum().alias("n")
+        )
+        assert np.allclose(per_cell["total"].to_numpy(), 1.0)
+        assert per_cell["n"].to_list() == [stratified_residuals.height]
+
+    def test_no_metric_parameter_remains(self, stratified_residuals):
+        """`metric` only ever chose the loss for the removed tests."""
+        with pytest.raises(TypeError):
+            volatility_effect_table(
+                stratified_residuals, metric="RMSE", edges=(1.0, 3.0)
+            )
