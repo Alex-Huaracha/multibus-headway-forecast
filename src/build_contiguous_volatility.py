@@ -182,19 +182,9 @@ def tercile_rows(
     horizon: int,
 ) -> list[dict]:
     """Per-tercile mass, errors and paired verdicts for one corridor x horizon."""
-    std = joined.get_column("exante_std").to_numpy()
-    # NaN dispersion means the window had fewer than two observed timesteps in
-    # that cell; it carries no regime information and is dropped from the whole
-    # table rather than folded into a bin.
-    finite = np.isfinite(std)
-    work = joined.filter(pl.Series(finite))
-    std = std[finite]
+    work, std, codes = assign_regime(joined, thresholds)
     if work.height == 0:
         return []
-
-    codes = np.where(
-        std <= thresholds.p33, 0, np.where(std <= thresholds.p66, 1, 2)
-    )
 
     y_true = work.get_column("y_true").to_numpy()
     dl = work.get_column("y_pred_model").to_numpy()
@@ -241,76 +231,109 @@ def tercile_rows(
     return rows
 
 
+def corridor_max_N(df: pl.DataFrame) -> int:
+    """Global train-p99 vector width, as ``train.py`` dimensions the network."""
+    return max(
+        compute_max_N(df.filter(pl.col("split") == "train"), quantile=0.99).values()
+    )
+
+
+def paired_cell(
+    lstm: pl.DataFrame,
+    xgb: pl.DataFrame,
+    df: pl.DataFrame,
+    *,
+    corridor: str,
+    horizon: int,
+    max_N: int,
+    verbose: bool = True,
+) -> tuple[pl.DataFrame, TercileThresholds] | None:
+    """Three-way paired residuals for one cell, carrying the ex-ante regime.
+
+    Shared by this builder and the router: both need the same population, the
+    same frozen thresholds and the same fail-closed join, and having two copies
+    of that is how the two analyses would drift apart.
+
+    Returns ``None`` when either model has no rows for the cell.
+    """
+    where = (pl.col("corridor") == corridor) & (pl.col("horizon") == horizon)
+    left = lstm.filter(where)
+    right = xgb.filter(where)
+    if left.height == 0 or right.height == 0:
+        return None
+
+    thresholds = calibrate(df, corridor=corridor, horizon=horizon, max_N=max_N)
+    test_std = dispersion_frame(
+        df, corridor=corridor, split="test", horizon=horizon, max_N=max_N
+    )
+
+    joined = left.join(
+        right.select(RESIDUAL_KEY_COLUMNS + ["y_pred_model"]).rename(
+            {"y_pred_model": "y_pred_xgb"}
+        ),
+        on=RESIDUAL_KEY_COLUMNS,
+        how="inner",
+    ).join(
+        test_std,
+        on=["corridor", "direction", "start_ts", "pair_rank"],
+        how="inner",
+    )
+
+    # Fail closed on a bad join. The dispersion frame is rebuilt from the same
+    # parquet and the same sample index the kernels consumed, so every paired
+    # residual must find its window. A silent drop here would re-stratify a
+    # different population than the one being reported — the exact class of
+    # defect this pipeline was rebuilt to prevent.
+    paired = left.join(
+        right.select(RESIDUAL_KEY_COLUMNS), on=RESIDUAL_KEY_COLUMNS, how="inner"
+    ).height
+    coverage = 100.0 * joined.height / paired if paired else 0.0
+    if coverage < MIN_JOIN_COVERAGE_PCT:
+        raise ValueError(
+            f"{corridor} h={horizon}: ex-ante dispersion covers only "
+            f"{coverage:.4f}% of the {paired:,} paired residuals "
+            f"(floor {MIN_JOIN_COVERAGE_PCT}%)"
+        )
+    if verbose:
+        print(
+            f"  {corridor} h={horizon}: {joined.height:,} rows, "
+            f"join coverage {coverage:.4f}%"
+        )
+    return joined, thresholds
+
+
+def assign_regime(joined: pl.DataFrame, thresholds: TercileThresholds):
+    """Finite-dispersion subset plus its frozen tercile code, in row order.
+
+    Cells whose window held fewer than two observations have no dispersion and
+    are dropped from the analysis rather than folded into a bin.
+    """
+    std = joined.get_column("exante_std").to_numpy()
+    finite = np.isfinite(std)
+    work = joined.filter(pl.Series(finite))
+    std = std[finite]
+    codes = np.where(std <= thresholds.p33, 0, np.where(std <= thresholds.p66, 1, 2))
+    return work, std, codes
+
+
 def build() -> pl.DataFrame:
     lstm = load_lstm()
     xgb = pl.read_csv(XGB_CSV, try_parse_dates=True)
 
     rows: list[dict] = []
     for corridor in SIGNIFICANCE_CORRIDORS:
-        empresaid = CORRIDOR_IDS[corridor]
-        df = prepare(empresaid)
-        max_N = max(
-            compute_max_N(
-                df.filter(pl.col("split") == "train"), quantile=0.99
-            ).values()
-        )
+        df = prepare(CORRIDOR_IDS[corridor])
+        max_N = corridor_max_N(df)
 
         for horizon in HORIZONS:
-            left = lstm.filter(
-                (pl.col("corridor") == corridor) & (pl.col("horizon") == horizon)
+            cell = paired_cell(
+                lstm, xgb, df, corridor=corridor, horizon=horizon, max_N=max_N
             )
-            right = xgb.filter(
-                (pl.col("corridor") == corridor) & (pl.col("horizon") == horizon)
-            )
-            if left.height == 0 or right.height == 0:
+            if cell is None:
                 continue
-
-            thresholds = calibrate(
-                df, corridor=corridor, horizon=horizon, max_N=max_N
-            )
-            test_std = dispersion_frame(
-                df, corridor=corridor, split="test", horizon=horizon, max_N=max_N
-            )
-
-            joined = (
-                left.join(
-                    right.select(RESIDUAL_KEY_COLUMNS + ["y_pred_model"]).rename(
-                        {"y_pred_model": "y_pred_xgb"}
-                    ),
-                    on=RESIDUAL_KEY_COLUMNS,
-                    how="inner",
-                )
-                .join(
-                    test_std,
-                    on=["corridor", "direction", "start_ts", "pair_rank"],
-                    how="inner",
-                )
-            )
-            # Fail closed on a bad join. The dispersion frame is rebuilt from the
-            # same parquet and the same sample index the kernels consumed, so every
-            # paired residual must find its window. A silent drop here would
-            # re-stratify a different population than the one being reported —
-            # the exact class of defect this pipeline was rebuilt to prevent.
-            paired = left.join(
-                right.select(RESIDUAL_KEY_COLUMNS), on=RESIDUAL_KEY_COLUMNS,
-                how="inner",
-            ).height
-            coverage = 100.0 * joined.height / paired if paired else 0.0
-            if coverage < MIN_JOIN_COVERAGE_PCT:
-                raise ValueError(
-                    f"{corridor} h={horizon}: ex-ante dispersion covers only "
-                    f"{coverage:.4f}% of the {paired:,} paired residuals "
-                    f"(floor {MIN_JOIN_COVERAGE_PCT}%)"
-                )
-            print(
-                f"  {corridor} h={horizon}: {joined.height:,} rows, "
-                f"join coverage {coverage:.4f}%"
-            )
-
+            joined, thresholds = cell
             rows.extend(
-                tercile_rows(
-                    joined, thresholds, corridor=corridor, horizon=horizon
-                )
+                tercile_rows(joined, thresholds, corridor=corridor, horizon=horizon)
             )
 
     return pl.DataFrame(rows).sort(["corridor", "horizon", "tercile_order"])
