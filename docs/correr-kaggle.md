@@ -18,11 +18,12 @@ cd multibus-headway-forecast
 git log --oneline -1   # debe incluir o ser posterior a f36a2ba (input-hash gate)
 ```
 
-- Credenciales de Kaggle en `~/.kaggle/kaggle.json` (Kaggle → Settings → API →
-  Create New Token), permisos `chmod 600`.
-- CLI de Kaggle: `pip install kaggle` (o `uv run kaggle ...` si el entorno del
-  proyecto está sincronizado con `uv sync`).
-- Verificación rápida: `kaggle kernels list -m -p 1` debe responder sin error.
+- Credenciales de Kaggle en `~/.kaggle/access_token` (Kaggle → Settings → API →
+  Create New Token), permisos `chmod 600`. **No es `kaggle.json`**: ese es el
+  nombre del formato antiguo y no es el que usa esta máquina.
+- CLI de Kaggle: es dependencia del proyecto, se invoca **siempre** como
+  `uv run kaggle ...`, nunca como `kaggle` global ni vía `pip install`.
+- Verificación rápida: `uv run kaggle kernels list -m -p 1` debe responder sin error.
 
 NO se re-corren los kernels fuente (`02-eda-corridors`, `04-preprocessing`,
 `10-baselines-multi-horizonte`, `16-e4-data-baselines`): sus outputs están
@@ -175,7 +176,7 @@ pendientes (ver `openspec/changes/paper-recertification/tasks.md`):
 ## 7. Problemas conocidos
 
 - `403 Forbidden` en push: token de API vencido o kernel privado de otra
-  cuenta — regenerar `kaggle.json`.
+  cuenta — regenerar `~/.kaggle/access_token`.
 - `kaggle kernels output` descarga TODOS los outputs del kernel (parquets
   grandes incluidos en los kernels fuente; los DL solo emiten CSVs + log).
 - Cuota GPU semanal de Kaggle (~30 h): las 24 corridas pueden no entrar en una

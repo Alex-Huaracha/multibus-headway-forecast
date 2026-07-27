@@ -44,8 +44,9 @@ OUT_DIR = REPO_ROOT / "docs" / "resultados"
 VOL_CSV = RESULTS_DIR / "volatility_multihorizon.csv"
 
 MODEL = "LSTM"  # representative deep model; spatial models match within noise
-METRIC = "MAE"  # headline effect size (delta_mae)
 CORRIDORS = ["E2", "E59", "E4"]
+# There is no `metric` filter: the table lost that dimension when its circular
+# p-values were removed (audit pending #2). `delta_mae` was always in MAE units.
 
 # Regime display order + Spanish labels for the paper x-axis.
 REGIME_ORDER = ["low", "moderate", "high"]
@@ -74,9 +75,7 @@ def build(vol_csv: Path = VOL_CSV, out_dir: Path = OUT_DIR) -> Path:
             f"build_volatility_curve: {vol_csv} not found — run "
             "`uv run python -m src.build_volatility_table` first"
         )
-    df = pl.read_csv(vol_csv).filter(
-        (pl.col("model") == MODEL) & (pl.col("metric") == METRIC)
-    )
+    df = pl.read_csv(vol_csv).filter(pl.col("model") == MODEL)
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
