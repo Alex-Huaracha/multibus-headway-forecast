@@ -103,6 +103,15 @@ Todos los artefactos derivados producidos por Fase 2 viven como outputs del Kagg
 |---|---|---|---|
 | `headways_E2.parquet` | ~64 MB | 1,009,284 (495,562 dir=-1 + 513,722 dir=+1) | `t, direction, pair_rank, bus_front, bus_back, s_front, s_back, speed_front_kmh, speed_back_kmh, delta_t_min, n_buses, lateral_m_front, lateral_m_back` |
 | `headways_E59.parquet` | ~106 MB | 2,069,193 (1,155,295 dir=-1 + 913,898 dir=+1) | idem |
+| `headways_E4.parquet` | ~53 MB | 859,697 (510,057 dir=-1 + 349,640 dir=+1) | idem |
+
+> **Nota sobre `headways_E4.parquet` (agregado 2026-07-27).** Este mismo kernel lo
+> publica y es **byte-idéntico** al que pinean NB17/18/19, así que el dato de E4 se
+> alcanza sin involucrar NB16. Faltaba en esta tabla; los conteos se midieron sobre
+> la copia cuyo SHA-256 coincide con el hash congelado de §"Hashes de entrada".
+> Recordatorio de lectura: la columna cuenta **filas válidas** (`delta_t_min` no
+> nulo), no filas totales — los totales son 1,590,659 (E2), 2,684,878 (E59) y
+> 1,326,201 (E4).
 
 ### Outputs del kernel — Fase 2 sidecar: diagnostics de NULL
 
