@@ -230,10 +230,36 @@ equivalentes: la única garantía real es que `atypical_days.csv` matchee `20542
 | Artefacto | Ruta | Git |
 |---|---|---|
 | Residuos por-muestra (`{lstm,…}_residuals_h{H}.csv`, E4 como `{…}_E4_residuals_h{H}.csv`) | `docs/resultados/residuos-multihorizon/<familia>/h{H}/` | **gitignored** (pesado) |
-| CSV de resultados/análisis (`*_results_h{H}.csv`, `exante_*_multihorizon.csv`) | `docs/resultados/csv-multihorizon/` | trackeado |
+| Predicciones XGBoost por-muestra de test (`xgb_paired_persample_test.csv`, ~208 MB, 2 248 396 filas) | `docs/resultados/residuos-multihorizon/20-xgb-paired/` | **gitignored** (pesado) |
+| CSV de resultados/análisis (`*_results_h{H}.csv`, `exante_*_multihorizon.csv`, `xgb_paired_*.csv`) | `docs/resultados/csv-multihorizon/` | trackeado |
 
 Los residuos son la fuente de verdad para el análisis local (Fases 5 y 10): schema
 `corridor,direction,horizon,y_true,y_pred_dl,y_pred_persist` en todos los horizontes.
+
+#### Export por-muestra de XGBoost (`20-xgb-paired`)
+
+Salida del kernel `alexhuaracha/20-xgb-paired-export` (builder
+`src/build_notebook_20_xgb_paired.py`, módulo `src/baselines/paired_export.py`).
+Schema: `corridor,empresaid,direction,horizon,t,pair_rank,y_true,y_pred_xgb,y_pred_persist`.
+
+- **Por qué no está versionado**: 208 MB. `docs/resultados/csv-multihorizon/` es la
+  única carpeta de resultados trackeada y está reservada para CSV chicos de métricas;
+  este archivo va al árbol gitignored de residuos, junto al resto de las salidas
+  por-muestra.
+- **Por qué el nombre no contiene `_residuals_`**: los globs
+  `**/*_residuals_*.csv` (`src/build_significance_table.py`) y `*_residuals_h*.csv`
+  (`src/evaluation/paired_audit.py`) recorren ese mismo árbol y cargarían este schema
+  incompatible.
+- **Para qué sirve**: `pair_rank` completa la clave única
+  `(direction, t, pair_rank)` de la tabla de headways, lo que permite re-puntuar
+  XGBoost exactamente sobre las filas evaluadas por el DL
+  (`src/build_xgb_paired_metrics.py` → `xgb_paired_dl_metrics.csv`,
+  `xgb_paired_vs_reported_audit.csv`, `xgb_paired_significance.csv`). Los residuos
+  de `harness.XGB_RESIDUAL_COLUMNS` no sirven: descartan `pair_rank`.
+- **Reproducibilidad**: un re-export re-ajusta B5_XGB. Es seguro por diseño —
+  `fitted.py` fija la semilla de búsqueda, la de entrenamiento y `nthread` — y la
+  corrida verificada reprodujo las 12 celdas de `xgb_search_config_multih.csv` /
+  `xgb_search_config_E4_multih.csv` en todas las columnas a precisión float completa.
 
 ### Nota de sensibilidad: clipping del test (winsorización)
 
@@ -282,3 +308,4 @@ abierto.
 | 2026-05-23 | Registro de artefactos derivados de Fase 2 (NB04 v8 post H7 fix) | `86c4834` |
 | 2026-05-23 | Registro de artefactos de Fase 3 (NB05, DL-12 deferred); nota DL-4 splits en-kernel | `86c4834` |
 | 2026-07-16 | Sección de recertificación DL (Fase 9): hashes congelados, pins por familia, desviación del montaje atypical, inventario de salidas recertificadas | (este commit) |
+| 2026-07-26 | Registro del export por-muestra de XGBoost (`20-xgb-paired`, no versionado) y de los CSV `xgb_paired_*` derivados | (pendiente) |
