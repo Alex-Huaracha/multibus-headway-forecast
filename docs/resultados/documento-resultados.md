@@ -23,6 +23,10 @@ El resultado vectorial va en la dirección **opuesta**, y es el aporte de este t
 
 El LSTM gana el MAE por 1.47 minutos y pierde la detección de *bunching* por un factor de **253**. No es una celda aislada: **la persistencia gana las 12 combinaciones de corredor y horizonte en las dos métricas vectoriales**, y la brecha se ensancha exactamente donde la ventaja escalar del aprendiz se ensancha.
 
+![La disociación](contiguo-disociacion.png)
+
+*Figura 1 — Las dos curvas que este trabajo pone juntas por primera vez. En azul, cuánto MAE le gana el LSTM a la persistencia (eje izquierdo). En rojo y gris, el F1 de detección conjunta de bunching (eje derecho, escala común a los tres paneles). Alargar el horizonte mejora una y destruye la otra, en los tres corredores. **Una evaluación escalar solo ve la curva azul.***
+
 El mecanismo es simple y no es un defecto de implementación. **El MAE premia contraer.** Un modelo que empuja sus predicciones hacia el promedio baja el error medio y, al hacerlo, aplana el vector: el LSTM predice un corredor con un coeficiente de variación[^cv] de 0.16 cuando el real es 0.79. Un servicio que en la realidad es irregular, el modelo lo reporta como regular. Y el *bunching* —un *headway* que colapsa hacia cero mientras el de al lado se abre— **es** irregularidad; un modelo que la promedia no puede anticiparlo.
 
 **La consecuencia metodológica es el punto:** una evaluación basada en MAE o RMSE[^rmse] agregado es **estructuralmente incapaz** de detectar esta pérdida. No es que la métrica sea insensible; es que premia la causa. Cualquier trabajo de pronóstico de transporte que reporte solo error escalar puede tener este problema y no tener forma de saberlo.
@@ -69,6 +73,10 @@ Una auditoría adversarial previa encontró que la comparación anterior no era 
 
 ## 3. El resultado escalar, y dónde está su frontera real
 
+![Curva de degradación](contiguo-degradacion.png)
+
+*Figura 2 — MAE frente al horizonte, por corredor. Cuanto más bajo, mejor. La persistencia parte abajo a h = 1 y termina arriba a h = 10: ese es el cruce, y el XGBoost lo recorre igual que el LSTM.*
+
 Medido sobre la población pareada a tres bandas (entre 75 747 y 240 907 predicciones escalares por celda):
 
 **Δ MAE contra la persistencia** (negativo = el aprendiz gana):
@@ -90,6 +98,10 @@ Dos lecturas que cambian el titular respecto de versiones anteriores de este doc
 ### La frontera no es el horizonte, es la volatilidad
 
 Estratificamos cada predicción por la **dispersión de su propia ventana de entrada** — cuánto se movía el *headway* en los 12 minutos que el modelo efectivamente vio. Es una variable conocida al momento de predecir, con umbrales congelados en train+val y aplicados a test, así que condicionar sobre ella y después testear es legítimo.
+
+![Frontera de volatilidad](contiguo-volatilidad.png)
+
+*Figura 3 — Δ MAE contra la persistencia según la volatilidad de la ventana de entrada. Cada línea es un horizonte. Todas descienden de izquierda a derecha: dentro de cualquier horizonte, el aprendiz gana más cuanto más se movía el corredor. Y alargar el horizonte baja la línea entera, hasta que incluso el tercil calmo queda por debajo de cero.*
 
 **Δ MAE contra la persistencia, por tercil de volatilidad de la ventana:**
 
@@ -257,7 +269,7 @@ Lo que este trabajo **no** afirma: que estos modelos sirvan para anticipar *bunc
 9. **Umbral de *bunching* elegido, no calibrado.** La mitad de la media del vector es un criterio estándar y relativo al estado del corredor, pero no está calibrado contra incidentes registrados. La **dirección** del resultado es robusta —la brecha es de órdenes de magnitud, no de puntos— pero los valores absolutos de F1 dependen del umbral.
 10. **Un desajuste de ancho de vector, declarado.** El LSTM se dimensiona con un `max_N` global por corredor y el XGBoost con el de cada dirección, así que la red predice unas pocas posiciones de cola que el XGBoost no emite. Afecta al 0.05 % de las filas en el peor caso, quedan fuera de la intersección y de todo verdicto, y el sesgo de encuadre medido (0.001 min) confirma que no mueven nada.
 
-**Pendiente de reproducción.** Las figuras `curva-degradacion.png` y `volatilidad-crossover.png` corresponden a las familias congeladas y **no** al pipeline contiguo. Las tablas de este documento salen de `csv-multihorizon/contiguous_*.csv`; las figuras equivalentes están por regenerar.
+**Trazabilidad.** Las tres figuras de este documento se generan desde los CSV versionados con `uv run python -m src.build_contiguous_figures`, no desde los residuos crudos: así una figura no puede discrepar de la tabla que ilustra. Las figuras `curva-degradacion.png` y `volatilidad-crossover.png` que quedan en este directorio corresponden a las **familias congeladas** y no a este pipeline; se conservan solo como registro de esa comparación.
 
 ---
 

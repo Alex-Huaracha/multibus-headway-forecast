@@ -106,6 +106,35 @@ class TestDocumentStructure:
                 f"{figure} cited without flagging it as stale"
             )
 
+    def test_every_embedded_figure_exists(self, text):
+        embedded = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", text)
+        assert embedded, "the document embeds no figure at all"
+        missing = [
+            name for name in embedded if not (DOC.parent / name).exists()
+        ]
+        assert missing == [], f"embedded figures not on disk: {missing}"
+
+    def test_the_contiguous_figures_are_the_ones_embedded(self, text):
+        embedded = set(re.findall(r"!\[[^\]]*\]\(([^)]+)\)", text))
+        assert embedded == {
+            "contiguo-disociacion.png",
+            "contiguo-degradacion.png",
+            "contiguo-volatilidad.png",
+        }, f"unexpected figure set: {sorted(embedded)}"
+
+    def test_the_dissociation_figure_leads(self, text):
+        """It is the contribution; burying it under the scalar result would
+        reproduce the emphasis this rewrite exists to correct."""
+        order = [
+            text.index(name)
+            for name in (
+                "contiguo-disociacion.png",
+                "contiguo-degradacion.png",
+                "contiguo-volatilidad.png",
+            )
+        ]
+        assert order == sorted(order)
+
 
 class TestScalarClaims:
     def test_the_headline_h10_margins(self, text):
