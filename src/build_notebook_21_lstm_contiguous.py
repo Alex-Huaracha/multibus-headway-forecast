@@ -98,7 +98,12 @@ _KERNEL_META_BASE = {
     "kernel_type": "notebook",
     "is_private": True,
     "enable_gpu": True,
-    "accelerator": "GPU_T4X2",
+    # `machine_shape` es el campo que el CLI lee de verdad
+    # (kaggle_api_extended.py:4236); `accelerator` se ignora en silencio y Kaggle
+    # cae en su GPU por defecto — de ahí el P100 que había que corregir a mano
+    # desde la web en cada kernel nuevo. El valor no está adivinado: es el que el
+    # servidor reporta al hacer `kernels pull -m` de un kernel ya puesto en T4×2.
+    "machine_shape": "NvidiaTeslaT4",
     "enable_internet": True,
     "keywords": [],
     "dataset_sources": [],
