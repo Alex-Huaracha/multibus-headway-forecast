@@ -34,6 +34,7 @@ from src.build_sample_index import (  # noqa: E402
     load_corridor,
 )
 from src.data.sample_index import make_sample_index  # noqa: E402
+from src.evaluation.splits import ROLLING_FOLDS  # noqa: E402
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "processed"
 
@@ -57,13 +58,60 @@ def manifest() -> pl.DataFrame:
 
 
 class TestManifestShape:
-    def test_covers_every_corridor_horizon_split(self, manifest):
-        assert manifest.height == len(CORRIDORS) * len(HORIZONS) * len(SPLIT_BOUNDS)
+    def test_covers_every_fold_corridor_horizon_split(self, manifest):
+        assert manifest.height == (
+            len(ROLLING_FOLDS) * len(CORRIDORS) * len(HORIZONS) * len(SPLIT_BOUNDS)
+        )
 
-    def test_digests_are_unique_per_cell(self, manifest):
-        """A repeated digest would mean two cells share an index — a bug."""
-        digests = manifest.get_column("sha256").to_list()
-        assert len(digests) == len(set(digests))
+    def test_every_declared_fold_is_present(self, manifest):
+        assert set(manifest.get_column("fold")) == {
+            fold.name for fold in ROLLING_FOLDS
+        }
+
+    def test_digests_are_unique_within_a_fold(self, manifest):
+        """Inside one origin, two cells sharing an index would be a bug."""
+        for fold in ROLLING_FOLDS:
+            digests = (
+                manifest.filter(pl.col("fold") == fold.name)
+                .get_column("sha256")
+                .to_list()
+            )
+            assert len(digests) == len(set(digests)), f"{fold.name} has a repeat"
+
+    def test_repeats_across_folds_are_exactly_the_shared_windows(self, manifest):
+        """A digest may legitimately repeat between origins, and here 12 do.
+
+        The rolling design chains r1's TEST window into r2's VALIDATION window —
+        the same 22 days, so the same index, so the same digest, across 3
+        corridors x 4 horizons. That is the property, not a collision. What must
+        never happen is a digest shared by cells covering DIFFERENT days, which
+        would mean the index does not depend on the window it claims to describe.
+        """
+        bounds = {
+            (fold.name, split): span
+            for fold in ROLLING_FOLDS
+            for split, span in fold.bounds().items()
+        }
+        by_digest: dict[str, list[tuple]] = {}
+        for row in manifest.iter_rows(named=True):
+            by_digest.setdefault(row["sha256"], []).append(
+                (row["corridor"], row["horizon"], bounds[(row["fold"], row["split"])])
+            )
+
+        repeats = {d: cells for d, cells in by_digest.items() if len(cells) > 1}
+        for digest, cells in repeats.items():
+            assert len(set(cells)) == 1, (
+                f"digest {digest[:12]} shared by cells over different windows: {cells}"
+            )
+        assert len(repeats) == len(CORRIDORS) * len(HORIZONS)
+
+    def test_the_day_counts_match_the_fold_definitions(self, manifest):
+        for fold in ROLLING_FOLDS:
+            for split, (lo, hi) in fold.bounds().items():
+                rows = manifest.filter(
+                    (pl.col("fold") == fold.name) & (pl.col("split") == split)
+                )
+                assert set(rows.get_column("n_days")) == {(hi - lo).days + 1}
 
     def test_every_cell_has_samples(self, manifest):
         assert manifest.filter(pl.col("n_samples") <= 0).height == 0
@@ -127,21 +175,27 @@ class TestSharedPopulation:
         day = pl.col("t").dt.date()
         for emp, corridor in CORRIDORS:
             frame = load_corridor(emp)
-            for split, (lo, hi) in SPLIT_BOUNDS.items():
-                part = frame.filter((day >= lo) & (day <= hi))
-                for horizon in HORIZONS:
-                    index = make_sample_index(part, horizon=horizon, T_in=T_IN)
-                    expected = manifest.filter(
-                        (pl.col("corridor") == corridor)
-                        & (pl.col("split") == split)
-                        & (pl.col("horizon") == horizon)
-                    )
-                    assert expected.height == 1, f"{corridor}/{split}/h{horizon} missing"
-                    row = expected.row(0, named=True)
-                    assert index.height == row["n_samples"], (
-                        f"{corridor}/{split}/h{horizon}: "
-                        f"{index.height} samples vs manifest {row['n_samples']}"
-                    )
+            for fold in ROLLING_FOLDS:
+                for split, (lo, hi) in fold.bounds().items():
+                    part = frame.filter((day >= lo) & (day <= hi))
+                    for horizon in HORIZONS:
+                        index = make_sample_index(part, horizon=horizon, T_in=T_IN)
+                        expected = manifest.filter(
+                            (pl.col("fold") == fold.name)
+                            & (pl.col("corridor") == corridor)
+                            & (pl.col("split") == split)
+                            & (pl.col("horizon") == horizon)
+                        )
+                        label = f"{fold.name}/{corridor}/{split}/h{horizon}"
+                        assert expected.height == 1, f"{label} missing"
+                        row = expected.row(0, named=True)
+                        assert index.height == row["n_samples"], (
+                            f"{label}: {index.height} samples vs "
+                            f"manifest {row['n_samples']}"
+                        )
+                        assert index_digest(index) == row["sha256"], (
+                            f"{label}: digest drifted from the frozen manifest"
+                        )
                     assert index_digest(index) == row["sha256"], (
                         f"{corridor}/{split}/h{horizon}: digest drift"
                     )

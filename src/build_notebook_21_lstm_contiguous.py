@@ -132,28 +132,42 @@ def embed_module(rel_path: str, header_md: str, cell_id_md: str, cell_id_code: s
     code(_strip_relative_imports(raw), cell_id=cell_id_code)
 
 
-def _frozen_digests(corridors, horizon: int) -> dict:
+def _frozen_digests(corridors, horizon: int, fold: str = "main") -> dict:
     """Expected index digests per (corridor, split), read from the manifest.
 
     Injecting them at build time is what turns "same population" into something
     the kernel can verify: same code plus same input bytes must reproduce these
     exact digests, or the run stops before training.
+
+    ``fold`` selects the evaluation origin. It is REQUIRED in the filter, not
+    optional: the manifest holds one row set per fold, so matching on
+    corridor/split/horizon alone now returns three rows, and a lookup that
+    tolerated that would pick an arbitrary origin's digest.
     """
     if not MANIFEST_CSV.exists():
         raise FileNotFoundError(
             f"{MANIFEST_CSV} missing — run: uv run python -m src.build_sample_index"
         )
     manifest = pl.read_csv(MANIFEST_CSV)
+    if "fold" not in manifest.columns:
+        raise ValueError(
+            f"{MANIFEST_CSV.name} predates rolling origin (no `fold` column) — "
+            "regenerate it: uv run python -m src.build_sample_index"
+        )
     out = {}
     for name, _emp in corridors:
         for split in ("train", "val", "test"):
             row = manifest.filter(
-                (pl.col("corridor") == name)
+                (pl.col("fold") == fold)
+                & (pl.col("corridor") == name)
                 & (pl.col("split") == split)
                 & (pl.col("horizon") == horizon)
             )
             if row.height != 1:
-                raise ValueError(f"manifest has no row for {name}/{split}/h{horizon}")
+                raise ValueError(
+                    f"manifest has {row.height} rows for "
+                    f"{fold}/{name}/{split}/h{horizon}, expected exactly 1"
+                )
             out[f"{name}|{split}"] = row.row(0, named=True)["sha256"]
     return out
 

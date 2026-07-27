@@ -95,7 +95,8 @@ class TestSharedPopulationGate:
             for split in ("train", "val", "test"):
                 for horizon in HORIZONS:
                     row = manifest.filter(
-                        (pl.col("corridor") == name)
+                        (pl.col("fold") == "main")
+                        & (pl.col("corridor") == name)
                         & (pl.col("split") == split)
                         & (pl.col("horizon") == horizon)
                     )
@@ -122,7 +123,8 @@ class TestSharedPopulationGate:
         for name in ("E2", "E59"):
             for split in ("train", "val", "test"):
                 digest = manifest.filter(
-                    (pl.col("corridor") == name)
+                    (pl.col("fold") == "main")
+                    & (pl.col("corridor") == name)
                     & (pl.col("split") == split)
                     & (pl.col("horizon") == 3)
                 ).row(0, named=True)["sha256"]

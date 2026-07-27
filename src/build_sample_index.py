@@ -39,12 +39,9 @@ import polars as pl  # noqa: E402
 
 from src.data.sample_index import make_sample_index  # noqa: E402
 from src.evaluation.splits import (  # noqa: E402
-    SPLIT_TEST_END,
-    SPLIT_TEST_START,
-    SPLIT_TRAIN_END,
-    SPLIT_TRAIN_START,
-    SPLIT_VAL_END,
-    SPLIT_VAL_START,
+    MAIN_FOLD,
+    ROLLING_FOLDS,
+    Fold,
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -56,11 +53,10 @@ CORRIDORS: tuple[tuple[int, str], ...] = ((2, "E2"), (59, "E59"), (4, "E4"))
 HORIZONS: tuple[int, ...] = (1, 3, 5, 10)
 T_IN: int = 12
 
-SPLIT_BOUNDS = {
-    "train": (SPLIT_TRAIN_START, SPLIT_TRAIN_END),
-    "val": (SPLIT_VAL_START, SPLIT_VAL_END),
-    "test": (SPLIT_TEST_START, SPLIT_TEST_END),
-}
+#: Bounds of the PUBLISHED split. Kept as a module constant because several
+#: analysis builders import it directly; fold-aware callers should use
+#: ``fold.bounds()`` instead.
+SPLIT_BOUNDS = MAIN_FOLD.bounds()
 
 
 def load_corridor(empresaid: int) -> pl.DataFrame:
@@ -156,40 +152,48 @@ def paired_scalar_n(index: pl.DataFrame, frame: pl.DataFrame) -> int:
     return paired.filter(pl.col("y_persist").is_not_null()).height
 
 
-def build() -> pl.DataFrame:
-    """One row per (corridor, horizon, split). Deterministic."""
+def build(folds: tuple[Fold, ...] = ROLLING_FOLDS) -> pl.DataFrame:
+    """One row per (fold, corridor, horizon, split). Deterministic.
+
+    The digest is taken over the index CONTENT, so the published fold's digests
+    are unaffected by the arrival of the rolling ones — the manifest gains a
+    column and rows, and contract C1 keeps holding for work already done.
+    """
     rows: list[dict] = []
 
     for empresaid, corridor in CORRIDORS:
         frame = load_corridor(empresaid)
         day = pl.col("t").dt.date()
 
-        for split, (lo, hi) in SPLIT_BOUNDS.items():
-            part = frame.filter((day >= lo) & (day <= hi))
-            n_snapshots = part.select(["direction", "t"]).unique().height
+        for fold in folds:
+            for split, (lo, hi) in fold.bounds().items():
+                part = frame.filter((day >= lo) & (day <= hi))
+                n_snapshots = part.select(["direction", "t"]).unique().height
 
-            for horizon in HORIZONS:
-                index = make_sample_index(part, horizon=horizon, T_in=T_IN)
-                rows.append(
-                    {
-                        "corridor": corridor,
-                        "empresaid": empresaid,
-                        "horizon": horizon,
-                        "split": split,
-                        "n_snapshots": n_snapshots,
-                        "n_samples": index.height,
-                        "pct_snapshots_usable": (
-                            round(100.0 * index.height / n_snapshots, 4)
-                            if n_snapshots
-                            else 0.0
-                        ),
-                        "n_scalar_effective": effective_scalar_n(index, part),
-                        "n_scalar_paired": paired_scalar_n(index, part),
-                        "sha256": index_digest(index),
-                    }
-                )
+                for horizon in HORIZONS:
+                    index = make_sample_index(part, horizon=horizon, T_in=T_IN)
+                    rows.append(
+                        {
+                            "fold": fold.name,
+                            "corridor": corridor,
+                            "empresaid": empresaid,
+                            "horizon": horizon,
+                            "split": split,
+                            "n_days": (hi - lo).days + 1,
+                            "n_snapshots": n_snapshots,
+                            "n_samples": index.height,
+                            "pct_snapshots_usable": (
+                                round(100.0 * index.height / n_snapshots, 4)
+                                if n_snapshots
+                                else 0.0
+                            ),
+                            "n_scalar_effective": effective_scalar_n(index, part),
+                            "n_scalar_paired": paired_scalar_n(index, part),
+                            "sha256": index_digest(index),
+                        }
+                    )
 
-    return pl.DataFrame(rows).sort(["corridor", "split", "horizon"])
+    return pl.DataFrame(rows).sort(["fold", "corridor", "split", "horizon"])
 
 
 def main() -> None:
@@ -197,10 +201,10 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     manifest.write_csv(OUT_CSV)
 
-    with pl.Config(tbl_rows=100, tbl_cols=12):
+    with pl.Config(tbl_rows=200, tbl_cols=12):
         print(manifest.select(
-            ["corridor", "split", "horizon", "n_samples",
-             "pct_snapshots_usable", "n_scalar_effective", "n_scalar_paired"]
+            ["fold", "corridor", "split", "horizon", "n_days", "n_samples",
+             "pct_snapshots_usable", "n_scalar_paired"]
         ))
     print(f"\nWrote {OUT_CSV.relative_to(REPO_ROOT)} ({manifest.height} rows)")
 

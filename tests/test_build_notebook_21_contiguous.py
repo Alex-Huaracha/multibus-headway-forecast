@@ -111,13 +111,19 @@ class TestSharedPopulationGate:
 
     @pytest.mark.parametrize("group_key,horizon", ALL_CASES)
     def test_injected_digests_match_the_frozen_manifest(self, group_key, horizon):
-        """A stale digest would gate against the wrong population."""
+        """A stale digest would gate against the wrong population.
+
+        The fold is part of the lookup. The manifest carries one row set per
+        evaluation origin, so a filter without it matches every origin and the
+        notebook could end up frozen against a population it never trained on.
+        """
         manifest = pl.read_csv(MANIFEST_CSV)
         src = _source(group_key, horizon)
         for name, _emp in GROUPS[group_key]["corridors"]:
             for split in ("train", "val", "test"):
                 row = manifest.filter(
-                    (pl.col("corridor") == name)
+                    (pl.col("fold") == "main")
+                    & (pl.col("corridor") == name)
                     & (pl.col("split") == split)
                     & (pl.col("horizon") == horizon)
                 )
