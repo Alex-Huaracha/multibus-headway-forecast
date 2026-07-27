@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 import polars as pl
 
+import src.build_xgb_vs_lstm_signtest as build_xgb_vs_lstm_signtest
 from src.build_paired_audit import build
 
 
@@ -19,6 +20,8 @@ REPORT_BUILDERS = (
     "src.build_exante_curve",
     "src.build_volatility_table",
     "src.build_volatility_curve",
+    "src.build_xgb_paired_metrics",
+    "src.build_xgb_vs_lstm_signtest",
 )
 
 
@@ -123,3 +126,31 @@ def test_paired_audit_rerun_writes_byte_identical_csvs(tmp_path: Path) -> None:
     assert first_audit
     assert paired_path.read_bytes() == first_paired
     assert audit_path.read_bytes() == first_audit
+
+
+def test_xgb_signtest_rerun_writes_byte_identical_csv(tmp_path: Path) -> None:
+    """The sign test reads only per-cell restricted MAEs, so it is cheap to rerun.
+
+    ``build_xgb_paired_metrics.build`` itself cannot be rerun in a unit test: it
+    reconstructs the DL population from the (gitignored, multi-GB) parquet store
+    and takes minutes. Its deterministic pieces are covered by
+    ``tests/test_xgb_paired_metrics.py``; what is checked here is the tail of the
+    chain that turns those metrics into the committed claim.
+    """
+    metrics_csv = tmp_path / "xgb_paired_dl_metrics.csv"
+    pl.DataFrame(
+        {
+            "corridor": [c for c in ("E2", "E59", "E4") for _ in range(4)],
+            "horizon": [1, 3, 5, 10] * 3,
+            "mae_dl_matched": [4.0] * 12,
+            "mae_xgb_matched": [4.5] * 8 + [3.5] * 4,
+        }
+    ).write_csv(metrics_csv)
+
+    out = tmp_path / "xgb_vs_lstm_signtest.csv"
+    build_xgb_vs_lstm_signtest.build(metrics_csv).write_csv(out)
+    first = out.read_bytes()
+    build_xgb_vs_lstm_signtest.build(metrics_csv).write_csv(out)
+
+    assert first
+    assert out.read_bytes() == first

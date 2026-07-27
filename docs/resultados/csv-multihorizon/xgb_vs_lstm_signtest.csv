@@ -1,3 +1,4 @@
-group,n_cells,n_lstm_wins,n_ties,p_one_sided,p_two_sided
-E2+E59,8,8,0,0.00390625,0.0078125
-E4,4,1,0,0.9375,0.625
+group,population,n_cells,n_lstm_wins,n_ties,p_one_sided,p_two_sided
+E2+E59,multiplicity_matched,8,6,0,0.14453125,0.2890625
+E4,multiplicity_matched,4,1,0,0.9375,0.625
+pooled,multiplicity_matched,12,7,0,0.38720703125,0.7744140625

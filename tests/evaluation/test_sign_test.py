@@ -1,9 +1,17 @@
 """Cell-level sign test for DL-vs-XGBoost — function contract + committed CSV.
 
-The per-sample DM/Wilcoxon test is not applicable to DL-vs-XGBoost (the exports
-differ in granularity and share no per-sample key, and the DL residuals overcount
-each target ~4.5x via overlapping windows). `sign_test_across_cells` gives a
-coarse but valid alternative: one fair-coin trial per (corridor, horizon) cell.
+Since NB20 exports per-sample XGBoost predictions keyed on
+``(direction, t, pair_rank)``, a per-sample paired DM/Wilcoxon test IS available
+and is emitted separately on the de-duplicated population
+(``xgb_paired_significance.csv``). The sign test remains as the coarse companion
+over the MULTIPLICITY-MATCHED population — the one whose MAE the paper prints —
+where a naive per-sample n would treat the ~4.5 overlapping-window replicas of
+each target as independent observations. One fair-coin trial per
+``(corridor, horizon)`` cell is immune to that replication.
+
+The committed CSV assertions below are the restricted result: they were 8/8 while
+the builder compared an LSTM MAE and an XGBoost MAE computed over DIFFERENT
+populations, and the true, population-matched count is 6/8.
 """
 from __future__ import annotations
 
@@ -66,17 +74,53 @@ def test_all_ties_raise() -> None:
 
 
 def test_committed_csv_matches_the_reported_claim() -> None:
-    """The committed result underwrites the paper's significance statement."""
+    """The committed result underwrites the paper's significance statement.
+
+    Every count here comes from the population-matched comparison in
+    ``xgb_paired_dl_metrics.csv``. The headline is NOT significant: 6/8 for the
+    large corridors (p = 37/256) and 7/12 pooled (p = 1586/4096). The paper must
+    read as "no reliable difference", not "the LSTM wins".
+    """
     assert SIGNTEST_CSV.exists(), f"missing {SIGNTEST_CSV}"
     df = pl.read_csv(SIGNTEST_CSV)
     rows = {r["group"]: r for r in df.iter_rows(named=True)}
+    assert all(r["population"] == "multiplicity_matched" for r in rows.values())
 
     big = rows["E2+E59"]
     assert big["n_cells"] == 8
-    assert big["n_lstm_wins"] == 8
-    assert big["p_one_sided"] < 0.01  # significant: LSTM beats the leveled XGBoost
+    assert big["n_lstm_wins"] == 6
+    # P(X >= 6 | Binomial(8, 0.5)) = 37/256 — NOT significant at any usual level.
+    assert math.isclose(big["p_one_sided"], 37 / 256, rel_tol=1e-9)
+    assert big["p_one_sided"] > 0.10
 
     e4 = rows["E4"]
     assert e4["n_cells"] == 4
     assert e4["n_lstm_wins"] == 1  # E4 is the scale caveat: XGBoost wins short/mid
     assert e4["p_one_sided"] > 0.5  # not significant for the LSTM
+
+    pooled = rows["pooled"]
+    assert pooled["n_cells"] == 12
+    assert pooled["n_lstm_wins"] == 7
+    # P(X >= 7 | Binomial(12, 0.5)) = 1586/4096.
+    assert math.isclose(pooled["p_one_sided"], 1586 / 4096, rel_tol=1e-9)
+    assert pooled["p_one_sided"] > 0.10
+
+
+def test_committed_csv_is_reproducible_from_the_paired_metrics() -> None:
+    """The committed CSV must be what the rewired builder emits, not a leftover."""
+    import src.build_xgb_vs_lstm_signtest as builder
+
+    if not builder.PAIRED_METRICS_CSV.exists():
+        pytest.skip(f"{builder.PAIRED_METRICS_CSV.name} not built yet")
+    rebuilt = builder.build()
+    committed = pl.read_csv(SIGNTEST_CSV)
+    assert rebuilt.columns == committed.columns
+    assert rebuilt.to_dicts() == committed.to_dicts()
+
+
+def test_signtest_builder_refuses_the_mismatched_aggregate_fallback(tmp_path) -> None:
+    """A missing paired-metrics CSV must fail loudly, never silently fall back."""
+    import src.build_xgb_vs_lstm_signtest as builder
+
+    with pytest.raises(ValueError, match="run .*build_xgb_paired_metrics"):
+        builder.build(tmp_path / "xgb_paired_dl_metrics.csv")
