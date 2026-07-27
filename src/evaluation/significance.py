@@ -209,8 +209,8 @@ def diebold_mariano(d: np.ndarray, lag: int | None = None) -> DMResult:
     return DMResult(stat=float(stat), p_value=p_value, mean_diff=mean_diff, lag=lag)
 
 
-def wilcoxon_signed_rank(d: np.ndarray) -> float:
-    """Two-sided Wilcoxon signed-rank p-value on the loss differential ``d``.
+def wilcoxon_signed_rank(d: np.ndarray, alternative: str = "two-sided") -> float:
+    """Wilcoxon signed-rank p-value on the loss differential ``d``.
 
     Tests the null that the median differential is zero. Distribution-free, so it
     is robust to the heavy-tailed headway errors that can distort the DM test.
@@ -219,6 +219,12 @@ def wilcoxon_signed_rank(d: np.ndarray) -> float:
     ----------
     d:
         1-D loss differential.
+    alternative:
+        ``"two-sided"`` (default, backwards compatible) tests only whether the
+        median differs from zero and therefore CANNOT underwrite a signed "A beats
+        B" claim. Pass ``"less"`` (median < 0) or ``"greater"`` (median > 0) when
+        the claim is directional, and record which one was used alongside the
+        p-value.
 
     Returns
     -------
@@ -232,7 +238,7 @@ def wilcoxon_signed_rank(d: np.ndarray) -> float:
     if d.size == 0 or np.allclose(d, 0.0):
         return 1.0
     # zero_method="zsplit" keeps ties; "auto" picks exact/normal by sample size.
-    res = stats.wilcoxon(d, zero_method="zsplit", alternative="two-sided")
+    res = stats.wilcoxon(d, zero_method="zsplit", alternative=alternative)
     return float(res.pvalue)
 
 
@@ -314,17 +320,26 @@ def significance_table(
 class SignTestResult:
     """Cell-level binomial sign test for "model beats reference across cells".
 
-    A coarse companion to the per-sample DM/Wilcoxon test, for comparisons where
-    per-sample pairing is NOT available — notably DL vs XGBoost, whose residual
-    exports differ in granularity (the DL export emits one row per overlapping
-    window x bus, overcounting each target ~4.5x, while the baseline emits one
-    row per test target) and share no per-sample key to realign or de-duplicate.
+    A coarse companion to the per-sample DM/Wilcoxon test, used for the DL-vs-
+    XGBoost comparison because a cell's MAE is one summary a reader can check
+    against the paper's tables, and because a per-sample test on the DL's own
+    (replicated) population would treat the ~4.5 replicas of each target as
+    independent observations.
+
+    NOTE — per-sample pairing of DL vs XGBoost IS available since NB20
+    (``src.baselines.paired_export``) started exporting per-sample XGBoost TEST
+    predictions carrying the full ``(direction, t, pair_rank)`` key. Both halves
+    of the comparison now live on the same population: see
+    ``src.evaluation.xgb_paired``, which re-scores XGBoost over exactly the DL's
+    rows and runs the paired DM/Wilcoxon test on the de-duplicated
+    ``distinct_target`` population. This sign test consumes those RESTRICTED
+    per-cell MAEs, not the mismatched aggregate ones it originally read.
 
     Each (corridor, horizon) cell contributes ONE Bernoulli trial: does ``model``
-    have the strictly lower aggregate loss? Under H0 (models equal) each trial is
-    a fair coin, so the win count is Binomial(n_trials, 0.5). This deliberately
-    sidesteps the overlapping-window overcounting that would inflate a naive
-    per-sample n and understate the p-value.
+    have the strictly lower loss on that cell? Under H0 (models equal) each trial
+    is a fair coin, so the win count is Binomial(n_trials, 0.5). Aggregating to
+    one trial per cell is what keeps the overlapping-window replication from
+    inflating a naive per-sample n and understating the p-value.
 
     Attributes
     ----------

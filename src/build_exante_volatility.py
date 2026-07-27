@@ -124,6 +124,8 @@ def materialize_direction(
     empresaid: int,
     direction: int,
     return_timestamps: bool = False,
+    return_slots: bool = False,
+    return_effective_horizon: bool = False,
 ) -> tuple[np.ndarray, ...]:
     """Materialize one direction's test windows.
 
@@ -134,6 +136,25 @@ def materialize_direction(
     timestamp of each flattened sample (``datetime64[us]``), i.e. the snapshot
     time of the predicted step. It is opt-in so the historical 5-tuple contract
     — and every existing caller and test double — stays untouched.
+
+    When ``return_slots`` is True the target ``pair_rank`` of each flattened
+    sample is appended (int32). Because the flattening is a C-order ravel of
+    ``(n_windows, max_N)``, the slot index is exactly the column index and is
+    recovered without consulting the window index again. Together with the
+    timestamp and the direction it forms ``(direction, t, pair_rank)`` — the
+    unique key of the headways frame, which the per-sample residual exports do
+    not carry. Appended AFTER the timestamp when both flags are set, so each
+    flag is independently additive.
+
+    When ``return_effective_horizon`` is True the REALIZED horizon of each sample
+    is appended, in minutes: the elapsed wall-clock time between the last input
+    step and the target step. ``make_window_index`` slices each slot's rows by
+    POSITION and never checks that consecutive positions are consecutive minutes,
+    so a slot's timestamp list is discontinuous at every day boundary, trip cut
+    and fleet-size dip. The nominal horizon is therefore a row offset, not a time
+    offset: a window whose positions straddle a gap has a realized horizon far
+    larger than ``horizon``. Exposing it lets the analysis separate the samples
+    where the label is true from the ones where it is not.
     """
     mean_val = stats.means[(empresaid, direction)]
     std_val = stats.stds[(empresaid, direction)]
@@ -149,6 +170,10 @@ def materialize_direction(
         out = (empty, empty, np.array([], dtype=bool), np.array([], dtype=bool), empty)
         if return_timestamps:
             out = out + (np.array([], dtype="datetime64[us]"),)
+        if return_slots:
+            out = out + (np.array([], dtype=np.int32),)
+        if return_effective_horizon:
+            out = out + (np.array([], dtype=np.float64),)
         return out
 
     window_size = T_IN + horizon
@@ -165,6 +190,10 @@ def materialize_direction(
     # LAST step of the window (start + T_IN + horizon - 1). Captured in the same loop
     # and in the same order as the target values, so it stays exactly aligned.
     all_target_ts = np.empty(n_windows, dtype="datetime64[us]")
+    # Timestamp of the LAST INPUT step (position start + T_IN - 1). Paired with
+    # the target timestamp it gives the realized horizon; see the docstring on
+    # why that can differ from the nominal one.
+    all_input_end_ts = np.empty(n_windows, dtype="datetime64[us]")
 
     for i, entry in enumerate(window_index):
         slot_key = (entry["empresaid"], entry["direction"], entry["pair_rank"])
@@ -173,6 +202,7 @@ def materialize_direction(
         ts_list = slots[slot_key]
         start = entry["start_idx"]
         all_target_ts[i] = np.datetime64(ts_list[start + window_size - 1], "us")
+        all_input_end_ts[i] = np.datetime64(ts_list[start + T_IN - 1], "us")
 
         for t_idx in range(window_size):
             ts = ts_list[start + t_idx]
@@ -223,6 +253,19 @@ def materialize_direction(
         # property, so it is broadcast across the max_N slot columns before raveling.
         ts_flat = np.repeat(all_target_ts[:, None], max_N, axis=1).ravel()
         out = out + (ts_flat,)
+    if return_slots:
+        # Column index of the C-order ravel of (n_windows, max_N): the slot column
+        # cycles fastest, so tiling arange(max_N) reproduces it exactly.
+        slot_flat = np.tile(np.arange(max_N, dtype=np.int32), n_windows)
+        out = out + (slot_flat,)
+    if return_effective_horizon:
+        # Realized horizon in minutes, per window, broadcast across the max_N
+        # slot columns in the same window-major C order as everything else.
+        eff = (all_target_ts - all_input_end_ts) / np.timedelta64(1, "m")
+        eff_flat = np.repeat(
+            eff.astype(np.float64)[:, None], max_N, axis=1
+        ).ravel()
+        out = out + (eff_flat,)
     return out
 
 
@@ -233,6 +276,8 @@ def materialize_corridor(
     horizon: int,
     splits: tuple[str, ...] = ("test",),
     return_timestamps: bool = False,
+    return_slots: bool = False,
+    return_effective_horizon: bool = False,
 ) -> tuple[np.ndarray, ...]:
     """Materialize selected splits for one corridor; return kept samples.
 
@@ -245,6 +290,17 @@ def materialize_corridor(
     mask and concatenated in the same dir=-1 then dir=+1 order. This is additive:
     the default 3-tuple return — and therefore the positional-join contract that
     ``verify_alignment`` gates — is unchanged.
+
+    When ``return_slots`` is True TWO further arrays are appended, in order: the
+    target ``pair_rank`` (int32) and the ``direction`` (int8) of each kept sample.
+    With the timestamp these complete ``(direction, t, pair_rank)``, the unique
+    key of the headways frame. Both flags are independently additive and append
+    after the timestamp, so every existing caller keeps its exact return shape.
+
+    When ``return_effective_horizon`` is True the realized horizon in minutes is
+    appended last. Windows are sliced by row position, not by time, so this can
+    exceed the nominal ``horizon`` whenever the window straddles a gap in the
+    slot's timestamp list (day boundary, trip cut, fleet-size dip).
     """
     train_df = df.filter(pl.col("split") == "train")
     selected_df = df.filter(pl.col("split").is_in(splits))
@@ -256,35 +312,58 @@ def materialize_corridor(
     all_persist = []
     all_ex_ante = []
     all_ts = []
+    all_slots = []
+    all_dirs = []
+    all_eff = []
 
     for direction in [-1, 1]:
-        if return_timestamps:
-            (targets_flat, persist_flat, tmask_flat, pmask_flat, ex_ante_flat,
-             ts_flat) = materialize_direction(
+        if return_timestamps or return_slots or return_effective_horizon:
+            extra = materialize_direction(
                 selected_df, global_max_N, horizon, stats, empresaid, direction,
-                return_timestamps=True,
+                return_timestamps=return_timestamps,
+                return_slots=return_slots,
+                return_effective_horizon=return_effective_horizon,
             )
+            targets_flat, persist_flat, tmask_flat, pmask_flat, ex_ante_flat = extra[:5]
+            tail = list(extra[5:])
+            ts_flat = tail.pop(0) if return_timestamps else None
+            slot_flat = tail.pop(0) if return_slots else None
+            eff_flat = tail.pop(0) if return_effective_horizon else None
         else:
-            # Called without the extra kwarg so existing test doubles that patch
+            # Called without the extra kwargs so existing test doubles that patch
             # materialize_direction with the historical 6-arg signature still work.
             targets_flat, persist_flat, tmask_flat, pmask_flat, ex_ante_flat = \
                 materialize_direction(selected_df, global_max_N, horizon, stats,
                                        empresaid, direction)
             ts_flat = None
+            slot_flat = None
+            eff_flat = None
         keep = tmask_flat & pmask_flat
         all_targets.append(targets_flat[keep])
         all_persist.append(persist_flat[keep])
         all_ex_ante.append(ex_ante_flat[keep])
         if ts_flat is not None:
             all_ts.append(ts_flat[keep])
+        if slot_flat is not None:
+            all_slots.append(slot_flat[keep])
+            all_dirs.append(
+                np.full(int(keep.sum()), direction, dtype=np.int8)
+            )
+        if eff_flat is not None:
+            all_eff.append(eff_flat[keep])
 
     targets = np.concatenate(all_targets)
     persist = np.concatenate(all_persist)
     ex_ante = np.concatenate(all_ex_ante)
 
+    out: tuple[np.ndarray, ...] = (targets, persist, ex_ante)
     if return_timestamps:
-        return targets, persist, ex_ante, np.concatenate(all_ts)
-    return targets, persist, ex_ante
+        out = out + (np.concatenate(all_ts),)
+    if return_slots:
+        out = out + (np.concatenate(all_slots), np.concatenate(all_dirs))
+    if return_effective_horizon:
+        out = out + (np.concatenate(all_eff),)
+    return out
 
 
 # ---------------------------------------------------------------------------

@@ -27,7 +27,12 @@ data/processed/*
 
 # Residuos por-muestra descargados de Kaggle (CSVs ~165MB c/u + logs): regenerables, no se versionan.
 # Contienen los outputs recertificados (post-fix): winsorización full-split + día atípico activo.
-docs/resultados/residuos-multihorizon/
+# El glob cubre también los árboles apartados (p. ej. `…-multihorizon.stale/`, la copia
+# pre-arreglo de winsorización que se conservó al refrescar): son ~1.7GB y no deben commitearse.
+# El glob cubre también el export pareado por-muestra del XGBoost (~208MB, salida del
+# kernel 20-xgb-paired-export), que vive en `residuos-multihorizon/20-xgb-paired/` y
+# está inventariado en docs/dataset-manifest.md.
+docs/resultados/residuos-multihorizon*/
 !tests/fixtures/*.parquet
 *.feather
 *.h5
