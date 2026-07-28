@@ -67,6 +67,9 @@ GROUPS = {
         "corridors": [("E2", 2), ("E59", 59)],
         "kernel_id": "21-lstm-contiguous-h{h}",
         "title": "21 LSTM Contiguous h{h}",
+        # Distinguishes this group's output filenames from the other group's.
+        # Empty for e2e59 so the published residual names stay unchanged.
+        "stem_tag": "",
         "kernel_sources": [
             "alexhuaracha/04-preprocessing",
             "alexhuaracha/10-baselines-multi-horizonte",
@@ -81,6 +84,7 @@ GROUPS = {
         "corridors": [("E4", 4)],
         "kernel_id": "21-lstm-contiguous-e4-h{h}",
         "title": "21 LSTM Contiguous E4 h{h}",
+        "stem_tag": "_E4",
         "kernel_sources": ["alexhuaracha/04-preprocessing"],
         "baselines_csv": "baselines_E4_results_multih.csv",
         "configs": {
@@ -91,6 +95,23 @@ GROUPS = {
             ),
         },
     },
+}
+
+# Slugs Kaggle holds in a broken state: absent from the kernel list, 404 on
+# status and output, and `push` answers "Kernel push error: Notebook not found"
+# while still exiting 0. Nothing local fixes it — the run only lands under a
+# fresh slug. Same failure the 12/h10 -> h10b rename already works around
+# (see CLAUDE.md); the notebook and its outputs are unchanged, only the Kaggle
+# identity moves.
+#
+# The TITLE has to move with the id: Kaggle derives the slug from the title and
+# rejects the push with 409 Conflict when the two disagree. `FOLD_NAME` inside
+# the notebook stays `r2`, so the log still validates against the runbook.
+POISONED_SLUGS = {
+    "21-lstm-contiguous-h10-r2": (
+        "21-lstm-contiguous-h10-r2b",
+        "21 LSTM Contiguous h10 [r2b]",
+    ),
 }
 
 _KERNEL_META_BASE = {
@@ -239,11 +260,15 @@ def _add_setup_cell(group: dict, corridors, horizon: int, fold) -> None:
     hashes = {f"headways_{name}.parquet": PARQUET_HASHES[f"headways_{name}.parquet"]
               for name, _ in corridors}
     digests = _frozen_digests(corridors, horizon, fold.name)
-    # Output names carry the fold for every origin except the published one,
-    # whose filenames are already referenced by the download runbook and by the
-    # analysis builders. Without the suffix, pulling r1's outputs into the
-    # residual tree would overwrite the published residuals in place.
-    stem = "lstm_contig" if fold.name == "main" else f"lstm_contig_{fold.name}"
+    # Output names carry BOTH the corridor group and the fold. Both are load-
+    # bearing: every kernel of family 21 downloads into the same residual
+    # directory, so a stem missing either coordinate makes two runs collide and
+    # the second pull overwrites the first in place. The `main` fold and the
+    # e2e59 group take the empty tag, keeping the already-published filenames
+    # (`lstm_contig_residuals_h3.csv`, `lstm_contig_E4_residuals_h3.csv`) that
+    # the download runbook and `build_contiguous_significance.load_lstm` read.
+    fold_tag = "" if fold.name == "main" else f"_{fold.name}"
+    stem = f"lstm_contig{group['stem_tag']}{fold_tag}"
     code(
         f"""
 import hashlib
@@ -752,6 +777,8 @@ def build_notebook(group_key: str, horizon: int, fold=MAIN_FOLD) -> None:
         # the run list stays readable at a glance.
         kernel_id = f"{kernel_id}-{fold.name}"
         title = f"{title} [{fold.name}]"
+    if kernel_id in POISONED_SLUGS:
+        kernel_id, title = POISONED_SLUGS[kernel_id]
 
     kernel_meta = {
         "id": f"alexhuaracha/{kernel_id}",

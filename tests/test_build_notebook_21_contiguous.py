@@ -60,6 +60,25 @@ def _source(group_key: str, horizon: int, fold=MAIN_FOLD) -> str:
     )
 
 
+# Output stem per (corridor group, origin), spelled out rather than recomputed.
+# Deriving it from the builder's own expression is what let the group coordinate
+# go missing unnoticed: the test agreed with the bug. The two `main` entries are
+# the published filenames that `docs/correr-kaggle.md` and
+# `build_contiguous_significance.load_lstm` already read — they must not move.
+EXPECTED_STEMS = {
+    ("e2e59", "main"): "lstm_contig",
+    ("e2e59", "r1"): "lstm_contig_r1",
+    ("e2e59", "r2"): "lstm_contig_r2",
+    ("e4", "main"): "lstm_contig_E4",
+    ("e4", "r1"): "lstm_contig_E4_r1",
+    ("e4", "r2"): "lstm_contig_E4_r2",
+}
+
+
+def _expected_stem(group_key: str, fold) -> str:
+    return EXPECTED_STEMS[(group_key, fold.name)]
+
+
 ALL_CASES = [(k, h) for k in GROUPS for h in HORIZONS]
 ALL_FOLD_CASES = [(f, k, h) for f in ROLLING_FOLDS for k in GROUPS for h in HORIZONS]
 
@@ -258,9 +277,45 @@ class TestRollingOriginNotebooks:
     def test_outputs_do_not_collide_between_folds(self, fold, group_key, horizon):
         """Downloading r1 must not overwrite the published residuals."""
         src = _source(group_key, horizon, fold)
-        stem = "lstm_contig" if fold.name == "main" else f"lstm_contig_{fold.name}"
+        stem = _expected_stem(group_key, fold)
         assert f'{stem}_residuals_h{{HORIZON}}.csv' in src
         assert f'{stem}_results_h{{HORIZON}}.csv' in src
+
+    def test_every_output_filename_is_unique(self):
+        """The property the per-case assertions cannot see.
+
+        Every kernel of family 21 — both corridor groups, all three origins,
+        four horizons — downloads into the SAME residual directory. A stem that
+        drops either coordinate makes two runs land on one path and the second
+        pull overwrites the first, with no error anywhere: the analysis layer
+        (``build_contiguous_significance.load_lstm``) skips a missing file and
+        reports metrics over whatever survived.
+
+        Asserting the stem case by case cannot catch that — a formula shared by
+        the test and the builder is a formula nobody checks. This asserts the
+        collision itself.
+        """
+        # `ROLLING_FOLDS` already carries MAIN_FOLD as its last entry
+        # (`src/evaluation/splits.py`), so it is the complete set of origins.
+        names = []
+        for fold in ROLLING_FOLDS:
+            for group_key in GROUPS:
+                for horizon in HORIZONS:
+                    src = _source(group_key, horizon, fold)
+                    stem = _expected_stem(group_key, fold)
+                    for kind in ("residuals", "results"):
+                        name = f"{stem}_{kind}_h{{HORIZON}}.csv"
+                        assert name in src, (
+                            f"{group_key}/{fold.name}/h{horizon} does not emit {name}"
+                        )
+                        names.append(name.replace("{HORIZON}", str(horizon)))
+
+        duplicates = sorted({n for n in names if names.count(n) > 1})
+        assert not duplicates, (
+            f"two runs of family 21 would write these same filenames and "
+            f"overwrite each other on download: {duplicates}"
+        )
+        assert len(names) == 2 * len(GROUPS) * len(HORIZONS) * len(ROLLING_FOLDS)
 
     def test_every_kernel_id_is_unique(self):
         ids = []

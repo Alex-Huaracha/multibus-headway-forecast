@@ -79,7 +79,7 @@ En el log de cada corrida:
 | 2 | `Fold r1: train 2023-10-01..2023-11-30 (61d) \| ...` | Las fechas deben coincidir con la tabla del §2. |
 | 3 | Sin `Required input not found` ni `does not match its frozen SHA-256` | El portón de insumos cortó antes de entrenar. No gastó GPU. |
 | 4 | Sin `SHARED-POPULATION GATE FAILED` | El índice reconstruido no coincide con el manifiesto congelado. |
-| 5 | `winsorize threshold = … min` por corredor | Ausente ⇒ el preprocesamiento no corrió completo. |
+| 5 | `<corredor>: winsor threshold=…` por corredor (2 líneas en e2e59, 1 en e4) | Ausente ⇒ el preprocesamiento no corrió completo. |
 | 6 | Sin `Traceback` y estado `complete` | — |
 
 Si una corrida termina en `error`: leer el log, corregir la causa, y recién ahí
@@ -87,8 +87,13 @@ relanzar. No relanzar a ciegas.
 
 ## 4. Descargar
 
-Las salidas llevan el sufijo del corte (`lstm_contig_r1_residuals_h3.csv`), así
-que **no pisan** los residuos publicados:
+Cada salida lleva **grupo de corredores y corte** en el nombre
+(`lstm_contig_E4_r1_residuals_h3.csv`), así que las 24 corridas conviven en la
+misma carpeta sin pisarse. Las dos coordenadas son necesarias: sin la del grupo,
+E2+E59 y E4 del mismo corte escriben el mismo archivo y la segunda descarga
+borra la primera **en silencio** — `build_contiguous_significance.load_lstm`
+saltea el archivo que falta y reporta métricas sobre medio corpus. Lo guarda
+`test_every_output_filename_is_unique`.
 
 ```bash
 for FOLD in r1 r2; do
@@ -101,11 +106,20 @@ for FOLD in r1 r2; do
 done
 ```
 
-Verificar que llegaron los 16 pares de archivos antes de commitear:
+⚠️ `21-lstm-contiguous-h10-r2` **no existe**: su slug quedó podrido en Kaggle y
+esa corrida vive en `21-lstm-contiguous-h10-r2b` (ver `POISONED_SLUGS` en el
+builder y el §5). El bucle de arriba no la trae — bajala aparte.
+
+Verificar el store antes de commitear. Los 16 de rolling son los que acaba de
+traer el bucle; los 8 del corte publicado tienen que seguir ahí de su propia
+corrida — si faltan, algo los pisó:
 
 ```bash
-fd "lstm_contig_r[12]_residuals" docs/resultados/residuos-multihorizon/ | wc -l   # 8
-fd "lstm_contig_E4_r[12]_residuals" docs/resultados/residuos-multihorizon/ | wc -l # 8
+D=docs/resultados/residuos-multihorizon/21-lstm-contiguous
+fd "lstm_contig_r[12]_residuals" $D | wc -l    # 8 — E2+E59, r1 y r2
+fd "lstm_contig_E4_r[12]_residuals" $D | wc -l # 8 — E4,     r1 y r2
+fd "lstm_contig_residuals" $D | wc -l          # 4 — E2+E59, corte publicado
+fd "lstm_contig_E4_residuals" $D | wc -l       # 4 — E4,     corte publicado
 ```
 
 ## 5. Problemas conocidos
@@ -116,6 +130,8 @@ fd "lstm_contig_E4_r[12]_residuals" docs/resultados/residuos-multihorizon/ | wc 
 | `no kernel image is available for execution on the device` | Desajuste de entorno GPU (P100 en vez de T4×2). **Se corrige desde la web**, no desde el CLI ni el builder. |
 | `CANCEL_REQUESTED` + `Maximum batch GPU session count of 2 reached` | Límite de sesiones. Esperar y relanzar. |
 | `kaggle kernels output` trae archivos gigantes | Descarga TODOS los outputs; los kernels fuente incluyen parquets. Los DL solo emiten CSVs + log. |
+| `Kernel push error: Notebook not found` **y el CLI sale con código 0** | El slug quedó podrido del lado de Kaggle: no figura en `kernels list`, y da 404 en `status` y en `output`. No se arregla desde acá — hay que correrlo bajo un slug nuevo (`POISONED_SLUGS` en el builder). **Nunca uses el exit code del CLI como señal de éxito: hay que leer el texto.** |
+| `409 Conflict` al renombrar un kernel | Kaggle deriva el slug **del título**, no del id. Si movés uno solo, avisa `your kernel title does not resolve to the specified id` y rechaza. Mové los dos juntos. |
 | Un `kernel_sources` nuevo no queda adjunto tras `push` | Kaggle no adjunta de forma confiable una fuente nunca adjuntada antes. Requiere un **"Add Input" único desde la web**; después el CLI la preserva. |
 
 Cuota GPU semanal: ~30 h. Las 16 corridas de rolling entran cómodo (~1.8 h).
