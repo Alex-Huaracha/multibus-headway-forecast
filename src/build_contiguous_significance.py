@@ -60,18 +60,37 @@ METRICS = ("MAE", "RMSE")
 # multiple-comparison family can be chosen at analysis time, not baked in.
 
 
-def load_lstm() -> pl.DataFrame:
-    """All LSTM residuals, both corridor groups, every horizon."""
-    frames = []
+def load_lstm(fold: str = "main") -> pl.DataFrame:
+    """All LSTM residuals of one origin, both corridor groups, every horizon.
+
+    ``fold`` defaults to the published origin, whose filenames carry no tag.
+    Every other origin tags both the corridor group and the fold into the stem
+    (``lstm_contig_E4_r1_residuals_h3.csv``).
+
+    A partial set raises. The whole point of the naming fix is that the eight
+    files of an origin cannot overwrite each other; loading seven of them and
+    reporting metrics anyway would put the silence right back.
+    """
+    fold_tag = "" if fold == "main" else f"_{fold}"
+    frames, missing = [], []
     for horizon in HORIZONS:
-        for stem in (f"lstm_contig_residuals_h{horizon}",
-                     f"lstm_contig_E4_residuals_h{horizon}"):
+        for stem in (f"lstm_contig{fold_tag}_residuals_h{horizon}",
+                     f"lstm_contig_E4{fold_tag}_residuals_h{horizon}"):
             path = LSTM_DIR / f"{stem}.csv"
             if path.exists():
                 frames.append(pl.read_csv(path, try_parse_dates=True))
+            else:
+                missing.append(path.name)
     if not frames:
         raise FileNotFoundError(
-            f"no LSTM residuals under {LSTM_DIR}. Download the kernel outputs first."
+            f"no LSTM residuals for origin {fold!r} under {LSTM_DIR}. "
+            "Download the kernel outputs first."
+        )
+    if missing:
+        raise FileNotFoundError(
+            f"origin {fold!r} is incomplete under {LSTM_DIR}: "
+            f"{len(frames)} of {2 * len(HORIZONS)} files, missing {missing}. "
+            "Refusing to report metrics over part of the corpus."
         )
     return pl.concat(frames)
 
