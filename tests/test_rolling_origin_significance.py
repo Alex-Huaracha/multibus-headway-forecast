@@ -119,6 +119,72 @@ class TestAgreement:
         assert agreement(table).equals(summary)
 
 
+class TestTheDocumentQuotesTheTable:
+    """Every number in the prose must come off the CSV.
+
+    The section is transcribed by hand, which is exactly how a table and its
+    narration drift apart: the CSV is regenerated, the markdown is not, and the
+    document keeps quoting numbers no artifact produces any more.
+    """
+
+    DOC = REPO_ROOT / "docs" / "resultados" / "documento-resultados.md"
+    HEADING = "### ¿Y si el mes fuera otro?"
+
+    @pytest.fixture(scope="class")
+    def section(self) -> str:
+        text = self.DOC.read_text(encoding="utf-8")
+        assert self.HEADING in text, f"{self.HEADING!r} is gone from the document"
+        return text.split(self.HEADING)[1].split("## 5.")[0]
+
+    def test_every_delta_in_the_table_matches_the_csv(self, section, summary):
+        import re
+
+        pattern = re.compile(
+            r"\|\s*\*{0,2}(E\d+) h=(\d+)\*{0,2}\s*\|"
+            r"\s*\*{0,2}([+−-][\d.]+)\*{0,2}\s*\|"
+            r"\s*\*{0,2}([+−-][\d.]+)\*{0,2}\s*\|"
+            r"\s*\*{0,2}([+−-][\d.]+)\*{0,2}\s*\|"
+            r"\s*\*{0,2}(sí|no)\*{0,2}\s*\|"
+        )
+        seen = 0
+        for corridor, horizon, *deltas, agrees in pattern.findall(section):
+            cell = summary.filter(
+                (pl.col("corridor") == corridor)
+                & (pl.col("horizon") == int(horizon))
+            ).to_dicts()
+            assert cell, f"document quotes {corridor} h={horizon}, absent from the CSV"
+            cell = cell[0]
+            for origin, quoted in zip(ORIGINS, deltas):
+                # The document writes minus as U+2212 and marks wins with '+'.
+                value = float(quoted.replace("−", "-").lstrip("+"))
+                assert abs(cell[f"delta_mae_{origin}"] - value) < 5e-4, (
+                    f"{corridor} h={horizon} @{origin}: document says {value}, "
+                    f"CSV says {cell[f'delta_mae_{origin}']}"
+                )
+            assert (agrees == "sí") == cell["agrees"], (corridor, horizon)
+            seen += 1
+        assert seen == summary.height, (
+            f"document tabulates {seen} cells, the CSV has {summary.height}"
+        )
+
+    def test_the_headline_count_is_not_stale(self, section, summary):
+        n_agree = int(summary.get_column("agrees").sum())
+        assert f"{n_agree} de las {summary.height} celdas" in section, (
+            f"{n_agree} of {summary.height} cells agree; the section does not "
+            "open with that count"
+        )
+
+    def test_the_long_horizon_count_is_not_stale(self, section, table):
+        """The 'h>=5 holds everywhere' claim counts cells, and the count is
+        corridors x horizons x origins — easy to quote as one horizon's worth."""
+        n_cells = table.filter(
+            (pl.col("metric") == "MAE") & (pl.col("horizon") >= 5)
+        ).height
+        assert f"{n_cells} celdas" in section, (
+            f"h>=5 covers {n_cells} cells; the section does not say so"
+        )
+
+
 class TestWhatTheTableSaysAboutTheClaim:
     """Behaviour, not formatting: the findings the paper would cite."""
 
