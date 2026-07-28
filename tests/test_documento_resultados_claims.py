@@ -171,7 +171,16 @@ class TestScalarClaims:
         assert "0.001 min" in text
 
     def test_the_contiguity_cost_range(self, text):
-        manifest = _csv("sample_index_manifest.csv").filter(pl.col("split") == "test")
+        """Scoped to the PUBLISHED fold.
+
+        The manifest now carries one row set per rolling origin, so an unscoped
+        filter mixes windows the document does not describe — and the range it
+        quotes would silently start meaning something else.
+        """
+        manifest = _csv("sample_index_manifest.csv").filter(
+            (pl.col("fold") == "main") & (pl.col("split") == "test")
+        )
+        assert manifest.height == 12, "expected 3 corridors x 4 horizons"
         usable = manifest.get_column("pct_snapshots_usable")
         assert round(float(usable.min()), 1) == 81.9
         assert round(float(usable.max()), 1) == 90.2

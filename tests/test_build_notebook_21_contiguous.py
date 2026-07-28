@@ -24,6 +24,7 @@ from src.build_notebook_21_lstm_contiguous import (
     MANIFEST_CSV,
     build_notebook,
 )
+from src.evaluation.splits import MAIN_FOLD, ROLLING_FOLDS
 
 ROOT = Path(__file__).resolve().parent.parent
 NB_ROOT = ROOT / "notebooks" / "21_lstm_contiguous"
@@ -31,28 +32,55 @@ NB_ROOT = ROOT / "notebooks" / "21_lstm_contiguous"
 
 @pytest.fixture(scope="module", autouse=True)
 def built():
-    for key in GROUPS:
-        for h in HORIZONS:
-            build_notebook(key, h)
+    for fold in ROLLING_FOLDS:
+        for key in GROUPS:
+            for h in HORIZONS:
+                build_notebook(key, h, fold)
 
 
-def _notebook(group_key: str, horizon: int):
+def _dir(group_key: str, horizon: int, fold=MAIN_FOLD) -> Path:
+    base = NB_ROOT / group_key
+    return base / f"h{horizon}" if fold.name == "main" else base / fold.name / f"h{horizon}"
+
+
+def _notebook(group_key: str, horizon: int, fold=MAIN_FOLD):
+    suffix = "" if fold.name == "main" else f"_{fold.name}"
     path = (
-        NB_ROOT / group_key / f"h{horizon}"
-        / f"21_lstm_contiguous_{group_key}_h{horizon}.ipynb"
+        _dir(group_key, horizon, fold)
+        / f"21_lstm_contiguous_{group_key}{suffix}_h{horizon}.ipynb"
     )
     assert path.exists(), path
     return nbf.read(path, as_version=4)
 
 
-def _source(group_key: str, horizon: int) -> str:
+def _source(group_key: str, horizon: int, fold=MAIN_FOLD) -> str:
     return "\n".join(
-        c["source"] for c in _notebook(group_key, horizon)["cells"]
+        c["source"] for c in _notebook(group_key, horizon, fold)["cells"]
         if c["cell_type"] == "code"
     )
 
 
+# Output stem per (corridor group, origin), spelled out rather than recomputed.
+# Deriving it from the builder's own expression is what let the group coordinate
+# go missing unnoticed: the test agreed with the bug. The two `main` entries are
+# the published filenames that `docs/correr-kaggle.md` and
+# `build_contiguous_significance.load_lstm` already read — they must not move.
+EXPECTED_STEMS = {
+    ("e2e59", "main"): "lstm_contig",
+    ("e2e59", "r1"): "lstm_contig_r1",
+    ("e2e59", "r2"): "lstm_contig_r2",
+    ("e4", "main"): "lstm_contig_E4",
+    ("e4", "r1"): "lstm_contig_E4_r1",
+    ("e4", "r2"): "lstm_contig_E4_r2",
+}
+
+
+def _expected_stem(group_key: str, fold) -> str:
+    return EXPECTED_STEMS[(group_key, fold.name)]
+
+
 ALL_CASES = [(k, h) for k in GROUPS for h in HORIZONS]
+ALL_FOLD_CASES = [(f, k, h) for f in ROLLING_FOLDS for k in GROUPS for h in HORIZONS]
 
 
 class TestCellsAreValidPython:
@@ -111,13 +139,19 @@ class TestSharedPopulationGate:
 
     @pytest.mark.parametrize("group_key,horizon", ALL_CASES)
     def test_injected_digests_match_the_frozen_manifest(self, group_key, horizon):
-        """A stale digest would gate against the wrong population."""
+        """A stale digest would gate against the wrong population.
+
+        The fold is part of the lookup. The manifest carries one row set per
+        evaluation origin, so a filter without it matches every origin and the
+        notebook could end up frozen against a population it never trained on.
+        """
         manifest = pl.read_csv(MANIFEST_CSV)
         src = _source(group_key, horizon)
         for name, _emp in GROUPS[group_key]["corridors"]:
             for split in ("train", "val", "test"):
                 row = manifest.filter(
-                    (pl.col("corridor") == name)
+                    (pl.col("fold") == "main")
+                    & (pl.col("corridor") == name)
                     & (pl.col("split") == split)
                     & (pl.col("horizon") == horizon)
                 )
@@ -209,3 +243,149 @@ class TestKernelMetadata:
             assert not any(frozen in i for i in ids), (
                 "a new kernel id must never overwrite a frozen one"
             )
+
+
+class TestRollingOriginNotebooks:
+    """Every origin gets its own kernel, its own gate and its own outputs.
+
+    The risk this class guards is not that a rolling notebook fails — a failure
+    is visible. It is that a rolling notebook succeeds while silently behaving
+    like the published one, producing a "robustness check" that re-measures the
+    same window and therefore proves nothing.
+    """
+
+    @pytest.mark.parametrize("fold,group_key,horizon", ALL_FOLD_CASES)
+    def test_every_code_cell_compiles(self, fold, group_key, horizon):
+        for cell in _notebook(group_key, horizon, fold)["cells"]:
+            if cell["cell_type"] == "code":
+                compile(cell["source"], "<nb>", "exec")
+
+    @pytest.mark.parametrize("fold,group_key,horizon", ALL_FOLD_CASES)
+    def test_the_notebook_declares_its_own_fold(self, fold, group_key, horizon):
+        src = _source(group_key, horizon, fold)
+        assert f'FOLD_NAME = "{fold.name}"' in src
+
+    @pytest.mark.parametrize("fold,group_key,horizon", ALL_FOLD_CASES)
+    def test_the_split_is_taken_from_that_fold(self, fold, group_key, horizon):
+        """`split_temporal(frame)` would silently fall back to the main split."""
+        src = _source(group_key, horizon, fold)
+        assert "FOLD = fold_by_name(FOLD_NAME)" in src
+        assert "split_temporal(frame, FOLD)" in src
+        assert "split_temporal(frame)" not in src
+
+    @pytest.mark.parametrize("fold,group_key,horizon", ALL_FOLD_CASES)
+    def test_outputs_do_not_collide_between_folds(self, fold, group_key, horizon):
+        """Downloading r1 must not overwrite the published residuals."""
+        src = _source(group_key, horizon, fold)
+        stem = _expected_stem(group_key, fold)
+        assert f'{stem}_residuals_h{{HORIZON}}.csv' in src
+        assert f'{stem}_results_h{{HORIZON}}.csv' in src
+
+    def test_every_output_filename_is_unique(self):
+        """The property the per-case assertions cannot see.
+
+        Every kernel of family 21 — both corridor groups, all three origins,
+        four horizons — downloads into the SAME residual directory. A stem that
+        drops either coordinate makes two runs land on one path and the second
+        pull overwrites the first, with no error anywhere: the analysis layer
+        (``build_contiguous_significance.load_lstm``) skips a missing file and
+        reports metrics over whatever survived.
+
+        Asserting the stem case by case cannot catch that — a formula shared by
+        the test and the builder is a formula nobody checks. This asserts the
+        collision itself.
+        """
+        # `ROLLING_FOLDS` already carries MAIN_FOLD as its last entry
+        # (`src/evaluation/splits.py`), so it is the complete set of origins.
+        names = []
+        for fold in ROLLING_FOLDS:
+            for group_key in GROUPS:
+                for horizon in HORIZONS:
+                    src = _source(group_key, horizon, fold)
+                    stem = _expected_stem(group_key, fold)
+                    for kind in ("residuals", "results"):
+                        name = f"{stem}_{kind}_h{{HORIZON}}.csv"
+                        assert name in src, (
+                            f"{group_key}/{fold.name}/h{horizon} does not emit {name}"
+                        )
+                        names.append(name.replace("{HORIZON}", str(horizon)))
+
+        duplicates = sorted({n for n in names if names.count(n) > 1})
+        assert not duplicates, (
+            f"two runs of family 21 would write these same filenames and "
+            f"overwrite each other on download: {duplicates}"
+        )
+        assert len(names) == 2 * len(GROUPS) * len(HORIZONS) * len(ROLLING_FOLDS)
+
+    def test_every_kernel_id_is_unique(self):
+        ids = []
+        for fold in ROLLING_FOLDS:
+            for key in GROUPS:
+                for h in HORIZONS:
+                    meta = json.loads(
+                        (_dir(key, h, fold) / "kernel-metadata.json").read_text()
+                    )
+                    ids.append(meta["id"])
+        assert len(ids) == len(set(ids)), "two folds would overwrite each other on Kaggle"
+        assert len(ids) == len(ROLLING_FOLDS) * len(GROUPS) * len(HORIZONS)
+
+    @pytest.mark.parametrize("group_key,horizon", ALL_CASES)
+    def test_the_published_fold_keeps_its_paths_and_slug(self, group_key, horizon):
+        """Its kernel already exists on Kaggle and its residual filenames are
+        referenced by the runbook and by every analysis builder."""
+        meta = json.loads(
+            (_dir(group_key, horizon) / "kernel-metadata.json").read_text()
+        )
+        expected = GROUPS[group_key]["kernel_id"].format(h=horizon)
+        assert meta["id"] == f"alexhuaracha/{expected}"
+        assert "r1" not in meta["id"] and "r2" not in meta["id"]
+
+    @pytest.mark.parametrize("fold,group_key,horizon", ALL_FOLD_CASES)
+    def test_the_gate_uses_that_folds_digests(self, fold, group_key, horizon):
+        manifest = pl.read_csv(MANIFEST_CSV)
+        src = _source(group_key, horizon, fold)
+        for name, _emp in GROUPS[group_key]["corridors"]:
+            for split in ("train", "val", "test"):
+                digest = manifest.filter(
+                    (pl.col("fold") == fold.name)
+                    & (pl.col("corridor") == name)
+                    & (pl.col("split") == split)
+                    & (pl.col("horizon") == horizon)
+                ).row(0, named=True)["sha256"]
+                assert f'"{name}|{split}": "{digest}"' in src
+
+    @pytest.mark.parametrize("group_key,horizon", ALL_CASES)
+    def test_no_two_folds_gate_on_the_same_training_population(
+        self, group_key, horizon
+    ):
+        """The point of the exercise. Identical train digests would mean the
+        three origins trained on the same days and the comparison is vacuous."""
+        manifest = pl.read_csv(MANIFEST_CSV)
+        digests = set()
+        for fold in ROLLING_FOLDS:
+            for name, _emp in GROUPS[group_key]["corridors"]:
+                digests.add(
+                    manifest.filter(
+                        (pl.col("fold") == fold.name)
+                        & (pl.col("corridor") == name)
+                        & (pl.col("split") == "train")
+                        & (pl.col("horizon") == horizon)
+                    ).row(0, named=True)["sha256"]
+                )
+        assert len(digests) == len(ROLLING_FOLDS) * len(GROUPS[group_key]["corridors"])
+
+    @pytest.mark.parametrize("group_key,horizon", ALL_CASES)
+    def test_rolling_notebooks_announce_they_are_not_the_published_result(
+        self, group_key, horizon
+    ):
+        for fold in ROLLING_FOLDS:
+            markdown = "\n".join(
+                c["source"]
+                for c in _notebook(group_key, horizon, fold)["cells"]
+                if c["cell_type"] == "markdown"
+            )
+            if fold.name == "main":
+                assert "rolling origin" not in markdown.lower()
+            else:
+                assert "no** produce el resultado publicado" in markdown
+                assert str(fold.test_start) in markdown

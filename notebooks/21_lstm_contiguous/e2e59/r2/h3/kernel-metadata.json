@@ -1,0 +1,18 @@
+{
+  "id": "alexhuaracha/21-lstm-contiguous-h3-r2",
+  "title": "21 LSTM Contiguous h3 [r2]",
+  "code_file": "21_lstm_contiguous_e2e59_r2_h3.ipynb",
+  "kernel_sources": [
+    "alexhuaracha/04-preprocessing",
+    "alexhuaracha/10-baselines-multi-horizonte"
+  ],
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [],
+  "competition_sources": []
+}

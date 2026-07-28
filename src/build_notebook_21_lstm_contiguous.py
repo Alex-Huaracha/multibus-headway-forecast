@@ -46,6 +46,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.evaluation.splits import MAIN_FOLD, ROLLING_FOLDS  # noqa: E402
 from src.notebook_utils import _strip_relative_imports  # noqa: E402
 
 MANIFEST_CSV = ROOT / "docs" / "resultados" / "csv-multihorizon" / "sample_index_manifest.csv"
@@ -66,6 +67,9 @@ GROUPS = {
         "corridors": [("E2", 2), ("E59", 59)],
         "kernel_id": "21-lstm-contiguous-h{h}",
         "title": "21 LSTM Contiguous h{h}",
+        # Distinguishes this group's output filenames from the other group's.
+        # Empty for e2e59 so the published residual names stay unchanged.
+        "stem_tag": "",
         "kernel_sources": [
             "alexhuaracha/04-preprocessing",
             "alexhuaracha/10-baselines-multi-horizonte",
@@ -80,6 +84,7 @@ GROUPS = {
         "corridors": [("E4", 4)],
         "kernel_id": "21-lstm-contiguous-e4-h{h}",
         "title": "21 LSTM Contiguous E4 h{h}",
+        "stem_tag": "_E4",
         "kernel_sources": ["alexhuaracha/04-preprocessing"],
         "baselines_csv": "baselines_E4_results_multih.csv",
         "configs": {
@@ -92,12 +97,34 @@ GROUPS = {
     },
 }
 
+# Slugs Kaggle holds in a broken state: absent from the kernel list, 404 on
+# status and output, and `push` answers "Kernel push error: Notebook not found"
+# while still exiting 0. Nothing local fixes it — the run only lands under a
+# fresh slug. Same failure the 12/h10 -> h10b rename already works around
+# (see CLAUDE.md); the notebook and its outputs are unchanged, only the Kaggle
+# identity moves.
+#
+# The TITLE has to move with the id: Kaggle derives the slug from the title and
+# rejects the push with 409 Conflict when the two disagree. `FOLD_NAME` inside
+# the notebook stays `r2`, so the log still validates against the runbook.
+POISONED_SLUGS = {
+    "21-lstm-contiguous-h10-r2": (
+        "21-lstm-contiguous-h10-r2b",
+        "21 LSTM Contiguous h10 [r2b]",
+    ),
+}
+
 _KERNEL_META_BASE = {
     "language": "python",
     "kernel_type": "notebook",
     "is_private": True,
     "enable_gpu": True,
-    "accelerator": "GPU_T4X2",
+    # `machine_shape` es el campo que el CLI lee de verdad
+    # (kaggle_api_extended.py:4236); `accelerator` se ignora en silencio y Kaggle
+    # cae en su GPU por defecto — de ahí el P100 que había que corregir a mano
+    # desde la web en cada kernel nuevo. El valor no está adivinado: es el que el
+    # servidor reporta al hacer `kernels pull -m` de un kernel ya puesto en T4×2.
+    "machine_shape": "NvidiaTeslaT4",
     "enable_internet": True,
     "keywords": [],
     "dataset_sources": [],
@@ -132,28 +159,42 @@ def embed_module(rel_path: str, header_md: str, cell_id_md: str, cell_id_code: s
     code(_strip_relative_imports(raw), cell_id=cell_id_code)
 
 
-def _frozen_digests(corridors, horizon: int) -> dict:
+def _frozen_digests(corridors, horizon: int, fold: str = "main") -> dict:
     """Expected index digests per (corridor, split), read from the manifest.
 
     Injecting them at build time is what turns "same population" into something
     the kernel can verify: same code plus same input bytes must reproduce these
     exact digests, or the run stops before training.
+
+    ``fold`` selects the evaluation origin. It is REQUIRED in the filter, not
+    optional: the manifest holds one row set per fold, so matching on
+    corridor/split/horizon alone now returns three rows, and a lookup that
+    tolerated that would pick an arbitrary origin's digest.
     """
     if not MANIFEST_CSV.exists():
         raise FileNotFoundError(
             f"{MANIFEST_CSV} missing — run: uv run python -m src.build_sample_index"
         )
     manifest = pl.read_csv(MANIFEST_CSV)
+    if "fold" not in manifest.columns:
+        raise ValueError(
+            f"{MANIFEST_CSV.name} predates rolling origin (no `fold` column) — "
+            "regenerate it: uv run python -m src.build_sample_index"
+        )
     out = {}
     for name, _emp in corridors:
         for split in ("train", "val", "test"):
             row = manifest.filter(
-                (pl.col("corridor") == name)
+                (pl.col("fold") == fold)
+                & (pl.col("corridor") == name)
                 & (pl.col("split") == split)
                 & (pl.col("horizon") == horizon)
             )
             if row.height != 1:
-                raise ValueError(f"manifest has no row for {name}/{split}/h{horizon}")
+                raise ValueError(
+                    f"manifest has {row.height} rows for "
+                    f"{fold}/{name}/{split}/h{horizon}, expected exactly 1"
+                )
             out[f"{name}|{split}"] = row.row(0, named=True)["sha256"]
     return out
 
@@ -162,11 +203,34 @@ def _frozen_digests(corridors, horizon: int) -> dict:
 # Cells
 # ---------------------------------------------------------------------------
 
-def _add_title_cell(group_key: str, corridors, horizon: int) -> None:
+def _fold_note(fold) -> str:
+    """Header paragraph describing the evaluation origin, when it is not the main one."""
+    if fold.name == "main":
+        return ""
+    return f"""
+> ### ⚠️ Origen de evaluación `{fold.name}` — corte de *rolling origin*
+>
+> Este notebook **no** produce el resultado publicado. Entrena y evalúa sobre un
+> corte temporal distinto, para responder si el hallazgo se sostiene fuera de la
+> ventana de febrero:
+>
+> | | Desde | Hasta | Días |
+> |---|---|---|---|
+> | Entrenamiento | {fold.train_start} | {fold.train_end} | {fold.train_days} |
+> | Validación | {fold.val_start} | {fold.val_end} | {fold.val_days} |
+> | Prueba | {fold.test_start} | {fold.test_end} | {fold.test_days} |
+>
+> Sus salidas llevan el sufijo `{fold.name}` para que no se confundan con las del
+> corte publicado al descargarlas.
+"""
+
+
+def _add_title_cell(group_key: str, corridors, horizon: int, fold) -> None:
     names = " + ".join(n for n, _ in corridors)
     md(
         f"""
-# 21 — LSTM sobre ventanas contiguas · {names} · h={horizon}
+# 21 — LSTM sobre ventanas contiguas · {names} · h={horizon} · corte `{fold.name}`
+{_fold_note(fold)}
 
 Auto-generado por `build_notebook_21_lstm_contiguous.py`. **No editar a mano.**
 
@@ -192,10 +256,19 @@ comparación entre arquitecturas sobre el pipeline anterior.
     )
 
 
-def _add_setup_cell(group: dict, corridors, horizon: int) -> None:
+def _add_setup_cell(group: dict, corridors, horizon: int, fold) -> None:
     hashes = {f"headways_{name}.parquet": PARQUET_HASHES[f"headways_{name}.parquet"]
               for name, _ in corridors}
-    digests = _frozen_digests(corridors, horizon)
+    digests = _frozen_digests(corridors, horizon, fold.name)
+    # Output names carry BOTH the corridor group and the fold. Both are load-
+    # bearing: every kernel of family 21 downloads into the same residual
+    # directory, so a stem missing either coordinate makes two runs collide and
+    # the second pull overwrites the first in place. The `main` fold and the
+    # e2e59 group take the empty tag, keeping the already-published filenames
+    # (`lstm_contig_residuals_h3.csv`, `lstm_contig_E4_residuals_h3.csv`) that
+    # the download runbook and `build_contiguous_significance.load_lstm` read.
+    fold_tag = "" if fold.name == "main" else f"_{fold.name}"
+    stem = f"lstm_contig{group['stem_tag']}{fold_tag}"
     code(
         f"""
 import hashlib
@@ -247,12 +320,18 @@ OUTPUT_DIR = Path("/kaggle/working") if Path("/kaggle/working").exists() else Pa
 OUTPUT_DIR.mkdir(exist_ok=True)
 HORIZON = {horizon}
 GROUP = "{group['baselines_csv'].split('_')[0]}"
-RESULTS_OUT = OUTPUT_DIR / f"lstm_contig_results_h{{HORIZON}}.csv"
-RESID_OUT = OUTPUT_DIR / f"lstm_contig_residuals_h{{HORIZON}}.csv"
+
+# Evaluation origin. Resolved against the embedded `splits` module in the prepare
+# cell — this cell runs before the embeds, so only the NAME can live here.
+FOLD_NAME = "{fold.name}"
+
+RESULTS_OUT = OUTPUT_DIR / f"{stem}_results_h{{HORIZON}}.csv"
+RESID_OUT = OUTPUT_DIR / f"{stem}_residuals_h{{HORIZON}}.csv"
 
 DEVICE = "cuda" if __import__("torch").cuda.is_available() else "cpu"
 print(f"Output dir: {{OUTPUT_DIR}}")
 print(f"Horizon:    {{HORIZON}}")
+print(f"Fold:       {{FOLD_NAME}}")
 print(f"Device:     {{DEVICE}}")
 """,
         cell_id="cell-21-setup",
@@ -333,11 +412,22 @@ def _add_prepare_cell(corridors) -> None:
 
 Idéntico al pipeline anterior salvo por el contexto: se codifican las 5 columnas
 pero solo se consumen las 4 causales.
+
+El corte temporal se resuelve por **nombre** contra el módulo `splits` embebido.
+Un nombre desconocido levanta `KeyError` acá mismo, antes de tocar la GPU: caer
+en silencio al corte publicado produciría resultados etiquetados como un origen
+y calculados sobre otro.
 """,
         cell_id="cell-21-prepare-md",
     )
     code(
         f"""
+FOLD = fold_by_name(FOLD_NAME)
+print(f"Fold {{FOLD.name}}: train {{FOLD.train_start}}..{{FOLD.train_end}} "
+      f"({{FOLD.train_days}}d) | val {{FOLD.val_start}}..{{FOLD.val_end}} "
+      f"({{FOLD.val_days}}d) | test {{FOLD.test_start}}..{{FOLD.test_end}} "
+      f"({{FOLD.test_days}}d)")
+
 RAW = {{}}
 {loads}
 for name, frame in RAW.items():
@@ -346,7 +436,7 @@ for name, frame in RAW.items():
 PREPARED = {{}}
 STATS = {{}}
 for name, frame in RAW.items():
-    df_split = split_temporal(frame)
+    df_split = split_temporal(frame, FOLD)
     df_winsor, threshold = winsorize_train_p99(df_split)
     stats = compute_normalization_stats(df_winsor.filter(pl.col("split") == "train"))
     df_z = apply_zscore(df_winsor, stats)
@@ -644,17 +734,25 @@ else:
 # Build
 # ---------------------------------------------------------------------------
 
-def build_notebook(group_key: str, horizon: int) -> None:
+def build_notebook(group_key: str, horizon: int, fold=MAIN_FOLD) -> None:
+    """Emit one notebook + kernel metadata for a (group, horizon, fold).
+
+    The published fold keeps its exact paths and kernel ids; the rolling folds
+    get their own directory level and their own kernel slug. Sharing either
+    would mean a rolling run overwriting the published kernel on Kaggle.
+    """
     group = GROUPS[group_key]
     corridors = group["corridors"]
     _reset()
 
-    out_dir = ROOT / "notebooks" / "21_lstm_contiguous" / group_key / f"h{horizon}"
+    base = ROOT / "notebooks" / "21_lstm_contiguous" / group_key
+    out_dir = base / f"h{horizon}" if fold.name == "main" else base / fold.name / f"h{horizon}"
     out_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"21_lstm_contiguous_{group_key}_h{horizon}.ipynb"
+    suffix = "" if fold.name == "main" else f"_{fold.name}"
+    filename = f"21_lstm_contiguous_{group_key}{suffix}_h{horizon}.ipynb"
 
-    _add_title_cell(group_key, corridors, horizon)
-    _add_setup_cell(group, corridors, horizon)
+    _add_title_cell(group_key, corridors, horizon, fold)
+    _add_setup_cell(group, corridors, horizon, fold)
     _add_embed_cells()
     _add_context_dim_cell()
     _add_prepare_cell(corridors)
@@ -672,9 +770,19 @@ def build_notebook(group_key: str, horizon: int) -> None:
     (out_dir / filename).write_text(nbf.writes(_nb), encoding="utf-8")
     print(f"Notebook written: {out_dir / filename}  ({len(_cells)} cells)")
 
+    kernel_id = group["kernel_id"].format(h=horizon)
+    title = group["title"].format(h=horizon)
+    if fold.name != "main":
+        # Slug and title carry the fold so the two never collide on Kaggle and so
+        # the run list stays readable at a glance.
+        kernel_id = f"{kernel_id}-{fold.name}"
+        title = f"{title} [{fold.name}]"
+    if kernel_id in POISONED_SLUGS:
+        kernel_id, title = POISONED_SLUGS[kernel_id]
+
     kernel_meta = {
-        "id": f"alexhuaracha/{group['kernel_id'].format(h=horizon)}",
-        "title": group["title"].format(h=horizon),
+        "id": f"alexhuaracha/{kernel_id}",
+        "title": title,
         "code_file": filename,
         "kernel_sources": group["kernel_sources"],
         **_KERNEL_META_BASE,
@@ -686,6 +794,9 @@ def build_notebook(group_key: str, horizon: int) -> None:
 
 
 if __name__ == "__main__":
-    for key in GROUPS:
-        for h in HORIZONS:
-            build_notebook(key, h)
+    # Every origin, published one included. ROLLING_FOLDS ends with MAIN_FOLD, so
+    # the published notebooks are emitted exactly once and in their usual paths.
+    for fold in ROLLING_FOLDS:
+        for key in GROUPS:
+            for h in HORIZONS:
+                build_notebook(key, h, fold)

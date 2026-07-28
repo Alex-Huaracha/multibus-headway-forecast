@@ -105,24 +105,39 @@ def embed_module(rel_path: str, header_md: str, slug: str) -> None:
     code(_strip_relative_imports(raw), cell_id=f"cell-22-embed-{slug}")
 
 
-def _all_digests() -> dict:
-    """`{"E2|test|3": sha}` for every corridor x split x horizon."""
+def _all_digests(fold: str = "main") -> dict:
+    """`{"E2|test|3": sha}` for every corridor x split x horizon of one fold.
+
+    ``fold`` is part of the filter, not a convenience: the manifest carries one
+    row set per evaluation origin, so omitting it would match three rows and a
+    tolerant lookup would silently freeze the wrong origin's digests into the
+    kernel.
+    """
     if not MANIFEST_CSV.exists():
         raise FileNotFoundError(
             f"{MANIFEST_CSV} missing — run: uv run python -m src.build_sample_index"
         )
     manifest = pl.read_csv(MANIFEST_CSV)
+    if "fold" not in manifest.columns:
+        raise ValueError(
+            f"{MANIFEST_CSV.name} predates rolling origin (no `fold` column) — "
+            "regenerate it: uv run python -m src.build_sample_index"
+        )
     out = {}
     for name, _emp in CORRIDORS:
         for split in ("train", "val", "test"):
             for horizon in HORIZONS:
                 row = manifest.filter(
-                    (pl.col("corridor") == name)
+                    (pl.col("fold") == fold)
+                    & (pl.col("corridor") == name)
                     & (pl.col("split") == split)
                     & (pl.col("horizon") == horizon)
                 )
                 if row.height != 1:
-                    raise ValueError(f"manifest missing {name}/{split}/h{horizon}")
+                    raise ValueError(
+                        f"manifest has {row.height} rows for "
+                        f"{fold}/{name}/{split}/h{horizon}, expected exactly 1"
+                    )
                 out[f"{name}|{split}|{horizon}"] = row.row(0, named=True)["sha256"]
     return out
 

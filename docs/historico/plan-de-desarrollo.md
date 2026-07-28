@@ -1,4 +1,20 @@
-# Plan de Desarrollo
+# Plan de Desarrollo — ARCHIVADO
+
+> **Archivado el 2026-07-27.** Se conserva como rastro de las 74 tareas
+> ejecutadas. **No es la lista de pendientes vigente**: esa vive en
+> [`../pendientes.md`](../pendientes.md), y mantener dos era garantía de que una
+> quedara desactualizada.
+>
+> Sus 13 casilleros abiertos se resuelven así:
+>
+> | Casilleros | Estado real |
+> |---|---|
+> | **Fase 8** (6 tareas): identificar episodios de *bunching*, huecos y congestión; métrica de anticipación operacional | ❌ **Premisa refutada.** Esa fase asumía que los modelos anticipan *bunching*. La medición vectorial mostró que la persistencia les gana en las 12 celdas, por hasta 253×. No hay anticipación que narrar. Ver [`../resultados/documento-resultados.md`](../resultados/documento-resultados.md) §5 |
+> | **Fase 9** (7 tareas): manuscrito, README final, congelar versiones, submission | ⬜ Vigentes, consolidadas como **P1** en `pendientes.md` |
+>
+> La Fase 8 es el ejemplo más caro de este proyecto de por qué se mide antes de
+> planificar la narrativa: estaba enteramente planificada sobre una capacidad que
+> los modelos no tienen.
 
 Este plan ejecuta el objetivo definido en [`objetivo.md`](./objetivo.md). Cada fase tiene un objetivo propio, una lista de tareas con casilleros para marcar avance, un artefacto verificable y un criterio de cierre. No hay fechas: una fase se cierra cuando cumple su criterio.
 

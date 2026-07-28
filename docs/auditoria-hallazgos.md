@@ -11,6 +11,32 @@ pendiente**, con la evidencia y el costo de cada pendiente.
 Sirve como punto de retomada: cada pendiente indica qué necesita (datos locales,
 Kaggle, o GPU) y cuánto cuesta.
 
+> ### Estado al 2026-07-27: 9 de 13 pendientes cerrados
+>
+> La remediación completa está mergeada a `main` (commit `a98d508`). Este
+> documento se conserva como **registro de lo que la auditoría encontró**, no
+> como lista de trabajo — esa vive en [`pendientes.md`](./pendientes.md).
+>
+> | # | Estado | Dónde se cerró |
+> |---|---|---|
+> | 1 Dirección del Wilcoxon | ✅ | `significance_clustered.wilcoxon_directional`. Confirmado: a h=3 el LSTM gana la media y pierde la mediana en E4 y E59 |
+> | 2 432 p-valores circulares | ✅ | Eliminados. `volatility_effect_table` ya no reporta inferencia |
+> | 3 Sensibilidad de winsorización | ✅ | El techo es inerte: ningún signo cambia, margen < 0.01 min |
+> | 4 Semillas ConvLSTM/Transformer | ⬜ | Requiere GPU. Sigue declarado como límite |
+> | 5 Métrica vectorial | ✅ | **Refutó el claim central**: la persistencia gana la detección de *bunching* en las 12 celdas, por hasta 253× |
+> | 6 Varianza cluster-robusta | ✅ | Agrupada por día de servicio. El *n* efectivo son 22 días; tres verdictos se caen |
+> | 7 HLN y piso de lag | ✅ | `hln_scale`, piso `lag ≥ h−1`, referencia *t* |
+> | 8 Contradicciones del repo | ✅ | GNN y E58 corregidos, más una tercera contradicción encontrada (ruta de credenciales) |
+> | 9 Enrutador sobredimensionado | ✅ | Comprimido a dos párrafos. Re-medido: solo paga a h=3 |
+> | 10 Composición del test / Carnaval | ⬜ | Abierto. Lo absorbe parcialmente el *rolling origin* (#12) |
+> | 11 Bandera de día atípico | ✅ | **Eliminada**, no parcheada — contrato C3 |
+> | 12 Origen rodante | 🔨 | Infraestructura construida (`ROLLING_FOLDS`, 16 kernels emitidos). Falta correr |
+> | 13 Objetivos contados 2.4–5.4× | ✅ | Contrato C1: una muestra por `(empresa, sentido, instante, horizonte)` |
+>
+> **Lo que la auditoría no anticipó:** el pendiente 5 no era una métrica faltante
+> sino el claim central del paper sin sostén. Su cierre reencuadró el aporte
+> entero — ver [`resultados/documento-resultados.md`](./resultados/documento-resultados.md) §5.
+
 ---
 
 ## 1. Puntajes de entrada

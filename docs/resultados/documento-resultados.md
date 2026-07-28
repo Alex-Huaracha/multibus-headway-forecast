@@ -157,6 +157,43 @@ La lectura honesta —el aprendiz cambia muchas pérdidas chicas por pocas ganan
 | **h=3** | **Zona de transición.** Sin victoria declarable. |
 | **h≥5** | **El aprendiz gana en media y en mediana, con significancia amplia, en los tres corredores.** Esta es la afirmación sólida. |
 
+### ¿Y si el mes fuera otro?
+
+Todo lo anterior sale de **una** ventana de prueba de 22 días. La objeción inmediata es que el titular sea una propiedad de febrero de 2024 y no del problema. Para responderla se re-corrió el protocolo completo —winsorización, portón de población, entrenamiento, exportación— en dos orígenes anteriores. No es una re-partición de los mismos residuos: son 16 entrenamientos nuevos sobre ventanas que no se solapan con la publicada.
+
+| Origen | Entrena | Prueba |
+|---|---|---|
+| `r1` | 61 días | 2023-12-23 → 2024-01-13 |
+| `r2` | 83 días | 2024-01-14 → 2024-02-04 |
+| `main` | 107 días | 2024-02-08 → 2024-02-29 (la publicada) |
+
+**11 de las 12 celdas ponen la victoria del mismo lado en los tres orígenes.** El signo de Δ MAE, donde negativo es victoria del aprendiz:
+
+| Celda | `r1` | `r2` | `main` | ¿Coincide? |
+|---|---|---|---|---|
+| E2 h=1 | +0.041 | +0.054 | +0.066 | sí |
+| E2 h=3 | −0.734 | −0.794 | −0.851 | sí |
+| E2 h=5 | −0.993 | −1.074 | −1.109 | sí |
+| E2 h=10 | −1.398 | −1.413 | −1.473 | sí |
+| E59 h=1 | +0.374 | +0.409 | +0.334 | sí |
+| E59 h=3 | −0.134 | −0.120 | −0.186 | sí |
+| E59 h=5 | −0.429 | −0.405 | −0.491 | sí |
+| E59 h=10 | −1.046 | −1.073 | −1.173 | sí |
+| E4 h=1 | +0.459 | +0.424 | +0.464 | sí |
+| **E4 h=3** | **+0.167** | **−0.017** | **−0.064** | **no** |
+| E4 h=5 | −0.286 | −0.520 | −0.536 | sí |
+| E4 h=10 | −1.215 | −1.375 | −1.381 | sí |
+
+**La afirmación sólida se sostiene entera.** A h≥5 las **18 celdas** —tres corredores por dos horizontes por tres orígenes— dan ventaja al aprendiz, y las 18 son significativas con la varianza agrupada por día. Ninguna depende del mes.
+
+**La única que se da vuelta es la que nunca fue una afirmación.** E4 h=3 es la celda que esta misma sección ya declaraba no significativa en la ventana publicada. Fuera de ella se comporta igual: *p* = 0.183 en `main` y 0.720 en `r2`, y solo en `r1` alcanza significancia, del lado de la persistencia. El desacuerdo no tumba un resultado — confirma que ahí, para ese corredor, el cruce está justo en el medio y no hay victoria que reclamar. Coincide con lo que ya decían los otros cuatro métodos.
+
+**Y el borde de E2 h=1 tampoco era del mes.** No alcanza significancia en ninguno de los tres orígenes (*p* = 0.299 en `r1`, 0.068 en `r2`, 0.064 en `main`). La ventaja de la persistencia ahí es de cuatro segundos: la dirección es estable, el tamaño no se distingue de cero. La salvedad del titular pasa de "al borde en esta ventana" a **"al borde en las tres"**, que es una afirmación más fuerte, no más débil.
+
+Hay algo más que la tabla de signos no muestra: **en los nueve pares (corredor, origen), Δ MAE cae monótonamente con el horizonte.** No solo aparece el cruce en las tres ventanas — aparece con la misma forma. Es el horizonte el que mueve la ventaja, y lo hace igual en diciembre, en enero y en febrero.
+
+> Una advertencia de lectura. Esta tabla puntúa sobre la población completa del LSTM, mientras que las tablas de significancia de esta sección puntúan sobre la población LSTM∩XGBoost, porque el XGBoost no se re-corrió en los orígenes de rolling. La diferencia es de unas 11 filas en 90 000 y mueve el tercer decimal de *p* (E2 h=1: 0.0619 publicado contra 0.0638 acá). Se eligió comparabilidad **entre** ventanas antes que con la tabla publicada: restringir un origen y no los otros dos habría vaciado de sentido la comparación.
+
 ---
 
 ## 5. El aporte: la disociación
