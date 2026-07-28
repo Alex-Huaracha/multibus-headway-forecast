@@ -1,6 +1,6 @@
 # Qué falta y en qué orden
 
-Actualizado: 2026-07-27.
+Actualizado: 2026-07-28.
 
 > **Lo único que bloquea la publicación es el manuscrito.** Todo lo demás de esta
 > lista cierra objeciones de revisor o es deuda técnica. Ninguno cambia el
@@ -12,10 +12,11 @@ Actualizado: 2026-07-27.
 
 | | |
 |---|---|
-| Rama `main` | Pipeline contiguo mergeado. **22 commits sin pushear.** |
-| Rama `feat/rolling-origin` | 2 commits: cortes parametrizados + notebooks emitidos. **Sin mergear.** |
-| Suite de tests | 1606 pasando |
+| Rama `main` | Pipeline contiguo mergeado. Al día con el remoto. |
+| Rama `feat/rolling-origin` | 6 commits. **4 sin pushear. Sin mergear.** |
+| Suite de tests | 1540 pasando (13 excluidos por entorno: `libomp`, ABI torch/numpy) |
 | Hallazgo central | Medido, con guardián sobre cada cifra del documento |
+| Rolling origin | **Cerrado.** 24 corridas, 11/12 celdas coinciden en los tres orígenes |
 
 El aporte del paper es **la disociación**: los modelos óptimos en MAE
 sub-reportan sistemáticamente la irregularidad del servicio, y una evaluación
@@ -24,26 +25,22 @@ escalar es estructuralmente incapaz de detectarlo. A h=10 el LSTM gana el MAE po
 
 ---
 
-## 2. Para hacer en casa: correr r1 y r2 en Kaggle
+## 2. Rolling origin: cerrado
 
-**16 kernels, ≈1.8 h de GPU, ~1 h de reloj.** Runbook completo en
-[`correr-kaggle.md`](./correr-kaggle.md) §2.
+Las 24 corridas de la familia 21 se relanzaron y validaron contra los 6 chequeos
+del runbook. El builder comparativo está escrito y su salida vive en la Sección 4
+del documento de resultados, sección *"¿Y si el mes fuera otro?"*.
 
-| Paso | Comando / acción | Verificar |
-|---|---|---|
-| 1 | `git checkout feat/rolling-origin` | estás en la rama correcta |
-| 2 | `uv run python src/build_notebook_21_lstm_contiguous.py` | emite 24 notebooks |
-| 3 | Push de a **2 kernels** (límite de Kaggle) | `correr-kaggle.md` §2 |
-| 4 | Si falla con `no kernel image is available` | cambiar GPU a **T4×2 desde la web** |
-| 5 | Revisar el log de cada corrida | `correr-kaggle.md` §3 — **6 chequeos** |
-| 6 | Descargar outputs | `correr-kaggle.md` §4 |
-| 7 | `git add docs/resultados/ && git commit` | 16 CSVs nuevos con sufijo `_r1_` / `_r2_` |
+**11 de 12 celdas ponen la victoria del mismo lado en los tres orígenes.** A h≥5
+las 18 celdas dan ventaja al aprendiz y las 18 son significativas. La única que
+se da vuelta, E4 h=3, ya era no significativa en la ventana publicada.
 
-⚠️ **El chequeo que no se puede saltear:** que el log diga `Fold: r1` (o `r2`).
-Si dice `main`, el kernel está re-midiendo febrero y el output no sirve.
+Dos cosas que salieron de ahí y conviene no olvidar:
 
-Cuando los 16 estén bajados, avisá: falta el **paso 4**, el builder que compara
-los tres cortes y responde si el hallazgo aguanta fuera de febrero.
+- El re-entrenamiento reprodujo los 8 CSVs de resultados del corte publicado
+  **byte por byte**. Es reproducibilidad demostrada, y sirve para el paper.
+- El slug `21-lstm-contiguous-h10-r2` quedó podrido en Kaggle; esa corrida vive
+  en `-h10-r2b` (ver `POISONED_SLUGS` en el builder y `correr-kaggle.md` §5).
 
 ---
 
@@ -57,36 +54,38 @@ los tres cortes y responde si el hallazgo aguanta fuera de febrero.
 
 ### Cierran objeciones de revisor (no bloquean)
 
-| # | Tarea | Costo | Por qué importa |
-|---|---|---|---|
-| R1 | Rolling origin: correr r1/r2 + builder comparativo | 1.8 h GPU + 1 día local | Tu aporte es una afirmación **general**; una sola ventana no la sostiene |
-| R2 | Semillas para ConvLSTM y Transformer | GPU | Solo el LSTM tiene barrido; el nulo espacial podría ser mala suerte de inicialización |
-| R3 | Nivelar el tuning del LSTM (24 configs) | ~14 h GPU | Ya está **declarado** como no atribuible. Baja prioridad |
+| # | Tarea | Costo | Por qué importa | Estado |
+|---|---|---|---|---|
+| ~~R1~~ | ~~Rolling origin~~ | — | — | ✅ **Cerrado 2026-07-28** |
+| R2 | Semillas para ConvLSTM y Transformer | GPU | Solo el LSTM tiene barrido (`15_lstm_multiseed`); el nulo espacial podría ser mala suerte de inicialización | Abierto |
+| R3 | Nivelar el tuning del LSTM (24 configs) | ~14 h GPU | Ya está **declarado** como no atribuible. Baja prioridad | Abierto |
 
 ### Deuda técnica (no afectan al paper)
 
 | # | Tarea | Costo |
 |---|---|---|
 | D1 | Mergear `feat/rolling-origin` a `main` | minutos |
-| D2 | `git push` de los 22 commits de `main` | minutos |
+| D2 | `git push` de los 4 commits de `feat/rolling-origin` — **el trabajo de hoy no está respaldado en ningún lado** | minutos |
 | D3 | 9 notebooks legacy (04–09) rancios contra sus builders | horas |
 
 ---
 
 ## 4. Orden recomendado
 
-1. **Escribir el manuscrito.** No depende de nada de lo anterior.
-2. Correr R1 mientras escribís, o después del borrador.
+1. **D1 y D2: mergear y pushear.** Minutos, y hoy el trabajo vive en un solo disco.
+2. **Escribir el manuscrito.** No depende de nada de lo anterior.
 3. R2 solo si sobra cuota de GPU.
 4. R3 y D3, probablemente nunca.
 
 **Por qué el manuscrito primero:** escribir te va a decir con precisión cuánto
-pesa cada objeción en *tu* argumento. Ahora lo estamos estimando. Y si al
-redactar la sección de limitaciones concluís que declarar la limitación alcanza,
-R1 no se corre y no se perdió nada — la infraestructura ya está construida.
+pesa cada objeción en *tu* argumento. Ahora lo estamos estimando. Con R1 cerrado,
+la investigación ya sostiene lo que el paper afirma; lo que queda son objeciones
+declarables, no agujeros.
 
-Lo que **no** conviene es correr R1 ahora "porque ya está hecho": eso es razonar
-por costo hundido.
+Y el recordatorio de calibración, que no cambió: en 8–9 papers recientes de
+IJACSA, los tests formales de significancia aparecen en 2 y las secciones de
+amenazas a la validez en 0. **El rigor ya está muy por encima de la mediana del
+venue.** Agregar más tiene rendimiento decreciente; escribir no.
 
 ---
 
