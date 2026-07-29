@@ -117,23 +117,41 @@ class TestDocumentStructure:
     def test_the_contiguous_figures_are_the_ones_embedded(self, text):
         embedded = set(re.findall(r"!\[[^\]]*\]\(([^)]+)\)", text))
         assert embedded == {
-            "contiguo-disociacion.png",
+            "contiguo-artefacto-umbral.png",
+            "contiguo-deteccion-sin-umbral.png",
             "contiguo-degradacion.png",
             "contiguo-volatilidad.png",
         }, f"unexpected figure set: {sorted(embedded)}"
 
-    def test_the_dissociation_figure_leads(self, text):
-        """It is the contribution; burying it under the scalar result would
-        reproduce the emphasis this rewrite exists to correct."""
+    def test_the_retracted_figure_is_gone(self, text):
+        """``contiguo-disociacion.png`` plotted fixed-cut bunching F1 as if it
+        measured the models. That is the artifact Section 5.3 dismantles, so a
+        document that still embeds it argues against itself."""
+        assert "contiguo-disociacion.png" not in text or "eliminada" in text[
+            text.index("contiguo-disociacion.png") - 200 :
+            text.index("contiguo-disociacion.png") + 200
+        ], "the retracted figure is cited without saying it was retracted"
+        assert not (DOC.parent / "contiguo-disociacion.png").exists(), (
+            "the retracted figure is still on disk and will be picked up by "
+            "anyone browsing the results directory"
+        )
+
+    def test_the_artifact_and_its_correction_lead_as_a_pair(self, text):
+        """The two must appear together and BEFORE the scalar result: shown
+        alone, the first misrepresents the models and the second overstates
+        them. The scalar figures are supporting evidence, not the headline."""
         order = [
             text.index(name)
             for name in (
-                "contiguo-disociacion.png",
+                "contiguo-artefacto-umbral.png",
+                "contiguo-deteccion-sin-umbral.png",
                 "contiguo-degradacion.png",
                 "contiguo-volatilidad.png",
             )
         ]
-        assert order == sorted(order)
+        assert order == sorted(order), (
+            "the artifact/correction pair no longer leads the document"
+        )
 
 
 class TestScalarClaims:

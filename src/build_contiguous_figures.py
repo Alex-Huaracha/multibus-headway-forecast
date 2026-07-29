@@ -6,15 +6,20 @@ removed. They stay as the record of that comparison; these are their successors,
 and they are built from the **committed CSVs** rather than from the raw residuals
 so a figure can never disagree with the table it illustrates.
 
-    contiguo-degradacion.png   MAE vs horizonte, por corredor. El resultado escalar.
-    contiguo-volatilidad.png   Δ MAE por tercil ex-ante. Que la frontera es la
-                               volatilidad, no el horizonte.
-    contiguo-disociacion.png   Ventaja escalar contra fidelidad vectorial, ambas
-                               contra el horizonte. El aporte.
+    contiguo-degradacion.png          MAE vs horizonte, por corredor. El resultado
+                                      escalar.
+    contiguo-volatilidad.png          Δ MAE por tercil ex-ante. Que la frontera es
+                                      la volatilidad, no el horizonte.
+    contiguo-artefacto-umbral.png     Tasa de disparo contra tasa real del evento.
+                                      El artefacto que se está explicando.
+    contiguo-deteccion-sin-umbral.png Ventaja escalar y AUC de detección, juntas.
+                                      El veredicto corregido.
 
-The third is the paper's headline: two quantities moving in opposite directions
-as the horizon grows, on one pair of axes, per corridor. Everything else in the
-document supports it.
+The last two are the paper's headline and they only work as a pair: the first
+shows a comparison decided by its own operating point, the second shows what the
+same data says once the operating point is removed. Publishing either alone would
+misrepresent the result — the earlier ``contiguo-disociacion.png`` did exactly
+that by plotting fixed-cut F1 as if it measured the models, and it is gone.
 
 Usage
 -----
@@ -193,12 +198,86 @@ def volatility() -> Path:
     return path
 
 
-def dissociation() -> Path:
-    """The headline: scalar advantage and vector fidelity, opposite directions."""
+def threshold_artifact() -> Path:
+    """The artifact, in one glance: who fires, and how often the event happens.
+
+    The previously published verdict rested on bunching F1 at a fixed relative
+    cut. This figure shows why that comparison was decided by the cut and not by
+    the models: persistence fires almost exactly at the base rate — because the
+    rule was calibrated in the units it lives in — while the learner's compressed
+    vector puts the same relative cut deep in its tail, so it falls silent.
+    """
+    table = _load("contiguous_detection_calibrated.csv")
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.4), sharex=True, sharey=True)
+    legend_handles: list = []
+
+    for ax, corridor in zip(axes, CORRIDORS):
+        cell = table.filter(pl.col("corridor") == corridor)
+
+        base = cell.filter(pl.col("model") == "LSTM").sort("horizon")
+        (base_line,) = ax.plot(
+            base.get_column("horizon"), base.get_column("base_rate"),
+            color="black", marker="", linestyle=":", linewidth=1.8,
+            label="Tasa real de bunching (lo que habría que detectar)",
+        )
+        for model, label, color, marker, style in (
+            ("Persistence", "Persistencia — dispara a la tasa base",
+             "tab:gray", "o", "--"),
+            ("LSTM", "LSTM — el corte fijo lo silencia", "tab:red", "s", "-"),
+        ):
+            row = cell.filter(pl.col("model") == model).sort("horizon")
+            (line,) = ax.plot(
+                row.get_column("horizon"), row.get_column("fire_rate_fixed"),
+                color=color, marker=marker, linestyle=style,
+                linewidth=2.0, markersize=7, label=label,
+            )
+            if ax is axes[0]:
+                legend_handles.append(line)
+        if ax is axes[0]:
+            legend_handles.append(base_line)
+
+        ax.set_title(corridor)
+        ax.set_xticks(list(HORIZONS))
+        ax.set_xlabel("Horizonte de predicción [min]")
+        ax.set_ylim(0, 0.35)
+        ax.grid(True, alpha=0.3)
+
+    axes[0].set_ylabel("Fracción de celdas marcadas como bunching")
+    fig.suptitle(
+        "El artefacto: con el corte fijo, la persistencia dispara a la tasa base "
+        "y el aprendiz enmudece",
+        y=0.99, fontsize=12.5,
+    )
+    fig.legend(
+        legend_handles, [line.get_label() for line in legend_handles],
+        loc="upper center", bbox_to_anchor=(0.5, 0.925), ncol=3, frameon=False,
+    )
+    _caption(fig, [
+        "La regla marca toda celda por debajo de 0.5x la media de su vector. La persistencia propaga el vector observado, así que",
+        "hereda su dispersión y el corte cae donde fue diseñado: dispara casi exactamente tan seguido como ocurre el evento. El",
+        "pronóstico puntual emite un vector comprimido (CV 0.16 contra 0.79), así que el mismo corte relativo le queda en la cola.",
+    ])
+    fig.tight_layout(rect=(0, 0.11, 1, 0.88))
+
+    path = OUT_DIR / "contiguo-artefacto-umbral.png"
+    fig.savefig(path, dpi=DPI)
+    plt.close(fig)
+    return path
+
+
+def detection_without_threshold() -> Path:
+    """The corrected verdict: remove the cut and both metrics cross over together.
+
+    Left axis is the scalar advantage, right axis is threshold-free
+    discrimination (AUC) for both models. The point is that they AGREE:
+    persistence leads at h=1 on both, the learner leads at h=10 on both. The
+    "dissociation" reported earlier was the fixed cut, not the models.
+    """
     audit = _load("contiguous_paired_audit.csv").filter(
         pl.col("direction") == "aggregate"
     )
-    vector = _load("contiguous_vector_metrics.csv")
+    detection = _load("contiguous_detection_calibrated.csv")
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.8), sharex=True)
     # Legend handles are collected while plotting the FIRST panel. Recovering
@@ -229,22 +308,25 @@ def dissociation() -> Path:
         twin = ax.twinx()
         twin_axes.append(twin)
         for model, label, color, marker, style in (
-            ("Persistence", "F1 de bunching — persistencia", "tab:gray", "o", "--"),
-            ("LSTM", "F1 de bunching — LSTM", "tab:red", "s", "-"),
+            ("Persistence", "AUC de bunching — persistencia", "tab:gray", "o", "--"),
+            ("LSTM", "AUC de bunching — LSTM", "tab:red", "s", "-"),
         ):
-            row = vector.filter(
+            row = detection.filter(
                 (pl.col("corridor") == corridor) & (pl.col("model") == model)
             ).sort("horizon")
             (line,) = twin.plot(
-                row.get_column("horizon"), row.get_column("bunching_f1"),
+                row.get_column("horizon"), row.get_column("auc"),
                 color=color, marker=marker, linestyle=style,
                 linewidth=2.0, markersize=7, label=label,
             )
             if ax is axes[0]:
                 legend_handles.append(line)
-        # Shared scale across panels so the collapse is comparable between
-        # corridors rather than rescaled away in each one.
-        twin.set_ylim(0, 0.75)
+        # Shared scale across panels so the crossover is comparable between
+        # corridors rather than rescaled away in each one. 0.5 is chance, and it
+        # is inside the range on purpose: the reader must see how far from blind
+        # these curves are.
+        twin.set_ylim(0.50, 0.85)
+        twin.axhline(0.5, color="tab:red", linewidth=1.0, linestyle=":", alpha=0.6)
         twin.tick_params(axis="y", labelcolor="tab:red")
         # Only the rightmost twin keeps tick labels; the inner ones would sit on
         # top of the next panel's own axis.
@@ -252,10 +334,11 @@ def dissociation() -> Path:
             twin.set_yticklabels([])
 
     axes[0].set_ylabel("Ventaja en MAE sobre persistencia [min]", color="tab:blue")
-    twin_axes[-1].set_ylabel("F1 de detección de bunching", color="tab:red")
+    twin_axes[-1].set_ylabel("AUC de detección de bunching", color="tab:red")
 
     fig.suptitle(
-        "La disociación: el aprendiz gana el error medio y pierde el vector",
+        "Sin umbral las dos métricas coinciden: la persistencia manda corto, "
+        "el aprendiz manda largo",
         y=0.99, fontsize=12.5,
     )
     fig.legend(
@@ -263,20 +346,23 @@ def dissociation() -> Path:
         loc="upper center", bbox_to_anchor=(0.5, 0.935), ncol=3, frameon=False,
     )
     _caption(fig, [
-        "Eje izquierdo (azul, ↑ mejor): cuánto MAE le gana el LSTM a la persistencia. Eje derecho (rojo y gris, ↑ mejor):",
-        "F1 de detección conjunta de bunching, en escala común a los tres paneles. Alargar el horizonte mejora lo primero",
-        "y destruye lo segundo, en los tres corredores. Una evaluación escalar solo ve la curva azul.",
+        "Eje izquierdo (azul, ↑ mejor): cuánto MAE le gana el LSTM a la persistencia. Eje derecho (rojo y gris, ↑ mejor): AUC de",
+        "detección de bunching, invariante a cualquier reescalado monótono del pronóstico y por lo tanto inmune al artefacto de",
+        "umbral. Los dos cruces van en el mismo sentido y en la misma zona; el de detección ocurre igual o algo más tarde que el",
+        "escalar. Ninguna serie está cerca del azar (0.5, punteado): el aprendiz no es ciego al evento en ninguna celda.",
     ])
     fig.tight_layout(rect=(0, 0.11, 1, 0.88))
 
-    path = OUT_DIR / "contiguo-disociacion.png"
+    path = OUT_DIR / "contiguo-deteccion-sin-umbral.png"
     fig.savefig(path, dpi=DPI)
     plt.close(fig)
     return path
 
 
 def main() -> None:
-    for renderer in (degradation, volatility, dissociation):
+    for renderer in (
+        degradation, volatility, threshold_artifact, detection_without_threshold
+    ):
         path = renderer()
         print(f"Figura escrita en {path.relative_to(REPO_ROOT)}")
 
