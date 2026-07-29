@@ -160,6 +160,173 @@ def bunching_flags(residuals: pl.DataFrame, value_col: str) -> pl.Series:
     ).get_column("_flag")
 
 
+def bunching_score(residuals: pl.DataFrame, value_col: str) -> pl.Series:
+    """How far below its vector's mean a cell sits, as a CONTINUOUS score.
+
+    Higher means more bunched. ``bunching_flags`` is exactly
+    ``bunching_score(...) > -BUNCHING_RATIO``, so this is the same detector with
+    the decision left open.
+
+    Why this exists
+    ---------------
+    ``BUNCHING_RATIO`` is an operating point calibrated on OBSERVED vectors,
+    where the ratio has the realized dispersion. Transplanting it onto a
+    predicted vector is not neutral: a conditional-mean forecast is compressed
+    (CV 0.16 against a real 0.79), so the same cut lands three standard
+    deviations into its left tail and the detector never fires. Scoring that as
+    "the model cannot detect bunching" confuses a mis-set threshold with missing
+    information.
+
+    Ranking metrics computed on this score answer the question the fixed
+    threshold cannot: does the model ORDER cells by bunching risk correctly,
+    whatever scale its outputs happen to live on?
+    """
+    mean_over_vector = pl.col(value_col).mean().over(VECTOR_KEY)
+    return residuals.select(
+        pl.when(mean_over_vector > 0)
+        .then(-pl.col(value_col) / mean_over_vector)
+        .otherwise(None)
+        .alias("_score")
+    ).get_column("_score")
+
+
+def ranking_scores(truth: np.ndarray, score: np.ndarray) -> dict:
+    """Threshold-free discrimination: ROC-AUC and average precision.
+
+    These are the honest way to ask whether a model carries information about an
+    event, because they are invariant to any monotone rescaling of the score —
+    exactly the transformation that a fixed relative threshold is NOT invariant
+    to. ``ap_lift`` divides average precision by the base rate, so 1.0 means "no
+    better than firing at random".
+    """
+    truth = np.asarray(truth, dtype=bool)
+    score = np.asarray(score, dtype=float)
+    ok = np.isfinite(score)
+    truth, score = truth[ok], score[ok]
+
+    n_pos = int(truth.sum())
+    n_neg = int(truth.size - n_pos)
+    if n_pos == 0 or n_neg == 0:
+        return {"auc": float("nan"), "average_precision": float("nan"),
+                "ap_lift": float("nan")}
+
+    # AUC via the Mann-Whitney U identity, with ties given average ranks so a
+    # constant score scores exactly 0.5 instead of an artifact of sort order.
+    order = np.argsort(score, kind="mergesort")
+    ranks = np.empty(score.size, dtype=float)
+    sorted_score = score[order]
+    i = 0
+    while i < sorted_score.size:
+        j = i
+        while j + 1 < sorted_score.size and sorted_score[j + 1] == sorted_score[i]:
+            j += 1
+        ranks[order[i:j + 1]] = 0.5 * (i + j) + 1.0
+        i = j + 1
+    auc = (ranks[truth].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
+
+    # Average precision, descending score, ties broken pessimistically by taking
+    # the step at the end of each tie group.
+    desc = np.argsort(-score, kind="mergesort")
+    t_sorted = truth[desc]
+    tp_cum = np.cumsum(t_sorted)
+    precision = tp_cum / np.arange(1, t_sorted.size + 1)
+    average_precision = float(precision[t_sorted].sum() / n_pos)
+    base_rate = n_pos / truth.size
+
+    return {
+        "auc": float(auc),
+        "average_precision": average_precision,
+        "ap_lift": average_precision / base_rate,
+    }
+
+
+def matthews_corrcoef(truth: np.ndarray, predicted: np.ndarray) -> float:
+    """MCC — the summary F1 should have been all along for this comparison.
+
+    F1 ignores true negatives, so it rewards any detector that merely fires at
+    roughly the base rate. On these corridors a constant "always bunched"
+    classifier outscores every real detector at h=10 on F1. MCC is 0 for that
+    degenerate rule by construction, which is why it belongs in every table here.
+    """
+    truth = np.asarray(truth, dtype=bool)
+    predicted = np.asarray(predicted, dtype=bool)
+    tp = float(np.sum(truth & predicted))
+    tn = float(np.sum(~truth & ~predicted))
+    fp = float(np.sum(~truth & predicted))
+    fn = float(np.sum(truth & ~predicted))
+    denom = np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+    return float((tp * tn - fp * fn) / denom) if denom > 0 else 0.0
+
+
+def trivial_f1(base_rate: float) -> float:
+    """F1 of the degenerate detector that flags EVERY cell as bunched.
+
+    The floor every reported F1 must clear. Precision is the base rate, recall
+    is 1, so F1 = 2b/(1+b). Any detector below this line is worse than not
+    thinking at all, and a table without this column cannot show that.
+    """
+    return 2 * base_rate / (1 + base_rate) if base_rate > 0 else 0.0
+
+
+def best_threshold(
+    truth: np.ndarray, score: np.ndarray, objective: str = "mcc"
+) -> float:
+    """The score cut maximising ``objective`` — FIT on one window, APPLY to another.
+
+    Never fit and score on the same rows: the point of this function is to give
+    the learner the one free parameter that persistence gets for free by copying
+    an observed vector, not to hand it an oracle.
+
+    ``objective`` defaults to ``"mcc"`` rather than ``"f1"`` because F1
+    maximisation degenerates at these base rates. On E2 the realized bunching
+    rate is 30 %, so "flag everything" already scores F1 = 0.46, and the
+    F1-optimal cut collapses to almost exactly that rule for BOTH models — a
+    threshold with no discriminative content that nonetheless posts a
+    respectable-looking F1. MCC is 0 for that rule, so maximising it cannot
+    select it. ``"f1"`` remains available to reproduce the degeneracy on purpose.
+
+    Candidate cuts are evaluated only at TIE-GROUP boundaries. Picking an
+    interior point of a run of equal scores would return a cut whose ``>=``
+    behaviour does not match the confusion matrix that selected it — the failure
+    mode that matters exactly when a model's scores pile up, which is the
+    situation under study here.
+    """
+    if objective not in {"mcc", "f1"}:
+        raise ValueError(f"best_threshold: unknown objective {objective!r}")
+
+    truth = np.asarray(truth, dtype=bool)
+    score = np.asarray(score, dtype=float)
+    ok = np.isfinite(score)
+    truth, score = truth[ok], score[ok]
+    if truth.size == 0 or truth.sum() == 0 or truth.all():
+        return -BUNCHING_RATIO
+
+    desc = np.argsort(-score, kind="mergesort")
+    t_sorted, s_sorted = truth[desc], score[desc]
+
+    # Last index of each run of equal scores: cutting there is the only choice
+    # consistent with applying the returned value as ``score >= threshold``.
+    boundary = np.flatnonzero(np.r_[np.diff(s_sorted) != 0, True])
+
+    n_pos = float(t_sorted.sum())
+    n = float(t_sorted.size)
+    tp = np.cumsum(t_sorted)[boundary].astype(float)
+    fired = (boundary + 1).astype(float)
+    fp = fired - tp
+    fn = n_pos - tp
+    tn = n - fired - fn
+
+    if objective == "f1":
+        value = np.divide(2 * tp, 2 * tp + fp + fn,
+                          out=np.zeros(tp.shape), where=(2 * tp + fp + fn) > 0)
+    else:
+        denom = np.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+        value = np.divide(tp * tn - fp * fn, denom,
+                          out=np.zeros(tp.shape), where=denom > 0)
+
+    return float(s_sorted[boundary[int(np.argmax(value))]])
+
+
 def detection_scores(truth: np.ndarray, predicted: np.ndarray) -> DetectionScores:
     """Precision / recall / F1 of predicted bunching against realized bunching."""
     truth = np.asarray(truth, dtype=bool)

@@ -1,11 +1,19 @@
 """Contracts on the committed vector-metric tables — audit pending #5.
 
-These tests pin a result that runs AGAINST the project's headline claim, which
-is exactly why they need to exist: a later rebuild that quietly reverses it
-should have to argue with a failing test rather than slip through.
+These tests pin what this table measures, and the distinction is load-bearing.
+The learners win the scalar MAE at long horizons and lose every column here at
+every horizon, by margins that widen with the horizon. That single sentence
+covers two findings of very different status:
 
-The finding: the learners win the scalar MAE at long horizons and lose every
-vector metric at every horizon, by margins that widen as the horizon grows.
+* ``cv_bias`` — the forecast is less dispersed than the corridor really is.
+  Real, threshold-free, and confirmed in 36 of 36 cells across three windows.
+* ``bunching_f1`` — scored at a FIXED 0.5x relative cut, which is persistence's
+  own optimum. It measures where the cut landed, not what the model knows;
+  judged without a cut the h=10 verdict reverses in all three corridors.
+
+An earlier version of this file conflated the two and read the whole thing as
+lost information. The tests below keep the numbers and separate the readings;
+the correction itself lives in ``tests/test_detection_calibrated.py``.
 """
 from __future__ import annotations
 
@@ -120,7 +128,7 @@ class TestRegularityIsLost:
         assert set(verdict.get_column("best_regularity")) == {"Persistence"}
 
 
-class TestBunchingIsNotAnticipated:
+class TestBunchingIsNotFlaggedAtTheFixedCut:
     def test_bunching_is_common_enough_to_matter(self, vector):
         """Between one in six and one in three cells. Not a rare-event problem."""
         rates = vector.get_column("bunching_rate_true")
@@ -149,20 +157,40 @@ class TestBunchingIsNotAnticipated:
         fires = lstm.filter(pl.col("bunching_tp") + pl.col("bunching_fp") > 100)
         assert (fires.get_column("bunching_precision") > 0.45).all()
 
-    def test_persistence_wins_bunching_in_every_cell(self, vector):
+    def test_persistence_wins_bunching_f1_in_every_cell_at_the_fixed_cut(
+        self, vector
+    ):
+        """Reproducible, and NOT a statement about detection ability.
+
+        ``bunching_f1`` in this table is scored at the fixed 0.5x cut, which is
+        persistence's own optimum — refit freely on held-out data it returns to
+        0.5x in 11 of 12 cells. Judged without a cut the verdict reverses at
+        h=10 in all three corridors. See ``tests/test_detection_calibrated.py``;
+        this assertion exists so the artifact stays reproducible, not so the
+        original reading stays true.
+        """
         verdict = vector_verdict(vector)
         assert set(verdict.get_column("best_bunching")) == {"Persistence"}
 
 
-class TestTheDissociation:
-    """The result pending #5 asked for, stated as a single claim.
+class TestTheThresholdArtifact:
+    """What the fixed-cut columns of this table can and cannot support.
 
-    Scalar MAE and vector fidelity move in OPPOSITE directions with the horizon.
-    Reporting only the first — which is what the pipeline did — hides the second
-    entirely.
+    The original version of this class was called ``TestTheDissociation`` and
+    read these monotone ratios as scalar MAE and vector fidelity moving in
+    opposite directions. Half of that survives: the FLATTENING is real and
+    MAE-invisible (``cv_bias``, negative in 36 of 36 cells across three
+    windows). What does not survive is reading the F1 collapse as lost
+    information — it is the same compression seen through a cut calibrated in
+    observation space, and the monotonicity below is the evidence FOR that
+    reading, not against it.
     """
 
-    def test_the_vector_gap_widens_exactly_where_the_scalar_gap_does(self, vector):
+    def test_the_f1_gap_widens_monotonically_with_the_horizon(self, vector):
+        """Predicted by the units explanation: a longer horizon compresses the
+        forecast further, so a fixed relative cut sits deeper in its tail. The
+        monotonicity is what makes the explanation testable rather than post hoc.
+        """
         verdict = vector_verdict(vector)
         for corridor, sub in verdict.sort("horizon").group_by(
             "corridor", maintain_order=True
@@ -170,11 +198,17 @@ class TestTheDissociation:
             ratio = sub.get_column("f1_ratio_over_lstm").to_numpy()
             assert np.all(np.diff(ratio) > 0), f"{corridor}: {ratio}"
 
-    def test_at_the_longest_horizon_the_gap_is_an_order_of_magnitude(self, vector):
+    def test_at_the_longest_horizon_the_artifact_is_an_order_of_magnitude(
+        self, vector
+    ):
         verdict = vector_verdict(vector).filter(pl.col("horizon") == 10)
         assert verdict.get_column("f1_ratio_over_lstm").min() > 5.0
 
-    def test_no_learner_wins_any_vector_metric_anywhere(self, vector):
+    def test_no_learner_wins_either_fixed_cut_vector_metric(self, vector):
+        """Both fixed-cut columns go to persistence everywhere. Regularity
+        fidelity (``cv_bias``) is a REAL loss and stands; bunching F1 at this cut
+        is the artifact. They are pinned together here because they come off the
+        same table, and the document must keep them apart."""
         verdict = vector_verdict(vector)
         assert not verdict.get_column("best_regularity").is_in(["LSTM", "XGBoost"]).any()
         assert not verdict.get_column("best_bunching").is_in(["LSTM", "XGBoost"]).any()

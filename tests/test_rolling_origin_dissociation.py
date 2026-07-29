@@ -7,10 +7,17 @@ because every origin IS the published window.
 ``test_each_origin_reads_a_different_population`` is the guard that the table
 claiming temporal robustness was built from different data.
 
-The behavioural tests below are the ones the paper would cite. They are written
-so a real reversal FAILS them: if persistence's bunching advantage were an
-artifact of February 2024, ``test_persistence_wins_detection_at_every_origin``
-breaks rather than quietly reporting a split.
+The behavioural tests below are the ones the paper would cite, and they now
+guard a CORRECTED claim. The original version of this file asserted that
+persistence out-detects the learner in all 36 cells and treated that as the
+finding. It is reproducible and it is an artifact of the fixed 0.5x cut — see
+``tests/test_detection_calibrated.py`` for the dismantling. What this file now
+pins is the split:
+
+* the fixed-cut sweep, kept and labelled as the artifact it is,
+* the flattening (CV bias negative in 36 of 36), which survives untouched,
+* the threshold-free crossover, which must hold at every origin or the
+  correction is itself a February story.
 """
 from __future__ import annotations
 
@@ -89,10 +96,12 @@ class TestTableShape:
 class TestWhatTheTableSaysAboutTheClaim:
     """Behaviour, not formatting: the findings the paper would cite."""
 
-    def test_persistence_wins_detection_at_every_origin(self, table):
-        """The headline. Persistence must out-detect the learner in all 36
-        (corridor, horizon, origin) cells — a single reversal is a real result
-        and must fail here rather than be averaged away."""
+    def test_the_fixed_cut_hands_persistence_every_origin(self, table):
+        """The artifact, pinned so it stays reproducible. Persistence wins all 36
+        cells at the published 0.5x cut. This is NOT evidence that it detects
+        better — see ``test_the_learner_out_discriminates_at_h10_everywhere``
+        for the same cells judged without a cut. It is kept because a correction
+        that cannot reproduce the thing it corrects is not a correction."""
         lstm = table.filter(pl.col("model") == "LSTM").sort(
             ["corridor", "horizon", "origin"]
         )
@@ -114,6 +123,58 @@ class TestWhatTheTableSaysAboutTheClaim:
         ]
         assert not losses, f"the learner out-detects persistence in {losses}"
 
+    def test_the_fixed_cut_verdict_loses_to_a_constant_at_long_horizons(self, table):
+        """Why that sweep is not a finding: at h=10 the declared winner scores
+        BELOW flagging every cell, at every origin. Nine of nine."""
+        long_h = table.filter(
+            (pl.col("model") == "Persistence") & (pl.col("horizon") == 10)
+        )
+        assert long_h.height == len(CORRIDORS) * len(ORIGINS)
+        below = long_h.filter(pl.col("bunching_f1") < pl.col("trivial_f1"))
+        assert below.height == long_h.height, (
+            "persistence now beats the trivial detector somewhere at h=10; the "
+            "document's Section 5.3 argument needs rewriting, not this test"
+        )
+
+    def test_the_learner_out_discriminates_at_h10_everywhere(self, table):
+        """The correction, and it must hold in all three windows. If the AUC
+        reversal were a February story, this fails instead of being averaged."""
+        for origin in ORIGINS:
+            for corridor in CORRIDORS:
+                cell = table.filter(
+                    (pl.col("origin") == origin)
+                    & (pl.col("corridor") == corridor)
+                    & (pl.col("horizon") == 10)
+                )
+                rows = {r["model"]: r for r in cell.iter_rows(named=True)}
+                assert rows["LSTM"]["auc"] > rows["Persistence"]["auc"], (
+                    f"{corridor}@{origin} h=10: learner AUC "
+                    f"{rows['LSTM']['auc']:.4f} <= persistence "
+                    f"{rows['Persistence']['auc']:.4f}"
+                )
+
+    def test_persistence_out_discriminates_at_h1_everywhere(self, table):
+        """The other half of the crossover. The correction is not "the learner
+        wins everything" — at h=1 persistence genuinely leads, in all nine."""
+        for origin in ORIGINS:
+            for corridor in CORRIDORS:
+                cell = table.filter(
+                    (pl.col("origin") == origin)
+                    & (pl.col("corridor") == corridor)
+                    & (pl.col("horizon") == 1)
+                )
+                rows = {r["model"]: r for r in cell.iter_rows(named=True)}
+                assert rows["Persistence"]["auc"] > rows["LSTM"]["auc"], (
+                    f"{corridor}@{origin} h=1: persistence does not lead"
+                )
+
+    def test_the_learner_is_never_at_chance(self, table):
+        """Blindness would mean AUC near 0.5 somewhere. It never happens, at any
+        origin, in any cell — which is what rules out the information reading."""
+        auc = table.filter(pl.col("model") == "LSTM").get_column("auc")
+        assert auc.len() == 36
+        assert auc.min() > 0.55, f"minimum learner AUC is {auc.min()}"
+
     def test_the_learner_under_reports_irregularity_at_every_origin(self, table):
         """CV bias negative in all 36 cells: the learner always predicts a
         smoother corridor than the real one."""
@@ -130,10 +191,12 @@ class TestWhatTheTableSaysAboutTheClaim:
             f"persistence CV bias is not ~0: max |bias| = {bias.abs().max()}"
         )
 
-    def test_the_gap_widens_with_the_horizon_at_every_origin(self, table):
-        """The dissociation is a TREND, not one bad cell: the detection gap must
-        grow monotonically with the horizon in all nine (corridor, origin) pairs,
-        which is what pairs it with the MAE advantage growing the same way."""
+    def test_the_artifact_widens_with_the_horizon_at_every_origin(self, table):
+        """The fixed-cut gap grows monotonically with the horizon in all nine
+        (corridor, origin) pairs. Read correctly this is a property of the CUT,
+        not of detection: the horizon compresses the forecast further, so the
+        0.5x cut sits deeper in its tail. It is pinned because that monotonicity
+        is what makes the units explanation predictive rather than post hoc."""
         for corridor in CORRIDORS:
             for origin in ORIGINS:
                 cell = table.filter(
@@ -176,20 +239,13 @@ class TestTheDocumentQuotesTheTable:
     """Every number narrated in the prose must come off the CSV."""
 
     DOC = REPO_ROOT / "docs" / "resultados" / "documento-resultados.md"
-    HEADING = "### 5.5 La disociación no es de febrero"
+    HEADING = "### 5.5 Nada de esto es de febrero"
 
     @pytest.fixture(scope="class")
     def section(self) -> str:
         text = self.DOC.read_text(encoding="utf-8")
         assert self.HEADING in text, f"{self.HEADING!r} is gone from the document"
         return text.split(self.HEADING)[1].split("## 6.")[0]
-
-    def test_the_agreement_count_is_not_stale(self, section, summary):
-        n_agree = int(summary.get_column("agrees").sum())
-        assert f"{n_agree} de las {summary.height} celdas" in section, (
-            f"{n_agree} of {summary.height} cells agree; the section does not "
-            "open with that count"
-        )
 
     def test_the_cv_bias_count_is_not_stale(self, section, table):
         n = int(
@@ -199,10 +255,29 @@ class TestTheDocumentQuotesTheTable:
             f"CV bias is negative in {n} cells; the section does not say so"
         )
 
-    def test_the_extreme_ratio_is_quoted_correctly(self, section, summary):
-        """The largest ratio is the number a reader remembers, and it is NOT the
-        published window's — quoting 253x where the table says 2298x would
-        understate the finding by an order of magnitude."""
+    def test_the_auc_agreement_count_is_not_stale(self, section, summary):
+        """The correction's robustness claim. Stated as a count so it cannot
+        drift into "it holds everywhere" if a cell starts disagreeing."""
+        n_agree = int(summary.get_column("agrees_auc").sum())
+        assert f"{n_agree} de 12" in section, (
+            f"{n_agree} of {summary.height} cells agree on the threshold-free "
+            "winner; the section does not state that count"
+        )
+
+    def test_the_split_cell_is_named(self, section, summary):
+        """A reader must be told WHICH cell disagrees, not just how many. Hiding
+        the identity of a split is how a limitation becomes a footnote."""
+        split = summary.filter(~pl.col("agrees_auc"))
+        for row in split.iter_rows(named=True):
+            label = f"{row['corridor']} h={row['horizon']}"
+            assert label in section, f"the split cell {label} is not named"
+
+    def test_the_extreme_ratio_is_quoted_and_labelled_an_artifact(
+        self, section, summary
+    ):
+        """The largest fixed-cut ratio is the number a reader remembers, so it
+        must be quoted exactly AND framed as the artifact. Quoting 2299x without
+        that framing is how the retracted claim would come back."""
         import re
 
         ratios = [
@@ -214,4 +289,7 @@ class TestTheDocumentQuotesTheTable:
         assert max(quoted) == round(top), (
             f"largest ratio in the CSV is {top:.1f}x; the section quotes "
             f"{max(quoted)}x"
+        )
+        assert "artefacto" in section or "corte de 0.5" in section, (
+            "the section quotes the ratio without saying what produced it"
         )

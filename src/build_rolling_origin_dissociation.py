@@ -76,8 +76,11 @@ from src.build_rolling_origin_significance import ORIGINS  # noqa: E402
 from src.evaluation.vector_metrics import (  # noqa: E402
     MIN_VECTOR_LEN,
     bunching_flags,
+    bunching_score,
     detection_scores,
+    ranking_scores,
     regularity_error,
+    trivial_f1,
     vector_frame,
 )
 
@@ -111,6 +114,13 @@ def cell_metrics(residuals: pl.DataFrame) -> list[dict]:
     flagged = residuals.with_columns(
         [
             bunching_flags(residuals, column).alias(f"_bunch_{column}")
+            for column in value_cols
+        ]
+        # The continuous score behind the flag. Carried alongside because the
+        # flag alone cannot separate "the model has no information" from "the
+        # cut is in the wrong place", and that distinction is the whole point.
+        + [
+            bunching_score(residuals, column).alias(f"_score_{column}")
             for column in value_cols
         ]
     )
@@ -151,6 +161,13 @@ def cell_metrics(residuals: pl.DataFrame) -> list[dict]:
                         "bunching_precision": scores.precision,
                         "bunching_recall": scores.recall,
                         "bunching_f1": scores.f1,
+                        # The threshold-free reading of the same rows. Without
+                        # these two columns the table can only report the
+                        # operating point it was handed.
+                        "trivial_f1": trivial_f1(scores.true_rate),
+                        **ranking_scores(
+                            truth, cell_cells.get_column(f"_score_{column}").to_numpy()
+                        ),
                     }
                 )
     return rows
@@ -199,6 +216,17 @@ def agreement(table: pl.DataFrame) -> pl.DataFrame:
                 )
                 winners.append(winner)
                 row[f"winner_{origin}"] = winner
+                # The same cell judged without the cut. Reported next to the
+                # F1 winner rather than instead of it: the pair is the finding.
+                row[f"winner_auc_{origin}"] = (
+                    "PERSIST" if persist["auc"] > lstm["auc"] else "LSTM"
+                )
+                row[f"auc_lstm_{origin}"] = lstm["auc"]
+                row[f"auc_persist_{origin}"] = persist["auc"]
+                # Does the F1 winner even beat flagging every cell?
+                row[f"persist_beats_trivial_{origin}"] = (
+                    persist["bunching_f1"] > persist["trivial_f1"]
+                )
                 row[f"f1_lstm_{origin}"] = lstm["bunching_f1"]
                 row[f"f1_persist_{origin}"] = persist["bunching_f1"]
                 # The headline ratio. Guarded: a learner that never fires scores
@@ -213,6 +241,12 @@ def agreement(table: pl.DataFrame) -> pl.DataFrame:
 
             row["agrees"] = len(set(winners)) == 1
             row["winner"] = winners[0] if row["agrees"] else "SPLIT"
+
+            auc_winners = {row[f"winner_auc_{origin}"] for origin in ORIGINS}
+            row["agrees_auc"] = len(auc_winners) == 1
+            row["winner_auc"] = (
+                next(iter(auc_winners)) if row["agrees_auc"] else "SPLIT"
+            )
             rows.append(row)
     return pl.DataFrame(rows).sort(["corridor", "horizon"])
 
@@ -226,11 +260,19 @@ def main() -> None:
     summary.write_csv(OUT_SUMMARY_CSV)
 
     with pl.Config(tbl_rows=60, tbl_cols=16, tbl_width_chars=220):
-        print("Bunching detection — who wins, per origin:")
+        print("Bunching F1 at the FIXED cut — who wins, per origin:")
         print(
             summary.select(
                 ["corridor", "horizon", "winner_r1", "winner_r2", "winner_main",
                  "f1_ratio_r1", "f1_ratio_r2", "f1_ratio_main", "agrees"]
+            )
+        )
+        print("\nSame cells, THRESHOLD-FREE (AUC) — the corrected verdict:")
+        print(
+            summary.select(
+                ["corridor", "horizon", "winner_auc_r1", "winner_auc_r2",
+                 "winner_auc_main", "auc_lstm_main", "auc_persist_main",
+                 "agrees_auc"]
             )
         )
         print("\nLSTM CV bias (negative = predicts a smoother corridor):")
@@ -246,10 +288,28 @@ def main() -> None:
     lstm_rows = table.filter(pl.col("model") == "LSTM")
     n_negative_bias = int((lstm_rows.get_column("cv_bias") < 0).sum())
 
-    print(f"\n{n_agree}/{n_cells} celdas coinciden en los tres origenes")
+    print(f"\n{n_agree}/{n_cells} celdas coinciden en los tres origenes (F1, corte fijo)")
+    print(
+        f"{int(summary.get_column('agrees_auc').sum())}/{n_cells} celdas coinciden "
+        "en los tres origenes (AUC, sin umbral)"
+    )
     print(
         f"{n_negative_bias}/{lstm_rows.height} celdas (origen x corredor x horizonte) "
         "tienen sesgo de CV negativo"
+    )
+    at_10 = summary.filter(pl.col("horizon") == 10)
+    print(
+        f"A h=10, el LSTM gana el AUC en "
+        f"{int((at_10.get_column('winner_auc') == 'LSTM').sum())}/{at_10.height} "
+        "celdas en los tres origenes"
+    )
+    below = sum(
+        int((~summary.get_column(f"persist_beats_trivial_{o}")).sum())
+        for o in ORIGINS
+    )
+    print(
+        f"{below}/{n_cells * len(ORIGINS)} celdas donde la persistencia NO supera "
+        "al detector trivial"
     )
     print(f"\nWrote {OUT_CSV.relative_to(REPO_ROOT)} ({table.height} rows)")
     print(f"Wrote {OUT_SUMMARY_CSV.relative_to(REPO_ROOT)} ({summary.height} rows)")
