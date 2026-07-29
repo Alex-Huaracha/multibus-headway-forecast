@@ -1,86 +1,68 @@
 # Qué falta y en qué orden
 
-Actualizado: 2026-07-28.
+Actualizado: 2026-07-29.
 
-> **Lo único que bloquea la publicación es el manuscrito.** Todo lo demás de esta
-> lista cierra objeciones de revisor o es deuda técnica. Ninguno cambia el
-> hallazgo central.
+> **Lo único que bloquea la publicación es el manuscrito.** Todo lo demás cierra
+> objeciones de revisor o es deuda técnica.
 
----
-
-## 1. Dónde estamos
-
-| | |
-|---|---|
-| Rama `main` | Pipeline contiguo mergeado. Al día con el remoto. |
-| Rama `feat/rolling-origin` | 6 commits. **4 sin pushear. Sin mergear.** |
-| Suite de tests | 1540 pasando (13 excluidos por entorno: `libomp`, ABI torch/numpy) |
-| Hallazgo central | Medido, con guardián sobre cada cifra del documento |
-| Rolling origin | **Cerrado.** 24 corridas, 11/12 celdas coinciden en los tres orígenes |
-
-El aporte del paper es **la disociación**: los modelos óptimos en MAE
-sub-reportan sistemáticamente la irregularidad del servicio, y una evaluación
-escalar es estructuralmente incapaz de detectarlo. A h=10 el LSTM gana el MAE por
-1.47 min y pierde el F1 de detección de *bunching* por un factor de 253.
+Este archivo no lleva el estado de git ni el conteo de tests: eso se consulta,
+no se documenta. Solo lo que hay que decidir o hacer.
 
 ---
 
-## 2. Rolling origin: cerrado
-
-Las 24 corridas de la familia 21 se relanzaron y validaron contra los 6 chequeos
-del runbook. El builder comparativo está escrito y su salida vive en la Sección 4
-del documento de resultados, sección *"¿Y si el mes fuera otro?"*.
-
-**11 de 12 celdas ponen la victoria del mismo lado en los tres orígenes.** A h≥5
-las 18 celdas dan ventaja al aprendiz y las 18 son significativas. La única que
-se da vuelta, E4 h=3, ya era no significativa en la ventana publicada.
-
-Dos cosas que salieron de ahí y conviene no olvidar:
-
-- El re-entrenamiento reprodujo los 8 CSVs de resultados del corte publicado
-  **byte por byte**. Es reproducibilidad demostrada, y sirve para el paper.
-- El slug `21-lstm-contiguous-h10-r2` quedó podrido en Kaggle; esa corrida vive
-  en `-h10-r2b` (ver `POISONED_SLUGS` en el builder y `correr-kaggle.md` §5).
-
----
-
-## 3. Pendientes
-
-### Bloquean la publicación
+## 1. Bloquean la publicación
 
 | # | Tarea | Costo | Estado |
 |---|---|---|---|
-| P1 | **El manuscrito** | 3–4 semanas | No empezado |
+| P1 | **El manuscrito en inglés** | 3–4 semanas | No empezado |
+| P2 | **Reescribir las contribuciones C1–C4** de `docs/paper/manuscrito.md` | horas | No empezado — se apoyan en el titular retirado |
+| P3 | **Las referencias: no existe ningún `.bib`** en el repo | días | No empezado |
 
-### Cierran objeciones de revisor (no bloquean)
+**P2 no es cosmético.** El 2026-07-29 se retiró el titular *"la métrica decide el
+ganador"* y el mecanismo *"el MAE premia contraer"*: el primero era un artefacto
+de umbral, el segundo lo contradicen nuestros propios datos a h=1. El aporte
+ahora es otro y está medido:
+
+> Un pronóstico puntual está sub-disperso (sesgo de CV negativo en las 36
+> celdas). Su costo es **de unidades, no de información**: una regla de evento
+> calibrada sobre observaciones no es transportable al pronóstico, y
+> trasplantarla fabrica una degradación aparente de hasta 253× que no existe.
+> Sin umbral, el LSTM gana la detección a h=10 en los tres corredores y en los
+> tres orígenes.
+
+Detalle completo en `docs/resultados/documento-resultados.md` §1, §5.3 y §5.4.
+Las C1–C4 actuales afirman lo contrario de eso.
+
+---
+
+## 2. Cierran objeciones de revisor (no bloquean)
 
 | # | Tarea | Costo | Por qué importa | Estado |
 |---|---|---|---|---|
-| ~~R1~~ | ~~Rolling origin~~ | — | — | ✅ **Cerrado 2026-07-28** |
 | R2 | Semillas para ConvLSTM y Transformer | GPU | Solo el LSTM tiene barrido (`15_lstm_multiseed`); el nulo espacial podría ser mala suerte de inicialización | Abierto |
 | R3 | Nivelar el tuning del LSTM (24 configs) | ~14 h GPU | Ya está **declarado** como no atribuible. Baja prioridad | Abierto |
+| R4 | XGBoost en los orígenes de rolling | ~6 h GPU | Todo lo que involucra al árbol sigue apoyado en una sola ventana (limitación 2 del documento) | Abierto — **declarado, no bloquea** |
 
-### Deuda técnica (no afectan al paper)
+R1 (rolling origin) cerrado el 2026-07-28: 24 corridas, y el re-entrenamiento
+reprodujo los 8 CSVs del corte publicado **byte por byte**. Eso sirve para el
+paper como reproducibilidad demostrada.
+
+---
+
+## 3. Deuda técnica (no afecta al paper)
 
 | # | Tarea | Costo |
 |---|---|---|
-| D1 | Mergear `feat/rolling-origin` a `main` | minutos |
-| D2 | `git push` de los 4 commits de `feat/rolling-origin` — **el trabajo de hoy no está respaldado en ningún lado** | minutos |
-| D3 | 9 notebooks legacy (04–09) rancios contra sus builders | horas |
+| D1 | 9 notebooks legacy (04–09) rancios contra sus builders | horas |
+| D2 | Decidir si se borra `docs/resultados/residuos-multihorizon.stale/` (1.7 GB, gitignored, irreversible) | minutos |
 
 ---
 
 ## 4. Orden recomendado
 
-1. **D1 y D2: mergear y pushear.** Minutos, y hoy el trabajo vive en un solo disco.
-2. **Escribir el manuscrito.** No depende de nada de lo anterior.
-3. R2 solo si sobra cuota de GPU.
-4. R3 y D3, probablemente nunca.
-
-**Por qué el manuscrito primero:** escribir te va a decir con precisión cuánto
-pesa cada objeción en *tu* argumento. Ahora lo estamos estimando. Con R1 cerrado,
-la investigación ya sostiene lo que el paper afirma; lo que queda son objeciones
-declarables, no agujeros.
+1. **P2: reescribir C1–C4.** Horas, y define qué argumenta el manuscrito. Todo lo demás depende de esto.
+2. **P1 + P3: escribir, con las referencias en paralelo.**
+3. R2 solo si sobra cuota de GPU. R3, R4 y D1: probablemente nunca.
 
 Y el recordatorio de calibración, que no cambió: en 8–9 papers recientes de
 IJACSA, los tests formales de significancia aparecen en 2 y las secciones de
@@ -94,6 +76,8 @@ venue.** Agregar más tiene rendimiento decreciente; escribir no.
 | | Por qué |
 |---|---|
 | Re-correr las familias 11/12/13, 17/18/19 | Congeladas. Sostienen el ranking entre arquitecturas, válido porque las tres comparten el mismo sesgo |
-| Re-correr el XGBoost para rolling origin | Su papel ya está establecido sobre el corte publicado; agregaría ~6 h de CPU por una pregunta que nadie hizo |
 | Editar un `.ipynb` a mano | Son artefactos generados. Se edita el builder y se regenera |
 | Reentrenar por el desajuste de `max_N` | 0.05 % de filas, efecto 0.00067 min, fuera de la intersección y de todo verdicto |
+| **Renombrar `s_front`/`s_back`/`bus_front`/`bus_back`** | Las etiquetas están invertidas respecto del movimiento físico y **la aritmética es correcta**. Los nombres están en el esquema de los parquets, en los builders y en los residuos ya bajados. Renombrar obliga a regenerar todo por ganancia nula. Ver `src/preprocessing/headways.py` y `docs/decisiones-headway-fase2.md` §2.1 |
+| Reentrenar por la corrección del titular | El artefacto era de **evaluación**, no de entrenamiento. Los residuos en disco sirven tal cual; todo se recalculó sobre ellos sin GPU |
+| Volver a reportar el F1 de *bunching* con el corte fijo como si midiera al modelo | Es la afirmación retirada. Con tasa base del 17–30 %, "marcar todo" supera al ganador declarado en 5 de 12 celdas. Los veredictos van por AUC y MCC |
