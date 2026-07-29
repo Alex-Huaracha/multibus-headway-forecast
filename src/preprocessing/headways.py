@@ -1,19 +1,54 @@
 """Headway computation via C.2 — trailing crossing (pure polars + numpy).
 
-compute_pairs — build the pair structure: for each (empresaid, day, t, direction),
-    sort buses by s and emit one (front, back) row per consecutive pair.
+⚠️ READ THIS BEFORE TOUCHING THE PAIR SEMANTICS ⚠️
+The names ``front`` and ``back`` in this module are the MIRROR IMAGE of physical
+motion, and every column they produce carries that inversion downstream:
 
-compute_headways_c2 — for each pair, find the most recent past time when bus_back
-    crossed s_front in its trajectory, and compute delta_t_min = T - t_cross.
+    bus_back / s_back   →  the bus physically AHEAD  (the leader)
+    bus_front / s_front →  the bus physically BEHIND (the follower)
+
+The arithmetic is correct; only the labels are backwards. Verified against
+``data/processed/`` for all three corridors: the shipped computation yields a
+median headway of 4.96 min and a median implied speed of 9.6 km/h (70% of rows
+inside 5-40 km/h), while the reading the names suggest yields 11.65 min and
+2.0 km/h with 29% coverage. See ``docs/decisiones-headway-fase2.md`` §2.1.
+
+Why the labels invert, in both directions — this follows from a DEFINITION, so
+it cannot drift. ``direction`` is ``sign(rolling_mean(ds))`` (see
+``direction.infer_direction``), therefore within a direction group the sense in
+which ``s`` moves is fixed by construction:
+
+    direction -1  →  s DECREASES as the bus advances  →  leader has the LOWER s
+    direction +1  →  s INCREASES as the bus advances  →  leader has the HIGHER s
+
+The sort key is ``s`` for direction -1 and ``-s`` for direction +1
+(== CALIBRATED_INVERTED_DIRECTION), so ascending order puts the LEADER FIRST in
+both cases. ``shift(1)`` then hands the first row to the ``back`` columns. The
+inversion is therefore uniform across directions, which is exactly what makes
+the pipeline correct despite the naming.
+
+Do NOT "fix" this by renaming the columns. They are baked into the processed
+parquet schema, the notebook builders and the downloaded residuals; renaming
+cascades through all of it for zero analytical gain.
+
+compute_pairs — build the pair structure: for each (empresaid, day, t, direction),
+    sort buses by the direction-corrected key and emit one row per consecutive
+    pair. The leader goes to the ``back`` slot (see above).
+
+compute_headways_c2 — for each pair, find the most recent past time when the
+    LEADER (``bus_back``) crossed the FOLLOWER's current position (``s_front``),
+    and compute delta_t_min = T - t_cross. That elapsed time is the headway: how
+    long ago the leading bus stood where the following bus stands now.
 
 Clarification #17 rule 2: when no crossing is found, the row is EMITTED with
 delta_t_min = null (NOT dropped). This preserves pair_rank density (INV-3) and
 n_buses consistency.
 
-Note on NULL rows: they appear mostly in the first GRID_SECONDS of a bus's
-trajectory (before bus_back has driven through any front position). The NULL
-fraction should be < 5% globally; if higher, investigate trip-segmentation edge
-cases. (Caveat per clarification #17 §Frequency expectation.)
+Note on NULL rows: the dominant bucket is ``stale-crossing``, not ``no-crossing``
+(E2: 42% vs 0.1%) — multi-filar corridors project unrelated buses onto one axis,
+so a crossing is almost always found and the lookback bound is what rejects the
+old ones. Genuine ``no-crossing`` rows sit in the first GRID_SECONDS of a
+trajectory, before the leader has driven through any follower position.
 
 Source: rewrite of build_notebook_03.py lines 751-813. The probe used pandas
     conversion + row-level Python loop. This implementation uses a trajectory
@@ -39,8 +74,13 @@ logger = logging.getLogger(__name__)
 def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
     """Build consecutive (front, back) bus pairs per (empresaid, day, t, direction).
 
-    For each snapshot group sorted by s (ascending), bus at rank i is "front" and
-    bus at rank i-1 is "back". Drops direction == 0 rows.
+    For each snapshot group sorted by the direction-corrected key (ascending),
+    bus at rank i is "front" and bus at rank i-1 is "back". Drops direction == 0
+    rows.
+
+    ⚠️ ``back`` is the bus physically AHEAD and ``front`` the one BEHIND — the
+    labels are the mirror image of motion. See the module docstring for the
+    measurement that establishes this and why the names are not being changed.
 
     Lateral pair filter (R-LAT3): after pair formation, drops pairs where
     |lateral_m_front − lateral_m_back| > lateral_pair_threshold_for(empresaid).
@@ -69,10 +109,21 @@ def compute_pairs(snapshots: pl.DataFrame) -> pl.DataFrame:
 
     s = snapshots.filter(pl.col("direction") != 0)
     # Direction-conditional sort key (SDD dir1-pair-ordering-h7, Encoding A).
-    # For CALIBRATED_INVERTED_DIRECTION (+1): the per-direction PCA centerline
-    # has s inverse to physical motion → negate s so ascending sort places the
-    # physically-front bus last (it becomes bus_front after shift(1)).
-    # For the canonical direction: sort key == s (identical to pre-fix behavior).
+    #
+    # Purpose: make the LEADER land in the same slot in both directions.
+    # `direction` is sign(rolling_mean(ds)) by definition, so within a direction
+    # group the sense of s is fixed: dir -1 => s decreases as the bus advances
+    # (leader has the LOWER s); dir +1 => s increases (leader has the HIGHER s).
+    # Negating s for direction +1 (== CALIBRATED_INVERTED_DIRECTION) makes
+    # ascending sort put the leader FIRST in both cases, so shift(1) hands it to
+    # the `back` columns uniformly.
+    #
+    # The `back` slot therefore holds the bus physically AHEAD, and `front` the
+    # one behind — the labels are inverted, the pairing is not. An earlier
+    # version of this comment claimed the opposite ("places the physically-front
+    # bus last"), which is false in BOTH directions and has already cost one
+    # false bug report. See the module docstring.
+    #
     # The negation is sort-time only; s_front/s_back retain raw arc-length values.
     _s_sort_key = (
         pl.when(pl.col("direction") == CALIBRATED_INVERTED_DIRECTION)
@@ -175,11 +226,19 @@ def _find_last_crossing_ns(
     trajectory of bus_back restricted to t <= T. Linear interpolation over the
     bracket gives the exact crossing nanosecond.
 
+    Read with the module docstring: the trajectory handed in belongs to the bus
+    physically AHEAD (``bus_back``) and ``s_front`` is where the bus BEHIND
+    currently sits. The leader has already driven through that position, which is
+    what makes the search well posed — swap the two and coverage falls to 29% and
+    the implied speed to 2 km/h, because you are asking a bus when it passed a
+    place it has not reached yet.
+
     Args:
         t_arr: int64 nanosecond timestamps, sorted ascending.
         s_arr: float64 arc-length values at those timestamps.
         T_ns:  snapshot time in nanoseconds (restrict to t <= T).
-        s_front: arc-length of the front bus at T.
+        s_front: arc-length of the trailing bus at T — the position whose
+            crossing time is being recovered.
         max_lookback_ns: when not None, crossings older than this many nanoseconds
             before T are treated as 'no crossing found' and return None. Prevents
             stale historical crossings in multi-filar corridors (e.g. E2 Arequipa)
@@ -236,14 +295,20 @@ def compute_headways_c2(
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """C.2 trailing-crossing headway (pure polars + numpy).
 
-    For each pair (bus_front at s_front, bus_back) at snapshot time T, finds the
-    most recent past time when bus_back's s-trajectory crossed s_front (in the
-    same direction) and computes:
+    For each pair at snapshot time T, finds the most recent past time when
+    ``bus_back``'s s-trajectory crossed ``s_front`` (in the same direction) and
+    computes:
 
         delta_t_min = (T - t_cross).total_seconds() / 60
 
-    When no crossing is found (e.g. bus_back just entered the corridor and has
-    not yet crossed s_front): emits the row with delta_t_min = null (NOT dropped).
+    In physical terms — and the labels invert, see the module docstring —
+    ``bus_back`` is the LEADER and ``s_front`` is where the FOLLOWER stands at T,
+    so delta_t_min is how long ago the leading bus was where the following bus is
+    now. That is the headway.
+
+    When no crossing is found (the leader has not yet driven through any follower
+    position on this trajectory): emits the row with delta_t_min = null (NOT
+    dropped).
     This is clarification #17 rule 2 — preserves INV-3 (dense pair_rank) and
     INV-4 (n_buses consistent with active bus count).
 

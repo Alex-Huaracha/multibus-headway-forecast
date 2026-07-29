@@ -152,6 +152,13 @@ EMPRESA_CONFIG: Mapping[int, EmpresaConfig] = {
 # CALIBRATED_INVERTED_DIRECTION: the direction value whose sort key is -s
 # (negated arc-length) so that ascending sort places the physically-front
 # bus first. For the other direction, sort key == s (canonical ascending).
+#
+# The consequence, spelled out because it is the pipeline's least obvious
+# invariant: "first" is the slot shift(1) reads, so the physically-FRONT bus
+# ends up in the `bus_back` / `s_back` columns and the trailing bus in
+# `bus_front` / `s_front`. The pair labels are the mirror image of motion in
+# BOTH directions. Do not rename the columns — see the module docstring of
+# src/preprocessing/headways.py and docs/decisiones-headway-fase2.md §2.1.
 CALIBRATED_INVERTED_DIRECTION: Literal[1, -1] = 1
 
 

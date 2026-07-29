@@ -151,6 +151,75 @@ class TestPairStructure:
         )
 
 
+CANONICAL_DIR = -CALIBRATED_INVERTED_DIRECTION
+
+
+def _consistent_pair_fixture() -> tuple[pl.DataFrame, pl.DataFrame]:
+    """One snapshot pair whose GPS trajectories agree with their own snapshot rows.
+
+    The previous fixture for this scenario was internally contradictory: it placed
+    bus 202 at s=400 in the snapshot while its own GPS trajectory put it at
+    s=1000 at that same instant. Because ``s_back`` never enters the computation,
+    the test passed regardless of which trajectory the algorithm searched — so it
+    could not detect the one regression it exists to catch.
+
+    Geometry (canonical direction -1, where ``s`` DECREASES as a bus advances —
+    a definitional consequence of ``direction = sign(rolling_mean(ds))``, see the
+    headways.py module docstring):
+
+        LEADER   bus 202: s = 1000 -> 400, crossing s=500 exactly at T-5min.
+                 At T it sits at s=400, the LOWER s, so it lands in the
+                 ``back`` slot after the sort. It is physically AHEAD.
+        FOLLOWER bus 201: s = 1100 -> 500. At T it sits at s=500, the HIGHER s,
+                 so it lands in the ``front`` slot. It is physically BEHIND.
+
+    The leader stood where the follower now stands 5 minutes ago, so the headway
+    is 5.0 minutes. Both trajectories are monotone decreasing and both end on
+    their snapshot position — nothing here contradicts anything else.
+
+    The follower never descends below s=500, which is what gives this fixture its
+    teeth: searching ITS trajectory for s_back=400 finds no crossing at all, so
+    swapping the two arguments turns delta_t_min null instead of merely shifting
+    it. See ``test_swapping_the_trajectory_yields_no_crossing``.
+    """
+    step = timedelta(seconds=20)
+    t_cross = T0 - timedelta(minutes=5)
+
+    # LEADER: 1000 -> 500 over ten minutes, then 500 -> 400 over five.
+    lead_times, lead_s = [], []
+    for i in range(46):
+        t = T0 - timedelta(minutes=15) + i * step
+        minutes_before = (T0 - t).total_seconds() / 60.0
+        if minutes_before >= 5.0:
+            frac = (15.0 - minutes_before) / 10.0
+            lead_s.append(1000.0 - 500.0 * frac)
+        else:
+            frac = (5.0 - minutes_before) / 5.0
+            lead_s.append(500.0 - 100.0 * frac)
+        lead_times.append(t)
+    # Pin the crossing to the exact nanosecond the assertion checks.
+    lead_times[30] = t_cross
+    lead_s[30] = 500.0
+
+    # FOLLOWER: 1100 -> 500, linear. Never reaches 400.
+    foll_times = [T0 - timedelta(minutes=15) + i * step for i in range(46)]
+    foll_s = list(np.linspace(1100.0, 500.0, 46))
+
+    assert lead_s[-1] == pytest.approx(400.0), "leader must end on its snapshot s"
+    assert foll_s[-1] == pytest.approx(500.0), "follower must end on its snapshot s"
+    assert min(foll_s) > 400.0, "follower must never reach the leader's position"
+
+    gps = _build_gps_df(
+        _make_gps_pings(2, 202, lead_times, lead_s, direction=CANONICAL_DIR)
+        + _make_gps_pings(2, 201, foll_times, foll_s, direction=CANONICAL_DIR)
+    )
+    snaps = _build_snapshots_df([
+        _make_snapshot_row(2, 201, T0, s=500.0, direction=CANONICAL_DIR),
+        _make_snapshot_row(2, 202, T0, s=400.0, direction=CANONICAL_DIR),
+    ])
+    return snaps, gps
+
+
 class TestC2KnownCrossing:
     """T1.8 — deterministic crossing: delta_t_min within 0.5s of expected."""
 
@@ -158,53 +227,8 @@ class TestC2KnownCrossing:
         """Failure mode: regression of the trailing-crossing algorithm — if the
         pandas-converted loop is accidentally used or the sign-change scan is
         wrong, delta_t_min deviates from the analytically known value.
-
-        Setup: bus_front is at s=500 at T=T0. bus_back crossed s=500 exactly
-        5 minutes before T0 (i.e. t_cross = T0 - 5min). Expected delta_t_min = 5.0.
-
-        bus_back trajectory: 10 pings from s=0 to s=1000 over 10 minutes,
-        crossing s=500 at t_cross = T0 - 5min exactly.
         """
-        T = T0
-        t_cross_expected = T0 - timedelta(minutes=5)
-
-        # bus_back trajectory: s linearly from 0 to 1000 over 10 min (20s pings).
-        # At t_cross = T0-5min, bus_back is at s=500.
-        n_back = 30
-        dt_back = timedelta(seconds=20)
-        t_start_back = T0 - timedelta(minutes=10)
-        times_back = [t_start_back + i * dt_back for i in range(n_back)]
-        # s goes from 0 at T0-10min to 1000 at T0 (linear)
-        s_back_arr = np.linspace(0, 1000, n_back)
-        # Ensure s=500 is at exactly t_cross = T0-5min.
-        # times_back: index at T0-5min = 5min / 20s = 15 pings → times_back[15] = T0-5min
-        # s_back_arr[15] should be 500.
-        # With linspace(0,1000,30): s_back_arr[15] = 15/29 * 1000 ≈ 517.2 (not exactly 500).
-        # Manually fix the trajectory: place a point exactly at (T0-5min, 500).
-        times_back = [t_start_back + i * dt_back for i in range(n_back)]
-        # Insert exact crossing point at index 15.
-        times_back[15] = t_cross_expected
-        s_back_arr[15] = 500.0
-        # Fix adjacent points to ensure monotonicity.
-        s_back_arr[14] = 480.0
-        s_back_arr[16] = 520.0
-
-        # Use CANONICAL_DIR (-CALIBRATED_INVERTED_DIRECTION == -1) so that
-        # s increases with physical motion → bus at s=500 is bus_front, bus at
-        # s=400 is bus_back. This preserves the original test intent regardless
-        # of the direction-conditional sort key fix (SDD dir1-pair-ordering-h7).
-        _canonical_dir = -CALIBRATED_INVERTED_DIRECTION
-        gps_rows = _make_gps_pings(2, 202, times_back, s_back_arr.tolist(), direction=_canonical_dir)
-
-        # Snapshots: bus_front at s=500, bus_back at s=400 (behind front) at T.
-        snap_rows = [
-            _make_snapshot_row(2, 201, T, s=500.0, direction=_canonical_dir),   # bus_front
-            _make_snapshot_row(2, 202, T, s=400.0, direction=_canonical_dir),   # bus_back
-        ]
-
-        snaps = _build_snapshots_df(snap_rows)
-        gps = _build_gps_df(gps_rows)
-
+        snaps, gps = _consistent_pair_fixture()
         result, _ = compute_headways_c2(snaps, gps, min_buses=2)
         assert len(result) == 1, f"Expected 1 pair row; got {len(result)}"
 
@@ -213,6 +237,59 @@ class TestC2KnownCrossing:
         assert abs(row["delta_t_min"] - 5.0) < 0.5 / 60.0, (
             f"Expected delta_t_min ≈ 5.0 min; got {row['delta_t_min']:.6f} min "
             f"(error = {abs(row['delta_t_min'] - 5.0) * 60:.3f} s)"
+        )
+
+    def test_the_leader_lands_in_the_back_slot(self):
+        """The naming inversion, pinned. ``bus_back`` must be the bus physically
+        AHEAD — bus 202 here, which is the one whose trajectory gets searched.
+
+        This is the invariant the whole pipeline rests on and it was documented
+        backwards until now (headways.py claimed the sort places the physically
+        front bus last). If a future change to the sort key flips it, the headway
+        becomes the time since a bus passed a place it has not reached, and this
+        test is the only thing that says so out loud.
+        """
+        snaps, gps = _consistent_pair_fixture()
+        result, _ = compute_headways_c2(snaps, gps, min_buses=2)
+        row = result.row(0, named=True)
+        assert row["bus_back"] == 202, (
+            f"bus_back must be the LEADER (202, at s=400, moving toward lower s); "
+            f"got {row['bus_back']}"
+        )
+        assert row["bus_front"] == 201, (
+            f"bus_front must be the FOLLOWER (201, at s=500); got {row['bus_front']}"
+        )
+
+    def test_swapping_the_trajectory_yields_no_crossing(self):
+        """The discriminating test the old fixture could not provide.
+
+        Asking the FOLLOWER when it crossed the LEADER's position is asking a bus
+        about a place it has not reached. Here that returns no crossing at all;
+        on real data it collapses coverage from 72% to 29% and the implied speed
+        from 9.6 km/h to 2.0 km/h. Pinned as an executable statement of WHY the
+        arguments are ordered the way they are.
+        """
+        step_ns = 20 * 1_000_000_000
+        t_arr = np.array(
+            [int((T0 - timedelta(minutes=15)).timestamp() * 1e9) + i * step_ns
+             for i in range(46)],
+            dtype=np.int64,
+        )
+        T_ns = int(T0.timestamp() * 1e9)
+        leader_s = np.linspace(1000.0, 400.0, 46)
+        follower_s = np.linspace(1100.0, 500.0, 46)
+
+        # As implemented: search the leader for the follower's position.
+        t_cross, bucket = _find_last_crossing_ns(t_arr, leader_s, T_ns, 500.0)
+        assert bucket == "success" and t_cross is not None, (
+            f"the leader must have crossed the follower's position; got {bucket}"
+        )
+
+        # Swapped: search the follower for the leader's position.
+        _, swapped_bucket = _find_last_crossing_ns(t_arr, follower_s, T_ns, 400.0)
+        assert swapped_bucket == "no-crossing", (
+            "swapping the arguments must fail loudly, not return a plausible "
+            f"number; got {swapped_bucket}"
         )
 
 

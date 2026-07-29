@@ -17,15 +17,46 @@ Este documento cierra el **viability probe** ejecutado al inicio de Fase 2: conf
 
 ### 2.1 Definición formal
 
-En cada snapshot `T` (grilla uniforme cada `GRID_SECONDS` segundos), para cada par consecutivo de buses `(i, i+1)` ordenados por coordenada lineal `s` dentro de la misma dirección:
+En cada snapshot `T` (grilla uniforme cada `GRID_SECONDS` segundos), para cada par de buses consecutivos en la misma dirección, sea **L** el bus que va adelante (*leader*) y **F** el que lo sigue (*follower*):
 
 ```
-Δt(i, i+1, T) = T − t_cross(bus_{i+1}, s_i)
+Δt(L, F, T) = T − t_cross(L, s_F(T))
 ```
 
-donde `t_cross(bus_{i+1}, s_i)` es el instante en el que el bus de atrás cruzó por última vez la posición actual del bus de adelante, interpolado linealmente sobre la trayectoria pasada del bus de atrás.
+donde `t_cross(L, s_F(T))` es el instante en el que **el bus de adelante cruzó por última vez la posición donde el bus de atrás se encuentra ahora**, interpolado linealmente sobre la trayectoria pasada de **L**. En palabras: hace cuánto tiempo el bus líder estuvo donde está ahora el bus que lo sigue. Eso es el *headway*.
 
 El vector resultante en el instante `T` tiene tamaño `N(T) − 1`, donde `N(T)` es la cantidad de buses activos en el corredor en `T`. Las unidades son **minutos**.
+
+> ⚠️ **Las columnas del parquet tienen los nombres invertidos respecto de esta ecuación.** En `headways_E*.parquet` y en `src/preprocessing/headways.py`:
+>
+> | Columna | Bus |
+> |---|---|
+> | `bus_back`, `s_back` | **L** — el que va **adelante** (líder) |
+> | `bus_front`, `s_front` | **F** — el que va **atrás** (seguidor) |
+>
+> Así que el código calcula `T − t_cross(bus_back, s_front)`, que es exactamente la ecuación de arriba con los nombres al revés. **La aritmética es correcta; solo las etiquetas mienten.**
+>
+> **Por qué se invierten, en las dos direcciones.** Esto sale de una **definición**, así que no puede desalinearse con el tiempo. `direction` se define como `sign(rolling_mean(ds))` (ver `src/preprocessing/direction.py::infer_direction`), así que dentro de un grupo de dirección el sentido en que se mueve `s` queda fijado por construcción:
+>
+> | Dirección | `s` a medida que el bus avanza | El líder tiene… |
+> |---|---|---|
+> | −1 | **decrece** | el `s` **menor** |
+> | +1 | **crece** | el `s` **mayor** |
+>
+> El *sort key* es `s` para `direction = −1` y `−s` para `direction = +1` (`CALIBRATED_INVERTED_DIRECTION`), así que el orden ascendente pone al líder **primero** en los dos casos. `shift(1)` entrega esa primera fila a las columnas `back`. La inversión es uniforme entre direcciones, y eso es exactamente lo que hace correcto al pipeline a pesar de los nombres.
+>
+> **Verificación empírica** (sobre `data/processed/`, los tres corredores). Recalculando ambas lecturas con el mismo *helper*, sobre las mismas filas:
+>
+> | | Como está implementado | Como sugieren los nombres |
+> |---|---|---|
+> | Cobertura (no nulos) | **72 %** | 29 % |
+> | *Headway* mediano | **4.96 min** | 11.65 min |
+> | Velocidad implícita mediana | **9.6 km/h** | 2.0 km/h |
+> | Fracción con velocidad plausible (5–40 km/h) | **70 %** | 27 % |
+>
+> Los 5–15 min de *headway* típico en Arequipa urbana y los ~10 km/h de un bus urbano confirman la primera columna. La segunda pregunta a un bus cuándo pasó por un lugar al que todavía no llegó.
+>
+> **Los nombres no se cambian a propósito.** Están en el esquema de los parquets procesados, en los *builders* de notebooks y en los residuos ya descargados de Kaggle; renombrarlos obliga a regenerar toda esa cadena para ganancia analítica nula. Se documenta la inversión en lugar de propagarla.
 
 ### 2.2 Tabla de formulaciones evaluadas y veredicto
 
