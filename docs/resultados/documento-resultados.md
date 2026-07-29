@@ -112,7 +112,7 @@ Estratificamos cada predicción por la **dispersión de su propia ventana de ent
 | E59 h=3 | +0.159 | −0.157 | −0.559 |
 | E4 h=10 | −0.659 | −1.116 | −2.172 |
 
-En las **12 celdas** la ventaja crece de forma ordenada del tercil calmo al volátil. Y dentro de cada tercil crece con el horizonte.
+En **11 de las 12 celdas** la ventaja crece de forma ordenada del tercil calmo al volátil, y dentro de cada tercil crece con el horizonte. La excepción es E59 h=1, donde el tercil medio y el volátil quedan empatados (+0.29502 contra +0.29531): la diferencia es de **tres diezmilésimas de minuto**, dos órdenes de magnitud por debajo del ruido de semilla (±0.024 min), así que es un empate y no una inversión. El gradiente calmo → medio sí se cumple en las 12.
 
 > **El cruce no es un umbral de horizonte: es un umbral de volatilidad que el horizonte va cruzando.** El aprendiz gana donde el corredor está inestable; la persistencia gana donde está calmo. Alargar el horizonte empuja la ventaja del aprendiz hacia los terciles cada vez más calmos, hasta cubrirlos todos.
 
@@ -202,7 +202,14 @@ La afirmación de predecir "el vector completo de *headways*" no puede sosteners
 
 ### 5.1 La posición dentro del vector sí importa
 
-El MAE por posición no es plano: la dispersión relativa entre la mejor y la peor posición va de 0.14 a 1.35 según la celda. Hay estructura posicional que el promedio estaba borrando. **Este es el único resultado vectorial que apoya el encuadre original.**
+El MAE por posición no es plano: la dispersión relativa entre la mejor y la peor posición va de 0.14 a 1.35 según la celda. Hay estructura posicional que el promedio estaba borrando.
+
+**Pero este resultado no soporta el peso que se le puso, y conviene desarmarlo acá antes que un revisor lo haga.** Dos objeciones, las dos válidas:
+
+- **El techo lo fija la cola.** El 1.35 sale de posiciones con casi ningún dato: en E2 h=10 la posición de peor MAE es la 14, con **n = 2** (MAE 13.28) contra 7.09 en la posición 12, que tiene n = 78. El bin más chico de todo el CSV tiene **n = 1**. Exigiendo n ≥ 100 el rango se desploma a **0.14–0.53**, y el perfil que queda es una **U** —mínimo en el medio del vector— y no un gradiente.
+- **No es una propiedad del aprendiz.** La persistencia dispersa **más** que el LSTM (0.17–1.84 contra 0.14–1.35; con n ≥ 100, 0.55 contra 0.53), y el XGBoost más todavía. Si el modelo aprendido no dispersa más que copiar el último valor, la estructura posicional es del **dato**, no de lo que el modelo aprendió sobre las posiciones.
+
+Lo que queda en pie es acotado: el MAE agregado borra estructura posicional real, y por eso reportarlo solo es insuficiente. Lo que **no** queda en pie es leerlo como evidencia de que los modelos aprendieron algo específico del vector. La afirmación de versiones anteriores —que este era el resultado que apoyaba el encuadre original— **se retira**.
 
 ### 5.2 Los aprendices aplanan el servicio
 
@@ -247,6 +254,33 @@ Un matiz que importa para el diagnóstico: **la precisión del LSTM se sostiene 
 *(Cuántas veces mejor es el F1 de la persistencia que el del LSTM.)*
 
 Alargar el horizonte **mejora** la ventaja escalar del aprendiz y **empeora** su fidelidad vectorial, monotónicamente, en los tres corredores. Reportar solo lo primero —que es lo que hacía este pipeline— ocultaba lo segundo por completo.
+
+### 5.5 La disociación no es de febrero
+
+La Sección 4 mostró que el resultado **escalar** aguanta en tres ventanas. Pero el aporte de este documento no es el escalar: es la disociación, y hasta acá estaba medida en una sola ventana. Las dos métricas vectoriales se recalcularon en los tres orígenes, sobre residuos que ya estaban en disco — sin GPU y sin volver a entrenar, porque la exportación ya traía todo lo que hacía falta.
+
+**12 de las 12 celdas ponen la victoria del mismo lado en los tres orígenes.** La persistencia gana la detección de *bunching* en las 36 combinaciones de corredor, horizonte y origen. No hay una sola excepción.
+
+**Cuántas veces mejor es el F1 de la persistencia que el del LSTM:**
+
+| Celda | `r1` | `r2` | `main` |
+|---|---|---|---|
+| E2 h=1 | 2.5 | 3.5 | 2.8 |
+| E2 h=3 | 15.7 | 21.1 | 10.9 |
+| E2 h=5 | 125.9 | 57.6 | 35.6 |
+| **E2 h=10** | **2299×** | **817×** | **253×** |
+| E4 h=10 | 21.3 | 46.4 | 17.7 |
+| E59 h=10 | 11.1 | 9.9 | 8.8 |
+
+Y la brecha **crece con el horizonte en los nueve pares (corredor, origen)**, sin una sola inversión. La disociación no es una celda rara: es una tendencia, y aparece con la misma forma en diciembre, en enero y en febrero.
+
+**El sesgo del coeficiente de variación es negativo en las 36 celdas.** El LSTM predice un corredor más regular que el real en todas, siempre. La persistencia se mantiene en un sesgo de a lo sumo **0.022** en valor absoluto — conserva la forma del vector que copia, que es exactamente la propiedad que el aprendiz pierde.
+
+> **La ventana publicada era la conservadora.** El 253× que abre este documento es el valor **más chico** de los tres orígenes en esa celda; en `r1` la razón es de **2299×**. Elegimos seguir titulando con el número de febrero, porque es el de la ventana que se reporta entera y porque exagerar hacia abajo es el único error barato acá.
+
+*Advertencia de lectura, la misma que la Sección 4.* Esta tabla puntúa sobre la población completa del LSTM, no sobre la intersección con el XGBoost, porque el XGBoost no se re-corrió en los orígenes de rolling. Se eligió comparabilidad **entre** ventanas. Las razones de `main` reproducen las de la Sección 5.4 hasta el primer decimal, así que la diferencia de población no mueve nada material.
+
+**Lo que esto cierra.** La objeción de "el hallazgo es de febrero" queda respondida para las **dos** mitades del argumento —la escalar en la Sección 4 y la vectorial acá— y no solo para la primera. Lo que sigue abierto es el XGBoost, que se midió en una ventana sola.
 
 ---
 
@@ -296,7 +330,7 @@ Lo que este trabajo **no** afirma: que estos modelos sirvan para anticipar *bunc
 **Limitaciones reales.**
 
 1. **Alcance geográfico y temporal.** Tres corredores de una ciudad, una ventana de 5 meses. E4 aporta validez externa de escala de flota, no geográfica.
-2. **Sin evaluación de origen rodante.** Una sola ventana de prueba de 22 días. La estabilidad temporal del resultado no está cuantificada. Es la objeción estándar de un revisor de *forecasting* y sigue abierta.
+2. **La estabilidad temporal está medida para el LSTM y la persistencia, no para el XGBoost.** El resultado escalar se confirmó en tres ventanas (Sección 4) y la disociación también (Sección 5.5): 12 de 12 celdas coinciden y el sesgo de CV es negativo en las 36. Lo que **no** se re-corrió en los orígenes anteriores es el XGBoost, así que todo lo que involucra al árbol —la réplica del cruce, su colapso vectorial, el contraste LSTM contra XGBoost— sigue apoyado en **una sola** ventana de 22 días. Cerrarlo sí requiere GPU y Kaggle, a diferencia de la disociación, que se recalculó sobre bytes que ya estaban en disco.
 3. **Confusor en el período de prueba.** Febrero 2024 en Arequipa incluye Carnaval (12–13 feb). La composición del test no está caracterizada.
 4. **Cobertura de semillas.** Solo el LSTM tiene barrido de semillas, y sobre las familias congeladas. ConvLSTM y Transformer no lo tienen.
 5. **El nulo espacial es previo.** Se estableció sobre las familias congeladas, que arrastran el sesgo de encuadre. No se rehízo bajo el pipeline contiguo.

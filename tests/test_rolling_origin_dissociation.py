@@ -1,0 +1,217 @@
+"""The dissociation must be measured in three windows, not one read three times.
+
+This mirrors ``tests/test_rolling_origin_significance.py`` and exists for the
+same reason: a ``fold`` argument that silently selects nothing still produces a
+full, plausible, perfectly formatted table — one where every origin agrees
+because every origin IS the published window.
+``test_each_origin_reads_a_different_population`` is the guard that the table
+claiming temporal robustness was built from different data.
+
+The behavioural tests below are the ones the paper would cite. They are written
+so a real reversal FAILS them: if persistence's bunching advantage were an
+artifact of February 2024, ``test_persistence_wins_detection_at_every_origin``
+breaks rather than quietly reporting a split.
+"""
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+os.environ.setdefault("POLARS_MAX_THREADS", "1")
+
+import polars as pl  # noqa: E402
+import pytest  # noqa: E402
+
+from src.build_contiguous_significance import CORRIDORS, HORIZONS, load_lstm  # noqa: E402
+from src.build_rolling_origin_dissociation import (  # noqa: E402
+    MODELS,
+    OUT_CSV,
+    OUT_SUMMARY_CSV,
+    agreement,
+)
+from src.build_rolling_origin_significance import ORIGINS  # noqa: E402
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(scope="module")
+def table() -> pl.DataFrame:
+    if not OUT_CSV.exists():
+        pytest.skip(f"{OUT_CSV.name} not built yet")
+    return pl.read_csv(OUT_CSV)
+
+
+@pytest.fixture(scope="module")
+def summary() -> pl.DataFrame:
+    if not OUT_SUMMARY_CSV.exists():
+        pytest.skip(f"{OUT_SUMMARY_CSV.name} not built yet")
+    return pl.read_csv(OUT_SUMMARY_CSV)
+
+
+class TestTheOriginsAreReallyDifferent:
+    def test_each_origin_reads_a_different_population(self):
+        """Three windows of different length over different months cannot share
+        a row count by accident; equality means the fold argument did not select."""
+        counts = {origin: load_lstm(origin).height for origin in ORIGINS}
+        assert len(set(counts.values())) == len(ORIGINS), (
+            f"origins share a row count, so at least two read the same files: {counts}"
+        )
+
+    def test_every_cell_scores_a_real_population(self, table):
+        assert table.get_column("n_vectors").min() > 0
+        assert table.get_column("n_cells").min() > 0
+
+
+class TestTableShape:
+    def test_one_row_per_origin_cell_and_model(self, table):
+        expected = len(ORIGINS) * len(CORRIDORS) * len(HORIZONS) * len(MODELS)
+        assert table.height == expected
+        assert table.unique(
+            subset=["origin", "corridor", "horizon", "model"]
+        ).height == expected
+
+    def test_only_the_pairable_models_appear(self, table):
+        """XGBoost is not re-run at the rolling origins, so it cannot be here."""
+        assert set(table.get_column("model").unique()) == {n for n, _ in MODELS}
+
+    def test_agreement_is_recomputable_from_the_detail_table(self, table, summary):
+        assert agreement(table).equals(summary)
+
+    def test_agrees_matches_the_three_winners(self, summary):
+        for row in summary.iter_rows(named=True):
+            winners = {row[f"winner_{origin}"] for origin in ORIGINS}
+            assert row["agrees"] == (len(winners) == 1), row
+            assert row["winner"] == (
+                next(iter(winners)) if len(winners) == 1 else "SPLIT"
+            )
+
+
+class TestWhatTheTableSaysAboutTheClaim:
+    """Behaviour, not formatting: the findings the paper would cite."""
+
+    def test_persistence_wins_detection_at_every_origin(self, table):
+        """The headline. Persistence must out-detect the learner in all 36
+        (corridor, horizon, origin) cells — a single reversal is a real result
+        and must fail here rather than be averaged away."""
+        lstm = table.filter(pl.col("model") == "LSTM").sort(
+            ["corridor", "horizon", "origin"]
+        )
+        persist = table.filter(pl.col("model") == "Persistence").sort(
+            ["corridor", "horizon", "origin"]
+        )
+        assert lstm.height == persist.height == 36
+
+        losses = [
+            (c, h, o)
+            for c, h, o, a, b in zip(
+                lstm.get_column("corridor"),
+                lstm.get_column("horizon"),
+                lstm.get_column("origin"),
+                lstm.get_column("bunching_f1"),
+                persist.get_column("bunching_f1"),
+            )
+            if not b > a
+        ]
+        assert not losses, f"the learner out-detects persistence in {losses}"
+
+    def test_the_learner_under_reports_irregularity_at_every_origin(self, table):
+        """CV bias negative in all 36 cells: the learner always predicts a
+        smoother corridor than the real one."""
+        bias = table.filter(pl.col("model") == "LSTM").get_column("cv_bias")
+        assert bias.len() == 36
+        assert (bias < 0).all(), f"positive CV bias in {bias.to_list()}"
+
+    def test_persistence_preserves_the_shape_it_copies(self, table):
+        """Persistence propagates the observed vector, so its CV bias must sit
+        near zero. If it drifted, the mechanism attributed to MAE would instead
+        be an artifact of how the vectors are assembled."""
+        bias = table.filter(pl.col("model") == "Persistence").get_column("cv_bias")
+        assert bias.abs().max() < 0.05, (
+            f"persistence CV bias is not ~0: max |bias| = {bias.abs().max()}"
+        )
+
+    def test_the_gap_widens_with_the_horizon_at_every_origin(self, table):
+        """The dissociation is a TREND, not one bad cell: the detection gap must
+        grow monotonically with the horizon in all nine (corridor, origin) pairs,
+        which is what pairs it with the MAE advantage growing the same way."""
+        for corridor in CORRIDORS:
+            for origin in ORIGINS:
+                cell = table.filter(
+                    (pl.col("corridor") == corridor) & (pl.col("origin") == origin)
+                )
+                ratios = []
+                for horizon in HORIZONS:
+                    at = {
+                        r["model"]: r
+                        for r in cell.filter(pl.col("horizon") == horizon).iter_rows(
+                            named=True
+                        )
+                    }
+                    ratios.append(
+                        at["Persistence"]["bunching_f1"] / at["LSTM"]["bunching_f1"]
+                    )
+                assert ratios == sorted(ratios), (
+                    f"{corridor}@{origin} detection gap is not monotone: {ratios}"
+                )
+
+    def test_the_collapse_is_recall_not_precision(self, table):
+        """The mechanism claim. A learner that were simply WRONG would lose
+        precision too; regression to the mean shows up as preserved precision
+        with recall near zero, and that distinction is what rules out noise."""
+        lstm = table.filter(pl.col("model") == "LSTM")
+        long_h = lstm.filter(pl.col("horizon") == 10)
+        assert long_h.height == len(CORRIDORS) * len(ORIGINS)
+        assert (long_h.get_column("bunching_recall") < 0.05).all()
+        # Precision is only estimable where the model fires enough times: at
+        # E2/r1 it fires three times in the whole window, and a ratio over three
+        # events carries no information either way.
+        firing = long_h.filter(pl.col("bunching_tp") + pl.col("bunching_fp") >= 30)
+        assert firing.height >= 6, "too few cells fire to test precision at all"
+        assert (firing.get_column("bunching_precision") > 0.3).all(), (
+            "precision collapsed too — this is not the mean-reversion signature"
+        )
+
+
+class TestTheDocumentQuotesTheTable:
+    """Every number narrated in the prose must come off the CSV."""
+
+    DOC = REPO_ROOT / "docs" / "resultados" / "documento-resultados.md"
+    HEADING = "### 5.5 La disociación no es de febrero"
+
+    @pytest.fixture(scope="class")
+    def section(self) -> str:
+        text = self.DOC.read_text(encoding="utf-8")
+        assert self.HEADING in text, f"{self.HEADING!r} is gone from the document"
+        return text.split(self.HEADING)[1].split("## 6.")[0]
+
+    def test_the_agreement_count_is_not_stale(self, section, summary):
+        n_agree = int(summary.get_column("agrees").sum())
+        assert f"{n_agree} de las {summary.height} celdas" in section, (
+            f"{n_agree} of {summary.height} cells agree; the section does not "
+            "open with that count"
+        )
+
+    def test_the_cv_bias_count_is_not_stale(self, section, table):
+        n = int(
+            (table.filter(pl.col("model") == "LSTM").get_column("cv_bias") < 0).sum()
+        )
+        assert f"{n} celdas" in section, (
+            f"CV bias is negative in {n} cells; the section does not say so"
+        )
+
+    def test_the_extreme_ratio_is_quoted_correctly(self, section, summary):
+        """The largest ratio is the number a reader remembers, and it is NOT the
+        published window's — quoting 253x where the table says 2298x would
+        understate the finding by an order of magnitude."""
+        import re
+
+        ratios = [
+            summary.get_column(f"f1_ratio_{origin}").max() for origin in ORIGINS
+        ]
+        top = max(r for r in ratios if r is not None)
+        quoted = [int(x) for x in re.findall(r"(\d{3,5})×", section)]
+        assert quoted, "the section quotes no F1 ratio"
+        assert max(quoted) == round(top), (
+            f"largest ratio in the CSV is {top:.1f}x; the section quotes "
+            f"{max(quoted)}x"
+        )
