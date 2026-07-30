@@ -62,3 +62,9 @@ Thumbs.db
 
 # Generated documents (pandoc output — regenerables desde .md)
 *.docx
+
+# Papers de referencia bajados para el relevamiento de literatura.
+# NO se versionan: son publicaciones con copyright detras de paywall y este repo
+# tiene remoto en GitHub. Los hallazgos verificados viven en
+# docs/paper/fuentes-verificadas.md, que es lo que el manuscrito necesita.
+docs/paper/papers/

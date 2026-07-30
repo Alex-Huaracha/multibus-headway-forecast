@@ -61,13 +61,13 @@
 > [ANDAMIAJE] Rankeadas por defensibilidad, con la evidencia al lado. Cada una nombra explícitamente qué NO reclama, porque la mitad del argumento anterior estaba tomado y conviene que el revisor vea que lo sabemos.
 
 - **C1 (mecanismo, medido).** Cuantificamos la causa de la falla: la **compresión de dispersión** del pronóstico, medida como razón de coeficientes de variación del vector de *headways*. El LSTM predice un corredor con CV ≈ 0.16 cuando el real es ≈ 0.79, con sesgo negativo en **las 36 celdas** de corredor × horizonte × ventana de prueba y deterioro monótono con el horizonte. Y la convertimos en profundidad de cola usando `Z = 0.5/cv`, **la propia relación que el TCQSM establece** para ligar el CV del *headway* a la probabilidad de desvío: sobre las observaciones da Z ≈ 0.63, sobre el pronóstico Z ≈ 3.1. La escala de nivel de servicio del manual califica al mismo corredor como **LOS A, "service provided like clockwork"** por el pronóstico y **LOS F, "most vehicles bunched"** por lo observado.
-  *No reclamamos* que la sub-dispersión de pronósticos puntuales sea un hallazgo nuevo: es teoría establecida (la descomposición de la varianza; Patton y Timmermann 2012 prueban además la monotonía en el horizonte) y fue observada en otros dominios. Reclamamos **medirla en el vector de *headways*** —donde nadie la midió— y **darle la vuelta a la fórmula del manual sobre el pronóstico**, que es la inversión no publicada.
+  *No reclamamos* que la sub-dispersión de pronósticos puntuales sea un hallazgo nuevo, y hay que decirlo de frente porque **está publicado como enunciado general**: Mayer y Yang (2022) escriben que *"MSE-optimized forecasts are always underdispersed"*, cuantifican el déficit como razón de varianza (< 75 % de la varianza observada), establecen que los pronósticos optimizados en MAE quedan **menos** sub-dispersos que los de MSE, y atribuyen el agravamiento con el horizonte a Vannitsem y Hagedorn (2011). Patton y Timmermann (2012, Cor. 2) prueban esa monotonía como teorema. Reclamamos tres cosas más angostas: (a) **medirlo en el vector de *headways***, como dispersión **transversal** entre componentes en un mismo instante —Mayer y Yang trabajan sobre la varianza **temporal de una serie escalar** de irradiancia, que es la cantidad que los teoremas acotan y **no** es la nuestra—; (b) **darle la vuelta a la fórmula del propio manual sobre el pronóstico**; y (c) atarlo a una **consecuencia sobre una regla de evento**, que en esa literatura no aparece: en Mayer y Yang las palabras *threshold*, *detect* y *exceed* no figuran ni una vez.
 
 - **C2 (reparación por recalibración, no por cambio de modelo).** Donde la literatura responde a la falla cambiando de clase de modelo, mostramos que **el punto de operación alcanza**. Ajustando el corte por MCC sobre una ventana anterior y disjunta y aplicándolo hacia adelante, la **persistencia recupera 0.5× en 11 de las 12 celdas** —o sea, el umbral publicado *era* su óptimo— mientras que el aprendiz necesita **0.58×–0.91×**. Con el corte en sus propias unidades, o puntuando sin umbral, **el veredicto se invierte**: a h=10 el aprendiz discrimina mejor que la persistencia en **3 de 3 corredores y 3 de 3 ventanas**, exactamente donde el corte fijo le daba 253× en contra. Y a h=1 la persistencia gana en 3 de 3 y 3 de 3, así que el error escalar y la detección **coinciden** una vez removido el artefacto.
 
-- **C3 (validez de la métrica).** El veredicto original descansaba en F1, y F1 es el resumen equivocado a estas tasas base (17–30 %, por encima del rango de 0.15–17 % que reporta el campo). Marcar **todas** las celdas —una regla sin contenido— supera al ganador declarado en **5 de las 12 celdas, incluidas las tres de h=10**. Reportamos MCC, ROC-AUC y **precisión media, que no aparece en la literatura de *bunching***, junto con el piso trivial explícito en cada tabla. Y medimos algo que nadie publicó: la **estabilidad comparada** del corte ajustado por F1 contra el ajustado por MCC entre ventanas. El resultado es mixto y se reporta mixto — el F1 es más ajustado en la mediana, pero tiene un modo de falla degenerado que el MCC no tiene, y el costo fuera de muestra favorece al MCC por un factor de 3 a 6.
+- **C3 (validez de la métrica).** El veredicto original descansaba en F1, y F1 es el resumen equivocado a estas tasas base (17–30 %, por encima del rango de 0.15–17 % que reporta el campo). Marcar **todas** las celdas —una regla sin contenido— supera al ganador declarado en **5 de las 12 celdas, incluidas las tres de h=10**. Reportamos MCC, ROC-AUC y **precisión media, que no aparece en la literatura de *bunching***, junto con el piso trivial explícito en cada tabla. La ausencia no es nuestra impresión: la propia tabla comparativa de Santos et al. (2022) lista las métricas de cada trabajo previo del subcampo —RMSE, *accuracy*, precisión, *recall*, MAPE, especificidad, sensibilidad, F-measure— y **ninguno reporta AUC ni precisión media**. Y medimos algo que nadie publicó: la **estabilidad comparada** del corte ajustado por F1 contra el ajustado por MCC entre ventanas. El resultado es mixto y se reporta mixto — el F1 es más ajustado en la mediana, pero tiene un modo de falla degenerado que el MCC no tiene, y el costo fuera de muestra favorece al MCC por un factor de 3 a 6.
 
-- **C4 (el hallazgo no es artefacto de nuestra regla).** Nuestro umbral relativo a la media del propio vector **no es la convención del campo** —la forma dominante es una fracción del *headway* programado— porque estos datos son GPS crudo sin horario. Así que repetimos toda la detección con un **corte absoluto en minutos**, calibrado fuera de muestra e idéntico para observado y pronóstico. El colapso **no se atenúa: empeora**, y bajo la convención dominante del campo (un cuarto del programado) es **110 veces peor** que bajo la nuestra. Nuestra elección de umbral resultó ser la conservadora.
+- **C4 (el hallazgo no es artefacto de nuestra regla).** Nuestro umbral normaliza por la media del propio vector porque estos datos son GPS crudo sin horario — la misma sustitución que hace Yu et al. (2016), que usan el *headway* observado en la primera parada por el mismo motivo. La diferencia es el punto de referencia, y **es el mecanismo**: la suya es observada y fija, la nuestra es predicha y se mueve. Para probar que el colapso no depende de esa elección, repetimos toda la detección con un **corte absoluto en minutos**, calibrado fuera de muestra e idéntico para observado y pronóstico. **No se atenúa: empeora**, y bajo la convención dominante del campo (un cuarto del programado) es **110 veces peor** que bajo la nuestra. Nuestra elección resultó ser la conservadora. Rezazada et al. (2024) confirman además que en este campo *"no existe un único valor de umbral"*, con los publicados entre 20 s y un cuarto del programado.
 
 > [ANDAMIAJE] Y un párrafo corto de "lo que este trabajo NO afirma", que en este venue es un diferenciador y no una debilidad:
 > - No afirma que estos modelos estén listos para operar una alarma. Un AUC de 0.60 es información real y está lejos de un sistema de despacho; falta la función de costo.
@@ -248,9 +248,24 @@
   CUELLO DE BOTELLA: II-A (la familia y Sun et al.) y II-C (precedentes de recalibración).
   Son las dos que deciden si el paper se lee como honesto o como ingenuo.
 
-  BLOQUEANTES ANTES DE ESCRIBIR II (ver fuentes-verificadas.md §6):
-    V1  Mayer y Yang 2022 — puede contener C1 como enunciado previo
-    V2  Rezazada et al. 2024 — la review que un referí espera citada
-    V3  Reconciliar Jiao et al. (89 %) y Yu et al. (>95 %) con nuestro colapso
-    V8  Santos et al. 2022 — el lugar más probable donde ya exista un barrido de umbral
+  BLOQUEANTES — RESUELTOS el 2026-07-29, los cuatro papers leídos (ver fuentes-verificadas.md §0):
+    V1  Mayer y Yang 2022  → CONFIRMADO. "MSE-optimized forecasts are always
+                             underdispersed" es literal. C1 reformulado: queda el CV
+                             transversal sobre el vector, la inversión del TCQSM y la
+                             consecuencia sobre la regla de evento (ellos: 0 umbrales).
+    V2  Rezazada et al.    → VERIFICADO. "20 s a ¼ del programado", y "no existe un
+                             único valor de umbral". Pendiente menor: revisar Gong et
+                             al. (2020), umbral variable.
+    V3  Yu et al. >95 %    → RECONCILIADO. Es a 2 PARADAS; su propia sensibilidad cae
+                             a 73 % a 5 paradas (vía Sun et al. 2021). Métricas sin
+                             precisión, sin AUC, sin detector trivial. Y su umbral usa
+                             el headway OBSERVADO de la primera parada como sustituto
+                             del horario ausente — mismo problema nuestro, misma clase
+                             de solución, referencia distinta.
+    V8  Santos et al. 2022 → SIN BARRIDO DE UMBRAL. C2 sobrevive. Y su tabla de la
+                             literatura previa confirma que nadie reporta AUC ni AP.
+
+  PENDIENTE MENOR: Jiao et al. 2023 (89 % con LSTM → umbral), doi 10.1109/icite59717.2023.10733869.
+  No conseguido. Probablemente se reconcilia igual que Yu et al. (horizonte corto), pero
+  hay que verificarlo antes de someter.
 -->

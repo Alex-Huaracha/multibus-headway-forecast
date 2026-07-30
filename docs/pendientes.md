@@ -64,18 +64,24 @@ paper como reproducibilidad demostrada.
 
 ---
 
-## 2-bis. Papers a conseguir (requieren acceso institucional)
+## 2-bis. Papers de *paywall* — ✅ los cuatro críticos, leídos
 
-Bloquean la escritura de la Sección II del manuscrito. Detalle completo en
-`docs/paper/fuentes-verificadas.md` §6.
+PDFs en `docs/paper/papers/`. Hallazgos completos en
+`docs/paper/fuentes-verificadas.md` §0. Resumen:
 
-| Prioridad | Paper | DOI | Qué buscar |
-|---|---|---|---|
-| **Crítica** | Mayer & Yang, *IJF* 39(2):981–991, 2022 | `10.1016/j.ijforecast.2022.03.008` | Si dice literal *"MSE-optimized forecasts are always underdispersed"*. Si lo dice, **C1 se reformula** a "primera cuantificación en transporte". Es **CC-BY**: si el editor bloquea, escribir a `mayer@energia.bme.hu` |
-| **Crítica** | Santos, Pires, Nascimento & de Queiroz, *The Computer Journal* 65(8):2044–2062, 2022 | `10.1093/comjnl/bxab045` | Si hay un barrido o recalibración de umbral. Sería **C2 ya publicado**. Compara contra regresores y clasificadores, así que tuvo que umbralizar salidas de regresión |
-| Alta | Rezazada, Nassir, Tanin & Ceder, *Transport Reviews* 44(4):766–790, 2024 | `10.1080/01441647.2024.2313969` | El catálogo de umbrales del campo. Un referí la va a esperar citada. Verificar el rango "20 s a ¼ del programado" y la atribución disputada a "Moreira-Matias et al. (2015)" |
-| Alta | Yu, Chen, Wu, Ma & Wang, *TR-C* 72:45–59, 2016 | `10.1016/j.trc.2016.09.007` | Su umbral y su horizonte. Reclama >95 % de detección con el paradigma que criticamos: hay que explicar por qué a ellos les funciona |
-| Media | Jiao, Shen & Zhang, IEEE ICITE 2023 | `10.1109/icite59717.2023.10733869` | Su umbral. Reclama 89 % con LSTM → umbral |
+| Paper | Veredicto |
+|---|---|
+| Mayer & Yang 2022 | ⚠️ **La amenaza se confirma.** *"MSE-optimized forecasts are always underdispersed"* es literal. **C1 reformulado**: queda el CV transversal sobre el vector, la inversión del TCQSM y la consecuencia sobre la regla de evento. Ellos: cero umbrales, cero detección, y su objeto es una serie escalar |
+| Santos et al. 2022 | ✅ **Sin barrido de umbral. C2 sobrevive.** Y su tabla de la literatura previa confirma que **nadie reporta AUC ni precisión media** |
+| Rezazada et al. 2024 | ✅ **Verificado:** *"no existe un único valor de umbral"*, y el rango va de 20 s a ¼ del programado |
+| Yu et al. 2016 | ✅ **Reconciliado, y nos ayuda.** Su >95 % es a **2 paradas**; su propia sensibilidad cae a **73 % a 5 paradas**. Y usan el *headway* observado de la primera parada como sustituto del horario ausente — mismo problema nuestro, misma clase de solución |
+
+**Sigue faltando, prioridad media:** Jiao, Shen & Zhang, IEEE ICITE 2023,
+doi:`10.1109/icite59717.2023.10733869`. Reclama 89 % con LSTM → umbral.
+Probablemente se reconcilia igual que Yu et al., pero hay que verificarlo.
+
+**Y uno nuevo que salió de Rezazada:** Gong et al. (2020), umbral **variable**
+según tipo de servicio e información en tiempo real. Revisar que no amenace C2.
 
 ---
 

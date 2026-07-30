@@ -41,6 +41,137 @@ principio general. Solo **parcialmente** novedoso dentro de transporte.
 
 ---
 
+## 0. Los cuatro papers de *paywall*, leídos — 2026-07-29
+
+PDFs en `docs/paper/papers/`. Texto extraído con el extractor de solo-stdlib; las
+tablas de Yu et al. quedaron con los dígitos pegados y **no se parsearon**, así
+que sus tasas base no se citan desde ahí. Todo lo demás es literal.
+
+### 0.1 Mayer & Yang (2022) — **la amenaza se CONFIRMA**
+`[TEXTO COMPLETO]` — doi:`10.1016/j.ijforecast.2022.03.008`, *IJF* 39(2):981–991.
+
+La frase existe, literal:
+
+> *"As MSE-optimized forecasts are **always underdispersed**, the common practice
+> of using RMSE skill score for evaluation overrates the forecasts with lower
+> dispersion. Such underdispersed forecasts are less discriminatory, have a
+> higher type-2 conditional bias, and are suboptimal in terms of MAE."*
+
+Y también: *"MSE leads to the inevitable underdispersion of the forecast"*, más la
+dependencia de la pérdida que creíamos nuestra: *"The MAE-optimized forecasts are
+also slightly underdispersed, but they have a lower type-2 conditional bias and
+higher discrimination as compared to the MSE-optimized ones"*, y *"The
+MSE-optimized power forecasts were shown to be more underdispersed than
+MAE-optimized ones, which seems to be the general case in solar forecasting."*
+
+Además atribuyen la dependencia del horizonte a **Vannitsem y Hagedorn (2011)**:
+el post-procesamiento que reduce el MSE produce pronósticos más sub-dispersos a
+mayor *lead time*, porque convergen a la media climatológica cuando cae la
+correlación. **Es un segundo precedente de nuestra monotonía**, además de Patton
+y Timmermann.
+
+Cuantifican: *"The MSE-optimized forecasts are much underdispersed, as they only
+capture <75% of the observed variance"*, y proponen calibrar la **razón de
+varianza** en el dominio σ² < F < 1.
+
+**Qué NO hacen** (conteo sobre el texto completo): `threshold` **0**, `detect`
+**0**, `exceed` **0**, `AUC` **0**, `coefficient of variation` **0**. Cero
+detección de eventos, cero umbrales. Y su objeto es **irradiancia solar escalar**
+en siete estaciones SURFRAD: varianza **temporal de una serie escalar**, no
+dispersión **transversal** entre componentes de un vector.
+
+**Consecuencia: C1 se reformula.** No podemos reclamar el enunciado estructural.
+Queda: (a) primera cuantificación sobre un **vector de *headways***, como CV
+transversal; (b) la inversión del `Z = 0.5/cv` del TCQSM sobre el pronóstico;
+(c) la consecuencia **sobre una regla de evento**, que ellos no tocan. Citarlos
+de frente en la §II-B.
+
+### 0.2 Santos et al. (2022) — **C2 sobrevive**
+`[TEXTO COMPLETO]` — doi:`10.1093/comjnl/bxab045`, *The Computer Journal* 65(8).
+
+Era el lugar más probable donde ya existiera nuestro barrido de umbral. **No está.**
+`sweep` **0**, `calibrat` **0**, `AUC` **0**, `MCC` **0**.
+
+Su umbral, literal: `BB = 1 si h < τ`, con **τ = h_programado / 4**. Y cuando no
+hay GTFS: *"when the scheduled headway cannot be calculated and are not
+available, which usually occurs when GTFS is out of date, a user-defined
+threshold is utilized"* — usaron **τ = 5 min** absolutos.
+
+Predicen **la ocurrencia** directamente (clasificación), no el *headway*.
+Métricas: **Precisión, Recall y F-measure**. *Baselines*: Regresión Lineal,
+Logística, SVM y RVM.
+
+**Y traen un regalo:** una tabla de la literatura previa con las métricas de cada
+trabajo — RMSE, Accuracy, Precision, Recall, MAPE, Specificity, Sensitivity,
+F-measure. **Ninguno reporta AUC ni precisión media.** Es confirmación publicada,
+dentro del subcampo, de nuestra afirmación de la §II-D.
+
+### 0.3 Rezazada et al. (2024) — **el rango se VERIFICA**
+`[TEXTO COMPLETO]` — doi:`10.1080/01441647.2024.2313969`, *Transport Reviews* 44(4).
+
+Literal:
+
+> *"**There is no single threshold value to define bunching events**, as it
+> depends on the type of the service, time of the day, location, and service
+> frequency. Earlier studies suggest using a constant threshold, which is a fixed
+> time interval that separates consecutive vehicles. Feng and Figliozzi (2011)
+> considered three minutes and Iliopoulou et al. (2020b) employed one minute.
+> **Typically, this threshold ranges from 20 s to ¼ of the planned headways.**
+> However, some recent works suggest a variable threshold, which considers the
+> service type, real-time information, and passenger demand."*
+
+El rango "20 s a ¼" queda verificado. **La atribución disputada a
+"Moreira-Matias et al. (2015)" no aparece en este pasaje** — no propagarla.
+
+Y un pendiente nuevo: mencionan **Gong et al. (2020)** con umbral **variable**
+según tipo de servicio e información en tiempo real. Hay que revisar que no sea
+una amenaza a C2 (variable por contexto operativo ≠ recalibrado contra la
+distribución del pronóstico, pero conviene verificarlo).
+
+### 0.4 Yu et al. (2016) — **la reconciliación, y nos AYUDA**
+`[TEXTO COMPLETO]` — doi:`10.1016/j.trc.2016.09.007`, *TR-C* 72:45–59.
+
+**Confirmado que son la familia que criticamos**, literal: *"the occurrence of bus
+bunching can be detected by thresholding the predicted headway with the planned
+bus schedule."*
+
+**Su regla (Ec. 13) resuelve nuestro mismo problema, y de la misma manera.**
+Pekín no tiene horario fijo: *"It cannot provide a fixed timetable for
+passengers because most route schedules change over time... **Therefore, this
+study uses the headway at the first stop as the "scheduled" headway.**"* La regla
+es `BB = 1 si h_i < h_1/4`, con `h_1` el *headway* **observado** en la primera
+parada de la misma corrida.
+
+> **Esto mejora nuestra posición.** Sustituir el horario ausente por una
+> referencia **observada del propio dato** es práctica establecida, del paper más
+> citado del subcampo. Nuestra media del vector es la misma clase de sustitución
+> con otro punto de referencia. Deja de ser "invención nuestra sin precedente" y
+> pasa a ser "la misma sustitución que Yu et al., con otra referencia" — y la
+> diferencia que importa queda nítida: **su referencia es observada y no se mueve
+> con el pronóstico; la nuestra es predicha y sí se mueve.** Ahí está el
+> mecanismo, expresado como contraste con un precedente en lugar de como
+> peculiaridad nuestra.
+
+**La reconciliación del >95 %**, verificada en Sun et al. (2021), texto limpio:
+
+> *"Yu, Chen, Wu, Ma, and Wang (2016) used several well-developed algorithms to
+> predict headway first then convert the result to binary bunching occurrence.
+> 2min RMSE is obtained for headway and **99% sensitivity is realized for
+> bunching in 2-stop-ahead prediction, but the performance deteriorates to 6min
+> RMSE and 73% sensitivity for 5-stop-ahead prediction.**"*
+
+Su titular es de **2 paradas de anticipación**, y **su propia sensibilidad se
+degrada a 73 % a 5 paradas**. O sea: cualitativamente, nuestro hallazgo. Sus
+métricas son *accuracy*, sensibilidad y especificidad — **sin precisión, sin AUC,
+sin detector trivial**.
+
+Las diferencias que hay que declarar al reconciliar: horizonte en **paradas**, no
+en minutos; objetivo un **par de buses en la próxima parada**, no el vector
+completo en un instante futuro; y referencia del umbral **observada**, no
+predicha.
+
+---
+
 ## 1-bis. Tres correcciones a **nuestra propia metodología**
 
 Estas no son sobre el encuadre: son errores de hecho que teníamos escritos.
