@@ -20,7 +20,7 @@ La receta obvia es: entrenar un modelo que prediga los *headways*, definir la re
 
 > **Sobre esa regla, con precisión, porque una versión anterior de este documento la llamaba "estándar" y no lo es.** La forma relativa que domina la literatura es una fracción del *headway* **programado** —un cuarto, en Yu et al. (2016) y Moreira-Matias et al. (2016); un medio, en el TCQSM—, no una fracción de la media del propio vector. Nosotros **no tenemos horario programado**: los datos son GPS crudos sin GTFS, así que la media del vector observado es el sustituto disponible del *headway* programado. Es una elección defendible y es **nuestra**, no heredada.
 >
-> Y no es un detalle: la forma **auto-referencial** —normalizar por la media del propio vector predicho— es exactamente lo que hace que el coeficiente de variación[^cv] gobierne el resultado, y por lo tanto es la que maximiza el artefacto que este documento describe. Un umbral en minutos absolutos también sub-dispararía sobre un pronóstico comprimido, pero por otro mecanismo. El alcance de nuestro hallazgo son los **umbrales relativos y auto-referenciales**, y así se declara.
+> Y la pregunta obvia —si el colapso no es más que un artefacto de esa forma auto-referencial— **está medida**, no argumentada. La Sección 5.6 repite toda la detección con un corte **absoluto en minutos** calibrado fuera de muestra. El resultado va en contra de lo que esperábamos: **el colapso empeora**, y con la convención dominante del campo (un cuarto del *headway* programado) es **110 veces peor** que con nuestra regla. El alcance del hallazgo es entonces más ancho que los umbrales auto-referenciales — nuestra elección de umbral resultó ser la **conservadora**.
 
 El resultado escalar salió como se esperaba: a partir de 5 minutos de anticipación los aprendices le ganan a la persistencia con holgura creciente, hasta **1.47 min de MAE**[^mae] a 10 minutos.
 
@@ -404,6 +404,50 @@ Un factor que va de 253 a 2299 según el mes en la misma celda no es la medida d
 *Advertencia de lectura, la misma que la Sección 4.* Esta tabla puntúa sobre la población completa del LSTM, no sobre la intersección con el XGBoost, porque el XGBoost no se re-corrió en los orígenes de rolling. Se eligió comparabilidad **entre** ventanas.
 
 **Lo que esto cierra.** Las tres piezas están medidas en tres ventanas: el resultado escalar (Sección 4), el aplanamiento (36/36) y el cruce de detección sin umbral (11/12, 9/9 en los extremos). Lo que sigue apoyado en una sola ventana es el XGBoost, que no se re-corrió, y el umbral calibrado fuera de muestra de la Sección 5.4, que por construcción necesita dos ventanas y usa `r2` → `main`.
+
+### 5.6 Tampoco es de nuestro umbral
+
+La Sección 5.5 mostró que nada de esto es de febrero. Queda la otra objeción, y es la más fuerte que se le puede hacer a este documento: **el umbral relativo a la media del propio vector lo introdujimos nosotros** (§1). Si el colapso fuera un artefacto de esa forma auto-referencial, el hallazgo no diría nada sobre la práctica del campo, que usa una fracción del *headway* **programado**.
+
+Así que lo medimos con un corte **absoluto en minutos**, calibrado en `r2` y aplicado a `main`, idéntico para el observado y para el pronóstico:
+
+```
+K = ρ × mediana(headway observado en r2),  por (corredor, dirección)
+```
+
+con ρ = 0.5 para quedar comparable con nuestra regla, y ρ = 0.25 para igualar la convención dominante del campo. Un corte absoluto **no es auto-referencial**: su denominador no se mueve con el pronóstico.
+
+**Cuánto sub-dispara el LSTM** (1.0 = dispara tan seguido como ocurre el evento; mediana de las 12 celdas):
+
+| Regla | Sub-disparo | Peor celda |
+|---|---|---|
+| Auto-referencial, 0.5× la media del vector | 0.079 | — |
+| **Absoluto, 0.5× la mediana de `r2`** | **0.040** | 0.00028 |
+| **Absoluto, 0.25× la mediana de `r2`** (convención del campo) | **0.0007** | 0.000000 |
+
+**El resultado va en contra de lo que esperábamos, y refuerza el argumento.** El colapso no se atenúa con un corte absoluto: **empeora**. Con la convención del campo es **110 veces peor** que con la nuestra. La razón es geométrica: un corte absoluto en 1.4–2.4 minutos vive en la cola lejana, y es exactamente ahí donde la compresión muerde más fuerte; nuestra regla auto-referencial al menos mueve su denominador con el nivel del vector, así que algo agarra.
+
+> **Lo que esto cierra.** La objeción "el umbral es invención suya, así que el hallazgo no aplica al campo" queda no solo respondida sino **invertida**: de haber usado la convención dominante, el colapso aparente habría sido dos órdenes de magnitud mayor. El alcance del hallazgo es más ancho que umbrales auto-referenciales, y la afirmación de la §1 sobre ese alcance queda corregida hacia arriba.
+
+**Y una salvedad que corre en contra, y hay que decirla.** El aprendiz carga **menos** información sobre el evento absoluto que sobre el relativo. Con ρ = 0.25 el AUC mediano baja a **0.599** (contra 0.63–0.81 del evento relativo) y en E2 h=10 llega a **0.4934** — indistinguible del azar. Así que la afirmación "el aprendiz no es ciego en ninguna celda" **se sostiene para el evento relativo y no se sostiene para el absoluto en esa celda**. Con ρ = 0.5 el cuadro es mejor: mediana 0.655, mínimo 0.518, una sola celda en o por debajo de 0.55.
+
+### 5.7 Por qué el umbral se ajusta por MCC, medido en vez de citado
+
+La §5.3 justifica calibrar por MCC con un teorema: Lipton et al. (2014) prueban que maximizar F1 sobre un clasificador sin información degenera a "marcar todo". Lo que nadie publicó es la comparación **empírica** de estabilidad entre los dos objetivos. Tenemos tres ventanas disjuntas y los dos objetivos implementados, así que la medimos.
+
+| | Objetivo MCC | Objetivo F1 |
+|---|---|---|
+| Rango del corte entre los tres orígenes, mediana | 0.0357 | **0.0226** |
+| Rango del corte, peor celda | **0.864** | 3.688 |
+| Celdas con rango > 0.5 | **1 de 24** | 4 de 24 |
+| MCC logrado en `main` según la ventana de calibración, mediana del rango | **0.00071** | 0.00242 |
+| Ídem, peor celda | **0.018** | 0.098 |
+
+**El resultado es mixto y conviene no maquillarlo.** En la **mediana**, el corte ajustado por F1 es *más* estable, no menos. Lo que distingue al MCC son las **colas**: el F1 tiene cuatro celdas con rango mayor a 0.5 y tres por encima de 1.0 —E2 h=3, E2 h=5 y E59 h=10, todas de persistencia, o sea los colapsos degenerados de la §5.3—, mientras que al MCC le pasa en una sola.
+
+Y lo que decide es la última fila: **cuánto se mueve el desempeño realmente desplegado según qué ventana te tocó calibrar.** Ahí el MCC es **3.4× más estable en la mediana y 5.6× en el peor caso**. Un operador no elige un umbral, elige un procedimiento; el procedimiento por F1 funciona casi siempre y falla catastróficamente a veces, el de MCC es apenas más laxo y no tiene ese modo de falla.
+
+La formulación defendible, entonces, no es "el MCC es más estable" —sería falso en la mediana— sino: **el ajuste por F1 tiene un modo de falla degenerado que el de MCC no tiene, y el costo fuera de muestra favorece al MCC por un factor de 3 a 6.**
 
 ---
 
