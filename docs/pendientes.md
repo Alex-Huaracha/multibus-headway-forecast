@@ -64,6 +64,21 @@ paper como reproducibilidad demostrada.
 
 ---
 
+## 2-bis. Papers a conseguir (requieren acceso institucional)
+
+Bloquean la escritura de la Sección II del manuscrito. Detalle completo en
+`docs/paper/fuentes-verificadas.md` §6.
+
+| Prioridad | Paper | DOI | Qué buscar |
+|---|---|---|---|
+| **Crítica** | Mayer & Yang, *IJF* 39(2):981–991, 2022 | `10.1016/j.ijforecast.2022.03.008` | Si dice literal *"MSE-optimized forecasts are always underdispersed"*. Si lo dice, **C1 se reformula** a "primera cuantificación en transporte". Es **CC-BY**: si el editor bloquea, escribir a `mayer@energia.bme.hu` |
+| **Crítica** | Santos, Pires, Nascimento & de Queiroz, *The Computer Journal* 65(8):2044–2062, 2022 | `10.1093/comjnl/bxab045` | Si hay un barrido o recalibración de umbral. Sería **C2 ya publicado**. Compara contra regresores y clasificadores, así que tuvo que umbralizar salidas de regresión |
+| Alta | Rezazada, Nassir, Tanin & Ceder, *Transport Reviews* 44(4):766–790, 2024 | `10.1080/01441647.2024.2313969` | El catálogo de umbrales del campo. Un referí la va a esperar citada. Verificar el rango "20 s a ¼ del programado" y la atribución disputada a "Moreira-Matias et al. (2015)" |
+| Alta | Yu, Chen, Wu, Ma & Wang, *TR-C* 72:45–59, 2016 | `10.1016/j.trc.2016.09.007` | Su umbral y su horizonte. Reclama >95 % de detección con el paradigma que criticamos: hay que explicar por qué a ellos les funciona |
+| Media | Jiao, Shen & Zhang, IEEE ICITE 2023 | `10.1109/icite59717.2023.10733869` | Su umbral. Reclama 89 % con LSTM → umbral |
+
+---
+
 ## 3. Deuda técnica (no afecta al paper)
 
 | # | Tarea | Costo |

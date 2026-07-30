@@ -281,7 +281,18 @@ Lo que queda en pie es acotado: el MAE agregado borra estructura posicional real
 
 ### 5.2 Los aprendices aplanan el servicio
 
-El coeficiente de variación[^cv] del vector de *headways* mide cuán desparejo está el servicio. Es una propiedad **del vector como un todo**: un modelo puede acertar razonablemente cada *headway* individual y aun así destruir la forma.
+El coeficiente de variación[^cv] del vector de *headways* mide **cuán desparejo está el corredor**. Antes de usarlo conviene ver por qué hace falta, porque el promedio solo no alcanza:
+
+| | Huecos entre buses | Promedio | CV |
+|---|---|---|---|
+| Corredor A | 9, 10, 11, 10 min | **10 min** | 0.07 |
+| Corredor B | 1, 19, 2, 18 min | **10 min** | 0.85 |
+
+Mismo promedio, servicios opuestos. En A el pasajero espera diez minutos siempre. En B los buses pasan de a pares y dejan veinte minutos de hueco — eso *es* el *bunching*. **El promedio no los distingue; el coeficiente de variación sí.** Y se divide por la media en lugar de usar la desviación estándar pelada porque dos minutos de desvío son un desastre en un corredor de 5 minutos y son irrelevantes en uno de 15: dividir lo vuelve comparable entre corredores.
+
+Dicho en esos términos, lo que sigue es que **el modelo predice el corredor A cuando la realidad es el corredor B.**
+
+Es una propiedad **del vector como un todo**: un modelo puede acertar razonablemente cada *headway* individual y aun así destruir la forma.
 
 > **Dos precisiones que una versión anterior de esta sección omitía, y las dos importan.**
 >
@@ -536,7 +547,7 @@ Lo que este trabajo **no** afirma: que estos modelos estén listos para operar u
 
 [^mcc]: **MCC (coeficiente de correlación de Matthews)** — resume una matriz de confusión en un número de −1 a 1 usando las cuatro celdas, incluidos los **verdaderos negativos** que el F1 ignora. Para la regla degenerada "marcar todo" vale **0 por convención** (el cociente es 0/0; cero es la extensión por continuidad y el valor esperado de un clasificador al azar), mientras que el F1 de esa misma regla es 2*b*/(1+*b*), o sea 0.30 a 0.46 en estos corredores. Por eso acá reemplaza al F1 como resumen y como objetivo de calibración.
 
-[^cv]: **Coeficiente de variación (CV)** — desviación estándar dividida por la media. Aplicado al vector de *headways* de un instante, mide **cuán irregular está el servicio** en ese momento: CV alto significa buses muy desigualmente espaciados. Es una propiedad del vector como un todo, no de cada *headway* por separado. El TCQSM la prescribe como medida de fiabilidad para servicio de alta frecuencia (≤10 min) y le asigna una escala de nivel de servicio; **no** es, en cambio, la métrica que usan los operadores en la práctica (ver §5.2). Y su definición en el manual normaliza por el *headway* **programado**, que nosotros no tenemos: lo nuestro es σ(*h*)/media(*h*) sobre el vector observado.
+[^cv]: **Coeficiente de variación (CV)** — desviación estándar dividida por la media. En castellano: **un número que dice cuán desparejo está el corredor**. Cero significa buses perfectamente espaciados; alto significa que hay huecos largos y buses pegados. Dos corredores con el mismo *headway* promedio de 10 min pueden tener CV de 0.07 (huecos de 9-10-11-10) o de 0.85 (huecos de 1-19-2-18): el promedio no los distingue y el CV sí. Se divide por la media para que sea comparable entre corredores de distinta frecuencia. Es una propiedad del vector como un todo, no de cada *headway* por separado. El TCQSM la prescribe como medida de fiabilidad para servicio de alta frecuencia (≤10 min) y le asigna una escala de nivel de servicio; **no** es, en cambio, la métrica que usan los operadores en la práctica (ver §5.2). Y su definición en el manual normaliza por el *headway* **programado**, que nosotros no tenemos: lo nuestro es σ(*h*)/media(*h*) sobre el vector observado.
 
 [^f1]: **F1** — media armónica entre precisión (de lo que el modelo marcó, cuánto era cierto) y *recall* (de lo que era cierto, cuánto marcó el modelo). Resume la detección en un número entre 0 y 1. Un F1 bajo con precisión alta, como el del LSTM acá, indica un modelo que acierta cuando habla pero que casi no habla. **Su defecto en este documento:** ignora los verdaderos negativos, así que premia disparar a la frecuencia del evento aunque el acierto sea de casi-azar. Con una tasa base del 30 %, "marcar todo" saca F1 = 0.46 y supera al ganador declarado (§5.3). Se reporta por continuidad con las versiones anteriores, pero los veredictos de este documento descansan en el AUC[^auc] y el MCC[^mcc].
 
