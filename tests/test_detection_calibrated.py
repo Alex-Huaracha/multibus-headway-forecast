@@ -188,8 +188,9 @@ class TestTheOldVerdictWasBelowTrivial:
         assert not at_10.get_column("persist_beats_trivial").any(), at_10
 
     def test_the_constant_rule_has_no_discriminative_content(self, table):
-        """The reason F1 was the wrong summary, stated as arithmetic: MCC of the
-        always-fire rule is exactly 0 while its F1 is a respectable 0.30-0.46."""
+        """The reason F1 was the wrong summary, stated as arithmetic: the
+        always-fire rule scores MCC 0 (by the degenerate-matrix convention — the
+        raw ratio is 0/0) while its F1 is a respectable 0.30-0.46."""
         for row in table.iter_rows(named=True):
             b = row["base_rate"]
             assert row["trivial_f1"] == pytest.approx(2 * b / (1 + b))
@@ -231,6 +232,11 @@ class TestTheHelpersAreCorrect:
         assert wide == pytest.approx(compressed)
 
     def test_mcc_of_the_always_fire_rule_is_zero(self):
+        """0 is the CONVENTION for this degenerate matrix, not an arithmetic
+        identity: always-fire leaves FN = TN = 0, so numerator and denominator
+        both vanish. Pinned because the whole Section 5.3 argument leans on this
+        number, and a reviewer who checks the algebra must find the caveat
+        already stated rather than discover an overclaim."""
         truth = np.array([True, False, False, True, False])
         assert matthews_corrcoef(truth, np.ones(5, dtype=bool)) == 0.0
 

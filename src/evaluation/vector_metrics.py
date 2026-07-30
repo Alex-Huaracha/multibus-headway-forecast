@@ -245,8 +245,14 @@ def matthews_corrcoef(truth: np.ndarray, predicted: np.ndarray) -> float:
 
     F1 ignores true negatives, so it rewards any detector that merely fires at
     roughly the base rate. On these corridors a constant "always bunched"
-    classifier outscores every real detector at h=10 on F1. MCC is 0 for that
-    degenerate rule by construction, which is why it belongs in every table here.
+    classifier outscores every real detector at h=10 on F1.
+
+    For that degenerate rule MCC returns 0 here, and the justification has to be
+    stated carefully because the loose version is wrong: always-fire gives
+    FN = TN = 0, so the numerator AND the denominator are both zero and the ratio
+    is indeterminate, not zero. Returning 0.0 is the continuity extension and the
+    standard convention for degenerate confusion matrices; it also coincides with
+    the expected MCC of a chance classifier. Do not write "0 by construction".
     """
     truth = np.asarray(truth, dtype=bool)
     predicted = np.asarray(predicted, dtype=bool)

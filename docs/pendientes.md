@@ -16,7 +16,7 @@ no se documenta. Solo lo que hay que decidir o hacer.
 |---|---|---|---|
 | P1 | **El manuscrito en inglés** | 3–4 semanas | No empezado |
 | P2 | **Reescribir las contribuciones C1–C4** de `docs/paper/manuscrito.md` | horas | No empezado — se apoyan en el titular retirado |
-| P3 | **Las referencias: no existe ningún `.bib`** en el repo | días | No empezado |
+| P3 | **Las referencias** | días | No arranca de cero — ver abajo |
 
 **P2 no es cosmético.** El 2026-07-29 se retiró el titular *"la métrica decide el
 ganador"* y el mecanismo *"el MAE premia contraer"*: el primero era un artefacto
@@ -32,6 +32,21 @@ ahora es otro y está medido:
 
 Detalle completo en `docs/resultados/documento-resultados.md` §1, §5.3 y §5.4.
 Las C1–C4 actuales afirman lo contrario de eso.
+
+**Sobre P3, corrigiendo una versión anterior de este archivo.** No hay ningún
+archivo `.bib` en el repo, pero **no se arranca de cero**: `docs/paper/manuscrito.md`
+§II ya tiene 10 referencias reales con identificador (arXiv / DOI / PII) y prosa
+redactada alrededor. Lo que falta es (a) convertirlas al formato IJACSA,
+(b) verificar a texto completo los campos marcados `[por confirmar]`, y
+(c) sumar las fuentes del encuadre nuevo — sub-dispersión de pronósticos
+puntuales, calibración de umbrales de evento, y métricas de detección con
+desbalance moderado.
+
+La referencia **[3]** (Li, Yang y Wang, *over-stationarization* en predicción de
+arribos de buses, arXiv:2509.06979) pasa de nota al pie a **vecino más cercano**
+del hallazgo: la *over-stationarization* es el mismo fenómeno de sub-dispersión
+que medimos. Hay que leerla a texto completo y delimitar con precisión qué
+afirma ella y qué agregamos nosotros.
 
 ---
 
