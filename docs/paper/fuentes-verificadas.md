@@ -41,6 +41,84 @@ principio general. Solo **parcialmente** novedoso dentro de transporte.
 
 ---
 
+## 1-bis. Tres correcciones a **nuestra propia metodología**
+
+Estas no son sobre el encuadre: son errores de hecho que teníamos escritos.
+
+### C1. Nuestro umbral **no es el estándar del campo** — es nuestro
+`[TEXTO COMPLETO]` de las fuentes primarias donde se pudo.
+
+La forma relativa que domina la literatura es una fracción del *headway*
+**programado**, no de la media del propio vector:
+
+| Regla | Fuente | Forma |
+|---|---|---|
+| ¼ del *headway* programado | Yu et al. 2016, doi:`10.1016/j.trc.2016.09.007` | relativa al horario |
+| ¼ del *headway* programado | Moreira-Matias et al. 2016, doi:`10.1016/j.asoc.2016.06.031` | relativa al horario |
+| **1 minuto absoluto** | Sun et al. 2021, doi:`10.1080/15472450.2020.1725887` | absoluta, justificada empíricamente |
+| ½ del *headway* programado | TCQSM 2ª ed., Exhibit 3-30 | relativa al horario |
+| Parada servida antes que su líder (rebase) | Diab, Bertini & El-Geneidy 2016, TRB 95th | topológica |
+| Clustering no supervisado, sin umbral | Degeler et al. 2020, doi:`10.1007/s12469-020-00251-z` | ninguna |
+| CV del *headway*, sin umbral de evento | Drabicki, Kucharski & Cats 2022, doi:`10.1007/s11116-022-10270-3` | ninguna |
+
+**La forma "fracción de la media observada" no se encontró como definición
+publicada de evento.** Aparece solo en descripciones de implementaciones de
+proveedores CAD/AVL, y la única fuente localizada es un post de LinkedIn — no
+citable, y que además **critica** la práctica por medir "baja adherencia al
+*headway*" en lugar de *bunching*.
+
+**Consecuencia.** No tenemos horario programado (GPS crudo, sin GTFS), así que la
+media del vector es el sustituto disponible. Es defendible, pero hay que
+declararlo como **sustitución nuestra, no herencia**. Y acota el alcance del
+hallazgo a **umbrales relativos y auto-referenciales**: la forma auto-referencial
+es justamente la que hace que el CV gobierne el resultado vía `Z = 0.5/cv`, y por
+lo tanto la que maximiza el artefacto. Un corte absoluto también sub-dispararía,
+pero por otro mecanismo, y no lo medimos.
+
+### C2. Nuestro CV **no es** el `cvh` del TCQSM
+`[TEXTO COMPLETO]` — TCQSM 2ª ed., Parte 3 Cap. 3, Ec. 3-7, pp. 3-47/3-48.
+
+`cvh` = σ(*headway* real − programado) / media(*headway* **programado**).
+El nuestro = σ(*h*)/media(*h*) sobre el vector observado.
+
+Coinciden solo si el horario es constante **y** la media real lo iguala. **No se
+puede citar la Ec. 3-7 como definición de lo que medimos.** Sí se puede citar la
+escala de nivel de servicio (Exhibit 3-30), que es donde está la fuerza.
+
+### C3. El CV **no es** "la métrica estándar en operación"
+`[TEXTO COMPLETO]` de la presentación del seminario IBBG; artículo `[META]`.
+
+**Trompet, Liu & Graham (2011)**, *TRR* 2216(1):33–41, doi:`10.3141/2216-04`.
+Relevamiento de doce operadores del *International Bus Benchmarking Group*:
+
+| Indicador en uso | Operadores |
+|---|---|
+| *Wait Assessment* | Barcelona TMB, Bruselas STIB, Milán ATM, Nueva York NYCT, París RATP, Singapur SMRT |
+| *Service Regularity* | Lisboa Carris |
+| *Excess Wait Time* | London Buses |
+| Ninguno basado en *headway* | Dublín, LA Metro, Montreal STM, Sydney Buses |
+
+**Ninguno usa coeficiente de variación.** Y su conclusión: de los cuatro KPI
+probados, *"the methodology for excess wait time is the best option when the key
+performance indicator should reflect the customer experience."*
+
+Base de Osuna–Newell para el EWT: `E(AWT) = 0.5·E(h) + V(h)/(2·E(h))`,
+`EWT = AWT − SWT`.
+
+**Redacción defendible:** "la medida de fiabilidad que el TCQSM prescribe para
+servicio de alta frecuencia (≤10 min), con una escala de nivel de servicio cuyas
+bandas altas están definidas en términos de *bunching*" — y reconocer que los KPI
+de operador están dominados por *excess wait time* y bandas de *wait assessment*.
+**No** escribir "la métrica estándar en operación".
+
+### Dato colateral que nos favorece
+Las tasas base del campo van de **0.15 % a 17 %** (Sun et al. reportan las de Yu
+et al. y Moreira-Matias et al.). La nuestra es **17–30 %**, o sea en el extremo
+alto o por encima. Eso vuelve el argumento del piso trivial **más** filoso, no
+menos: a mayor prevalencia, más alto el piso que el F1 regala.
+
+---
+
 ## 2. Las tres que obligan a reencuadrar
 
 ### 2.1 Sun, Schmöcker & Nakamura (2021) — el scoop del dominio
@@ -246,6 +324,9 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 | V5 | Verificar el byline de Boyd et al. (2012) en el PDF | dblp y otras fuentes discrepan en el orden |
 | V6 | Verificar la redacción textual de Wernli et al. (2009) | La definición que tenemos viene de snippet |
 | V7 | Pre-empt "¿por qué no probabilidades de excedencia?" | Sun et al. **proponen ese paper ellos mismos** como trabajo futuro. La pregunta ya está planteada en la literatura del dominio |
+| V8 | **Conseguir Santos et al. (2022)**, *The Computer Journal* 65(8):2044–2062, doi:`10.1093/comjnl/bxab045` | `[ABSTRACT]`. Compara contra regresores **y** clasificadores, así que tuvo que aplicar un umbral a salidas de regresión. **Es el lugar más probable donde ya exista un barrido de umbral.** Reporta solo "an efficacy between 74 and 80%", métrica sin nombrar |
+| V9 | Conseguir Yu et al. (2016) a texto completo | Nuestra evidencia de que trasplantan el umbral sin recalibrar es **de segunda mano**, vía Sun et al. |
+| V10 | Kim, Moon & Kim (2024), *TRR* 2679(1):1662–1679, doi:`10.1177/03611981241255907` | `[NO RECUPERADO]` (SAGE 403). Probablemente tiene una crítica actualizada del CV como medida de regularidad — nos toca directo |
 
 **No citar bajo ninguna circunstancia** (no recuperados): SSRN `abstract_id=6880258`;
 la versión de journal de arXiv:2601.18521 (PII `S1383762126001293`);
