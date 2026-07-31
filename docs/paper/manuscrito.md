@@ -1388,7 +1388,62 @@ inicialización. Por eso el resultado se reporta como antecedente propio, con su
 respaldo en la literatura, y no como evidencia de esta comparación.
 
 ### D. Amenazas a la validez y limitaciones
-> [ANDAMIAJE] YA REDACTADO — las 11 limitaciones del doc §8. Mantenerla sustantiva: en el relevamiento del venue, 3 de 8 papers tienen algo parecido y ninguno tiene disponibilidad de datos. Las que más pesan: el valor operativo no está modelado (lim. 8), el umbral no está calibrado contra incidentes registrados (lim. 9), y la calibración usa dos ventanas con entrenamientos anidados en lugar de validación cruzada (lim. 10).
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Las 11 limitaciones del doc §8.
+> **Mantenerla sustantiva y no recortarla al maquetar**: en el relevamiento del
+> venue solo 3 de 8 artículos tienen algo parecido. Las tres que más pesan van
+> primero, no en el orden del documento fuente: valor operativo no modelado,
+> umbral no calibrado contra incidentes, y calibración sobre dos ventanas
+> anidadas en lugar de validación cruzada rotativa.
+
+Las tres limitaciones que más pesan sobre la lectura de estos resultados son las
+siguientes. **El valor operativo está argumentado, no modelado:** no se construyó
+una función de costo que muestre que 1.47 minutos de error absoluto, o un AUC de
+detección de 0.60, cambien una decisión concreta de despacho, de modo que lo
+establecido es que la información está presente y no que alcance para operar.
+**El umbral de *bunching* no está calibrado contra incidentes registrados**, y su
+forma es una elección declarada y no una convención heredada, según se detalla en
+la Sección III-D; la verificación de la Sección IV-E muestra que la elección fue
+la conservadora, pero queda sin medir la tercera forma posible —una referencia
+observada y fija como la de Yu et al. (2016)—. Y **la calibración fuera de
+muestra usa dos ventanas y no validación cruzada rotativa**: el corte se ajusta en
+`r2` y se aplica a `main`, que son disjuntas y están en el orden temporal
+correcto, pero los conjuntos de entrenamiento de los dos modelos están anidados y
+no son independientes en sentido estricto.
+
+A ellas se suman las siguientes:
+
+1. **Alcance geográfico y temporal.** Tres corredores de una ciudad y una ventana
+   de cinco meses. E4 aporta validez externa de escala de flota, no geográfica.
+2. **La estabilidad temporal se midió para el LSTM y la persistencia, no para el
+   XGBoost.** Todo lo que involucra al modelo de árboles —la réplica del cruce y
+   el contraste contra el LSTM— sigue apoyado en **una sola** ventana de 22 días,
+   porque re-correrlo en los orígenes anteriores requiere cómputo en GPU, a
+   diferencia de todo el análisis vectorial, que se recalculó sobre residuos ya
+   almacenados.
+3. **Confusor en el período de prueba.** Febrero de 2024 en Arequipa incluye
+   Carnaval, y la composición del conjunto de prueba no está caracterizada.
+4. **Cobertura de semillas.** Solo el LSTM tiene barrido de semillas, y sobre el
+   conjunto de experimentos anterior; las arquitecturas espaciales no lo tienen.
+5. **El resultado nulo espacial es previo** al protocolo de contigüidad y no se
+   rehízo bajo él, según se declara en la Sección V-C.
+6. **La política del enrutador se calibra sobre una porción del conjunto de
+   prueba** y no sobre entrenamiento y validación. Política y evaluación son
+   disjuntas, de modo que la ganancia no está contaminada, pero sus niveles
+   absolutos de error no son comparables con los del conjunto de prueba completo.
+7. **Sin estratificación por magnitud del *headway*.** Un error de un minuto sobre
+   un intervalo de tres y sobre uno de quince no pesan igual, y esa
+   heterogeneidad queda absorbida en el promedio.
+8. **Un desajuste de ancho de vector, declarado.** El LSTM se dimensiona con un
+   ancho máximo global por corredor y el modelo de árboles con el de cada sentido,
+   de modo que la red predice unas pocas posiciones de cola que el otro no emite.
+   Afecta al 0.05 % de las filas en el peor caso, quedan fuera de la intersección
+   y de todo veredicto, y el sesgo de encuadre medido de 0.001 minutos confirma
+   que no mueven ningún resultado.
+
+**Trazabilidad.** Las figuras se generan desde los CSV versionados y no desde los
+residuos crudos, de modo que una figura no puede discrepar de la tabla que
+ilustra. El código de análisis y los residuos por muestra que sostienen cada
+tabla se publican junto al artículo.
 
 ---
 
@@ -1548,13 +1603,14 @@ distinguiría un mecanismo general de una propiedad de estos tres corredores.
                              ✅ Abstract (235 palabras) · Título · Keywords
                              ✅ Referencias (44, transcritas de Crossref/arXiv)
                              ✅ III.A-C y III.E trasladadas · IV.A-G trasladadas
-  [POR TRASLADAR]            V.D Limitaciones (las 11 del doc §8)
+                             ✅ V.D Limitaciones
 
-  ESTADO: el manuscrito está completo salvo V.D. Lo que queda:
-    (a) trasladar las 11 limitaciones del documento de resultados §8;
-    (b) borrar TODOS los bloques [ANDAMIAJE] y este mapa;
-    (c) traducir al inglés, recontando el Abstract — el inglés comprime;
-    (d) completar la plantilla IJACSA a dos columnas (≤10 pp de cuerpo).
+  ESTADO: ✅ EL BORRADOR EN CASTELLANO ESTÁ COMPLETO. Todas las secciones tienen
+  prosa. Lo que queda no es escribir:
+    (a) borrar TODOS los bloques [ANDAMIAJE] y este mapa;
+    (b) traducir al inglés, recontando el Abstract — el inglés comprime;
+    (c) completar la plantilla IJACSA a dos columnas (≤10 pp de cuerpo);
+    (d) renumerar las referencias si la traducción reordena secciones.
 
   VERIFICAR ANTES DE SOMETER, y no es opcional:
     - Cada cifra de la Sección IV contra documento-resultados.md. Se trasladaron
