@@ -271,13 +271,77 @@ sobre tratabilidad, y ninguna de las dos fuentes cuantifica el aplanamiento ni l
 atribuye a la función de pérdida.
 
 ### C. Recalibrar el umbral: precedentes fuera del transporte
-> [ANDAMIAJE] POR ESCRIBIR, y **es obligatorio**. Si presentamos el mecanismo como nuevo, un revisor de meteorología o clima nos termina con una cita de 2018.
->
-> - Hoffmann, Menz y Spekat (2018): identifican el percentil del umbral en los datos de referencia y **lo recalculan por modelo**, porque un corte fijo del espacio de observaciones subestima severamente el conteo de eventos. Es nuestro mecanismo **y** nuestro arreglo, en clima, ocho años antes. Citarlo como el precedente que estamos transfiriendo.
-> - Y decir qué NO cubre: sin horizonte de pronóstico, sin métricas de detección, sin transporte, y —crítico— **todos esos precedentes usan cortes absolutos o regulatorios, no relativos y auto-referenciales.** Ahí queda nuestro caso.
-> - **Petetin et al. (2022) — LEÍDO 2026-07-30, y pasa a ser la cita CENTRAL de esta subsección, por encima de Hoffmann.** doi:`10.5194/acp-22-11603-2022`, acceso abierto CC-BY. Ver §0.5 de `fuentes-verificadas.md`. Tienen el apareamiento continuo↔categórico como titular, la sub-dispersión cuantificada (−30 % de variabilidad), AUC junto a métricas de umbral, y la sensibilidad al horizonte. **Acreditarles todo eso sin regatear.** Lo que no tienen —y es el eje de la subsección— es recalibración del umbral, y no es omisión: sus cortes son **regulatorios** (60 y 90 ppbv por normativa UE), o sea inamovibles por construcción. Su remedio va del otro lado, corrigiendo la distribución del pronóstico por *quantile mapping*. Contrastar las dos rutas explícitamente: QM exige una distribución de referencia de observaciones; recalibrar el corte exige solo una ventana anterior.
-> - [POR VERIFICAR ANTES DE CITAR] El resto de la familia hidrología / calidad de aire que el relevamiento identificó (Alfieri et al. 2019; Zsoter et al. 2020; Lalaurette 2003 y su EFI sobre climatología del modelo). **Prioridad baja ahora**: Petetin ya cubre el rol que iban a cumplir, y ninguno de ellos cambia el argumento — todos usan cortes absolutos o regulatorios.
-> - **LEÍDO 2026-07-30, y la amenaza se confirmó.** Mayer y Yang (2022, *IJF*) enuncian literalmente *"As MSE-optimized forecasts are always underdispersed, the common practice of using RMSE skill score for evaluation overrates the forecasts with lower dispersion."* Se cita como **enunciado previo**, junto con Vannitsem y Hagedorn (2011) que ellos acreditan por el agravamiento con el horizonte. C1 ya está reformulado en consecuencia. Lo que NO tienen, verificado por conteo sobre el texto completo: `threshold` 0, `detect` 0, `exceed` 0, `AUC` 0, `coefficient of variation` 0 — y su objeto es irradiancia solar **escalar**, o sea varianza temporal, exactamente la distinción de la subsección B.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Subsección obligatoria: sin ella, un revisor
+> de clima o meteorología nos liquida con una cita de 2018. Restricciones que se
+> respetaron: (a) a Hoffmann et al. (2018) se lo parafrasea, porque tenemos el
+> texto completo pero no dejamos registrada ninguna cita textual; (b) Petetin et
+> al. (2022) es la cita central y se le acredita **todo** lo que tiene, incluido
+> lo que creíamos nuestro — ver §0.5 de `fuentes-verificadas.md`; (c) Alfieri et
+> al. (2019), Zsoter et al. (2020) y Lalaurette (2003) quedaron **fuera**: siguen
+> en `[POR VERIFICAR ANTES DE CITAR]` y Petetin ya cubre su papel. Si se
+> consiguen, entran como refuerzo, no cambian el argumento.
+
+Que un umbral calibrado sobre observaciones deje de funcionar cuando se lo aplica
+a un pronóstico no es un descubrimiento de este trabajo, ni siquiera un problema
+del transporte. Está documentado en clima y en calidad del aire, y allí ya se
+ensayaron dos respuestas distintas: **corregir el pronóstico** para que su
+distribución se parezca a la observada, o **mover el umbral** hacia la
+distribución del pronóstico. Este artículo transfiere la segunda al transporte, y
+conviene decir con precisión qué se toma prestado y qué no.
+
+La primera familia es la más transitada. Mayer y Yang (2022) proponen calibrar
+explícitamente la razón de varianzas del pronóstico solar; Petetin et al. (2022)
+aplican *quantile mapping*, cuyo objetivo declarado es *"adjusting the
+distribution of the forecast concentrations to the distribution of observed
+concentrations"*; Subich et al. (2025) cambian directamente la función de pérdida.
+Todas comparten un requisito operativo que no siempre está disponible: para
+corregir la distribución del pronóstico hace falta una distribución de referencia
+de observaciones —o un reentrenamiento—, y en el caso del *quantile mapping* hace
+falta además que esa referencia siga siendo válida cuando el sistema se despliega.
+
+La segunda familia es la que este trabajo continúa, y su precedente más limpio es
+Hoffmann, Menz y Spekat (2018). Frente al mismo problema en *downscaling*
+climático, identifican a qué percentil de los datos de referencia corresponde el
+umbral de interés y **lo recalculan modelo por modelo**, precisamente porque
+trasplantar un corte fijo del espacio de las observaciones subestima de forma
+severa el conteo de eventos. Es el mismo mecanismo y la misma clase de reparación
+que aplicamos aquí, ocho años antes y en otro dominio. Lo que su marco no
+contiene es un horizonte de pronóstico, métricas de detección, ni un contexto de
+transporte.
+
+El vecino más cercano en el tiempo y en la forma del argumento es Petetin et al.
+(2022), y hay que acreditarles sin regateo bastante más de lo que resulta cómodo.
+Sobre pronósticos de ozono del servicio Copernicus, documentan que *"there is a
+clear trade-off between the continuous and categorical skill scores"* y que *"the
+quality of a MOS-corrected forecast assessed solely based on metrics like RMSE or
+PCC thus tells little about the forecast value"*, con un caso explícito en el que
+un método *"can give the best RMSE and PCC, yet the poorest high O₃ detection
+skills"*. Diagnostican y cuantifican la sub-dispersión —el pronóstico crudo
+subestima la variabilidad en torno al 30 % y los métodos más sofisticados quedan
+demasiado suaves, con dificultad para capturar los valores extremos—, reportan
+AUC junto a las métricas de umbral, y muestran que *"all categorical metrics show
+a similarly strong sensitivity to the lead time"*. La disociación entre error
+continuo y desempeño categórico, la compresión de dispersión que la explica y su
+agravamiento con el horizonte están, las tres, publicadas allí.
+
+Lo que no está allí es recalibrar el umbral, y la razón es estructural más que
+una omisión: **sus cortes son regulatorios**. Sesenta partes por mil millones
+para el máximo diario de ocho horas y noventa para el máximo horario son valores
+fijados por normativa, y un umbral legal no se reajusta contra la distribución de
+un modelo — dentro de su marco, la pregunta no puede formularse. Lo mismo vale,
+por motivos distintos, para el resto de los precedentes: todos operan sobre
+cortes **absolutos**, sean regulatorios o convencionales.
+
+Ahí queda delimitado el caso de este artículo, y la diferencia no es de grado.
+Bajo un corte absoluto, la compresión de dispersión mueve un solo lado de la
+comparación: el valor pronosticado se acerca a su centro mientras el corte
+permanece donde estaba. Bajo un corte **relativo y auto-referencial** —una
+fracción de la media del propio vector pronosticado, que es la forma que impone
+la ausencia de horario— se mueven los dos lados a la vez, porque el denominador
+es una función del mismo pronóstico comprimido. El resultado deja de estar
+gobernado por el nivel del pronóstico y pasa a estarlo por su **coeficiente de
+variación**, que es exactamente la cantidad que la Sección IV-B mide y que
+ninguno de estos precedentes necesitó considerar.
 
 ### D. Qué métrica puede decidir una detección
 > [ANDAMIAJE] POR ESCRIBIR. Es la subsección que blinda C3.
@@ -404,18 +468,17 @@ atribuye a la función de pérdida.
 <!--
   MAPA DE PROGRESO (borrar antes de enviar):
 
-  [ESCRITO 2026-07-30]       II-A (la familia y Sun et al.) · II-B (sub-dispersión)
+  [ESCRITO 2026-07-30]       II-A (la familia y Sun et al.) · II-B (sub-dispersión) ·
+                             II-C (precedentes de recalibración)
   [YA REDACTADO, trasladar]  III Métodos (parcial) · IV Resultados A-G · V.D Limitaciones
-  [POR ESCRIBIR]             Abstract · I Introducción · II-C · II-D · II-E ·
+  [POR ESCRIBIR]             Abstract · I Introducción · II-D · II-E ·
                              III.D Definición del evento · V.A Interpretación ·
                              V.B Qué queda del aporte · V.C Nulo espacial · VI Conclusión ·
                              Referencias
 
-  CUELLO DE BOTELLA: queda II-C (precedentes de recalibración). II-A ya está escrita.
-  Son las dos que deciden si el paper se lee como honesto o como ingenuo.
-  DESBLOQUEADA el 2026-07-30: Petetin et al. (2022) leído (§0.5). Es acceso abierto,
-  es el precedente más cercano que apareció, y NO recalibra el umbral porque el suyo
-  es regulatorio. II-C ya se puede escribir.
+  Las dos subsecciones que decidían si el paper se lee como honesto o como ingenuo
+  —II-A y II-C— ya están escritas, y las dos acreditan de frente lo que no es nuestro.
+  Sin bloqueantes pendientes para lo que queda de la Sección II.
 
   BLOQUEANTES — RESUELTOS el 2026-07-29, los cuatro papers leídos (ver fuentes-verificadas.md §0):
     V1  Mayer y Yang 2022  → CONFIRMADO. "MSE-optimized forecasts are always
