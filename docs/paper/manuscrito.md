@@ -536,8 +536,9 @@ del 30 %, ese máximo está cerca del piso trivial, de modo que el corte óptimo
 por debajo de casi toda predicción y la regla degenera en marcar todo. Los mismos
 autores observan además que la selección de umbral por F1 es de alta varianza,
 con cortes que *"may be set erroneously"*. La degeneración que reportamos en la
-Sección IV-F no es entonces una peculiaridad de nuestros datos: es el
-comportamiento que este teorema predice.
+Sección IV-C —un corte ajustado por F1 que termina disparando en más del 99 % de
+las oportunidades— no es entonces una peculiaridad de nuestros datos: es el
+comportamiento que este teorema predice, y la Sección IV-F mide su costo.
 
 El MCC evita las tres cosas —descuenta el azar, usa las cuatro celdas de la
 matriz y es simétrico ante el intercambio de clases— pero exige una precisión que
@@ -629,9 +630,9 @@ trabajo mide la compresión de dispersión sobre un vector de *headways* como
 causa de una falla de detección de *bunching*; ninguno recalibra el umbral de
 *bunching* contra la distribución del propio pronóstico; y ninguno —dentro ni
 fuera del transporte— trata el caso del umbral relativo y auto-referencial**, que
-es el que impone la ausencia de horario programado y en el que la compresión
-mueve numerador y denominador a la vez, de modo que el resultado queda gobernado
-por el coeficiente de variación y no por el nivel. A eso se suma una ausencia
+es el que impone la ausencia de horario programado y el único en el que, por lo
+dicho en la subsección anterior, el resultado queda gobernado por el coeficiente
+de variación y no por el nivel del pronóstico. A eso se suma una ausencia
 metodológica acotada al subcampo, respaldada por la propia tabla comparativa de
 Santos et al. (2022): en detección de *bunching* no se reporta ROC-AUC ni
 precisión media, ni se publica el piso del detector trivial contra el que
@@ -796,9 +797,9 @@ subcampo. Nuestra elección difiere en el punto de referencia, y **esa diferenci
 es exactamente el mecanismo que este artículo estudia**: la referencia de Yu et
 al. es observada y permanece fija a lo largo de la corrida, mientras que la
 nuestra se recalcula sobre el vector evaluado y, por lo tanto, se comprime junto
-con el pronóstico. Bajo un corte absoluto o anclado a un horario, la compresión
-de dispersión mueve un solo lado de la desigualdad; bajo esta regla mueve los
-dos.
+con el pronóstico. Es el régimen de dos lados descrito en la Sección II-C, y es
+la razón por la que la Sección IV-B mide un coeficiente de variación y no un
+nivel.
 
 El cociente de un medio proviene del TCQSM, que lo emplea para caracterizar
 cuándo un vehículo está fuera de intervalo, y aparece en uso reciente en Zhang et
@@ -1070,6 +1071,19 @@ de un clasificador al azar. El F1, en cambio, vale `2π/(1+π) > 0` para esa mis
 regla. Una métrica que sitúa una regla sin contenido por encima de los dos
 modelos no puede decidir cuál de los dos detecta *bunching*.
 
+Esa asimetría tiene una consecuencia directa sobre la calibración, y es la
+instancia medida del teorema de Lipton et al. (2014). En E2, donde la tasa base
+es del 30 %, marcar todo alcanza un F1 de 0.46, y **el corte que maximiza F1
+colapsa a esa misma regla**: en la celda de h=10 dispara el **99.9 %** de las
+veces sobre la persistencia y el **97.6 %** sobre el aprendiz, y sobre la
+persistencia el corte ajustado por F1 supera el 99.9 % de disparo en los tres
+horizontes largos de ese corredor, llegando al 100 % en h=5. Es un umbral sin
+contenido discriminativo que aun así reporta un F1 presentable. El MCC vale cero
+para esa regla, de modo que maximizarlo no puede elegirla, y esa es la razón por
+la que el punto de operación de este trabajo se ajusta por MCC. Ambas variantes
+quedan registradas en los resultados publicados para que la elección sea
+auditable y no una afirmación; la Sección IV-F la contrasta empíricamente.
+
 *Tercero, cuando el aprendiz habla, acierta más.* En E2 a h=10 el LSTM dispara
 catorce veces y acierta diez: **71 % de precisión contra una tasa base del 30 %**.
 La persistencia dispara 15 084 veces y acierta 5 036, un **33 %**, tres puntos por
@@ -1107,7 +1121,9 @@ pero calibrado fuera de muestra sobre `r2` y aplicado hacia adelante a `main`.
 La tabla establece cuatro cosas. **El aprendiz no es ciego en ninguna celda**: su
 AUC va de 0.565 a 0.811 y su elevación de precisión media sobre el piso trivial
 de 1.19 a 3.16, contra valores de azar de 0.5 y 1.0 respectivamente; un modelo sin
-información sobre el evento no puede producir esos números. **A h=10 el aprendiz
+información sobre el evento no puede producir esos números. Esta afirmación vale
+para el evento tal como se lo define en la Sección III-D, y la Sección IV-E
+documenta una celda en la que **no** se sostiene bajo una definición alternativa. **A h=10 el aprendiz
 gana la detección en los tres corredores**, con umbral calibrado y sin umbral,
 exactamente donde el corte fijo le atribuía un factor de 253× en contra. **A h=1
 gana la persistencia en los tres**, que es también donde gana el error absoluto:
