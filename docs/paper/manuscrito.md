@@ -439,7 +439,13 @@ ninguno de estos precedentes necesitó considerar.
 > [ANDAMIAJE] POR ESCRIBIR, y es la sección que le habla a la empresa de transporte. El eje: la diferencia entre *"el modelo no sirve para anticipar bunching"* —que cierra la línea de trabajo— y *"el modelo sirve pero la alarma está mal seteada"* —que es ajustar un escalar sobre datos que ya tenés—. Con el límite honesto: un AUC de 0.60 no es un sistema de despacho, y no modelamos el costo.
 
 ### B. Qué queda del aporte, y qué no
-> [ANDAMIAJE] POR ESCRIBIR, corto y franco. Delimitar contra Sun et al. (2021) —síntoma contra mecanismo; cambio de modelo contra recalibración—, contra Hoffmann et al. (2018) —clima con cortes absolutos contra transporte con cortes relativos y auto-referenciales— y contra Li, Yang y Wang (2025) —normalización contra pérdida—. Tres párrafos de dos oraciones cada uno alcanzan, y valen más que reclamar de más.
+> [ANDAMIAJE] POR ESCRIBIR, corto y franco. **Cuatro** delimitaciones, no tres, y el orden importa porque va de la más cercana a la más lejana:
+> 1. **Petetin et al. (2022)** — es el vecino principal desde el 2026-07-30, por encima de Hoffmann. Ellos tienen el apareamiento continuo↔categórico, la sub-dispersión cuantificada y la sensibilidad al horizonte. Nosotros tenemos la recalibración del umbral, que en su marco es **inexpresable** porque sus cortes son regulatorios. Corte absoluto contra corte relativo y auto-referencial: en el primero se mueve un solo lado, en el segundo se mueven los dos.
+> 2. **Sun et al. (2021)** — síntoma contra mecanismo; cambio de clase de modelo contra recalibración del punto de operación.
+> 3. **Hoffmann et al. (2018)** — misma clase de reparación, pero en clima, sin horizonte y sin métricas de detección.
+> 4. **Li, Yang y Wang (2025)** — normalización contra pérdida; curable por arquitectura contra estructural.
+>
+> Dos oraciones por delimitación alcanzan, y valen más que reclamar de más.
 
 ### C. El resultado nulo espacial, en contexto
 > [ANDAMIAJE] POR ESCRIBIR, corto. Enmarcarlo como **confirmación de resultado publicado**, no como hallazgo: Boudabbous et al. (2026) sobre datos de Montreal reportan LSTM superando a transformers por 18–52 % con 77× menos parámetros, y Rodrigues (2022) muestra un *baseline* de patrón semanal igualando al SOTA espacio-temporal. Y decir que es específico de estos datos y corredores, no una ley.
