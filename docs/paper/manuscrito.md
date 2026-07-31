@@ -647,17 +647,105 @@ cualquier F1 debería leerse.
 > [ANDAMIAJE] Casi todo redactado en documento-resultados.md §2 y en el código (`src/evaluation/`). Reordenar y completar el preprocesamiento que el doc de resultados omite a propósito.
 
 ### A. Datos: SIT Arequipa (AVL/GPS)
-> [ANDAMIAJE] Fuente, período (2023-10-01 → 2024-02-29, 152 días), corredores E2/E59/E4, clave compuesta `(empresaid, unidadid)`, escala de flota. Ver `docs/dataset-manifest.md`.
->
-> **Declarar que no hay horario programado.** Es GPS crudo sin GTFS, y de ahí sale la elección de umbral de la subsección D. No es un detalle menor: es la razón por la que nuestra regla difiere de la convención del campo.
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Fuente: `documento-resultados.md` §2 y
+> `docs/dataset-manifest.md`.
 
-### B. Preprocesamiento y definición del *headway*
-> [ANDAMIAJE] Corte temporal (train 107 d / val 23 d / test 22 d) y winsorización p99 **calculada en train y aplicada a todos los *splits***. Declarar el contrato.
->
-> Y la definición del *headway* (C.2, *trailing crossing*): hace cuánto tiempo el bus de adelante estuvo donde está ahora el que lo sigue, interpolado sobre su trayectoria. Ver `docs/decisiones-headway-fase2.md` §2.1 — y **cuidado**: las columnas del parquet tienen los nombres `front`/`back` invertidos respecto del movimiento físico. La aritmética es correcta; al escribir Métodos hay que usar la ecuación, no los nombres de columna.
+Los datos provienen del sistema de localización automática de vehículos (AVL) del
+Sistema Integrado de Transporte de Arequipa, Perú, y consisten en trazas GPS
+crudas de la flota en operación. El período cubre **152 días**, del 1 de octubre
+de 2023 al 29 de febrero de 2024. Se estudian tres corredores de alta frecuencia,
+identificados aquí como E2, E59 y E4. El más pequeño, E4, opera con **19
+vehículos** y aporta validez externa acotada a la escala de flota: es otra línea,
+no otra ciudad.
+
+Cada vehículo se identifica por la **clave compuesta** de empresa y unidad. Esto
+no es un detalle de implementación: los identificadores de unidad se reutilizan
+entre empresas —una fracción sustantiva de ellos aparece en tres o más—, de modo
+que indexar solo por unidad mezcla vehículos de operadores distintos y corrompe
+el cálculo de intervalos.
+
+Un rasgo de esta fuente condiciona todo lo que sigue y conviene declararlo aquí:
+**no existe horario programado**. No hay GTFS ni tabla de servicio publicada
+contra la cual medir desvíos. De ahí se deriva la definición de evento de la
+subsección D, que es donde la metodología de este trabajo se aparta de la
+convención del campo.
+
+### B. Preprocesamiento, población de muestras y definición del *headway*
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Fuente: `documento-resultados.md` §2 y
+> `docs/decisiones-headway-fase2.md` §2.1.
+> **Los tres contratos se renombraron a propósito.** En el documento de
+> resultados se llaman C1/C2/C3, y acá eso chocaría con las contribuciones C1–C4
+> de la Sección I. Van por nombre y no por número.
+> Y al describir el *headway*: usar **la ecuación**, no los nombres de columna del
+> parquet — `front`/`back` están invertidos respecto del movimiento físico y la
+> aritmética es correcta, pero los nombres confunden a quien lea el código.
+
+El *headway* de un vehículo se define como el tiempo transcurrido desde que el
+vehículo precedente ocupó la posición en la que el vehículo actual se encuentra
+ahora, interpolado sobre la trayectoria del precedente. Es una definición de
+cruce por posición y no por parada, lo que la hace robusta a la ausencia de una
+tabla de paradas confiable.
+
+Los datos se dividen **temporalmente**, sin mezcla aleatoria: entrenamiento hasta
+el 15 de enero de 2024 (107 días), validación hasta el 7 de febrero (23 días) y
+prueba del 8 al 29 de febrero (**22 días**). Todos los resultados reportados
+corresponden al conjunto de prueba. La winsorización de los *headways* se aplica
+en el percentil 99, y el contrato es explícito: **el umbral se calcula
+exclusivamente sobre el conjunto de entrenamiento y se aplica a los tres cortes**,
+en lugar de recalcularse dentro de cada uno, lo que filtraría información de las
+particiones futuras. El recorte afecta entre el 0.78 % y el 1.11 % de los
+objetivos, y la subsección IV-E documenta su efecto nulo sobre los veredictos.
+
+La población de muestras se construye bajo tres contratos, verificados en cada
+corrida:
+
+| Contrato | Qué garantiza | Cómo se verifica |
+|---|---|---|
+| **Identidad de muestra** | Una muestra por (empresa, sentido, instante de inicio, horizonte). Todos los modelos puntúan exactamente las mismas celdas. | Cada ejecución recomputa el índice y compara su SHA-256 contra un manifiesto congelado. |
+| **Contigüidad temporal** | Los `12 + h` instantes de una ventana son minutos **consecutivos**, de modo que el horizonte es tiempo y no posición de fila. | Se verifica al materializar; una violación aborta la corrida. |
+| **Frontera de información** | Ninguna variable de entrada usa información posterior al instante de predicción. | El portón de entrada falla de forma cerrada si una variable prohibida reaparece. |
+
+Exigir contigüidad tiene un costo medido: sobreviven entre el **81.9 %** y el
+**90.2 %** de las ventanas candidatas. Se pierde menos de una quinta parte de los
+datos y se gana que el horizonte signifique lo que dice.
+
+El contrato de identidad de muestra se verifica de forma directa: cada modelo se
+puntúa dos veces, sobre sus propias filas y sobre la intersección de todos, y si
+el contrato se cumple restringir a la intersección no debe mover nada. El sesgo
+de encuadre medido es de **0.001 minutos como máximo** sobre 36 filas. Bajo un
+pipeline anterior que no imponía estos contratos, el mismo sesgo iba de **0.28 a
+0.53 minutos** — mayor que la mayoría de los márgenes que se reclamaban por
+encima de él. La comparación que aquí se reporta es atribuible; la anterior no lo
+era.
 
 ### C. Modelos comparados
-> [ANDAMIAJE] Tabla de *baselines* B0–B4 (persistencia como rival central), B5_XGB nivelado, y los tres DL (LSTM, SpatialConvLSTM, SpatialTransformer). Reusar tablas de §2 del doc de resultados. Declarar la asimetría de *tuning* (24 configuraciones contra 1 o 3) donde corresponde.
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Fuente: `documento-resultados.md` §2.
+> **La asimetría de tuning va en el cuerpo, no en una nota al pie.** Es lo que
+> impide atribuir a la clase de modelo la victoria del XGBoost en E2.
+
+La comparación central enfrenta tres modelos:
+
+| Modelo | Qué hace |
+|---|---|
+| **Persistencia** | Repite el último *headway* observado. Es el rival serio: sobre series cortas resulta notablemente difícil de superar, y es el *baseline* que la literatura del subcampo rara vez incluye. |
+| **XGBoost** | *Gradient boosting* entrenado sobre la **misma ventana de 12 pasos** que la red, más hora, día y sentido. Es el competidor aprendido no profundo. |
+| **LSTM** | Red recurrente sobre la secuencia de *headways* del vector. |
+
+Se evaluaron además dos arquitecturas con estructura espacial explícita
+—convolucional recurrente y de atención— que **no superan al LSTM plano** sobre
+estos datos. Ese resultado se estableció sobre un conjunto de experimentos
+anterior y no se rehízo bajo el protocolo de contigüidad descrito arriba, de modo
+que se reporta como antecedente y no como parte de esta evidencia; la
+Sección V-C lo sitúa frente a la literatura.
+
+**El presupuesto de ajuste no está nivelado, y la asimetría corre en contra de la
+red.** El XGBoost recibió **24 configuraciones por celda**, elegidas en
+validación; el LSTM recibió **una** en E2 y E59, y **tres** en E4, heredadas de
+una fase previa. La consecuencia para la lectura de los resultados es directa y
+se aplica en la Sección IV-A: donde el LSTM gana, la conclusión es segura porque
+gana con menos presupuesto; donde gana el XGBoost, **la ventaja no es atribuible
+a la clase de modelo**. Nivelar el contraste requiere aproximadamente catorce
+horas de cómputo en GPU y no se realizó.
 
 ### D. Definición del evento de *bunching*, y por qué esta
 > [ANDAMIAJE — ESCRITO 2026-07-30] Es la subsección más delicada del artículo:
@@ -739,15 +827,59 @@ en dos órdenes de magnitud. La regla auto-referencial resultó ser la conservad
 de las dos.
 
 ### E. Protocolo de evaluación
-> [ANDAMIAJE] Es lo que nos diferencia en este venue — desarrollarlo bien y explícitamente.
->
-> - **Comparación pareada sobre muestras idénticas** (*paired audit*). Señalar que Diebold-Mariano está **indefinido**, no solo sesgado, cuando los modelos se puntúan sobre filas distintas: se define sobre el diferencial de pérdida por fila.
-> - Diebold-Mariano con varianza **agrupada por día de servicio** (G = 22, gl = 21) y corrección de muestra chica; HAC/Newey-West como contraste. Wilcoxon pareado. Tamaño de efecto primero, *p* como piso.
-> - Terciles de volatilidad **ex-ante**, congelados en train+val y aplicados a test.
-> - Tres orígenes de *rolling* con ventanas de test disjuntas. Declarar que los conjuntos de entrenamiento están **anidados**, no independientes.
-> - Métricas escalares MAE y error cuadrático. **Métricas de detección: MCC, ROC-AUC y precisión media, con el piso del detector trivial en cada tabla.** Justificar por qué no F1 (§II-D).
-> - Calibración del umbral: ajuste por MCC en una ventana anterior disjunta, aplicado hacia adelante. Declarar que es la única dirección en que un operador podría calibrar.
-> - Horizontes h ∈ {1, 3, 5, 10} minutos.
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Fuente: `documento-resultados.md` §4 y
+> §5.5. Es lo que diferencia al artículo en este venue, así que va desarrollado.
+
+Se evalúan cuatro horizontes de predicción: **1, 3, 5 y 10 minutos**. Todas las
+comparaciones son **pareadas sobre muestras idénticas**. Esto no es una precaución
+cosmética: cuando dos modelos se puntúan sobre conjuntos de filas distintos, el
+estadístico de Diebold-Mariano queda **indefinido** y no meramente sesgado, porque
+se construye sobre el diferencial de pérdida fila a fila. El contrato de identidad
+de muestra descrito en la subsección B es lo que hace que el estadístico exista.
+
+**Significancia.** Las muestras del mismo día de servicio comparten clima,
+incidentes y demanda —un accidente a las 08:00 moldea toda la mañana—, de modo
+que tratarlas como independientes infla la significancia. La varianza se agrupa
+por **día de servicio**, y el conjunto de prueba contiene 22 días: ese es el
+tamaño de muestra efectivo, no las decenas de miles de filas. Se aplica corrección
+de muestra pequeña, con estimadores robustos a heterocedasticidad y
+autocorrelación como contraste, y se reporta además el Wilcoxon pareado. El
+tamaño de efecto se presenta primero y el valor *p* actúa como piso, no como
+veredicto.
+
+**Estratificación ex-ante.** Cada predicción se estratifica por la dispersión de
+su **propia ventana de entrada** —cuánto se movió el *headway* en los doce minutos
+que el modelo efectivamente observó—. Es una variable conocida en el momento de
+predecir, y sus terciles se **congelan sobre entrenamiento y validación** y se
+aplican a prueba, nunca se calibran sobre prueba. Condicionar sobre ella y luego
+contrastar es por lo tanto legítimo.
+
+**Validación en múltiples orígenes.** El protocolo completo —winsorización,
+portón de población, entrenamiento y exportación— se re-ejecutó sobre dos
+orígenes anteriores con ventanas de prueba disjuntas de la publicada. No es una
+re-partición de los mismos residuos sino entrenamientos nuevos. Se declara que
+los conjuntos de **entrenamiento** correspondientes están **anidados y no son
+independientes**: lo que la comparación establece es estabilidad frente a la
+elección de ventana de prueba, no replicación independiente.
+
+| Origen | Entrena | Prueba |
+|---|---|---|
+| `r1` | 61 días | 2023-12-23 → 2024-01-13 |
+| `r2` | 83 días | 2024-01-14 → 2024-02-04 |
+| `main` | 107 días | 2024-02-08 → 2024-02-29 (la publicada) |
+
+**Métricas.** En el eje escalar se reportan el error absoluto medio y el error
+cuadrático, y se los reporta juntos por una razón que la Sección IV-A desarrolla:
+a horizonte corto nombran ganadores opuestos. En el eje de detección se reportan
+**MCC, ROC-AUC y precisión media**, con el **piso del detector trivial explícito
+en cada tabla**. No se usa F1 como métrica de decisión, por los motivos
+establecidos en la Sección II-D.
+
+**Calibración del umbral.** Cuando una métrica requiere un punto de operación,
+el corte se ajusta maximizando MCC sobre una **ventana anterior y disjunta**
+(`r2`) y se aplica hacia adelante (`main`). Es la única dirección en la que un
+operador podría calibrar en producción, y la Sección IV-F contrasta empíricamente
+esa elección de objetivo contra la alternativa basada en F1.
 
 ---
 
