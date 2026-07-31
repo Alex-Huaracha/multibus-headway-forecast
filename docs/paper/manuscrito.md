@@ -61,7 +61,7 @@
 > [ANDAMIAJE] Rankeadas por defensibilidad, con la evidencia al lado. Cada una nombra explícitamente qué NO reclama, porque la mitad del argumento anterior estaba tomado y conviene que el revisor vea que lo sabemos.
 
 - **C1 (mecanismo, medido).** Cuantificamos la causa de la falla: la **compresión de dispersión** del pronóstico, medida como razón de coeficientes de variación del vector de *headways*. El LSTM predice un corredor con CV ≈ 0.16 cuando el real es ≈ 0.79, con sesgo negativo en **las 36 celdas** de corredor × horizonte × ventana de prueba y deterioro monótono con el horizonte. Y la convertimos en profundidad de cola usando `Z = 0.5/cv`, **la propia relación que el TCQSM establece** para ligar el CV del *headway* a la probabilidad de desvío: sobre las observaciones da Z ≈ 0.63, sobre el pronóstico Z ≈ 3.1. La escala de nivel de servicio del manual califica al mismo corredor como **LOS A, "service provided like clockwork"** por el pronóstico y **LOS F, "most vehicles bunched"** por lo observado.
-  *No reclamamos* que la sub-dispersión de pronósticos puntuales sea un hallazgo nuevo, y hay que decirlo de frente porque **está publicado como enunciado general**: Mayer y Yang (2022) escriben que *"MSE-optimized forecasts are always underdispersed"*, cuantifican el déficit como razón de varianza (< 75 % de la varianza observada), establecen que los pronósticos optimizados en MAE quedan **menos** sub-dispersos que los de MSE, y atribuyen el agravamiento con el horizonte a Vannitsem y Hagedorn (2011). Patton y Timmermann (2012, Cor. 2) prueban esa monotonía como teorema. Reclamamos tres cosas más angostas: (a) **medirlo en el vector de *headways***, como dispersión **transversal** entre componentes en un mismo instante —Mayer y Yang trabajan sobre la varianza **temporal de una serie escalar** de irradiancia, que es la cantidad que los teoremas acotan y **no** es la nuestra—; (b) **darle la vuelta a la fórmula del propio manual sobre el pronóstico**; y (c) atarlo a una **consecuencia sobre una regla de evento**, que en esa literatura no aparece: en Mayer y Yang las palabras *threshold*, *detect* y *exceed* no figuran ni una vez.
+  *No reclamamos* que la sub-dispersión de pronósticos puntuales sea un hallazgo nuevo, y hay que decirlo de frente porque **está publicado como enunciado general**: Mayer y Yang (2022) escriben que *"MSE-optimized forecasts are always underdispersed"*, cuantifican el déficit como razón de varianza (< 75 % de la varianza observada), establecen que los pronósticos optimizados en MAE quedan **menos** sub-dispersos que los de MSE, y atribuyen el agravamiento con el horizonte a Vannitsem y Hagedorn (2011). Patton y Timmermann (2012, Cor. 2) prueban esa monotonía como teorema. Tampoco reclamamos haber sido los primeros en atar la compresión a una métrica categórica: Petetin et al. (2022) miden el déficit de variabilidad de pronósticos de ozono, lo aparean con métricas de umbral y con AUC, y documentan su agravamiento con el horizonte. Reclamamos tres cosas más angostas: (a) **medirlo en el vector de *headways***, como dispersión **transversal** entre componentes en un mismo instante —Mayer y Yang trabajan sobre la varianza **temporal de una serie escalar** de irradiancia, que es la cantidad que los teoremas acotan y **no** es la nuestra—; (b) **darle la vuelta a la fórmula del propio manual sobre el pronóstico**; y (c) atarlo a una regla de evento **relativa y auto-referencial**, donde la compresión mueve numerador y denominador a la vez. Esto último no está en ninguno de los dos precedentes, y en el caso de Petetin et al. no por omisión sino por construcción: sus umbrales son regulatorios (60 y 90 ppbv por normativa) y no admiten recalibración.
 
 - **C2 (reparación por recalibración, no por cambio de modelo).** Donde la literatura responde a la falla cambiando de clase de modelo, mostramos que **el punto de operación alcanza**. Ajustando el corte por MCC sobre una ventana anterior y disjunta y aplicándolo hacia adelante, la **persistencia recupera 0.5× en 11 de las 12 celdas** —o sea, el umbral publicado *era* su óptimo— mientras que el aprendiz necesita **0.58×–0.91×**. Con el corte en sus propias unidades, o puntuando sin umbral, **el veredicto se invierte**: a h=10 el aprendiz discrimina mejor que la persistencia en **3 de 3 corredores y 3 de 3 ventanas**, exactamente donde el corte fijo le daba 253× en contra. Y a h=1 la persistencia gana en 3 de 3 y 3 de 3, así que el error escalar y la detección **coinciden** una vez removido el artefacto.
 
@@ -344,20 +344,160 @@ variación**, que es exactamente la cantidad que la Sección IV-B mide y que
 ninguno de estos precedentes necesitó considerar.
 
 ### D. Qué métrica puede decidir una detección
-> [ANDAMIAJE] POR ESCRIBIR. Es la subsección que blinda C3.
->
-> - Powers (2011): el F-measure ignora los verdaderos negativos y no descuenta el nivel de azar; un sistema peor en *informedness* puede parecer mejor. Fawcett (2006): F-score se mueve con la distribución de clases aunque el clasificador no cambie.
-> - Flach y Kull (2015): el *baseline* a superar es el clasificador siempre-positivo, con precisión π y *recall* 1. **De ahí se deriva 2π/(1+π) en un paso — la fórmula no está impresa en ninguna fuente, así que atribuirla como derivación, no como cita.** Lipton et al. (2014) la instancian numéricamente (0.67 con π=0.5; 0.18 con π=0.1).
-> - Lipton et al. (2014): **maximizar F1 sobre un clasificador sin información predice todo positivo, sea cual sea la tasa base**, y el umbral óptimo es la mitad del F1 máximo alcanzable. Es el teorema que explica nuestra degeneración medida (el corte por F1 dispara el 99.99 % en E2) y justifica calibrar por MCC.
-> - Chicco y Jurman (2020) y Chicco, Tötsch y Jurman (2021) para MCC. **Precisión obligatoria:** para la regla siempre-positiva el MCC es 0/0, indeterminado; cero es la extensión por continuidad y la convención estándar. No escribir "0 por construcción". Boughorbel et al. (2017) para que calibrar por MCC sea principiado y no ad hoc. Y citar la crítica: Chicco y Jurman (2023) argumentan reemplazar el ROC-AUC por MCC — hay que responderla, no ignorarla.
-> - **Anticipar la objeción del desbalance**, que va a venir: Saito y Rehmsmeier definen su brazo desbalanceado en 1:10 (π ≈ 0.09), *más* extremo que nuestro 17–30 %; Davis y Goadrich hablan de *"large skew"* y su teorema es una equivalencia de dominancia; McDermott et al. (NeurIPS 2024) refutan de frente la superioridad del AUPRC. Y Boyd et al. (2012) dan vuelta la objeción: el piso libre del AUPRC crece hacia π=0.5, o sea 0.168 a nuestra tasa base — la alternativa PR-exclusiva tiene la **misma** enfermedad, peor a nuestra prevalencia. Seguir su recomendación explícita y dibujar la curva PR mínima.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Restricciones respetadas al redactar:
+> (a) **2π/(1+π) se presenta como derivación en un paso**, no como cita — la
+> fórmula no está impresa en ninguna fuente, y Lipton et al. solo la instancian
+> numéricamente; (b) la **invariancia del AUC ante transformaciones monótonas**
+> se deriva de la identidad de rangos, tampoco se atribuye: no figura como
+> teorema etiquetado en ninguna de las fuentes; (c) para la regla siempre-activa
+> el MCC es **0/0, indeterminado**, y el cero es extensión por continuidad —
+> **nunca escribir "cero por construcción"**; (d) Zhu (2020) está en `[ABSTRACT]`
+> y solo se le atribuye lo que dice el resumen; (e) el DOI de proceedings de
+> McDermott et al. no está verificado: citar por NeurIPS 2024 / arXiv.
+> **Pendiente que NO bloquea:** Boughorbel et al. (2017) está en `[CROSSREF]` con
+> la instrucción de leer el cuerpo antes de citar, así que el argumento de que
+> ajustar un umbral por métrica es principiado se apoya en Koyejo et al. (2014).
+> Si se lee Boughorbel, entra como refuerzo. Ídem Itaya et al. (2025), que da
+> intervalos de confianza para **diferencias pareadas** de MCC y encaja mejor en
+> la Sección III-E que acá.
+
+La familia de trabajos descrita en la subsección A decide sus veredictos con
+*accuracy*, precisión, *recall* y F-measure. Esa elección no es neutral, y deja
+de serlo especialmente en el régimen de tasa base de este trabajo: entre 17 % y
+30 % de celdas marcadas, por encima del rango de 0.15 % a 17 % que reporta el
+subcampo. Conviene entonces establecer qué puede y qué no puede decidir cada
+resumen antes de usarlos.
+
+El primer problema del F-measure es lo que omite. Powers (2011) señala que esta
+familia de medidas ignora el desempeño sobre los ejemplos negativos y no descuenta
+el nivel de azar, de modo que *"a system that performs worse in the objective
+sense of Informedness, can appear to perform better under any of these commonly
+used measures"*. Chicco y Jurman (2020) lo hacen explícito para el caso binario:
+el F1 es independiente de los verdaderos negativos y no es simétrico al
+intercambiar las etiquetas de clase, mientras que el coeficiente de correlación de
+Matthews (MCC) sí lo es. Y Fawcett (2006) agrega la consecuencia práctica: el
+F-score se mueve con la distribución de clases aunque el clasificador no cambie,
+por lo que comparar desempeños a un umbral común entre escalas distintas *"will
+be meaningless"*.
+
+El segundo problema es que el F1 no tiene un cero informativo. Flach y Kull
+(2015) fijan la referencia correcta: *"the baseline to beat is the always-positive
+classifier rather than any random classifier. This baseline has prec = π and
+rec = 1"*. De ahí se sigue en un paso que el F1 de la regla que marca todas las
+instancias vale `2π/(1+π)` —una derivación inmediata, no un resultado citable—, lo
+que a nuestras tasas base produce un piso de entre 0.29 y 0.46. Un F1 de 0.40 no
+significa nada hasta saber de qué lado de ese piso cae, y esa comparación no
+aparece reportada en la literatura de *bunching*.
+
+El tercer problema es el que convierte lo anterior en un modo de falla concreto
+al calibrar. Lipton, Elkan y Naryanaswamy (2014) demuestran que *"given an
+uninformative classifier, optimal thresholding to maximize F1 predicts all
+instances positive regardless of the base rate"*, y su Teorema 1 sitúa el umbral
+óptimo en la mitad del F1 máximo alcanzable. Sobre un modelo débil con tasa base
+del 30 %, ese máximo está cerca del piso trivial, de modo que el corte óptimo cae
+por debajo de casi toda predicción y la regla degenera en marcar todo. Los mismos
+autores observan además que la selección de umbral por F1 es de alta varianza,
+con cortes que *"may be set erroneously"*. La degeneración que reportamos en la
+Sección IV-F no es entonces una peculiaridad de nuestros datos: es el
+comportamiento que este teorema predice.
+
+El MCC evita las tres cosas —descuenta el azar, usa las cuatro celdas de la
+matriz y es simétrico ante el intercambio de clases— pero exige una precisión que
+se omite con frecuencia. Chicco, Tötsch y Jurman (2021) señalan que el
+coeficiente *"is undefined whenever the confusion matrix has a whole row or a
+whole column filled with zeros"*, aunque *"by simple mathematical considerations
+it is possible to cover such cases"*. Para la regla siempre-activa —fila de
+negativos predichos vacía— el cociente es literalmente indeterminado, y el valor
+cero que se le asigna es una extensión por continuidad y una convención, no una
+identidad. Este trabajo la adopta y lo declara. Que ajustar un umbral maximizando
+una métrica sea un procedimiento principiado y no una conveniencia tiene también
+respaldo: Koyejo et al. (2014) establecen que para las métricas expresables como
+razones de combinaciones lineales de la matriz de confusión, el clasificador
+óptimo es precisamente un umbral que depende de la métrica elegida.
+
+El cuadro sobre el MCC no es unánime y no tiene sentido presentarlo como si lo
+fuera. Luque et al. (2019) muestran que no es completamente invariante a la
+prevalencia; Zhu (2020) sostiene que su comportamiento se deteriora sobre
+conjuntos desbalanceados; y Chicco y Jurman (2023) llegan a argumentar que el MCC
+debería **reemplazar** al ROC-AUC. La respuesta que adopta este trabajo es que
+las dos medidas responden preguntas distintas y por eso se reportan juntas: el
+AUC y la precisión media miden **discriminación sin comprometerse con un punto de
+operación**, mientras que el MCC resume la calidad de **un punto de operación
+elegido**. Un artículo cuyo objeto es precisamente la transportabilidad del punto
+de operación no puede permitirse reportar solo uno de los dos.
+
+Queda una objeción previsible que conviene desactivar antes de que llegue: que a
+clases desbalanceadas corresponde la curva de precisión-*recall* y no la ROC. La
+objeción existe, pero su respaldo no cubre este régimen. El brazo desbalanceado
+de Saito y Rehmsmeier (2015) es de 1:10, es decir una prevalencia cercana al 9 %,
+más extrema que la nuestra; Davis y Goadrich (2006) hablan de *"large skew"*, y
+su Teorema 3.2 es una **equivalencia** —dominancia en ROC si y solo si dominancia
+en PR—, de modo que el AUC no puede invertir una conclusión de dominancia.
+McDermott et al. (2024) van más lejos y refutan la premisa de frente: *"AUPRC is
+not generally superior in cases of class imbalance"*, y observan que la creencia
+contraria *"is often made without citation, misattributed to papers that do not
+argue this point"*. Boyd et al. (2012) terminan de dar vuelta el argumento: el
+área bajo la curva PR tiene un piso libre `AUCPR_MIN = 1 + (1−π)·ln(1−π)/π`, que
+**crece** con la prevalencia y vale 0.168 al 30 % de tasa base. La alternativa
+exclusivamente PR padece, en nuestro régimen, la misma enfermedad que le
+reprochamos al F1, y peor que en el régimen de eventos raros para el que se la
+recomienda. Seguimos su recomendación explícita y graficamos la curva PR mínima
+junto a cada curva empírica.
+
+Esta discusión no es abstracta: Li (2024) documenta un caso publicado en el que un
+modelo sin capacidad predictiva real alcanza F1 = 0.475 mientras su MCC es 0.042 y
+su AUC 0.524. Es exactamente el fallo que las tablas de la subsección A no pueden
+detectar. Y la ausencia no es una impresión nuestra: la tabla comparativa con la
+que Santos et al. (2022) resumen la literatura previa del subcampo enumera las
+métricas de cada trabajo —RMSE, *accuracy*, precisión, *recall*, MAPE,
+especificidad, sensibilidad y F-measure— y ninguno reporta AUC ni precisión
+media. Tampoco, hasta donde alcanza este relevamiento, ningún trabajo del
+subcampo publica el piso del detector trivial junto a sus resultados.
 
 ### E. Síntesis del vacío
-> [ANDAMIAJE] POR ESCRIBIR. La formulación tiene que ser exactamente esta, ni más ancha ni más angosta:
->
-> El síntoma está diagnosticado en el dominio (Sun et al. 2021) y el mecanismo tiene precedentes fuera de él (Hoffmann et al. 2018; Ravuri et al. 2021). Lo que no existe es lo del medio: **nadie mide la compresión de dispersión que causa la falla, nadie recalibra el corte contra la distribución del propio pronóstico —la respuesta del campo es siempre cambiar de clase de modelo—, nadie reporta un piso de detector trivial, y nadie usa precisión media a estas tasas base.** Y ninguno de los precedentes de recalibración trata el caso de umbral **relativo y auto-referencial**, que es donde el coeficiente de variación gobierna el resultado.
->
-> **NO escribir "el subcampo no se dio cuenta".** Esa afirmación no sobrevive a un revisor que conozca a Sun et al.
+> [ANDAMIAJE — ESCRITO 2026-07-30] **La formulación del andamiaje anterior se
+> quedó corta y hubo que angostarla.** Decía "nadie mide la compresión de
+> dispersión que causa la falla", y eso **ya no es cierto fuera del transporte**:
+> Petetin et al. (2022) la miden, la cuantifican y la aparean con métricas
+> categóricas. El vacío hay que enunciarlo con dos ejes —dominio y tipo de
+> umbral—, no con uno. Dos reglas que siguen vigentes: **NO escribir "el
+> subcampo no se dio cuenta"** (no sobrevive a un revisor que conozca a Sun et
+> al.), y no ensanchar el reclamo más allá del caso auto-referencial.
+
+El estado de la cuestión se ordena en dos ejes, y el aporte de este trabajo queda
+donde los dos se cruzan.
+
+Por el eje del **dominio**, el síntoma está diagnosticado. Sun, Schmöcker y
+Nakamura (2021) mostraron que el paradigma de predecir el *headway* y umbralizar
+falla en detección aunque el error de regresión no lo anuncie, y lo atribuyeron
+al punto de operación único del pronóstico determinista. Lo que no se hizo dentro
+del transporte es medir la causa ni ensayar la reparación más barata: la
+respuesta ha sido invariablemente **cambiar de clase de modelo** —hacia
+clasificación, hacia predicción probabilística— y no reajustar el punto de
+operación de los modelos que ya se tienen.
+
+Por el eje del **mecanismo**, en cambio, hay bastante más publicado de lo que
+sugeriría la literatura de transporte, y este artículo no lo reclama. La
+sub-dispersión de los pronósticos puntuales es un enunciado general (Mayer y Yang
+2022) con respaldo teórico (Patton y Timmermann 2012). Su daño sobre eventos
+definidos por umbral está documentado (Ravuri et al. 2021). Y en calidad del aire
+está medida, cuantificada y apareada con métricas categóricas y con AUC, junto
+con su agravamiento con el horizonte (Petetin et al. 2022). Recalibrar el corte
+contra la distribución del propio modelo también tiene precedente, en clima
+(Hoffmann et al. 2018).
+
+Lo que no existe es la intersección, y admite una formulación precisa. **Ningún
+trabajo mide la compresión de dispersión sobre un vector de *headways* como
+causa de una falla de detección de *bunching*; ninguno recalibra el umbral de
+*bunching* contra la distribución del propio pronóstico; y ninguno —dentro ni
+fuera del transporte— trata el caso del umbral relativo y auto-referencial**, que
+es el que impone la ausencia de horario programado y en el que la compresión
+mueve numerador y denominador a la vez, de modo que el resultado queda gobernado
+por el coeficiente de variación y no por el nivel. A eso se suma una ausencia
+metodológica acotada al subcampo, respaldada por la propia tabla comparativa de
+Santos et al. (2022): en detección de *bunching* no se reporta ROC-AUC ni
+precisión media, ni se publica el piso del detector trivial contra el que
+cualquier F1 debería leerse.
 
 ### Referencias de la Sección II
 > [ANDAMIAJE] Tomarlas de `docs/paper/fuentes-verificadas.md`, respetando el estado de verificación. Presupuesto observado en IJACSA: 26–46, mediana ≈41.
@@ -474,17 +614,20 @@ ninguno de estos precedentes necesitó considerar.
 <!--
   MAPA DE PROGRESO (borrar antes de enviar):
 
-  [ESCRITO 2026-07-30]       II-A (la familia y Sun et al.) · II-B (sub-dispersión) ·
-                             II-C (precedentes de recalibración)
+  [ESCRITO 2026-07-30]       ✅ SECCIÓN II COMPLETA — A, B, C, D y E
   [YA REDACTADO, trasladar]  III Métodos (parcial) · IV Resultados A-G · V.D Limitaciones
-  [POR ESCRIBIR]             Abstract · I Introducción · II-D · II-E ·
-                             III.D Definición del evento · V.A Interpretación ·
-                             V.B Qué queda del aporte · V.C Nulo espacial · VI Conclusión ·
-                             Referencias
+  [POR ESCRIBIR]             Abstract · I Introducción · III.D Definición del evento ·
+                             V.A Interpretación · V.B Qué queda del aporte ·
+                             V.C Nulo espacial · VI Conclusión · Referencias
 
   Las dos subsecciones que decidían si el paper se lee como honesto o como ingenuo
-  —II-A y II-C— ya están escritas, y las dos acreditan de frente lo que no es nuestro.
-  Sin bloqueantes pendientes para lo que queda de la Sección II.
+  —II-A y II-C— acreditan de frente lo que no es nuestro. II-E enuncia el vacío en
+  DOS ejes (dominio y tipo de umbral), no en uno: la formulación de un solo eje se
+  volvió falsa cuando se leyó Petetin.
+
+  SIGUIENTE CUELLO DE BOTELLA: III.D (definición del evento). Es la que tiene que
+  declarar que nuestro umbral NO es la convención del campo, y ahora puede apoyarse
+  en el precedente de Yu et al. (referencia observada por horario ausente).
 
   BLOQUEANTES — RESUELTOS el 2026-07-29, los cuatro papers leídos (ver fuentes-verificadas.md §0):
     V1  Mayer y Yang 2022  → CONFIRMADO. "MSE-optimized forecasts are always
