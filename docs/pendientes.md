@@ -14,14 +14,19 @@ no se documenta. Solo lo que hay que decidir o hacer.
 
 | # | Tarea | Costo | Estado |
 |---|---|---|---|
-| P1 | **El manuscrito en inglés** | 3–4 semanas | No empezado |
-| P2 | **Reescribir las contribuciones C1–C4** de `docs/paper/manuscrito.md` | horas | No empezado — se apoyan en el titular retirado |
+| P1 | **El manuscrito en inglés** | 3–4 semanas | No empezado — es lo único que queda bloqueando |
+| P2 | **Reescribir las contribuciones C1–C4** de `docs/paper/manuscrito.md` | horas | ✅ **Cerrado 2026-07-30** |
 | P3 | **Las referencias** | días | No arranca de cero — ver abajo |
 
-**P2 no es cosmético.** El 2026-07-29 se retiró el titular *"la métrica decide el
-ganador"* y el mecanismo *"el MAE premia contraer"*: el primero era un artefacto
-de umbral, el segundo lo contradicen nuestros propios datos a h=1. El aporte
-ahora es otro y está medido:
+**P2 se cerró el 2026-07-30**, después de leer los cuatro papers de *paywall*.
+El manuscrito está reestructurado entero (título, vacío, C1–C4, §I-D, §II en
+A–E, §IV reordenado) y las contribuciones ya incorporan los cuatro veredictos.
+Lo que sigue es prosa, no estructura.
+
+El 2026-07-29 se había retirado el titular *"la métrica decide el ganador"* y el
+mecanismo *"el MAE premia contraer"*: el primero era un artefacto de umbral, el
+segundo lo contradicen nuestros propios datos a h=1. El aporte ahora es otro y
+está medido:
 
 > Un pronóstico puntual está sub-disperso (sesgo de CV negativo en las 36
 > celdas). Su costo es **de unidades, no de información**: una regla de evento
@@ -96,8 +101,12 @@ según tipo de servicio e información en tiempo real. Revisar que no amenace C2
 
 ## 4. Orden recomendado
 
-1. **P2: reescribir C1–C4.** Horas, y define qué argumenta el manuscrito. Todo lo demás depende de esto.
-2. **P1 + P3: escribir, con las referencias en paralelo.**
+1. ~~P2: reescribir C1–C4.~~ ✅ Cerrado 2026-07-30.
+2. **P1 + P3: escribir, con las referencias en paralelo.** Dentro de P1, el
+   orden es §II (A→E) primero, porque todo el resto del artículo cita hacia
+   atrás a esa sección y sus fuentes ya están verificadas; después §III y §IV,
+   que están casi redactadas en `documento-resultados.md`; después §V; y el
+   Abstract y la Introducción **al final**, como dice el propio andamiaje.
 3. R2 solo si sobra cuota de GPU. R3, R4 y D1: probablemente nunca.
 
 Y el recordatorio de calibración, que no cambió: en 8–9 papers recientes de
