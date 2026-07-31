@@ -585,9 +585,8 @@ y no se citan como equivalentes.
 
 La regla produce una tasa base de entre 17 % y 30 % según corredor y horizonte.
 Es alta para el subcampo, cuyos trabajos reportan prevalencias de entre 0.15 % y
-17 %. La consecuencia se declara aquí y se explota en las Secciones IV-C y IV-F:
-a mayor
-prevalencia, **más alto** es el piso que un F1 regala a un detector sin
+17 %. La consecuencia se declara aquí y se explota en las Secciones IV-C y IV-F: a
+mayor prevalencia, **más alto** es el piso que un F1 regala a un detector sin
 contenido, de modo que el régimen de este trabajo vuelve el argumento del piso
 trivial más exigente y no más laxo.
 
@@ -648,19 +647,130 @@ de las dos.
 ## V. Discusión
 
 ### A. Interpretación operativa
-> [ANDAMIAJE] POR ESCRIBIR, y es la sección que le habla a la empresa de transporte. El eje: la diferencia entre *"el modelo no sirve para anticipar bunching"* —que cierra la línea de trabajo— y *"el modelo sirve pero la alarma está mal seteada"* —que es ajustar un escalar sobre datos que ya tenés—. Con el límite honesto: un AUC de 0.60 no es un sistema de despacho, y no modelamos el costo.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Es la subsección que le habla al operador.
+> El eje es la diferencia entre dos diagnósticos que se parecen y tienen
+> consecuencias opuestas. **El límite honesto va en el mismo párrafo que la
+> lectura optimista, no en una sección aparte** — si el AUC de 0.60 aparece solo
+> en Limitaciones, la sección se lee como venta.
+
+Para un operador, las dos lecturas posibles de la Sección IV-C no se parecen en
+nada. *"El modelo no anticipa el bunching"* cierra una línea de trabajo: si el
+pronóstico no contiene la información, no hay ajuste que la haga aparecer y la
+inversión en modelado fue a pérdida. *"El modelo anticipa el bunching, pero la
+alarma está mal seteada"* dice lo contrario, y su costo de reparación es de otro
+orden: un escalar recalibrado sobre datos que la operación ya tiene.
+
+La evidencia sostiene la segunda lectura, y lo hace de una forma que conviene
+enunciar en términos operativos y no estadísticos. Con el umbral fijo, en E2 a
+diez minutos, el aprendiz emitió catorce alarmas donde había quince mil eventos;
+la lectura inmediata es ceguera. Pero de esas catorce, diez fueron correctas —un
+71 % de precisión contra una tasa base del 30 %—, mientras que la persistencia
+disparó quince mil veces para acertar el 33 %, apenas tres puntos por encima del
+azar. La proporción de aciertos de esa celda tiene un intervalo ancho, y por eso
+el argumento no descansa en ella: en E59 a diez minutos el aprendiz emite 1 573
+alarmas y acierta 777, un 49 % contra una tasa base del 21 %, y en E4 acierta 75
+de 150 contra el 18 %. El patrón es el mismo en los tres corredores y el volumen
+lo sostiene en dos. **El modelo no se equivoca cuando habla: está callado.** Y
+estar callado es precisamente lo que corrige un umbral.
+
+Ese diagnóstico tiene una consecuencia práctica inmediata. Una organización que
+haya evaluado un pronóstico de *headways* trasplantándole el corte con el que
+etiqueta sus observaciones históricas puede estar descartando un modelo que sí
+ordena correctamente el riesgo. El procedimiento que este trabajo propone no
+requiere reentrenar, ni cambiar de arquitectura, ni pasar a pronóstico
+probabilístico: requiere ajustar el corte sobre una ventana anterior y disjunta y
+aplicarlo hacia adelante, que además es la única dirección en la que un operador
+podría calibrarlo en producción. Y sugiere una práctica de evaluación mínima
+—reportar al menos una métrica sin umbral junto a la métrica de alarma— que
+habría bastado para no emitir el veredicto equivocado.
+
+Hasta ahí llega lo que estos resultados autorizan, y el límite es importante. Un
+AUC en torno a 0.60, que es el orden de magnitud de las celdas donde el aprendiz
+gana, es información real y está lejos de ser un sistema de despacho. Este
+trabajo no modela la función de costo que traduciría esa capacidad de
+ordenamiento en una decisión concreta —cuántos vehículos retener, durante cuánto
+tiempo, con qué penalización sobre el resto del servicio—, ni calibra el umbral
+contra incidentes registrados por la operación. Lo que se sostiene, entonces, es
+más modesto y más útil de lo que sugeriría el titular: la línea de trabajo **no
+está cerrada**, y la evidencia que parecía cerrarla medía el umbral y no el
+modelo.
 
 ### B. Qué queda del aporte, y qué no
-> [ANDAMIAJE] POR ESCRIBIR, corto y franco. **Cuatro** delimitaciones, no tres, y el orden importa porque va de la más cercana a la más lejana:
-> 1. **Petetin et al. (2022)** — es el vecino principal desde el 2026-07-30, por encima de Hoffmann. Ellos tienen el apareamiento continuo↔categórico, la sub-dispersión cuantificada y la sensibilidad al horizonte. Nosotros tenemos la recalibración del umbral, que en su marco es **inexpresable** porque sus cortes son regulatorios. Corte absoluto contra corte relativo y auto-referencial: en el primero se mueve un solo lado, en el segundo se mueven los dos.
-> 2. **Sun et al. (2021)** — síntoma contra mecanismo; cambio de clase de modelo contra recalibración del punto de operación.
-> 3. **Hoffmann et al. (2018)** — misma clase de reparación, pero en clima, sin horizonte y sin métricas de detección.
-> 4. **Li, Yang y Wang (2025)** — normalización contra pérdida; curable por arquitectura contra estructural.
->
-> Dos oraciones por delimitación alcanzan, y valen más que reclamar de más.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Cuatro delimitaciones, de la más cercana a la
+> más lejana, dos oraciones cada una. Vale más que reclamar de más. **No ablandar
+> el párrafo de cierre**: nombra lo que se retiró durante la propia investigación,
+> y en este venue eso es diferenciador, no debilidad.
+
+Conviene delimitar el aporte contra sus vecinos más cercanos, en orden de
+cercanía, porque buena parte del argumento que parecía nuestro no lo es.
+
+Frente a **Petetin et al. (2022)**, que es el vecino más próximo, no reclamamos
+la disociación entre error continuo y desempeño categórico, ni la medición de la
+compresión de dispersión, ni su agravamiento con el horizonte: las tres están
+publicadas allí, sobre pronósticos de ozono. Lo que agregamos es la recalibración
+del umbral, que en su marco no es una omisión sino una imposibilidad —sus cortes
+son regulatorios— y el régimen del umbral **relativo y auto-referencial**, donde
+la compresión mueve numerador y denominador a la vez y el resultado queda
+gobernado por el coeficiente de variación en lugar del nivel.
+
+Frente a **Sun, Schmöcker y Nakamura (2021)**, que diagnosticaron el síntoma
+dentro del transporte, no reclamamos haber descubierto que el paradigma falla, ni
+la crítica del punto de operación único, ni la reversión del veredicto al puntuar
+sin umbral. La diferencia está en la respuesta: ellos concluyen que hace falta
+cambiar de clase de modelo, y nosotros medimos que basta con recalibrar el punto
+de operación del modelo que ya se tiene.
+
+Frente a **Hoffmann, Menz y Spekat (2018)**, no reclamamos la idea de recalcular
+un umbral contra la distribución de cada modelo: es exactamente su procedimiento,
+ocho años antes, en *downscaling* climático. Lo que agregamos es el traslado al
+transporte, con un horizonte de pronóstico como eje y con métricas de detección
+que su marco no contempla.
+
+Frente a **Li, Yang y Wang (2025)**, que describen un aplanamiento muy similar en
+predicción de arribos de buses, la diferencia es de agente causal y por lo tanto
+de tratabilidad: su villano es la normalización del preprocesamiento y se cura
+por arquitectura, mientras que el que identificamos es la función de pérdida y
+sobrevive a la arquitectura. Ninguna de las dos afirmaciones invalida a la otra,
+pero no son la misma y no deben leerse como tales.
+
+Queda por decir qué **no** afirma este trabajo, y una parte de esa lista es
+producto de haber retirado conclusiones propias durante la investigación. No
+afirmamos que la sub-dispersión de los pronósticos puntuales sea un hallazgo
+nuevo: es un enunciado publicado y, en su dependencia del horizonte, un teorema.
+No afirmamos que el cruce por horizonte entre persistencia y aprendiz sea
+novedoso, que es folclore conocido en pronóstico de tráfico. No afirmamos que el
+resultado nulo espacial sea una contribución, por los motivos de la subsección
+siguiente. Y no afirmamos —como sostuvo una versión anterior de este trabajo— que
+la métrica escalar y la fidelidad vectorial nombren ganadores opuestos: esa
+lectura dependía por completo del umbral mal transportado, y las mediciones que
+la sostenían son las mismas que ahora la refutan.
 
 ### C. El resultado nulo espacial, en contexto
-> [ANDAMIAJE] POR ESCRIBIR, corto. Enmarcarlo como **confirmación de resultado publicado**, no como hallazgo: Boudabbous et al. (2026) sobre datos de Montreal reportan LSTM superando a transformers por 18–52 % con 77× menos parámetros, y Rodrigues (2022) muestra un *baseline* de patrón semanal igualando al SOTA espacio-temporal. Y decir que es específico de estos datos y corredores, no una ley.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Corto y enmarcado como **confirmación de
+> resultado publicado**, nunca como hallazgo. Y con la salvedad de procedencia
+> que las limitaciones 4 y 5 del documento de resultados obligan a declarar: el
+> nulo se estableció sobre las familias congeladas, no se rehízo bajo el pipeline
+> contiguo, y solo el LSTM tiene barrido de semillas.
+
+Las dos arquitecturas con estructura espacial explícita —convolucional y de
+atención— no superan al LSTM plano sobre estos corredores. El resultado se
+presenta aquí como **confirmación de trabajo publicado y no como contribución**,
+porque llegar segundo a una conclusión no la vuelve propia. Boudabbous et al.
+(2026) reportan, sobre datos de Montreal, que un LSTM supera a arquitecturas de
+tipo *transformer* entre un 18 % y un 52 % con setenta y siete veces menos
+parámetros, y Rodrigues (2022) muestra que un *baseline* de patrón semanal
+combinado con regresión lineal iguala al estado del arte espacio-temporal.
+Nuestro resultado es coherente con ambos.
+
+Dos advertencias impiden leerlo como algo más general. La primera es de alcance:
+es un enunciado sobre estos corredores, este horizonte y esta escala de flota, no
+una ley sobre arquitecturas espaciales. La segunda es de procedencia, y pesa
+más: el nulo se estableció sobre las familias de experimentos congeladas y no se
+rehízo bajo el pipeline contiguo con el que se produjeron los resultados de la
+Sección IV, y solo el LSTM cuenta con barrido de semillas. No puede descartarse
+que el desempeño de las arquitecturas espaciales esté afectado por la
+inicialización. Por eso el resultado se reporta como antecedente propio, con su
+respaldo en la literatura, y no como evidencia de esta comparación.
 
 ### D. Amenazas a la validez y limitaciones
 > [ANDAMIAJE] YA REDACTADO — las 11 limitaciones del doc §8. Mantenerla sustantiva: en el relevamiento del venue, 3 de 8 papers tienen algo parecido y ninguno tiene disponibilidad de datos. Las que más pesan: el valor operativo no está modelado (lim. 8), el umbral no está calibrado contra incidentes registrados (lim. 9), y la calibración usa dos ventanas con entrenamientos anidados en lugar de validación cruzada (lim. 10).
@@ -688,10 +798,10 @@ de las dos.
 
   [ESCRITO 2026-07-30]       ✅ SECCIÓN II COMPLETA — A, B, C, D y E
                              ✅ III.D Definición del evento
+                             ✅ V.A Interpretación · V.B Aporte · V.C Nulo espacial
   [YA REDACTADO, trasladar]  III Métodos (parcial) · IV Resultados A-G · V.D Limitaciones
-  [POR ESCRIBIR]             Abstract · I Introducción ·
-                             V.A Interpretación · V.B Qué queda del aporte ·
-                             V.C Nulo espacial · VI Conclusión · Referencias
+  [POR ESCRIBIR]             VI Conclusión · I Introducción · Abstract · Referencias
+                             (en ese orden — el Abstract se escribe último)
 
   Las dos subsecciones que decidían si el paper se lee como honesto o como ingenuo
   —II-A y II-C— acreditan de frente lo que no es nuestro. II-E enuncia el vacío en
