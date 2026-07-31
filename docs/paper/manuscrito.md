@@ -890,27 +890,369 @@ esa elección de objetivo contra la alternativa basada en F1.
 > Figuras: usar `contiguo-artefacto-umbral.png` y `contiguo-deteccion-sin-umbral.png` (**solo funcionan como par**), más `contiguo-degradacion.png` y `contiguo-volatilidad.png`. **NO usar** `curva-degradacion.png` ni `volatilidad-crossover.png`: son de las familias congeladas y no de este pipeline. La figura `contiguo-disociacion.png` fue eliminada — graficaba F1 con corte fijo como si midiera a los modelos.
 
 ### A. Contexto: el resultado escalar y su frontera
-> [ANDAMIAJE] Doc §3, comprimido. El cruce de MAE (persistencia gana h=1, el aprendiz gana h≥5), replicado por el XGBoost, y que la frontera real es la volatilidad y no el horizonte. Presentarlo como **contexto establecido**, no como aporte — es folclore conocido en pronóstico de tráfico.
->
-> Incluir acá la inversión MAE / error cuadrático a h=1 (doc §3): el vector aplanado **pierde** el absoluto y **gana** el cuadrático en los tres corredores. Es la evidencia interna de que la sub-dispersión no viene de elegir MAE.
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Doc §3 y §4, comprimido. **Presentar como
+> contexto establecido, no como aporte** — el cruce por horizonte es folclore
+> conocido en pronóstico de tráfico. Figuras `contiguo-degradacion.png` y
+> `contiguo-volatilidad.png`.
+
+El eje escalar se reporta como contexto y no como contribución: el cruce por
+horizonte entre persistencia y modelo aprendido es un comportamiento conocido en
+pronóstico de tráfico. Medido sobre la población pareada, la diferencia de error
+absoluto medio contra la persistencia (negativo indica ventaja del aprendiz) es:
+
+| Corredor | h=1 | h=3 | h=5 | h=10 |
+|---|---|---|---|---|
+| E2 | +0.067 | −0.851 | −1.109 | **−1.473** |
+| E59 | +0.334 | −0.186 | −0.491 | **−1.173** |
+| E4 | +0.464 | −0.064 | −0.536 | **−1.381** |
+
+**El XGBoost reproduce el patrón completo** —a h=10, −1.585 en E2, −0.787 en E59
+y −1.085 en E4—, de modo que el cruce no es una propiedad del aprendizaje
+profundo sino del problema: existe un umbral de anticipación a partir del cual el
+último valor observado deja de bastar, y cualquier aprendiz razonable lo cruza.
+La comparación entre el LSTM y el XGBoost se parte por corredor y no admite un
+ganador global; conforme a lo declarado en la Sección III-C, la ventaja del
+XGBoost en E2 **no es atribuible a la clase de modelo** porque recibió
+veinticuatro veces más presupuesto de ajuste.
+
+Con la varianza agrupada por día de servicio, el titular defendible se acota: a
+**h=1 gana la persistencia**, con firmeza en E4 y E59 y al borde en E2
+(*p* = 0.062); **h=3 es zona de transición sin victoria declarable**, algo en lo
+que convergen cuatro diagnósticos independientes —media contra mediana, terciles
+de volatilidad, desagregación por sentido y el enrutador de la subsección G—; y a
+**h≥5 el aprendiz gana en media y en mediana, con significancia amplia, en los
+tres corredores**.
+
+**La frontera real no es el horizonte sino la volatilidad.** Estratificando cada
+predicción por la dispersión de su propia ventana de entrada, en **11 de las 12
+celdas** la ventaja del aprendiz crece de forma ordenada del tercil calmo al
+volátil, y dentro de cada tercil crece con el horizonte:
+
+| Celda | Ventana calma | Ventana media | Ventana volátil |
+|---|---|---|---|
+| E2 h=1 | +0.218 | +0.086 | −0.080 |
+| E4 h=3 | **+0.370** | +0.006 | **−0.451** |
+| E59 h=3 | +0.159 | −0.157 | −0.559 |
+| E4 h=10 | −0.659 | −1.116 | −2.172 |
+
+El cruce es, entonces, un umbral de volatilidad que el horizonte va cruzando:
+alargar el horizonte empuja la ventaja del aprendiz hacia terciles cada vez más
+calmos hasta cubrirlos todos. Eso explica agregados engañosos como el de E4 a
+h=3, cuyos −0.064 minutos son la mezcla de perder claramente en dos tercios de la
+masa y ganar claramente en el tercio restante.
+
+**Una inversión de signo a h=1 anticipa el mecanismo de la subsección siguiente.**
+Contra la persistencia y sobre las mismas filas:
+
+| Corredor | Δ MAE | Gana | *p* | Δ error cuadrático | Gana | *p* |
+|---|---|---|---|---|---|---|
+| E2 | +0.067 min | persistencia | 0.062 | −15.36 min² | **LSTM** | 7.3e−18 |
+| E4 | +0.464 min | persistencia | 1.0e−13 | −6.49 min² | **LSTM** | 2.7e−14 |
+| E59 | +0.334 min | persistencia | 2.6e−13 | −8.35 min² | **LSTM** | 8.4e−16 |
+
+El vector aplanado **pierde** el error absoluto y **gana** el cuadrático, en los
+tres corredores. Es el comportamiento esperable de un pronóstico contraído:
+evita los errores grandes, que el cuadrático castiga desproporcionadamente, al
+costo de fallar más seguido por poco, que es lo único que el absoluto cuenta. El
+par de signos también descarta una explicación tentadora: si la contracción
+viniera de haber elegido el error absoluto como pérdida, el mismo vector no
+podría perder en absoluto y ganar en cuadrático a la vez. La causa no es cuál de
+los dos funcionales centrales se elige, sino **emitir un único número por celda**.
 
 ### B. La compresión de dispersión, medida
-> [ANDAMIAJE] Doc §5.2. CV predicho contra real, las 36 celdas, monotonía con el horizonte, persistencia con sesgo ≈0. El argumento de `Z = 0.5/cv` del TCQSM y el contraste LOS A / LOS F. **Y la distinción transversal contra temporal**, explícita.
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Doc §5.2 y §5.5. **La distinción
+> transversal contra temporal es obligatoria y va como bloque destacado**: es lo
+> que separa nuestro resultado empírico del teorema de Patton y Timmermann.
+> Y **no** citar la Ec. 3-7 del TCQSM como definición del CV (§C2 de
+> `fuentes-verificadas.md`); sí su escala de nivel de servicio.
+
+El coeficiente de variación del vector de *headways* mide cuán desparejo está el
+corredor, y es la cantidad que el promedio no distingue. Un corredor con
+intervalos de 9, 10, 11 y 10 minutos y otro con 1, 19, 2 y 18 tienen el mismo
+promedio de diez minutos y describen servicios opuestos: en el primero el
+pasajero espera diez minutos siempre; en el segundo los vehículos pasan de a
+pares y dejan huecos de veinte minutos, que es precisamente el *bunching*. Sus
+coeficientes de variación son 0.07 y 0.85. Se divide por la media porque dos
+minutos de desvío son un desastre en un corredor de cinco minutos y son
+irrelevantes en uno de quince.
+
+Medido así, **el modelo describe el primer corredor cuando la realidad es el
+segundo**:
+
+| | CV real | CV predicho por el LSTM | Sesgo |
+|---|---|---|---|
+| E2 h=1 | 0.777 | 0.362 | −0.415 |
+| E2 h=10 | 0.787 | **0.161** | **−0.626** |
+| E4 h=10 | 0.577 | 0.213 | −0.365 |
+| E59 h=10 | 0.614 | 0.260 | −0.354 |
+
+El sesgo es negativo en **las 36 combinaciones** de corredor, horizonte y ventana
+de prueba, empeora monótonamente con el horizonte y es notablemente estable entre
+ventanas: en E2 h=10 vale −0.664, −0.647 y −0.626 en los tres orígenes. La
+persistencia, que propaga el vector observado y por lo tanto conserva su forma
+por construcción, mantiene un sesgo de a lo sumo **0.022** en valor absoluto. No
+se trata de un defecto de esta arquitectura ni de esta pérdida: toda pérdida
+puntual apunta a un funcional central, y un pronóstico que devuelve un único
+número por celda devuelve una medida de centro.
+
+> **Qué acotan los teoremas, y qué no.** La descomposición de la varianza y el
+> Corolario 2 de Patton y Timmermann acotan la varianza **temporal de una serie
+> escalar**: cuánto se mueve el pronóstico de una posición a lo largo del tiempo.
+> La cantidad medida aquí es distinta —la dispersión **transversal entre las
+> componentes del vector en un mismo instante**, promediada luego sobre
+> instantes—. La ley de varianza total se aplica componente a componente, de modo
+> que la dirección del efecto es la esperable, pero **no implica** el resultado
+> transversal: un pronóstico podría tener un patrón posicional fuerte que le
+> inflara la dispersión transversal aun siendo temporalmente plano. Las 36 celdas
+> son por lo tanto un resultado **empírico y no un corolario**, y eso es lo que
+> las vuelve reportables: miden la cantidad que le importa al operador —cuán
+> desparejo se ve el corredor ahora— que ningún teorema existente cubre.
+
+La consecuencia se aprecia mejor traduciendo el coeficiente a profundidad de
+cola con la relación que el propio manual de referencia establece, `Z = 0.5/cv`.
+Sobre las observaciones, un coeficiente de 0.79 da `Z ≈ 0.63`; sobre el
+pronóstico, un coeficiente de 0.16 da `Z ≈ 3.1`, es decir una probabilidad de
+excedencia del orden del 0.1 %. Aplicando la escala de nivel de servicio del
+mismo manual, **el pronóstico califica al corredor como LOS A, "service provided
+like clockwork", mientras que las observaciones lo califican como LOS F, "most
+vehicles bunched"**. Mismo corredor, mismo instrumento, veredictos opuestos. La
+aritmética es del manual; lo que este trabajo aporta es aplicarla al pronóstico.
 
 ### C. El artefacto: la alarma no suena
-> [ANDAMIAJE] Doc §1 y §5.3. Figura `contiguo-artefacto-umbral.png`. Los 14 disparos en 50 356 oportunidades con 15 245 eventos; el factor 253×; y los tres hechos que vacían esa tabla — el corte de 0.5× es el óptimo de la persistencia (11/12 al reajustar), el ganador declarado pierde contra la regla constante en 5/12, y la precisión del aprendiz cuando dispara es 71 % contra 30 % de tasa base (con el IC ancho declarado, y respaldado por E59 con 1 573 disparos).
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Doc §1 y §5.3. Figura
+> `contiguo-artefacto-umbral.png`. **Va emparejada con la figura de la subsección
+> D: solo funcionan como par**, y compararlas es el aporte del trabajo.
+> Precisión obligatoria sobre el MCC de "marcar todo": es **0/0 indeterminado**,
+> y el cero es extensión por continuidad. Nunca "cero por construcción".
+
+Aplicada la regla de evento de la Sección III-D, el cuadro con el umbral fijo es
+inequívoco y, leído de forma inmediata, demoledor:
+
+| E2, a 10 minutos de anticipación | LSTM | Persistencia |
+|---|---|---|
+| MAE (menor es mejor) | **5.32 min** | 6.79 min |
+| F1 de *bunching* con el umbral fijo | 0.0013 | **0.332** |
+| Veces que disparó, en 50 356 oportunidades | **14** | 15 084 |
+| Eventos reales a detectar | 15 245 | 15 245 |
+
+Catorce alarmas donde había quince mil eventos, un factor de **253** contra la
+persistencia. Con ese corte la persistencia gana las doce celdas, por márgenes
+que crecen con el horizonte: 2.8×, 10.9×, 35.6× y 253.4× en E2 a h=1, 3, 5 y 10.
+La lectura inmediata es que el modelo se volvió ciego a la irregularidad.
+
+**Tres hechos vacían esa tabla de contenido, y los tres salen del mismo conjunto
+de datos que la produjo.**
+
+*Primero, el corte publicado es el óptimo de la persistencia.* Reajustándolo
+libremente por MCC sobre una ventana anterior y disjunta, **la persistencia
+recupera 0.5× en 11 de las 12 celdas** (rango 0.46×–0.60×; la excepción es E2
+h=10), mientras que el LSTM aterriza entre **0.58× y 0.91×**, siempre más laxo,
+porque su vector está comprimido. La regla estaba escrita en las unidades de uno
+de los dos competidores.
+
+*Segundo, el ganador declarado pierde contra una regla sin contenido.* Marcar
+todas las celdas produce un F1 de `2π/(1+π)`, y ese piso supera al F1 de la
+persistencia en **5 de las 12 celdas, incluidas las tres de h=10**:
+
+| Celda | F1 persistencia | F1 de "marcar todo" | ¿Supera el piso? |
+|---|---|---|---|
+| E2 h=10 | 0.332 | **0.465** | no |
+| E4 h=10 | 0.268 | **0.304** | no |
+| E59 h=10 | 0.303 | **0.344** | no |
+| E2 h=1 | **0.581** | 0.460 | sí |
+
+Conviene ser preciso sobre el MCC de esa misma regla, porque la formulación
+descuidada es atacable: con ella los falsos negativos y los verdaderos negativos
+son ambos cero, de modo que numerador y denominador se anulan y **el cociente
+queda indeterminado**. El valor cero es la extensión por continuidad, la
+convención estándar para matrices degeneradas, y coincide con el valor esperado
+de un clasificador al azar. El F1, en cambio, vale `2π/(1+π) > 0` para esa misma
+regla. Una métrica que sitúa una regla sin contenido por encima de los dos
+modelos no puede decidir cuál de los dos detecta *bunching*.
+
+*Tercero, cuando el aprendiz habla, acierta más.* En E2 a h=10 el LSTM dispara
+catorce veces y acierta diez: **71 % de precisión contra una tasa base del 30 %**.
+La persistencia dispara 15 084 veces y acierta 5 036, un **33 %**, tres puntos por
+encima del azar. El *recall* del aprendiz colapsa; su precisión, no. Esa
+proporción tiene un intervalo de confianza ancho (aproximadamente 42 %–92 % al
+95 %) y el argumento no descansa en ella: en E59 a h=10 el LSTM dispara **1 573**
+veces y acierta **777**, un 49 % contra una tasa base del 21 %, y en E4 acierta 75
+de 150 contra el 18 %. El patrón es el mismo en los tres corredores y el volumen
+lo sostiene en dos. **El modelo no se equivoca: está callado**, que es la firma de
+un corte mal puesto y no de información ausente.
 
 ### D. La reparación: sin umbral, el veredicto se invierte
-> [ANDAMIAJE] Doc §5.4 y §5.5. Figura `contiguo-deteccion-sin-umbral.png`. AUC y MCC calibrado, celda por celda. La inversión a h=10 en 3/3 corredores y 3/3 ventanas; la persistencia ganando a h=1 en 3/3 y 3/3; el cruce de detección coincidiendo con el escalar. Y la celda partida (E4 h=5, diferencia de una milésima) **nombrada**.
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Doc §5.4. Figura
+> `contiguo-deteccion-sin-umbral.png`, que **forma par con la de la subsección C**.
+> La celda partida (E4 h=5, una milésima) va **nombrada**, no omitida.
+
+Dos instrumentos no pueden ser movidos por un corte: el ROC-AUC y la precisión
+media son invariantes ante cualquier reescalado monótono del puntaje, que es
+exactamente la transformación ante la cual un corte relativo fijo **no** es
+invariante. La invariancia se sigue en un paso de que el AUC es una función de
+los rangos del puntaje. Se añade un tercer instrumento que sí emplea un corte,
+pero calibrado fuera de muestra sobre `r2` y aplicado hacia adelante a `main`.
+
+| Celda | AUC LSTM | AUC persist. | MCC cal. LSTM | MCC cal. persist. | Ganador |
+|---|---|---|---|---|---|
+| E2 h=1 | 0.714 | **0.723** | 0.310 | **0.401** | persistencia |
+| E2 h=3 | **0.629** | 0.598 | **0.178** | 0.160 | LSTM |
+| E2 h=5 | **0.604** | 0.567 | **0.139** | 0.102 | LSTM |
+| E2 h=10 | **0.565** | 0.528 | **0.085** | 0.027 | LSTM |
+| E4 h=1 | 0.811 | **0.833** | 0.476 | **0.615** | persistencia |
+| E4 h=10 | **0.604** | 0.558 | **0.126** | 0.111 | LSTM |
+| E59 h=1 | 0.760 | **0.781** | 0.363 | **0.517** | persistencia |
+| E59 h=10 | **0.632** | 0.571 | **0.161** | 0.119 | LSTM |
+
+La tabla establece cuatro cosas. **El aprendiz no es ciego en ninguna celda**: su
+AUC va de 0.565 a 0.811 y su elevación de precisión media sobre el piso trivial
+de 1.19 a 3.16, contra valores de azar de 0.5 y 1.0 respectivamente; un modelo sin
+información sobre el evento no puede producir esos números. **A h=10 el aprendiz
+gana la detección en los tres corredores**, con umbral calibrado y sin umbral,
+exactamente donde el corte fijo le atribuía un factor de 253× en contra. **A h=1
+gana la persistencia en los tres**, que es también donde gana el error absoluto:
+las dos métricas **coinciden** una vez removido el artefacto, de modo que no hay
+disociación entre error escalar y detección. Y **en el agregado**, 6 de las 12
+celdas van al aprendiz por AUC y 5 por MCC calibrado, contra 0 de 12 con el corte
+fijo; un veredicto que pasa de unánime a repartido según el punto de operación es,
+por definición, un veredicto sobre el punto de operación.
+
+Esto retira una afirmación intermedia que conviene nombrar. La idea de que
+alargar el horizonte mejora la ventaja escalar y destruye la fidelidad vectorial
+era correcta solo a medias: la fidelidad de **forma** del vector sí se destruye
+—las 36 celdas de la subsección B—, pero la capacidad de **discriminar el evento**
+no se destruye, se reordena, y a favor del aprendiz en el horizonte largo.
 
 ### E. Robustez: no es de febrero, ni de nuestro umbral
-> [ANDAMIAJE] Doc §5.5 y §5.6. Los tres orígenes para el aplanamiento (36/36) y para el AUC (11/12, 9/9 en los extremos). Y el corte absoluto: el colapso empeora, 110× peor bajo la convención del campo. **Con la salvedad que corre en contra**: el AUC del evento absoluto es más bajo, mediana 0.599, y una celda en 0.4934, o sea azar.
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Doc §5.5, §5.6 y §6 (winsorización).
+> **La salvedad del AUC absoluto va completa**, incluida la celda en 0.4934: es
+> lo único que corre en contra y omitirla invalidaría la subsección.
+
+Tres objeciones previsibles se responden con medición y no con argumento.
+
+**No depende de la ventana de prueba.** El aplanamiento es negativo en las **36
+de 36** combinaciones de corredor, horizonte y origen. El veredicto sin umbral
+coincide en **11 de las 12** celdas entre los tres orígenes, y en los extremos es
+unánime: a h=10 el aprendiz gana el AUC en los tres corredores y los tres
+orígenes —nueve de nueve— y a h=1 la persistencia gana también nueve de nueve. La
+única celda que se parte es **E4 h=5**, donde en la ventana publicada los dos AUC
+son 0.6476 y 0.6486, **una milésima**: esa celda está sobre el cruce y no hay
+victoria que reclamar, de modo que el desacuerdo confirma el mecanismo en lugar
+de contradecirlo.
+
+El contraste con el artefacto es el que más dice. Con el corte fijo la
+persistencia gana las 36 celdas, pero el **tamaño** de la ventaja se mueve entre
+ventanas de un modo que ninguna propiedad del modelo explicaría:
+
+| Celda | `r1` | `r2` | `main` |
+|---|---|---|---|
+| E2 h=5 | 125.9× | 57.6× | 35.6× |
+| **E2 h=10** | **2299×** | **817×** | **253×** |
+| E4 h=10 | 21.3× | 46.4× | 17.7× |
+| E59 h=10 | 11.1× | 9.9× | 8.8× |
+
+Un factor que va de 253 a 2299 según el mes en la misma celda no mide una
+capacidad: mide cuán lejos cayó el corte en la cola del pronóstico esa ventana en
+particular, y la divergencia se agranda justo donde el denominador se hace
+pequeño, que es la firma aritmética de una razón sin sentido. **En 15 de las 36
+celdas la persistencia ni siquiera supera al detector trivial.**
+
+**No depende de la forma auto-referencial del umbral.** Es la objeción más fuerte
+que admite este trabajo, porque la regla la introdujimos nosotros. Se midió con
+un corte **absoluto en minutos**, `K = ρ × mediana(headway observado en r2)` por
+corredor y sentido, calibrado fuera de muestra e idéntico para el vector observado
+y el predicho, con ρ = 0.5 para quedar comparable con nuestra regla y ρ = 0.25
+para igualar la convención dominante del campo:
+
+| Regla | Sub-disparo del LSTM (mediana de 12 celdas) | Peor celda |
+|---|---|---|
+| Auto-referencial, 0.5× la media del vector | 0.079 | — |
+| **Absoluto, 0.5× la mediana de `r2`** | **0.040** | 0.00028 |
+| **Absoluto, 0.25× la mediana de `r2`** (convención del campo) | **0.0007** | 0.000000 |
+
+**El resultado contradice lo que esperábamos y refuerza el argumento.** El
+colapso no se atenúa bajo un corte absoluto: **empeora**, y bajo la convención
+del campo es **110 veces peor** que bajo la nuestra. La razón es geométrica: un
+corte absoluto de 1.4 a 2.4 minutos vive en la cola lejana, que es exactamente
+donde la compresión muerde más fuerte, mientras que la regla auto-referencial al
+menos mueve su denominador con el nivel del vector. La objeción queda no solo
+respondida sino invertida: de haber usado la convención dominante, el colapso
+aparente habría sido dos órdenes de magnitud mayor.
+
+**Y una salvedad que corre en contra, que se reporta porque corre en contra.** El
+aprendiz carga **menos** información sobre el evento absoluto que sobre el
+relativo. Con ρ = 0.25 el AUC mediano baja a **0.599**, contra el rango de
+0.63–0.81 del evento relativo, y en E2 h=10 llega a **0.4934**, indistinguible del
+azar. La afirmación de que el aprendiz no es ciego en ninguna celda **se sostiene
+para el evento relativo y no se sostiene para el absoluto en esa celda**. Con
+ρ = 0.5 el cuadro mejora: mediana 0.655, mínimo 0.518, una sola celda en 0.55 o
+por debajo.
+
+**No depende del techo de winsorización.** La objeción evidente al contrato de la
+Sección III-B es que el uno por ciento recortado es la cola extrema, justo donde
+se juega el argumento. Repuntuando todo contra objetivos crudos, con una
+persistencia también recalculada sin techo, **ningún signo cambia** en las doce
+celdas, el margen se mueve menos de 0.01 minutos en todas y el F1 de *bunching*
+cambia menos de 0.005. La razón es estructural: lo que el techo recorta es la
+cola **alta**, es decir huecos de servicio, mientras que el *bunching* es un
+*headway* que colapsa hacia cero y ningún techo superior puede tocarlo.
 
 ### F. Por qué MCC y no F1, medido
-> [ANDAMIAJE] Doc §5.7. La tabla de estabilidad. **Reportar el resultado mixto como mixto**: el F1 es más ajustado en la mediana; lo que lo descalifica es el modo de falla degenerado y el costo fuera de muestra (3.4× en la mediana, 5.6× en el peor caso).
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Doc §5.7. **Reportar el resultado mixto
+> como mixto.** La formulación "el MCC es más estable" sería falsa en la mediana
+> y un revisor lo verificaría en la primera fila de la tabla.
+
+La Sección II-D justifica calibrar por MCC con un teorema. Lo que no está
+publicado es la comparación **empírica** de estabilidad entre los dos objetivos,
+y con tres ventanas disjuntas es medible:
+
+| | Objetivo MCC | Objetivo F1 |
+|---|---|---|
+| Rango del corte entre los tres orígenes, mediana | 0.0357 | **0.0226** |
+| Rango del corte, peor celda | **0.864** | 3.688 |
+| Celdas con rango > 0.5 | **1 de 24** | 4 de 24 |
+| MCC logrado en `main` según la ventana de calibración, mediana del rango | **0.00071** | 0.00242 |
+| Ídem, peor celda | **0.018** | 0.098 |
+
+**El resultado es mixto y no conviene maquillarlo.** En la **mediana**, el corte
+ajustado por F1 es *más* estable, no menos. Lo que distingue al MCC son las
+colas: el ajuste por F1 tiene cuatro celdas con rango superior a 0.5 y tres por
+encima de 1.0 —todas de persistencia, es decir los colapsos degenerados de la
+subsección C—, mientras que al MCC le ocurre en una sola.
+
+Lo que decide es la última fila, que mide cuánto se mueve el desempeño realmente
+desplegado según qué ventana tocó calibrar: allí el MCC es **3.4× más estable en
+la mediana y 5.6× en el peor caso**. Un operador no elige un umbral, elige un
+procedimiento, y el procedimiento basado en F1 funciona casi siempre y falla
+catastróficamente a veces. La formulación defendible no es "el MCC es más
+estable" —sería falsa en la mediana— sino que **el ajuste por F1 tiene un modo de
+falla degenerado que el de MCC no tiene, y el costo fuera de muestra favorece al
+MCC por un factor de 3 a 6**.
 
 ### G. El enrutador ex-ante
-> [ANDAMIAJE] Doc §6, dos párrafos. Supera el ruido de partición en 2 de 12 celdas, 7 de 12 políticas son degeneradas, y en E2 h=1 ayuda bajo partición aleatoria pero perjudica bajo corte temporal. Vale como demostración de ejecutabilidad, no como contribución. **Decirlo así.**
+> [ANDAMIAJE — TRASLADADO 2026-07-30] Doc §6. Dos párrafos, que es lo que
+> amerita. **Decir explícitamente que vale como demostración de ejecutabilidad y
+> no como contribución** — inflarlo sería el tipo de reclamo que este artículo
+> critica en otros.
+
+Si cada modelo domina un régimen distinto, una política que conmute entre ellos
+usando la volatilidad de la ventana —conocida al momento de predecir— debería
+capturar algo. Se construyó con tres candidatos, aprendiendo la política sobre los
+primeros trece días de servicio del conjunto de prueba y puntuándola sobre los
+nueve restantes, que es el único corte que imita el despliegue. Un barrido de
+veinte semillas mide cuánto se mueve la ganancia con la partición.
+
+La política supera el ruido de partición en **2 de 12 celdas, ambas a h=3** (E4
+−0.073 min, E59 −0.042 min) y en ninguna a h≥5, donde el aprendiz ya domina los
+tres terciles y no queda nada que conmutar. **7 de las 12 políticas son
+degeneradas**: eligen el mismo modelo en los tres terciles, de modo que el
+enrutador *es* un modelo puro disfrazado. Y en E2 h=1 la política ayuda bajo
+partición aleatoria (−0.028 de mediana) pero **perjudica** bajo corte temporal
+(+0.037), es decir que no generaliza hacia adelante en el tiempo, que es la única
+dirección que importa. La conclusión es acotada: conmutar paga solo donde ningún
+modelo puro domina, o sea en la zona de transición, y allí paga unos pocos
+segundos de error absoluto. **Vale como demostración de ejecutabilidad, no como
+contribución.**
 
 ---
 
@@ -1204,13 +1546,23 @@ distinguiría un mecanismo general de una propiedad de estos tres corredores.
                              ✅ VI Conclusión y Trabajo Futuro
                              ✅ SECCIÓN I COMPLETA — A, B, C, D y E
                              ✅ Abstract (235 palabras) · Título · Keywords
-  [YA REDACTADO, trasladar]  III Métodos (parcial) · IV Resultados A-G · V.D Limitaciones
-  [POR ESCRIBIR]             Referencias (≈40, formato IJACSA)
+                             ✅ Referencias (44, transcritas de Crossref/arXiv)
+                             ✅ III.A-C y III.E trasladadas · IV.A-G trasladadas
+  [POR TRASLADAR]            V.D Limitaciones (las 11 del doc §8)
 
-  ESTADO: toda la prosa argumental está escrita. Lo que queda es (a) las
-  Referencias, (b) trasladar III.A-C, III.E y IV.A-G desde documento-resultados.md,
-  (c) borrar TODOS los bloques [ANDAMIAJE], y (d) traducir al inglés.
-  Al traducir, recontar las palabras del Abstract: el inglés comprime.
+  ESTADO: el manuscrito está completo salvo V.D. Lo que queda:
+    (a) trasladar las 11 limitaciones del documento de resultados §8;
+    (b) borrar TODOS los bloques [ANDAMIAJE] y este mapa;
+    (c) traducir al inglés, recontando el Abstract — el inglés comprime;
+    (d) completar la plantilla IJACSA a dos columnas (≤10 pp de cuerpo).
+
+  VERIFICAR ANTES DE SOMETER, y no es opcional:
+    - Cada cifra de la Sección IV contra documento-resultados.md. Se trasladaron
+      a mano y un dígito cambiado invalida un argumento.
+    - Las figuras: contiguo-artefacto-umbral.png y contiguo-deteccion-sin-umbral.png
+      SOLO funcionan como par (IV.C e IV.D), más contiguo-degradacion.png y
+      contiguo-volatilidad.png en IV.A. NO usar curva-degradacion.png ni
+      volatilidad-crossover.png: son de las familias congeladas, no de este pipeline.
 
   NOTA para el Abstract: la Conclusión NO repite cifras a propósito. El Abstract
   SÍ tiene que traerlas (los candidatos están en el andamiaje del Abstract), y es
