@@ -522,12 +522,84 @@ cualquier F1 debería leerse.
 > [ANDAMIAJE] Tabla de *baselines* B0–B4 (persistencia como rival central), B5_XGB nivelado, y los tres DL (LSTM, SpatialConvLSTM, SpatialTransformer). Reusar tablas de §2 del doc de resultados. Declarar la asimetría de *tuning* (24 configuraciones contra 1 o 3) donde corresponde.
 
 ### D. Definición del evento de *bunching*, y por qué esta
-> [ANDAMIAJE] POR ESCRIBIR, y es delicado. Contenido obligatorio:
->
-> - Nuestra regla: celda marcada si su *headway* cae por debajo de 0.5× la media de su propio vector, calculada contra la media del **vector predicho** cuando se evalúa una predicción, porque un operador no tiene acceso a la media real.
-> - **Declarar que no es la convención del campo.** La forma dominante es una fracción del *headway* programado (un cuarto en Yu et al. y Moreira-Matias et al.; un medio en el TCQSM). La forma "fracción de la media observada" no existe como definición publicada: la usamos porque no hay horario. Es sustitución nuestra.
-> - Declarar la tasa base resultante: 17–30 %, por encima del rango 0.15–17 % que reporta el campo.
-> - Y anunciar la verificación de la Sección IV-E: la elección se somete a prueba con un corte absoluto, y resulta ser la conservadora.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Es la subsección más delicada del artículo:
+> declara que nuestra regla **no** es la del campo. Restricciones respetadas:
+> (a) la forma "fracción de la media observada" **no se encontró como definición
+> de evento publicada** —solo en descripciones de proveedores CAD/AVL, cuya única
+> fuente localizada es un post de LinkedIn, no citable— así que se declara como
+> **sustitución nuestra**, con el precedente de Yu et al. para la *clase* de
+> sustitución, no para la forma; (b) **no** se cita la Ec. 3-7 del TCQSM como
+> definición de lo que medimos: su `cvh` se normaliza por el *headway*
+> **programado** y el nuestro por la media observada, así que no son la misma
+> cantidad (ver §C2 de `fuentes-verificadas.md`); (c) no se afirma nada sobre la
+> procedencia del cociente ¼ más allá de quién lo usa; (d) la implementación
+> literal está en `bunching_flags` de `src/evaluation/vector_metrics.py`, y la
+> prosa tiene que coincidir con ella: la media se toma **sobre la misma columna
+> que se marca**.
+
+El objeto que este trabajo pronostica es el vector de *headways* de un corredor
+en un instante, y el evento se define sobre ese vector. Una celda se marca como
+*bunching* cuando su *headway* cae por debajo de la mitad de la media del vector
+al que pertenece. Un punto de esa definición merece énfasis porque es donde se
+concentra todo el argumento del artículo: **la media se calcula siempre sobre el
+mismo vector que se está marcando**. Al evaluar observaciones, es la media
+observada; al evaluar un pronóstico, es la media del **vector predicho**. No es
+una simplificación de implementación sino la única lectura operativamente
+honesta, porque en el momento de decidir si suena una alarma el operador dispone
+del vector que su modelo predijo y no del que va a ocurrir.
+
+Esta no es la convención del campo, y conviene decirlo antes que un revisor. La
+forma relativa dominante normaliza por el *headway* **programado**: un cuarto del
+programado en Yu et al. (2016) y en Moreira-Matias et al. (2016), la mitad del
+programado en el *Transit Capacity and Quality of Service Manual*. La alternativa
+es un corte absoluto, como el minuto que emplean Sun et al. (2021). Las dos
+opciones exigen algo que estos datos no tienen: un horario publicado, o un valor
+en minutos fijado de antemano. El corredor estudiado aquí se reconstruye desde
+GPS crudo, sin GTFS y sin tabla de servicio, de modo que ninguna de las dos
+formas es aplicable tal cual.
+
+La media del propio vector es el sustituto disponible, y se declara como
+**sustitución nuestra y no como herencia**: la forma "fracción de la media
+observada" no se encontró como definición de evento en la literatura publicada.
+Lo que sí tiene precedente directo es la *clase* de sustitución. Yu et al. (2016)
+enfrentan el mismo vacío en Pekín —el operador no publica una tabla fija— y lo
+resuelven tomando como *headway* "programado" el **observado en la primera parada**
+de la misma corrida. Sustituir un horario ausente por una referencia extraída del
+propio dato es, entonces, práctica establecida en el trabajo más citado del
+subcampo. Nuestra elección difiere en el punto de referencia, y **esa diferencia
+es exactamente el mecanismo que este artículo estudia**: la referencia de Yu et
+al. es observada y permanece fija a lo largo de la corrida, mientras que la
+nuestra se recalcula sobre el vector evaluado y, por lo tanto, se comprime junto
+con el pronóstico. Bajo un corte absoluto o anclado a un horario, la compresión
+de dispersión mueve un solo lado de la desigualdad; bajo esta regla mueve los
+dos.
+
+El cociente de un medio proviene del TCQSM, que lo emplea para caracterizar
+cuándo un vehículo está fuera de intervalo, y aparece en uso reciente en Zhang et
+al. (2022). Aquí se aplica ese mismo cociente a un denominador distinto —la media
+observada en lugar del *headway* programado—, lo cual es una elección propia y no
+una lectura del manual. Por la misma razón, el coeficiente de variación que
+reportamos en la Sección IV-B **no** es el `cvh` del manual, que se normaliza por
+el programado y se calcula sobre desvíos respecto de él; son cantidades distintas
+y no se citan como equivalentes.
+
+La regla produce una tasa base de entre 17 % y 30 % según corredor y horizonte.
+Es alta para el subcampo, cuyos trabajos reportan prevalencias de entre 0.15 % y
+17 %. La consecuencia se declara aquí y se explota en las Secciones IV-C y IV-F:
+a mayor
+prevalencia, **más alto** es el piso que un F1 regala a un detector sin
+contenido, de modo que el régimen de este trabajo vuelve el argumento del piso
+trivial más exigente y no más laxo.
+
+Finalmente, y puesto que toda la contribución depende de esta elección, la
+elección se somete a prueba en lugar de defenderse por argumento. La Sección IV-E
+repite la detección completa con un corte **absoluto en minutos**, calibrado
+fuera de muestra e idéntico para el vector observado y el predicho, incluida la
+convención de un cuarto que domina la literatura. El resultado se anticipa aquí
+porque contradice lo que esperábamos: el colapso del detector no se atenúa bajo
+un corte absoluto, sino que **empeora**, y bajo la convención del campo empeora
+en dos órdenes de magnitud. La regla auto-referencial resultó ser la conservadora
+de las dos.
 
 ### E. Protocolo de evaluación
 > [ANDAMIAJE] Es lo que nos diferencia en este venue — desarrollarlo bien y explícitamente.
@@ -615,8 +687,9 @@ cualquier F1 debería leerse.
   MAPA DE PROGRESO (borrar antes de enviar):
 
   [ESCRITO 2026-07-30]       ✅ SECCIÓN II COMPLETA — A, B, C, D y E
+                             ✅ III.D Definición del evento
   [YA REDACTADO, trasladar]  III Métodos (parcial) · IV Resultados A-G · V.D Limitaciones
-  [POR ESCRIBIR]             Abstract · I Introducción · III.D Definición del evento ·
+  [POR ESCRIBIR]             Abstract · I Introducción ·
                              V.A Interpretación · V.B Qué queda del aporte ·
                              V.C Nulo espacial · VI Conclusión · Referencias
 
@@ -625,9 +698,9 @@ cualquier F1 debería leerse.
   DOS ejes (dominio y tipo de umbral), no en uno: la formulación de un solo eje se
   volvió falsa cuando se leyó Petetin.
 
-  SIGUIENTE CUELLO DE BOTELLA: III.D (definición del evento). Es la que tiene que
-  declarar que nuestro umbral NO es la convención del campo, y ahora puede apoyarse
-  en el precedente de Yu et al. (referencia observada por horario ausente).
+  SIGUIENTE: V.A / V.B / V.C (Discusión), después VI Conclusión, después I e
+  Introducción y Abstract al final. Las Referencias pueden ir en paralelo.
+  Ya no quedan bloqueantes de literatura para nada de eso.
 
   BLOQUEANTES — RESUELTOS el 2026-07-29, los cuatro papers leídos (ver fuentes-verificadas.md §0):
     V1  Mayer y Yang 2022  → CONFIRMADO. "MSE-optimized forecasts are always
