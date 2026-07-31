@@ -24,7 +24,9 @@ insumo de P3 (referencias) y la evidencia de P2 (reencuadre de contribuciones).
 |---|---|---|
 | Los pronósticos puntuales están sub-dispersos | **No** | Patton & Timmermann 2012 (teorema); Mayer & Yang 2022 |
 | Empeora monótonamente con el horizonte | **No** | Patton & Timmermann 2012, Corolario 2 (es teoría, no hallazgo) |
-| La sub-dispersión rompe umbrales de evento | **No** | Ravuri et al. 2021 (*Nature*); Hoffmann et al. 2018; Petetin et al. 2022 |
+| La sub-dispersión rompe umbrales de evento | **No** | Ravuri et al. 2021 (*Nature*); Hoffmann et al. 2018; **Petetin et al. 2022** (§0.5 — el más cercano) |
+| Aparear error continuo con métrica categórica, y que nombren ganadores distintos | **No** | **Petetin et al. 2022**, como titular. Ver §0.5 — por esto se retiró nuestro titular viejo |
+| Reportar AUC junto a métricas de umbral | **No** | Petetin et al. 2022 (fuera de transporte); Sun et al. 2021 (dentro) |
 | El paradigma "predecir headway → umbral → bunching" falla | **No** | **Sun, Schmöcker & Nakamura 2021** — en transporte |
 | Disociación RMSE/recall en detección de bunching | **No** | **Sun et al. 2021** |
 | Crítica del punto de operación único | **No** | **Sun et al. 2021** |
@@ -169,6 +171,64 @@ Las diferencias que hay que declarar al reconciliar: horizonte en **paradas**, n
 en minutos; objetivo un **par de buses en la próxima parada**, no el vector
 completo en un instante futuro; y referencia del umbral **observada**, no
 predicha.
+
+### 0.5 Petetin et al. (2022) — **el precedente más cercano, y es de acceso abierto**
+`[TEXTO COMPLETO]` — doi:`10.5194/acp-22-11603-2022`, *ACP* 22:11603–11630. CC-BY.
+*"Model output statistics (MOS) applied to CAMS O₃ forecasts: trade-offs between
+continuous and categorical skill scores."*
+
+Estaba marcado `[POR VERIFICAR ANTES DE CITAR]` y era el candidato a *scoop* más
+serio que quedaba vivo. **Leído el 2026-07-30. Se confirma casi todo lo que se
+sospechaba — y aun así C2 sobrevive, por un motivo estructural.**
+
+**Lo que tienen, y hay que acreditarles sin regatear:**
+
+- **El apareamiento continuo ↔ categórico, como titular:** *"there is a clear
+  trade-off between the continuous and categorical skills scores… The quality of
+  a MOS-corrected forecast assessed solely based on metrics like RMSE or PCC thus
+  tells little about the forecast value."* Y el caso concreto: *"a MOS method can
+  give the best RMSE and PCC, yet the poorest high O₃ detection skills. This was
+  the case of the unweighted GBM method."*
+- **La sub-dispersión, diagnosticada y cuantificada:** el pronóstico crudo tiene
+  *"underestimated variability (nMSDB around −30 %)"*, y los métodos sofisticados
+  quedan *"too smooth"*, con *"more difficulty in capturing the lowest and highest
+  O₃ concentrations"*.
+- **AUC reportada junto a métricas de umbral** (H, F, FB, SR, CSI, PSS, AUC).
+- **Sensibilidad de las métricas categóricas al horizonte**, explícita: *"all
+  categorical metrics show a similarly strong sensitivity to the lead time"*, con
+  CSI cayendo de 0.27 a 0.14 entre D+1 y D+4.
+
+> **Esto valida a posteriori haber retirado el titular viejo.** *"La métrica
+> decide el ganador"* es, esencialmente, su conclusión — publicada en 2022, en
+> una revista de acceso abierto y muy citada. Si lo hubiéramos sometido, se caía.
+
+**Lo que NO tienen, y es donde queda C2:**
+
+- **No recalibran el umbral. No pueden.** Sus cortes son **regulatorios**: 60 ppbv
+  para el máximo diario de 8 h y 90 ppbv para el máximo horario, fijados por
+  normativa de la UE. Un umbral legal no se reajusta contra la distribución de un
+  modelo — la pregunta no existe en su marco. **Ahí está la diferencia
+  estructural con nuestro caso**, y no es un tecnicismo: nuestro corte es
+  **relativo y auto-referencial**, así que el denominador se mueve con el
+  pronóstico. El suyo no se mueve nunca.
+- **Su remedio va del otro lado.** Corrigen el pronóstico para que su
+  distribución se parezca a la observada —*"the quantile mapping (QM) method aims
+  at adjusting the distribution of the forecast concentrations to the
+  distribution of observed concentrations"*—, no la regla de decisión. Es la
+  alternativa a lo nuestro, y hay que nombrarla como tal en la §II-C: QM exige
+  una distribución de referencia de observaciones; recalibrar el corte exige solo
+  una ventana anterior.
+- Sin MCC, sin precisión media, y **sin detector trivial**: su referencia es
+  persistencia, que en su tarea tiene destreza real y no es un piso de azar.
+- Fuera de transporte, y su objeto es una serie escalar por estación.
+
+**Consecuencias.** (a) **C2 sobrevive** —el precedente de recalibración de umbral
+sigue siendo Hoffmann et al. (2018), y ninguno de los dos cubre el caso
+auto-referencial—. (b) **C3 se acota**: el apareamiento de AUC con métricas de
+umbral **ya existe**, así que C3 no puede reclamarlo; lo que queda es precisión
+media, MCC y el piso trivial, y el alcance declarado sigue siendo *la literatura
+de bunching*, que la tabla de Santos et al. respalda. (c) **Petetin pasa a ser la
+cita central de la §II-C**, por encima de Hoffmann.
 
 ---
 

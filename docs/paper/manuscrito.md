@@ -275,7 +275,8 @@ atribuye a la función de pérdida.
 >
 > - Hoffmann, Menz y Spekat (2018): identifican el percentil del umbral en los datos de referencia y **lo recalculan por modelo**, porque un corte fijo del espacio de observaciones subestima severamente el conteo de eventos. Es nuestro mecanismo **y** nuestro arreglo, en clima, ocho años antes. Citarlo como el precedente que estamos transfiriendo.
 > - Y decir qué NO cubre: sin horizonte de pronóstico, sin métricas de detección, sin transporte, y —crítico— **todos esos precedentes usan cortes absolutos o regulatorios, no relativos y auto-referenciales.** Ahí queda nuestro caso.
-> - [POR VERIFICAR ANTES DE CITAR] La familia hidrología / calidad de aire que el relevamiento identificó (Alfieri et al. 2019; Zsoter et al. 2020; Petetin et al. 2022; Lalaurette 2003 y su EFI sobre climatología del modelo). Petetin et al. aparentemente combinan nuestro mecanismo, nuestro diagnóstico de dispersión y nuestro apareamiento AUC-con-métrica-de-umbral: **hay que leerlo antes de escribir esta subsección.**
+> - **Petetin et al. (2022) — LEÍDO 2026-07-30, y pasa a ser la cita CENTRAL de esta subsección, por encima de Hoffmann.** doi:`10.5194/acp-22-11603-2022`, acceso abierto CC-BY. Ver §0.5 de `fuentes-verificadas.md`. Tienen el apareamiento continuo↔categórico como titular, la sub-dispersión cuantificada (−30 % de variabilidad), AUC junto a métricas de umbral, y la sensibilidad al horizonte. **Acreditarles todo eso sin regatear.** Lo que no tienen —y es el eje de la subsección— es recalibración del umbral, y no es omisión: sus cortes son **regulatorios** (60 y 90 ppbv por normativa UE), o sea inamovibles por construcción. Su remedio va del otro lado, corrigiendo la distribución del pronóstico por *quantile mapping*. Contrastar las dos rutas explícitamente: QM exige una distribución de referencia de observaciones; recalibrar el corte exige solo una ventana anterior.
+> - [POR VERIFICAR ANTES DE CITAR] El resto de la familia hidrología / calidad de aire que el relevamiento identificó (Alfieri et al. 2019; Zsoter et al. 2020; Lalaurette 2003 y su EFI sobre climatología del modelo). **Prioridad baja ahora**: Petetin ya cubre el rol que iban a cumplir, y ninguno de ellos cambia el argumento — todos usan cortes absolutos o regulatorios.
 > - **LEÍDO 2026-07-30, y la amenaza se confirmó.** Mayer y Yang (2022, *IJF*) enuncian literalmente *"As MSE-optimized forecasts are always underdispersed, the common practice of using RMSE skill score for evaluation overrates the forecasts with lower dispersion."* Se cita como **enunciado previo**, junto con Vannitsem y Hagedorn (2011) que ellos acreditan por el agravamiento con el horizonte. C1 ya está reformulado en consecuencia. Lo que NO tienen, verificado por conteo sobre el texto completo: `threshold` 0, `detect` 0, `exceed` 0, `AUC` 0, `coefficient of variation` 0 — y su objeto es irradiancia solar **escalar**, o sea varianza temporal, exactamente la distinción de la subsección B.
 
 ### D. Qué métrica puede decidir una detección
@@ -412,8 +413,9 @@ atribuye a la función de pérdida.
 
   CUELLO DE BOTELLA: queda II-C (precedentes de recalibración). II-A ya está escrita.
   Son las dos que deciden si el paper se lee como honesto o como ingenuo.
-  BLOQUEA A II-C: leer Petetin et al. (2022) — marcado [POR VERIFICAR ANTES DE CITAR],
-  y aparentemente combina nuestro mecanismo con nuestro apareamiento de métricas.
+  DESBLOQUEADA el 2026-07-30: Petetin et al. (2022) leído (§0.5). Es acceso abierto,
+  es el precedente más cercano que apareció, y NO recalibra el umbral porque el suyo
+  es regulatorio. II-C ya se puede escribir.
 
   BLOQUEANTES — RESUELTOS el 2026-07-29, los cuatro papers leídos (ver fuentes-verificadas.md §0):
     V1  Mayer y Yang 2022  → CONFIRMADO. "MSE-optimized forecasts are always
