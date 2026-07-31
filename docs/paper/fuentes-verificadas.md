@@ -305,17 +305,13 @@ Schedule*, 2025-04-10, sin cita). Cita limpia del 0.5× en uso:
 Zhang, Xu, Lu & Fan, *Sustainability* 14(23):15583 (2022),
 doi:`10.3390/su142315583` `[TEXTO COMPLETO]`.
 
-### 2.3 Mayer & Yang (2022) — **BLOQUEANTE, resolver antes de escribir**
-`[SNIPPET]` — doi:`10.1016/j.ijforecast.2022.03.008`,
+### 2.3 Mayer & Yang (2022) — ✅ **resuelto: leído, y la amenaza era real**
+`[TEXTO COMPLETO]` — doi:`10.1016/j.ijforecast.2022.03.008`,
 *International Journal of Forecasting* 39(2):981–991. CC-BY.
 
-Los snippets le atribuyen: *"MSE-optimized forecasts are always underdispersed,
-lacking extremely low or high forecast values"* y que los pronósticos de MSE
-quedan más sub-dispersos que los de MAE.
-
-Si eso es literal, es nuestra afirmación estructural en una revista top cuatro
-años antes. **No se somete nada sin leer el PDF.** Es CC-BY: si el editor
-bloquea, escribir al autor (mayer@energia.bme.hu).
+**Ver §0.1 para el detalle.** La atribución de los *snippets* era literal, así
+que la afirmación estructural es suya y se cita como enunciado previo. C1 quedó
+reformulado y la §II-B del manuscrito ya está escrita sobre esa base.
 
 ---
 
@@ -432,7 +428,7 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 |---|---|---|---|
 | **Usama & Koutsopoulos (2025)** | arXiv:`2510.03121` | `[TEXTO COMPLETO]` | **Nuestra mejor cita motivadora.** ConvLSTM sobre el vector de headways de una línea de metro. Grepeado: **cero** ocurrencias de "bunch", "threshold", "classif", "F1", "recall", "smooth", "underestimat", "variance". Solo RMSE/MAE. Grupo de primera línea. Su lista de ausencias es nuestra lista de contribuciones |
 | **Jiao, Shen & Zhang (2023)**, IEEE ICITE | doi:`10.1109/icite59717.2023.10733869` | `[ABSTRACT]` | **LIABILIDAD.** LSTM → umbral, reclama *"accurately identify 89% of bus bunching events"*. **Su umbral es NO VERIFICADO.** Reconciliar antes de someter |
-| **Yu et al. (2016)**, *TR-C* | doi:`10.1016/j.trc.2016.09.007` | `[CROSSREF]` | **LIABILIDAD.** Reclama >95 % identificados, con precisión que *"not significantly decay"* con el horizonte. Reconciliar |
+| **Yu et al. (2016)**, *TR-C* | doi:`10.1016/j.trc.2016.09.007` | `[TEXTO COMPLETO]` | ✅ **Reconciliado — ver §0.4.** El titular es a **2 paradas**; su propia sensibilidad cae a **73 % a 5 paradas** (vía Sun et al. 2021). Y su Ec. 13 usa el *headway* **observado** de la primera parada como sustituto del horario ausente: precedente directo de nuestra sustitución. Citado en §II-A |
 | Li, Yang & Wang (2025) | arXiv:`2509.06979` | `[TEXTO COMPLETO]` | Zirui Li, Bin Yang, Meng Wang. 31 ago 2025. **Preprint sin venue.** Grepeado: "headway", "bunching", "dispersion", "coefficient of variation" **no aparecen**. Su villano es la **normalización** (curable por arquitectura); el nuestro es la **pérdida** (estructural). Afirmaciones opuestas sobre tratabilidad = nuestra novedad. Su borde expuesto: *"overly stable and indistinguishable outputs"* — citar y neutralizar |
 | Liu, Wu, Wang & Long (2022) | arXiv:`2205.14415` | `[ABSTRACT]` | Origen del término *over-stationarization*. **Venue NeurIPS 2022 NO VERIFICADO** — el registro de arXiv no tiene journal-ref |
 | Boudabbous et al. (2026) | arXiv:`2601.18521` | `[ABSTRACT]` | Montreal STM. LSTM le gana a transformers **18–52 % con 77× menos parámetros**. Target = **retraso**, no headway; sin ConvLSTM. Mata nuestro nulo espacial como contribución |
@@ -448,15 +444,16 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 
 | # | Qué | Por qué |
 |---|---|---|
-| V1 | **Leer Mayer & Yang 2022** (CC-BY, doi:`10.1016/j.ijforecast.2022.03.008`) | Puede contener nuestra afirmación estructural literal, cuatro años antes |
-| V2 | **Leer Rezazada et al. 2024**, *Transport Reviews* 44(4):766–790, doi:`10.1080/01441647.2024.2313969` | `[NO RECUPERADO]` — 403 en todas las rutas. Es la review que un referí espera citada, y el lugar obvio del catálogo de umbrales |
-| V3 | **Reconciliar Jiao et al. (89 %) y Yu et al. (>95 %)** con el colapso de nuestro LSTM | Umbrales y horizontes, explícitamente. Sin esto, un revisor pregunta por qué a ellos les funciona |
+| ~~V1~~ | ✅ **Cerrado 2026-07-29.** Mayer & Yang leído — §0.1 | La afirmación era literal. C1 reformulado, §II-B escrita sobre esa base |
+| ~~V2~~ | ✅ **Cerrado 2026-07-29.** Rezazada et al. leído — §0.3 | Rango "20 s a ¼" verificado. Citado en §II-A |
+| V3 | **Reconciliar Jiao et al. (89 %)** con el colapso de nuestro LSTM | La mitad de Yu et al. ya está cerrada (§0.4: su titular es a 2 paradas y cae a 73 % a 5). Falta Jiao, doi:`10.1109/icite59717.2023.10733869`, todavía `[ABSTRACT]` con umbral no verificado. **No se cita en §II-A hasta leerlo** |
 | V4 | Confirmar el venue de arXiv:`2205.14415` en los proceedings de NeurIPS 2022 | El registro de arXiv no lo trae |
 | V5 | Verificar el byline de Boyd et al. (2012) en el PDF | dblp y otras fuentes discrepan en el orden |
 | V6 | Verificar la redacción textual de Wernli et al. (2009) | La definición que tenemos viene de snippet |
 | V7 | Pre-empt "¿por qué no probabilidades de excedencia?" | Sun et al. **proponen ese paper ellos mismos** como trabajo futuro. La pregunta ya está planteada en la literatura del dominio |
-| V8 | **Conseguir Santos et al. (2022)**, *The Computer Journal* 65(8):2044–2062, doi:`10.1093/comjnl/bxab045` | `[ABSTRACT]`. Compara contra regresores **y** clasificadores, así que tuvo que aplicar un umbral a salidas de regresión. **Es el lugar más probable donde ya exista un barrido de umbral.** Reporta solo "an efficacy between 74 and 80%", métrica sin nombrar |
-| V9 | Conseguir Yu et al. (2016) a texto completo | Nuestra evidencia de que trasplantan el umbral sin recalibrar es **de segunda mano**, vía Sun et al. |
+| ~~V8~~ | ✅ **Cerrado 2026-07-29.** Santos et al. leído — §0.2 | Sin barrido de umbral: C2 sobrevive. Y su tabla de la literatura previa sostiene la §II-D |
+| ~~V9~~ | ✅ **Cerrado 2026-07-29.** Yu et al. a texto completo — §0.4 | Su Ec. 13 y la sustitución del horario están verificadas de primera mano. Citado en §II-A |
+| V11 | **Gong et al. (2020)**, umbral **variable** — surgió de Rezazada | Verificar que "variable según contexto operativo" no colisione con C2 (recalibrado contra la distribución del pronóstico). Prioridad media |
 | V10 | Kim, Moon & Kim (2024), *TRR* 2679(1):1662–1679, doi:`10.1177/03611981241255907` | `[NO RECUPERADO]` (SAGE 403). Probablemente tiene una crítica actualizada del CV como medida de regularidad — nos toca directo |
 
 **No citar bajo ninguna circunstancia** (no recuperados): SSRN `abstract_id=6880258`;

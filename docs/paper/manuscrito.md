@@ -89,22 +89,186 @@
 > **Regla de citación para esta sección:** cada referencia debe llevar identificador verificado. `docs/paper/fuentes-verificadas.md` tiene el estado entrada por entrada y una lista explícita de lo que NO se puede citar porque no se pudo recuperar. **No citar afirmaciones específicas de fuentes marcadas `[SNIPPET]` o `[ABSTRACT]` sin leerlas primero.**
 
 ### A. Predecir el *headway* y después umbralizar: la familia y su falla documentada
-> [ANDAMIAJE] POR ESCRIBIR — es la subsección más importante y va primera. Contenido:
->
-> - La formulación canónica: Yu et al. (2016) establecen predecir el patrón de *headway* como vía para anticipar el *bunching*, con LS-SVM y umbral en un cuarto del *headway* programado; reportan >95 % de eventos identificados. Moreira-Matias et al. (2016) umbralizan verosimilitudes de *headway* predicho para disparar alarmas de control.
-> - Sun, Schmöcker y Nakamura (2021) son **el trabajo al que este paper responde**, y hay que citarlos temprano y generosamente. Describen la familia con precisión —*"For bunching prediction then an additional step is required judging whether the predicted headway is below a prior defined bunching threshold or not"*— muestran la disociación entre error de regresión y sensibilidad, observan que los regresores fallan justo cuando el *headway* real se acorta, y diagnostican la causa como el **punto de operación único** de un pronóstico determinista. Reportan curvas ROC, AUC, corrección de King–Zeng para eventos raros, elección de corte ponderada por costo y matrices de confusión completas.
-> - **Y decir con claridad qué dejaron abierto**, porque ahí está nuestro lugar: aplican el corte de 1 minuto derivado de observaciones a los pronósticos de LR y SVM **sin recalibrarlo**, en los quince horizontes; no reportan métrica libre de umbral para los detectores basados en regresión; no comparan contra un detector trivial; y atribuyen el déficit al determinismo, no a la compresión de dispersión — que es visible en sus propias tablas, donde el R² ajustado cae de 0.968 a 0.635 mientras el coeficiente del *headway* se queda en ≈1.00. Su propio trabajo futuro propone calcular probabilidades de excedencia; nadie lo escribió.
-> - Vecino arquitectónico, y la mejor cita motivadora: Usama y Koutsopoulos (2025) pronostican el campo espacio-temporal completo de *headways* de una línea de metro con ConvLSTM, y reportan solo MAE/MSE/RMSE — sin análisis de dispersión, sin detección de eventos, sin umbral, sin *baseline* de persistencia y sin ablación arquitectónica. Esa lista de ausencias es la lista de contribuciones de este paper, y conviene decirlo así.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Citación en autor-año; la conversión a `[n]`
+> se hace al maquetar. Toda cita textual de esta subsección proviene de fuentes
+> marcadas `[TEXTO COMPLETO]` en `docs/paper/fuentes-verificadas.md`. Dos
+> restricciones que se respetaron: (a) a Moreira-Matias et al. (2016) se lo cita
+> **solo** por la convención de un cuarto del *headway* programado, que es lo
+> verificado — no por el mecanismo de alarma; (b) el >95 % de Yu et al. no se
+> cita como tal: se cita el par de cifras reconciliado vía Sun et al. (2021).
+> Pendiente que toca esta subsección: Jiao, Shen y Zhang (2023) reclama 89 % con
+> el mismo esquema y sigue en `[ABSTRACT]` con umbral no verificado. **No se cita
+> hasta leerlo**; si se confirma que su horizonte es corto, entra en el párrafo
+> de la reconciliación junto a Yu et al.
+
+La vía dominante para anticipar el *bunching* no lo predice: predice el
+*headway* y después lo compara contra un umbral. Yu et al. (2016) fijan la
+formulación de forma explícita —*"the occurrence of bus bunching can be detected
+by thresholding the predicted headway with the planned bus schedule"*— y la
+instancian sobre datos AVL de Pekín con máquinas de vectores de soporte y sus
+variantes. El esquema se repite con pocas variaciones: un regresor entrega un
+valor de *headway*, una regla binaria lo convierte en alarma, y las métricas que
+se reportan son las de la alarma.
+
+El umbral de esa regla es, casi siempre, una fracción del *headway* programado.
+Un cuarto del programado es la convención más difundida (Yu et al. 2016;
+Moreira-Matias et al. 2016; Santos et al. 2022), aunque no la única: la revisión
+de Rezazada et al. (2024) advierte que *"there is no single threshold value to
+define bunching events, as it depends on the type of the service, time of the
+day, location, and service frequency"*, y sitúa los valores publicados entre 20 s
+y un cuarto del programado. La elección no es inocua, y la literatura lo sabe:
+Santos et al. (2022) declaran que cuando el GTFS no permite calcular el *headway*
+programado recurren a un corte definido por el usuario, y usan cinco minutos
+absolutos.
+
+Ese hueco —qué se hace cuando no hay horario— es más común de lo que sugiere la
+convención, y la solución establecida es sustituir el horario ausente por una
+referencia **observada dentro del propio dato**. Yu et al. (2016) lo hacen de
+frente: como en Pekín *"most route schedules change over time"* y el operador no
+publica una tabla fija, *"this study uses the headway at the first stop as the
+'scheduled' headway"*, de modo que su regla marca *bunching* cuando el *headway*
+en la parada i cae por debajo de un cuarto del *headway* observado en la primera
+parada de la misma corrida. La Sección III-D retoma este punto, porque nuestra
+propia regla es una sustitución de la misma clase con otro punto de referencia, y
+la diferencia entre ambas referencias resulta ser el mecanismo que este trabajo
+mide.
+
+El trabajo al que este artículo responde es Sun, Schmöcker y Nakamura (2021).
+Describen la familia con precisión —*"for bunching prediction then an additional
+step is required judging whether the predicted headway is below a prior defined
+bunching threshold or not"*— y muestran que rinde mal en detección aunque su
+error de regresión no lo anticipe: a diez paradas de anticipación la sensibilidad
+cae al rango de 34.9–52.7 % mientras, en sus palabras, *"in terms of MAPE and
+RMSE… evaluation metrics deteriorate gradually"*. Observan además dónde falla el
+regresor, y es exactamente donde importa: *"neither in 1- nor 10-stop-ahead
+prediction can these two methods perform favorably under the circumstance that
+the actual headway becomes extremely short and bunching is going to happen"*. El
+diagnóstico que proponen es el determinismo del pronóstico: como *"headway
+prediction produces an exact value for each headway"*, del regresor *"only one
+combination of sensitivity and specificity is derived"*. Su remedio es coherente
+con ese diagnóstico y consiste en **cambiar de clase de modelo** —pasar a
+clasificación probabilística y construir curvas ROC—, con un aparato de
+evaluación notablemente más cuidado que el del resto del subcampo: AUC,
+corrección de King–Zeng para eventos raros, elección de corte ponderada por costo
+y matrices de confusión completas. El giro probabilístico no es aislado: Chen et
+al. (2022) modelan vectores de *headway* de pares adyacentes con una mezcla
+gaussiana bayesiana, y Yu, Wu, Chen y Ma (2016) predicen el *headway* con
+máquinas de vectores de relevancia.
+
+Lo que queda abierto es el paso anterior a esa decisión. Sun et al. aplican a los
+pronósticos de sus regresores el mismo corte absoluto de un minuto derivado de
+las observaciones, sin recalibrarlo, en los quince horizontes; no reportan
+ninguna métrica libre de umbral para los detectores basados en regresión —las
+curvas ROC son del clasificador—; no comparan contra un detector trivial; y
+atribuyen el déficit al determinismo y no a la compresión de dispersión, que es
+visible en sus propias tablas, donde el R² ajustado del modelo de *headway* cae de
+0.968 a 0.635 mientras el coeficiente del *headway* rezagado se mantiene en
+torno a 1.00. Su propio trabajo futuro propone calcular probabilidades de
+excedencia; hasta donde alcanza este relevamiento, nadie lo escribió.
+
+La misma ausencia, en una forma más aguda, aparece en el vecino arquitectónico
+más cercano a este trabajo. Usama y Koutsopoulos (2025) pronostican el campo
+espacio-temporal completo de *headways* de una línea de metro con ConvLSTM —el
+mismo objeto vectorial que modelamos aquí— y reportan únicamente MAE, MSE y
+RMSE. En su texto no hay análisis de dispersión, ni detección de eventos, ni
+umbral, ni *baseline* de persistencia, ni ablación arquitectónica. Esa lista de
+ausencias es, casi renglón por renglón, la lista de contribuciones de este
+artículo.
 
 ### B. Por qué el umbral se mueve: sub-dispersión de los pronósticos puntuales
-> [ANDAMIAJE] POR ESCRIBIR. Ordenar de la teoría al fenómeno:
->
-> - Gneiting (2011): qué funcional elicita cada pérdida (Bregman ⟺ media; lineal por tramos ⟺ cuantil, y su caso α=½ ⟺ mediana). **Ojo: NO contiene ninguna afirmación de sub-dispersión** — verificado por grep del preprint completo. Citarlo solo por el funcional.
-> - Patton y Timmermann (2012): `V[Y] = V[Ŷ*] + E[e*²]`, y el Corolario 2, que hace de la monotonía en el horizonte un **teorema**. Presentar nuestro 36/36 como esa cota volviéndose visible, no como descubrimiento.
-> - **La distinción que hay que hacer explícita, o un revisor la usa en contra:** esos teoremas acotan la varianza **temporal de una serie escalar**. Nuestro CV es la dispersión **transversal entre las componentes del vector en un mismo instante**. La ley de varianza total se aplica componente a componente, así que la dirección es la esperable, pero **no implica** el resultado transversal. Las 36 celdas son resultado empírico, y eso es lo que las hace reportables.
-> - Corroboración entre dominios: Ravuri et al. (2021, *Nature*) — pérdida puntual → *nowcasts* borrosos que empeoran con el horizonte y rinden mal justo en los eventos definidos por umbral; su explicación es "lack of constraints", no elicitabilidad. Subich et al. (ICML 2025) atribuyen el suavizado a la doble penalización del MSE y lo arreglan cambiando la pérdida. Bonavita (2024): el suavizado *mejora* las métricas deterministas.
-> - El mismo fenómeno tiene nombre en meteorología (doble penalización: Ebert 2008; Wernli et al. 2009) y en *downscaling* climático (inflación de varianza: von Storch 1999 en contra, Huth 2002 a favor, Maraun 2013 revisitándolo). **Que el debate siga abierto nos sirve** y hay que decirlo: cómo corregir la sub-dispersión no está resuelto.
-> - Distinguir de la *over-stationarization* (Liu et al. 2022; Li, Yang y Wang 2025, que la lleva a predicción de arribos de buses en Dresde). Su villano es la **normalización** del preprocesamiento, curable por arquitectura — es la premisa de su propio método. El nuestro es la **pérdida**, y es estructural. Son afirmaciones opuestas sobre tratabilidad. Su borde expuesto es la frase *"the model tends to produce overly stable and indistinguishable outputs"*: citarla, acreditarla, y señalar que no la cuantifican ni la atribuyen a la pérdida.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Restricciones respetadas al redactar:
+> (a) Gneiting (2011) se cita **solo** por el funcional que elicita cada pérdida
+> — el preprint completo no contiene ninguna afirmación de sub-dispersión;
+> (b) Vannitsem y Hagedorn (2011) entra **acreditado a través de** Mayer y Yang,
+> porque no lo leímos: no se le atribuye texto ni cifras;
+> (c) Wernli et al. (2009), von Storch (1999), Huth (2002) y Maraun (2013) están
+> en `[CROSSREF]`/`[SNIPPET]`, así que aparecen parafraseados y **sin comillas**;
+> (d) el párrafo de la distinción transversal/temporal es obligatorio y no se
+> puede ablandar: es lo que separa nuestro resultado del teorema.
+
+Que el umbral se corra no es un accidente del entrenamiento, sino una
+consecuencia de qué cantidad estima un pronóstico puntual. Gneiting (2011)
+caracteriza esa correspondencia: cada función de pérdida elicita un funcional
+determinado de la distribución condicional —las pérdidas de Bregman, la media;
+las lineales por tramos, un cuantil, y su caso simétrico la mediana—. Un
+regresor entrenado con error cuadrático apunta entonces a la media condicional y
+uno entrenado con error absoluto a la mediana condicional. Ninguno de los dos
+apunta a la dispersión, y ninguno tiene incentivo para reproducirla.
+
+La consecuencia sobre la varianza es cuantificable. Patton y Timmermann (2012)
+establecen que para un pronóstico óptimo se cumple `V[Y] = V[Ŷ*] + E[e*²]`, de
+modo que la varianza del pronóstico está acotada por la de la observación, y su
+Corolario 2 hace de la monotonía en el horizonte un teorema:
+`V[Ŷ*_{t|t−hS}] ≥ V[Ŷ*_{t|t−hL}]` para `hS < hL`. El deterioro que reportamos en
+la Sección IV-B es esa cota volviéndose visible en datos de buses, no un
+descubrimiento sobre la cota.
+
+Conviene ser explícito sobre el alcance de esos resultados, porque la diferencia
+decide qué parte de nuestro hallazgo es empírica. Los teoremas acotan la varianza
+**temporal de una serie escalar**: la dispersión de un mismo pronóstico a lo
+largo del tiempo. La cantidad que este trabajo mide es otra — la dispersión
+**transversal entre las componentes del vector de *headways* en un mismo
+instante**, que es la que gobierna una regla de evento definida sobre el vector.
+La descomposición de la varianza se aplica componente a componente, de manera que
+la dirección del efecto es la esperable; pero no implica el resultado
+transversal, y en particular no dice nada sobre el coeficiente de variación del
+corte transversal. Que el sesgo aparezca en la totalidad de las celdas evaluadas
+es, por lo tanto, un resultado empírico y se reporta como tal.
+
+Como enunciado general, la sub-dispersión de los pronósticos puntuales está
+publicada, y este artículo no la reclama. Mayer y Yang (2022) la formulan sin
+matices —*"as MSE-optimized forecasts are always underdispersed, the common
+practice of using RMSE skill score for evaluation overrates the forecasts with
+lower dispersion"*—, la cuantifican como razón de varianzas sobre pronósticos de
+irradiancia solar, donde los pronósticos optimizados en MSE *"only capture <75 %
+of the observed variance"*, y establecen la dependencia de la pérdida que
+podríamos haber creído propia: los pronósticos optimizados en MAE quedan también
+sub-dispersos, pero menos, con menor sesgo condicional de tipo 2 y mayor
+discriminación que los de MSE. El agravamiento con el horizonte lo acreditan a
+Vannitsem y Hagedorn (2011), que constituye así un segundo precedente del
+comportamiento monótono, junto al teorema de Patton y Timmermann. Nuestra
+posición frente a ese trabajo es la que corresponde: lo citamos como enunciado
+previo, y delimitamos lo que agregamos. Su objeto es una serie escalar de
+irradiancia —varianza temporal, la cantidad que los teoremas acotan— y su
+evaluación es de calidad de pronóstico: en su texto no aparecen umbrales,
+detección de eventos ni excedencias. El puente entre la compresión de dispersión
+y una **regla de evento** es lo que queda sin construir, y es lo que este
+artículo construye.
+
+Fuera del pronóstico solar, el mismo fenómeno aparece asociado justamente al tipo
+de evento que nos ocupa. Ravuri et al. (2021) reportan que una pérdida puntual
+produce *nowcasts* de precipitación borrosos a mayor horizonte, con desempeño
+pobre sobre los eventos de lluvia media a intensa —es decir, los eventos que se
+definen por un umbral—; su explicación es la falta de restricciones sobre la
+salida, no la elicitabilidad. Subich et al. (2025) atribuyen el suavizado a la
+doble penalización del MSE y lo corrigen cambiando la función de pérdida.
+Bonavita (2024) va un paso más lejos y observa que la ventaja de los modelos de
+aprendizaje automático en métricas deterministas es parcialmente atribuible al
+suavizado, o sea que la métrica premia el defecto.
+
+El fenómeno tiene nombre propio en al menos dos literaturas más. En meteorología
+se lo discute como doble penalización (Ebert 2008; Wernli, Hofmann y Zimmer
+2009): un campo pronosticado con estructura correcta pero desplazada es
+penalizado dos veces, y suavizar lo evita. En *downscaling* climático se lo
+discute como inflación de varianza, y sin acuerdo — von Storch (1999) argumenta
+en contra de inflar y a favor de aleatorizar, Huth (2002) llega a la conclusión
+opuesta, y Maraun (2013) reabre el punto más de una década después. Que el debate
+siga abierto es relevante para este trabajo y conviene decirlo: **cómo** corregir
+la sub-dispersión no está resuelto, y por eso una contribución que no la corrige
+sino que ajusta la regla de decisión aguas abajo tiene lugar legítimo.
+
+Queda por distinguir esta línea de un diagnóstico vecino con el que es fácil
+confundirla. La *over-stationarization* (Liu et al. 2022), llevada por Li, Yang y
+Wang (2025) a la predicción de arribos de buses, describe un síntoma muy
+parecido: en sus palabras, *"the model tends to produce overly stable and
+indistinguishable outputs"*. Pero el agente causal que identifican es la
+**normalización del preprocesamiento**, y por eso su propuesta es arquitectónica
+— la curabilidad por diseño es la premisa de su propio método. El agente que
+identificamos aquí es la **pérdida**, y en esa medida es estructural: sobrevive a
+cualquier arquitectura entrenada con el mismo objetivo, que es exactamente lo que
+observamos al comparar tres arquitecturas distintas. Son afirmaciones opuestas
+sobre tratabilidad, y ninguna de las dos fuentes cuantifica el aplanamiento ni lo
+atribuye a la función de pérdida.
 
 ### C. Recalibrar el umbral: precedentes fuera del transporte
 > [ANDAMIAJE] POR ESCRIBIR, y **es obligatorio**. Si presentamos el mecanismo como nuevo, un revisor de meteorología o clima nos termina con una cita de 2018.
@@ -239,14 +403,17 @@
 <!--
   MAPA DE PROGRESO (borrar antes de enviar):
 
+  [ESCRITO 2026-07-30]       II-A (la familia y Sun et al.) · II-B (sub-dispersión)
   [YA REDACTADO, trasladar]  III Métodos (parcial) · IV Resultados A-G · V.D Limitaciones
-  [POR ESCRIBIR]             Abstract · I Introducción · II Related Work (entera) ·
+  [POR ESCRIBIR]             Abstract · I Introducción · II-C · II-D · II-E ·
                              III.D Definición del evento · V.A Interpretación ·
                              V.B Qué queda del aporte · V.C Nulo espacial · VI Conclusión ·
                              Referencias
 
-  CUELLO DE BOTELLA: II-A (la familia y Sun et al.) y II-C (precedentes de recalibración).
+  CUELLO DE BOTELLA: queda II-C (precedentes de recalibración). II-A ya está escrita.
   Son las dos que deciden si el paper se lee como honesto o como ingenuo.
+  BLOQUEA A II-C: leer Petetin et al. (2022) — marcado [POR VERIFICAR ANTES DE CITAR],
+  y aparentemente combina nuestro mecanismo con nuestro apareamiento de métricas.
 
   BLOQUEANTES — RESUELTOS el 2026-07-29, los cuatro papers leídos (ver fuentes-verificadas.md §0):
     V1  Mayer y Yang 2022  → CONFIRMADO. "MSE-optimized forecasts are always
