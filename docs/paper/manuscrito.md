@@ -779,11 +779,63 @@ respaldo en la literatura, y no como evidencia de esta comparación.
 
 ## VI. Conclusión y Trabajo Futuro
 
-> [ANDAMIAJE] REESCRIBIR desde cero — la versión anterior cerraba sobre "la métrica decide el ganador", que se retiró.
->
-> Cerrar sobre el *gap* y no sobre los resultados. La forma: un pronóstico puntual está sub-disperso; ese déficit no le quita información sobre el evento, le cambia las unidades; y por eso una regla de alarma calibrada sobre observaciones fabrica un fracaso aparente de hasta 253× que no existe. La reparación es un escalar, no una arquitectura nueva.
->
-> Trabajo futuro, en orden de valor: (1) pronóstico probabilístico del vector de *headways* con probabilidades de excedencia —que es lo que Sun et al. propusieron y nadie escribió—, (2) validación cruzada rotativa de la calibración del umbral en lugar de dos ventanas, (3) función de costo operativo que traduzca AUC a decisiones de despacho, (4) más ciudades.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Reescrita desde cero: la versión anterior
+> cerraba sobre "la métrica decide el ganador", retirado el 2026-07-29. Cierra
+> sobre el **vacío**, no sobre los resultados — los números están en la Sección IV
+> y repetirlos acá los devalúa. Se agregó un quinto ítem de trabajo futuro que no
+> estaba en el guion y que salió de leer a Yu et al.: la **tercera forma de
+> umbral** (referencia observada y fija) es la que nadie midió, ni ellos ni
+> nosotros.
+
+Un pronóstico puntual describe un corredor más regular de lo que es. No es un
+defecto de entrenamiento sino la consecuencia de qué cantidad estima: una pérdida
+puntual elicita un funcional central de la distribución condicional, y ninguno de
+los funcionales centrales tiene por qué reproducir la dispersión. En el vector de
+*headways* que estudiamos, ese déficit aparece en la totalidad de las celdas
+evaluadas y se agrava con el horizonte, tal como la teoría del pronóstico
+anticipa y como se ha documentado en otros dominios.
+
+La contribución de este trabajo no es ese déficit, sino lo que se sigue de él
+cuando la salida del modelo se convierte en una alarma. **La compresión de
+dispersión no le quita al pronóstico información sobre el evento: le cambia las
+unidades en las que esa información está escrita.** Una regla de decisión
+calibrada sobre observaciones deja de significar lo mismo al aplicarse sobre un
+vector comprimido, y bajo un umbral relativo y auto-referencial deja de
+significarlo dos veces, porque también el denominador se contrae. Trasplantar esa
+regla fabrica entonces una degradación aparente de dos órdenes de magnitud que no
+existe en la información, y que se disuelve al reajustar un solo escalar sobre
+una ventana anterior y disjunta o al puntuar sin umbral. La verificación más
+importante es la que corrió en contra de nuestra hipótesis: con un corte absoluto
+—incluida la convención de un cuarto que domina la literatura— el colapso no se
+atenúa sino que empeora, de modo que la forma auto-referencial resultó ser la
+conservadora y no la que maximiza el artefacto.
+
+De ahí se desprende una recomendación de evaluación más general que el caso de
+estudio, y es lo que este artículo querría dejar instalado. **Un veredicto de
+detección obtenido trasplantando un umbral entre espacios de distinta dispersión
+mide el umbral, no el modelo.** Sostenerlo exige tres cosas que hoy no son
+práctica en el subcampo: reportar al menos una métrica sin umbral junto a la
+métrica de alarma, publicar el piso del detector trivial contra el cual leerla, y
+declarar en qué espacio fue calibrado el corte. Ninguna de las tres requiere
+datos adicionales ni capacidad de cómputo; las tres habrían bastado para no
+emitir el veredicto que este trabajo tuvo que retirar sobre sus propios
+resultados.
+
+El trabajo futuro se ordena por lo que más cambiaría las conclusiones. Primero, el
+pronóstico probabilístico del vector de *headways* con probabilidades de
+excedencia explícitas, que es la ruta que Sun et al. (2021) propusieron como
+continuación de su propio trabajo y que, hasta donde alcanza nuestro relevamiento,
+nadie escribió; sustituiría la recalibración del punto de operación por una
+distribución predictiva de la que el punto de operación se deriva. Segundo, la
+**tercera forma de umbral**: entre el corte absoluto y el auto-referencial queda
+la referencia observada y fija que emplean Yu et al. (2016), que ni ellos ni
+nosotros evaluamos frente a las otras dos y que la Sección IV-E no cubre.
+Tercero, validación cruzada rotativa de la calibración del umbral en lugar de las
+dos ventanas con entrenamientos anidados que usamos aquí. Cuarto, la función de
+costo operativo que traduzca capacidad de ordenamiento en decisiones de despacho,
+sin la cual la lectura optimista de la Sección V-A no puede llevarse a operación.
+Y quinto, replicación en otras ciudades y escalas de flota, que es lo único que
+distinguiría un mecanismo general de una propiedad de estos tres corredores.
 
 ---
 
@@ -799,9 +851,14 @@ respaldo en la literatura, y no como evidencia de esta comparación.
   [ESCRITO 2026-07-30]       ✅ SECCIÓN II COMPLETA — A, B, C, D y E
                              ✅ III.D Definición del evento
                              ✅ V.A Interpretación · V.B Aporte · V.C Nulo espacial
+                             ✅ VI Conclusión y Trabajo Futuro
   [YA REDACTADO, trasladar]  III Métodos (parcial) · IV Resultados A-G · V.D Limitaciones
-  [POR ESCRIBIR]             VI Conclusión · I Introducción · Abstract · Referencias
+  [POR ESCRIBIR]             I Introducción · Abstract · Referencias
                              (en ese orden — el Abstract se escribe último)
+
+  NOTA para el Abstract: la Conclusión NO repite cifras a propósito. El Abstract
+  SÍ tiene que traerlas (los candidatos están en el andamiaje del Abstract), y es
+  el único lugar donde el lector las ve antes de la Sección IV.
 
   Las dos subsecciones que decidían si el paper se lee como honesto o como ingenuo
   —II-A y II-C— acreditan de frente lo que no es nuestro. II-E enuncia el vacío en
