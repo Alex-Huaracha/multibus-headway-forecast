@@ -17,11 +17,16 @@
 
 # Título
 
-> [ANDAMIAJE] Debe nombrar: (1) el objeto = detección de *bunching* a partir de pronóstico de *headway*, (2) el ángulo = el umbral no es transportable al espacio del pronóstico, (3) dato real. Se afina al final.
+## El umbral, no el modelo: compresión de dispersión y recalibración del corte en la detección de *bunching* de buses a partir de datos GPS reales
+
+> [ANDAMIAJE — ELEGIDO 2026-07-30] Nombra las tres cosas que el título debía
+> nombrar: el objeto (*detección de bunching*), el ángulo (*el umbral no es
+> transportable*, en la cabeza y sin adorno) y el dato real. **Es un cambio de una
+> línea**, así que quedan registradas las dos alternativas anteriores por si se
+> prefiere otro tono:
 >
-> Provisional: **"Un pronóstico aplanado parece ciego sin serlo: transportabilidad del umbral en la detección de *bunching* de buses a partir de datos GPS reales"**
->
-> Alternativa más conservadora, si se quiere sonar menos polémico: **"Compresión de dispersión y recalibración de umbrales en la detección de *bunching* a partir de pronósticos de *headway*"**
+> - Más polémica: *"Un pronóstico aplanado parece ciego sin serlo: transportabilidad del umbral en la detección de bunching de buses a partir de datos GPS reales"*. Se descartó porque la afirmación va en la cabeza sin el mecanismo al lado, y un revisor puede leerla como reclamo antes de llegar a la evidencia.
+> - Más conservadora: *"Compresión de dispersión y recalibración de umbrales en la detección de bunching a partir de pronósticos de headway"*. Se descartó porque nombra el mecanismo pero no la consecuencia, y en un corpus donde la norma es una fila en negrita ganando, no distingue.
 
 **Autores** · Afiliación · Contacto
 
@@ -29,13 +34,37 @@
 
 ## Abstract
 
-> [ANDAMIAJE] SE ESCRIBE AL FINAL. 150–250 palabras, un párrafo. Estructura: (1) el paradigma "predecir *headway* → umbralizar → alarma" y su falla documentada, (2) qué medimos que nadie midió, (3) datos, (4) 3–4 resultados con números, (5) el aporte. Sin citas ni abreviaturas indefinidas.
->
-> Números candidatos para el abstract: CV 0.16 predicho contra 0.79 real (36/36 celdas); el corte de 0.5× recuperado por la persistencia en 11/12 celdas contra 0.58×–0.91× del aprendiz; reversión del veredicto sin umbral a h=10 en 3/3 corredores y 3/3 ventanas; el detector trivial supera al ganador declarado en 5/12 celdas; el colapso es 110× peor bajo la convención absoluta del campo.
+> [ANDAMIAJE — ESCRITO 2026-07-30] 235 palabras, un párrafo, dentro del rango
+> 150–250. Sin citas y sin abreviaturas indefinidas: no aparecen las siglas del
+> coeficiente de variación ni del área bajo la curva, y "correlación de Matthews"
+> va desarrollada. Es el **único** lugar donde el lector ve cifras antes de la
+> Sección IV — la Conclusión deliberadamente no las repite.
+> **Al traducir, verificar el conteo de palabras otra vez:** el inglés suele
+> comprimir y puede caer por debajo de 200.
 
-*(pendiente)*
+El paradigma dominante para anticipar el *bunching* de buses predice el *headway*
+con un regresor y compara la predicción contra un umbral definido sobre
+observaciones. Está documentado que ese esquema rinde mal en detección aunque su
+error de regresión se degrade suavemente, y la respuesta habitual ha sido cambiar
+de clase de modelo. Este trabajo muestra que la causa es de unidades y no de
+información. Sobre 152 días de datos de posicionamiento vehicular de tres
+corredores de alta frecuencia de Arequipa, Perú, medimos la compresión de
+dispersión del pronóstico como razón de coeficientes de variación del vector de
+*headways*: el aprendiz describe un corredor con coeficiente 0.16 cuando el real
+es 0.79, con sesgo negativo en las 36 celdas evaluadas. Un umbral relativo
+calibrado sobre observaciones, trasplantado a ese vector comprimido, fabrica una
+degradación aparente de hasta 253 veces. Al reajustar el corte por correlación de
+Matthews sobre una ventana anterior y disjunta, la persistencia recupera el
+umbral publicado en 11 de 12 celdas mientras el aprendiz requiere cortes más
+laxos; puntuado sin umbral, el veredicto se invierte y el aprendiz discrimina
+mejor a diez minutos en los tres corredores y las tres ventanas. Un detector sin
+contenido supera al ganador declarado en 5 de 12 celdas, y bajo un corte absoluto
+el colapso empeora en dos órdenes de magnitud. Un veredicto de detección obtenido
+trasplantando un umbral mide el umbral, no el modelo.
 
-**Keywords** — *(pendiente — 5–7: bus bunching detection, headway forecasting, forecast under-dispersion, decision threshold calibration, evaluation methodology, AVL/GPS data)*
+**Keywords** — bus bunching detection; headway forecasting; forecast
+under-dispersion; decision threshold calibration; event detection metrics;
+evaluation methodology; AVL/GPS data
 
 ---
 
@@ -960,8 +989,14 @@ distinguiría un mecanismo general de una propiedad de estos tres corredores.
                              ✅ V.A Interpretación · V.B Aporte · V.C Nulo espacial
                              ✅ VI Conclusión y Trabajo Futuro
                              ✅ SECCIÓN I COMPLETA — A, B, C, D y E
+                             ✅ Abstract (235 palabras) · Título · Keywords
   [YA REDACTADO, trasladar]  III Métodos (parcial) · IV Resultados A-G · V.D Limitaciones
-  [POR ESCRIBIR]             Abstract · Título (afinar) · Referencias
+  [POR ESCRIBIR]             Referencias (≈40, formato IJACSA)
+
+  ESTADO: toda la prosa argumental está escrita. Lo que queda es (a) las
+  Referencias, (b) trasladar III.A-C, III.E y IV.A-G desde documento-resultados.md,
+  (c) borrar TODOS los bloques [ANDAMIAJE], y (d) traducir al inglés.
+  Al traducir, recontar las palabras del Abstract: el inglés comprime.
 
   NOTA para el Abstract: la Conclusión NO repite cifras a propósito. El Abstract
   SÍ tiene que traerlas (los candidatos están en el andamiaje del Abstract), y es
