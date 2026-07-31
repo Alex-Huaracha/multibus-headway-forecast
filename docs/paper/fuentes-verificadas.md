@@ -387,6 +387,16 @@ reformulado y la §II-B del manuscrito ya está escrita sobre esa base.
 | Bonavita (2024), *GRL* 51 | doi:`10.1029/2023GL107377`, arXiv:`2309.08473` | `[ABSTRACT]` | Modelos ML de clima producen espectros de energía suavizados; su ventaja en métricas deterministas es **parcialmente atribuible** al suavizado |
 | Hoffmann, Menz & Spekat (2018), *ASR* 15:107–116 | doi:`10.5194/asr-15-107-2018` | `[TEXTO COMPLETO]` | **Nuestro mecanismo y nuestro arreglo, en clima, en 2018.** Identifican el percentil del umbral en la referencia y lo recalculan por modelo. Sin horizonte, sin métricas de detección, sin transporte |
 
+### Dos citas de la prosa que no estaban en este archivo — verificadas 2026-07-30
+
+Ambas aparecen en el manuscrito y no tenían entrada. **Verificadas contra la API
+de Crossref**, no de memoria.
+
+| Fuente | ID | Estado | Por qué está citada |
+|---|---|---|---|
+| **Vannitsem & Hagedorn (2011)**, *Meteorological Applications* 18(1):94–104 | doi:`10.1002/met.217` | `[CROSSREF]` — título, byline, volumen y páginas confirmados | Mayer y Yang le acreditan el agravamiento de la sub-dispersión con el *lead time*. **Citada de segunda mano**: no leímos el cuerpo, así que en §II-B se la nombra como atribución de Mayer y Yang y **no se le atribuye texto ni cifras** |
+| **Diebold & Mariano (1995)**, *JBES* 13(3):253–263 | doi:`10.1080/07350015.1995.10524599` | `[CROSSREF]` | El test pareado de §I-D y §III-E. Existe un reimpreso de 2002 (doi:`10.1198/073500102753410444`, *JBES* 20(1):134–144); **citar el original de 1995** |
+
 ### Doble penalización (meteorología)
 
 | Fuente | ID | Estado |
@@ -492,8 +502,8 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 | Li, Yang & Wang (2025) | arXiv:`2509.06979` | `[TEXTO COMPLETO]` | Zirui Li, Bin Yang, Meng Wang. 31 ago 2025. **Preprint sin venue.** Grepeado: "headway", "bunching", "dispersion", "coefficient of variation" **no aparecen**. Su villano es la **normalización** (curable por arquitectura); el nuestro es la **pérdida** (estructural). Afirmaciones opuestas sobre tratabilidad = nuestra novedad. Su borde expuesto: *"overly stable and indistinguishable outputs"* — citar y neutralizar |
 | Liu, Wu, Wang & Long (2022) | arXiv:`2205.14415` | `[ABSTRACT]` | Origen del término *over-stationarization*. **Venue NeurIPS 2022 NO VERIFICADO** — el registro de arXiv no tiene journal-ref |
 | Boudabbous et al. (2026) | arXiv:`2601.18521` | `[ABSTRACT]` | Montreal STM. LSTM le gana a transformers **18–52 % con 77× menos parámetros**. Target = **retraso**, no headway; sin ConvLSTM. Mata nuestro nulo espacial como contribución |
-| Rodrigues (2022) | arXiv:`2203.02954` | `[ABSTRACT]` | Baseline de patrón semanal + regresión lineal iguala al SOTA espacio-temporal. La cita canónica que sepulta el nulo espacial |
-| Chen et al. (2022) | arXiv:`2206.06915` | `[ABSTRACT]` | Mezcla gaussiana bayesiana sobre **vectores de headway** de pares adyacentes, Guangzhou. El remedio probabilístico **ya existe** en pronóstico de buses. Debilita cualquier "nadie sabía" |
+| Rodrigues (2022) | arXiv:`2203.02954` | `[ABSTRACT]` | Baseline de patrón semanal + regresión lineal iguala al SOTA espacio-temporal. La cita canónica que sepulta el nulo espacial. **Título verificado 2026-07-30** y es mejor de lo que suponíamos: *"On the importance of stationarity, strong baselines and benchmarks in transport prediction problems"* — el paper trata explícitamente el punto que nos interesa |
+| Chen, Cheng, Jin, Trépanier & Sun (2022) | arXiv:`2206.06915` | `[ABSTRACT]` verbatim | ⚠️ **Corregido 2026-07-30.** La descripción anterior decía "mezcla gaussiana sobre vectores de headway" y era imprecisa: su objetivo es el **tiempo de viaje**. Literal: *"we concatenate the link travel time vectors and the headway vector from a pair of two adjacent buses as a new augmented variable and model it with a constrained Multivariate Gaussian mixture distributions."* El *headway* entra como parte de la variable aumentada, no como objetivo. Guangzhou, veinte tramos. Sigue sirviendo: el remedio probabilístico **ya existe** en pronóstico de buses |
 | Yu, Wu, Chen & Ma (2016), *IEEE T-ITS* | doi:`10.1109/tits.2016.2620483` | `[ABSTRACT]` | Predicción **probabilística** de headway con RVM |
 | Zhang, Xu, Lu & Fan (2022), *Sustainability* 14(23):15583 | doi:`10.3390/su142315583` | `[TEXTO COMPLETO]` | Cita limpia del 0.5× en uso |
 | Manibardo, Laña & Del Ser (2021), *IEEE T-ITS* | arXiv:`2012.02260` | `[ABSTRACT]` | ⚠️ **El cruce por horizonte NO está confirmado en su abstract.** Podría ser arXiv:`2004.08170`. **No citar el cruce a este paper sin leerlo completo** |
@@ -508,7 +518,7 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 | ~~V2~~ | ✅ **Cerrado 2026-07-29.** Rezazada et al. leído — §0.3 | Rango "20 s a ¼" verificado. Citado en §II-A |
 | V3 | **Reconciliar Jiao et al. (89 %)** con el colapso de nuestro LSTM | La mitad de Yu et al. ya está cerrada (§0.4: su titular es a 2 paradas y cae a 73 % a 5). Falta Jiao, doi:`10.1109/icite59717.2023.10733869`, todavía `[ABSTRACT]` con umbral no verificado. **No se cita en §II-A hasta leerlo** |
 | V4 | Confirmar el venue de arXiv:`2205.14415` en los proceedings de NeurIPS 2022 | El registro de arXiv no lo trae |
-| V5 | Verificar el byline de Boyd et al. (2012) en el PDF | dblp y otras fuentes discrepan en el orden |
+| ~~V5~~ | ✅ **Cerrado 2026-07-30.** Byline de Boyd et al. fijado desde arXiv: **K. Boyd, V. Santos Costa, J. Davis, D. Page** | El orden discrepaba entre dblp y otras fuentes; la página de arXiv lo resuelve |
 | V6 | Verificar la redacción textual de Wernli et al. (2009) | La definición que tenemos viene de snippet |
 | V7 | Pre-empt "¿por qué no probabilidades de excedencia?" | Sun et al. **proponen ese paper ellos mismos** como trabajo futuro. La pregunta ya está planteada en la literatura del dominio |
 | ~~V8~~ | ✅ **Cerrado 2026-07-29.** Santos et al. leído — §0.2 | Sin barrido de umbral: C2 sobrevive. Y su tabla de la literatura previa sostiene la §II-D |

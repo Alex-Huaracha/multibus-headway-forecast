@@ -287,9 +287,11 @@ clasificación probabilística y construir curvas ROC—, con un aparato de
 evaluación notablemente más cuidado que el del resto del subcampo: AUC,
 corrección de King–Zeng para eventos raros, elección de corte ponderada por costo
 y matrices de confusión completas. El giro probabilístico no es aislado: Chen et
-al. (2022) modelan vectores de *headway* de pares adyacentes con una mezcla
-gaussiana bayesiana, y Yu, Wu, Chen y Ma (2016) predicen el *headway* con
-máquinas de vectores de relevancia.
+al. (2022) construyen un pronóstico bayesiano de tiempo de viaje que concatena
+los vectores de tiempo de recorrido por tramo **y el vector de *headways*** de un
+par de buses adyacentes en una variable aumentada, modelada como mezcla gaussiana
+multivariada, y Yu, Wu, Chen y Ma (2017) predicen el *headway* con máquinas de
+vectores de relevancia.
 
 Lo que queda abierto es el paso anterior a esa decisión. Sun et al. aplican a los
 pronósticos de sus regresores el mismo corte absoluto de un minuto derivado de
@@ -892,11 +894,14 @@ Las dos arquitecturas con estructura espacial explícita —convolucional y de
 atención— no superan al LSTM plano sobre estos corredores. El resultado se
 presenta aquí como **confirmación de trabajo publicado y no como contribución**,
 porque llegar segundo a una conclusión no la vuelve propia. Boudabbous et al.
-(2026) reportan, sobre datos de Montreal, que un LSTM supera a arquitecturas de
-tipo *transformer* entre un 18 % y un 52 % con setenta y siete veces menos
-parámetros, y Rodrigues (2022) muestra que un *baseline* de patrón semanal
-combinado con regresión lineal iguala al estado del arte espacio-temporal.
-Nuestro resultado es coherente con ambos.
+(2026) reportan, sobre datos de tránsito de Montreal, que un LSTM supera a
+arquitecturas de tipo *transformer* entre un 18 % y un 52 % con setenta y siete
+veces menos parámetros —con la salvedad de que su objetivo de predicción es el
+**retraso** y no el *headway*—, y Rodrigues (2022), en un trabajo dedicado
+precisamente a la importancia de los *baselines* fuertes en problemas de
+predicción de transporte, muestra que un patrón semanal combinado con regresión
+lineal iguala al estado del arte espacio-temporal. Nuestro resultado es coherente
+con ambos.
 
 Dos advertencias impiden leerlo como algo más general. La primera es de alcance:
 es un enunciado sobre estos corredores, este horizonte y esta escala de flota, no
@@ -977,9 +982,86 @@ distinguiría un mecanismo general de una propiedad de estos tres corredores.
 
 ## Referencias
 
-> [ANDAMIAJE] POR ESCRIBIR. Formato de la plantilla IJACSA (IEEE-like, numeradas `[n]`). Fuente única: `docs/paper/fuentes-verificadas.md`, respetando el estado de verificación de cada entrada. Presupuesto ≈40.
+> [ANDAMIAJE — ESCRITO 2026-07-30] **44 entradas**, dentro del presupuesto
+> observado del venue (26–46, mediana ≈41). Ordenadas por **primera aparición en
+> el texto**, que es la convención IEEE; si la traducción reordena secciones, la
+> renumeración es mecánica. Solo entra lo que la prosa cita: la lista de "no
+> citar" de `fuentes-verificadas.md` es vinculante y ninguna de esas fuentes
+> aparece acá.
 >
-> **Verificar cada cita contra el documento original antes de someter.** La lista de "no citar" de ese archivo es vinculante.
+> **PROCEDENCIA DE LOS METADATOS.** Títulos, bylines completos, volúmenes,
+> números y páginas se **transcribieron** desde la API de Crossref (29 entradas
+> con DOI) y desde las páginas de arXiv (10 entradas), no desde memoria. Los
+> scripts que hicieron las consultas quedaron en el *scratchpad* de la sesión.
+> El primer borrador de esta lista tenía **títulos inventados** —el de Sun et al.
+> y el de Mayer y Yang no se parecían al real, y el de Rodrigues tampoco—, así que
+> **ninguna entrada de aquí debe reescribirse de memoria**. Faltan solo [3], [6],
+> [10], [30] y [33], verificadas por Crossref o por la fuente primaria pero sin
+> pasar por este lote.
+>
+> Cuatro avisos que sobreviven a la verificación:
+> - **[2] Mayer y Yang.** Crossref fecha el número impreso en **2023** (vol. 39,
+>   n.º 2); la disponibilidad en línea es de 2022, que es el año que usa el
+>   borrador en castellano. En el formato final IEEE la cita en texto es `[2]`, así
+>   que la discrepancia desaparece — **pero la entrada debe decir 2023**.
+> - **[13] Yu, Wu, Chen y Ma.** Mismo caso: el DOI es de 2016 y el número impreso
+>   es **2017**, vol. 18 n.º 7. El texto en castellano ya dice (2017).
+> - **[24] Liu et al.** El venue NeurIPS 2022 **sigue sin confirmar**: la página
+>   de arXiv no trae `journal-ref`. Se cita como preprint.
+> - **[39] McDermott et al.** El DOI de proceedings no está verificado, pero la
+>   página de arXiv confirma NeurIPS 2024 con enlace a OpenReview.
+>
+> **Resuelto de paso: V5.** El orden de autores de Boyd et al. era el pendiente
+> más molesto y quedó fijado desde arXiv: Boyd, Santos Costa, Davis, Page.
+>
+> Y una nota de honestidad sobre **[3] Vannitsem y Hagedorn**: se cita de segunda
+> mano, como atribución de Mayer y Yang. El §II-B no le atribuye texto ni cifras.
+> Si se lee el original antes de someter, se puede citar de primera mano.
+
+[1] W. Sun, J. D. Schmöcker, and T. Nakamura, "On the tradeoff between sensitivity and specificity in bus bunching prediction," *Journal of Intelligent Transportation Systems*, vol. 25, no. 4, pp. 384–400, 2021. doi: 10.1080/15472450.2020.1725887
+[2] M. J. Mayer and D. Yang, "Calibration of deterministic NWP forecasts and its impact on verification," *International Journal of Forecasting*, vol. 39, no. 2, pp. 981–991, 2023 (en línea 2022). doi: 10.1016/j.ijforecast.2022.03.008
+[3] S. Vannitsem and R. Hagedorn, "Ensemble forecast post-processing over Belgium: comparison of deterministic-like and ensemble regression methods," *Meteorological Applications*, vol. 18, no. 1, pp. 94–104, 2011. doi: 10.1002/met.217
+[4] A. J. Patton and A. Timmermann, "Forecast rationality tests based on multi-horizon bounds," *Journal of Business & Economic Statistics*, vol. 30, no. 1, pp. 1–17, 2012. doi: 10.1080/07350015.2012.634337
+[5] H. Petetin, D. Bowdalo, P.-A. Bretonnière, M. Guevara, O. Jorba, J. Mateu Armengol, M. Samso Cabre, K. Serradell, A. Soret, and C. Pérez García-Pando, "Model output statistics (MOS) applied to Copernicus Atmospheric Monitoring Service (CAMS) O₃ forecasts: trade-offs between continuous and categorical skill scores," *Atmospheric Chemistry and Physics*, vol. 22, no. 17, pp. 11603–11630, 2022. doi: 10.5194/acp-22-11603-2022
+[6] Transportation Research Board, *Transit Capacity and Quality of Service Manual*, 2nd ed. (TCRP Report 100), Part 3, Ch. 3, Exhibit 3-30, p. 3-48. Washington, DC: TRB, 2003.
+[7] V. Borges Santos, C. E. S. Pires, D. Cassimiro Nascimento, and A. R. M. de Queiroz, "A decision tree ensemble model for predicting bus bunching," *The Computer Journal*, vol. 65, no. 8, pp. 2044–2062, 2022. doi: 10.1093/comjnl/bxab045
+[8] H. Yu, D. Chen, Z. Wu, X. Ma, and Y. Wang, "Headway-based bus bunching prediction using transit smart card data," *Transportation Research Part C: Emerging Technologies*, vol. 72, pp. 45–59, 2016. doi: 10.1016/j.trc.2016.09.007
+[9] M. Rezazada, N. Nassir, E. Tanin, and A. Ceder, "Bus bunching: a comprehensive review from demand, supply, and decision-making perspectives," *Transport Reviews*, vol. 44, no. 4, pp. 766–790, 2024. doi: 10.1080/01441647.2024.2313969
+[10] F. X. Diebold and R. S. Mariano, "Comparing predictive accuracy," *Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995. doi: 10.1080/07350015.1995.10524599
+[11] L. Moreira-Matias, O. Cats, J. Gama, J. Mendes-Moreira, and J. F. de Sousa, "An online learning approach to eliminate bus bunching in real-time," *Applied Soft Computing*, vol. 47, pp. 460–482, 2016. doi: 10.1016/j.asoc.2016.06.031
+[12] X. Chen, Z. Cheng, J. G. Jin, M. Trépanier, and L. Sun, "Probabilistic forecasting of bus travel time with a Bayesian Gaussian mixture model," arXiv:2206.06915, 2022.
+[13] H. Yu, Z. Wu, D. Chen, and X. Ma, "Probabilistic prediction of bus headway using relevance vector machine regression," *IEEE Transactions on Intelligent Transportation Systems*, vol. 18, no. 7, pp. 1772–1781, 2017. doi: 10.1109/tits.2016.2620483
+[14] M. Usama and H. Koutsopoulos, "Real time headway predictions in urban rail systems and implications for service control: a deep learning approach," arXiv:2510.03121, 2025.
+[15] T. Gneiting, "Making and evaluating point forecasts," *Journal of the American Statistical Association*, vol. 106, no. 494, pp. 746–762, 2011. doi: 10.1198/jasa.2011.r10138
+[16] S. Ravuri, K. Lenc, M. Willson, D. Kangin, R. Lam, P. Mirowski, M. Fitzsimons, M. Athanassiadou, S. Kashem, S. Madge, R. Prudden, A. Mandhane, A. Clark, A. Brock, K. Simonyan, R. Hadsell, N. Robinson, E. Clancy, A. Arribas, and S. Mohamed, "Skilful precipitation nowcasting using deep generative models of radar," *Nature*, vol. 597, no. 7878, pp. 672–677, 2021. doi: 10.1038/s41586-021-03854-z
+[17] C. Subich, S. Z. Husain, L. Separovic, and J. Yang, "Fixing the double penalty in data-driven weather forecasting through a modified spherical harmonic loss function," *ICML*, 2025. arXiv:2501.19374
+[18] M. Bonavita, "On some limitations of current machine learning weather prediction models," *Geophysical Research Letters*, vol. 51, no. 12, 2024. doi: 10.1029/2023GL107377
+[19] E. E. Ebert, "Fuzzy verification of high-resolution gridded forecasts: a review and proposed framework," *Meteorological Applications*, vol. 15, no. 1, pp. 51–64, 2008. doi: 10.1002/met.25
+[20] H. Wernli, C. Hofmann, and M. Zimmer, "Spatial forecast verification methods intercomparison project: application of the SAL technique," *Weather and Forecasting*, vol. 24, no. 6, pp. 1472–1484, 2009. doi: 10.1175/2009WAF2222271.1
+[21] H. von Storch, "On the use of 'inflation' in statistical downscaling," *Journal of Climate*, vol. 12, no. 12, pp. 3505–3506, 1999. doi: 10.1175/1520-0442(1999)012<3505:OTUOII>2.0.CO;2
+[22] R. Huth, "Statistical downscaling of daily temperature in central Europe," *Journal of Climate*, vol. 15, no. 13, pp. 1731–1742, 2002. doi: 10.1175/1520-0442(2002)015<1731:SDODTI>2.0.CO;2
+[23] D. Maraun, "Bias correction, quantile mapping, and downscaling: revisiting the inflation issue," *Journal of Climate*, vol. 26, no. 6, pp. 2137–2143, 2013. doi: 10.1175/JCLI-D-12-00821.1
+[24] Y. Liu, H. Wu, J. Wang, and M. Long, "Non-stationary Transformers: exploring the stationarity in time series forecasting," arXiv:2205.14415, 2022. **[venue no verificado — el registro de arXiv no trae journal-ref]**
+[25] Z. Li, B. Yang, and M. Wang, "Exploring over-stationarization in deep learning-based bus/tram arrival time prediction: analysis and non-stationary effect recovery," arXiv:2509.06979, 2025. **[preprint sin venue]**
+[26] P. Hoffmann, C. Menz, and A. Spekat, "Bias adjustment for threshold-based climate indicators," *Advances in Science and Research*, vol. 15, pp. 107–116, 2018. doi: 10.5194/asr-15-107-2018
+[27] D. M. W. Powers, "Evaluation: from precision, recall and F-measure to ROC, informedness, markedness and correlation," *International Journal of Machine Learning Technology*, vol. 2, no. 1, pp. 37–63, 2011. arXiv:2010.16061
+[28] D. Chicco and G. Jurman, "The advantages of the Matthews correlation coefficient (MCC) over F1 score and accuracy in binary classification evaluation," *BMC Genomics*, vol. 21, no. 1, art. 6, 2020. doi: 10.1186/s12864-019-6413-7
+[29] T. Fawcett, "An introduction to ROC analysis," *Pattern Recognition Letters*, vol. 27, no. 8, pp. 861–874, 2006. doi: 10.1016/j.patrec.2005.10.010
+[30] P. Flach and M. Kull, "Precision-recall-gain curves: PR analysis done right," *Advances in Neural Information Processing Systems 28*, pp. 838–846, 2015. ACM DL 10.5555/2969239.2969333
+[31] Z. C. Lipton, C. Elkan, and B. Naryanaswamy, "Optimal thresholding of classifiers to maximize F1 measure," in *Machine Learning and Knowledge Discovery in Databases (ECML PKDD)*, LNCS 8725, pp. 225–239, 2014. doi: 10.1007/978-3-662-44851-9_15
+[32] D. Chicco, N. Tötsch, and G. Jurman, "The Matthews correlation coefficient (MCC) is more reliable than balanced accuracy, bookmaker informedness, and markedness in two-class confusion matrix evaluation," *BioData Mining*, vol. 14, no. 1, art. 13, 2021. doi: 10.1186/s13040-021-00244-z
+[33] O. Koyejo, N. Natarajan, P. Ravikumar, and I. S. Dhillon, "Consistent binary classification with generalized performance metrics," *Advances in Neural Information Processing Systems 27*, pp. 2744–2752, 2014.
+[34] A. Luque, A. Carrasco, A. Martín, and A. de las Heras, "The impact of class imbalance in classification performance metrics based on the binary confusion matrix," *Pattern Recognition*, vol. 91, pp. 216–231, 2019. doi: 10.1016/j.patcog.2019.02.023
+[35] Q. Zhu, "On the performance of Matthews correlation coefficient (MCC) for imbalanced dataset," *Pattern Recognition Letters*, vol. 136, pp. 71–80, 2020. doi: 10.1016/j.patrec.2020.03.030
+[36] D. Chicco and G. Jurman, "The Matthews correlation coefficient (MCC) should replace the ROC AUC as the standard metric for assessing binary classification," *BioData Mining*, vol. 16, no. 1, art. 4, 2023. doi: 10.1186/s13040-023-00322-4
+[37] T. Saito and M. Rehmsmeier, "The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets," *PLOS ONE*, vol. 10, no. 3, e0118432, 2015. doi: 10.1371/journal.pone.0118432
+[38] J. Davis and M. Goadrich, "The relationship between precision-recall and ROC curves," in *Proc. 23rd Int. Conf. on Machine Learning (ICML)*, pp. 233–240, 2006. doi: 10.1145/1143844.1143874
+[39] M. B. A. McDermott, H. Zhang, L. H. Hansen, G. Angelotti, and J. Gallifant, "A closer look at AUROC and AUPRC under class imbalance," *NeurIPS*, 2024. arXiv:2401.06091 **[DOI de proceedings no verificado; confirmado en OpenReview]**
+[40] K. Boyd, V. Santos Costa, J. Davis, and D. Page, "Unachievable region in precision-recall space and its effect on empirical evaluation," *ICML*, 2012. arXiv:1206.4667
+[41] J. Li, "Area under the ROC curve has the most consistent evaluation for binary classification," *PLOS ONE*, vol. 19, no. 12, e0316019, 2024. doi: 10.1371/journal.pone.0316019
+[42] Y. Zhang, H. Xu, Q. C. Lu, and X. Fan, "Travel time reliability analysis considering bus bunching: a case study in Xi'an, China," *Sustainability*, vol. 14, no. 23, art. 15583, 2022. doi: 10.3390/su142315583
+[43] E. Boudabbous, M. Karaa, L. Sboui, J. Montecinos, and O. Alam, "Scalable transit delay prediction at city scale: a systematic approach with multi-resolution feature engineering and deep learning," arXiv:2601.18521, 2026.
+[44] F. Rodrigues, "On the importance of stationarity, strong baselines and benchmarks in transport prediction problems," arXiv:2203.02954, 2022.
 
 <!--
   MAPA DE PROGRESO (borrar antes de enviar):
