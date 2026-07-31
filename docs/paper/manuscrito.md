@@ -44,18 +44,68 @@
 > [ANDAMIAJE] SE ESCRIBE CASI AL FINAL. Cuatro movimientos, en este orden.
 
 ### A. Contexto y motivación
-> [ANDAMIAJE] 1–2 párrafos. Qué es el *headway*, qué es el *bunching*, y por qué al operador le importa que le avisen ANTES: una alarma sirve solo si deja tiempo de intervenir. Cerrar con el paradigma operativo: entrenar un modelo que prediga *headways*, definir la regla de alarma sobre la predicción, despachar.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Dos párrafos. El segundo cierra sobre el
+> paradigma operativo, que es lo que la Sección I-B va a atacar.
+
+En un corredor de buses de alta frecuencia, lo que determina la espera de un
+pasajero no es la velocidad del vehículo sino el **intervalo entre vehículos
+sucesivos** —el *headway*—. Cuando el servicio es lo bastante frecuente, nadie
+consulta un horario: se llega a la parada y se espera, y esa espera depende
+directamente de la regularidad de los intervalos. El *bunching* es el colapso de
+esa regularidad: un vehículo se retrasa, recoge más pasajeros de los previstos
+porque acumuló más tiempo de espera, se retrasa todavía más, y el que lo sigue
+encuentra paradas vacías y lo alcanza. El resultado es un par de vehículos
+viajando juntos seguido de un hueco largo, con una capacidad total sin cambios y
+una espera media considerablemente peor.
+
+Para el operador, la utilidad de detectar *bunching* depende por completo del
+momento en que se detecta. Constatarlo cuando ya ocurrió sirve para el reporte
+mensual, no para el servicio: las acciones disponibles —retener un vehículo en
+parada, ajustar la velocidad de crucero, inyectar una unidad de reserva—
+necesitan minutos de anticipación para tener efecto. Esa es la razón por la que
+la línea de trabajo dominante no intenta clasificar el estado presente sino
+**pronosticar el intervalo futuro**, y sobre ese pronóstico define la alarma. El
+esquema operativo resultante tiene tres pasos: entrenar un modelo que prediga
+*headways*, aplicar a la predicción una regla de umbral que declare el evento, y
+despachar en función de la alarma. Este artículo se ocupa del segundo paso, que
+es el que ha recibido menos escrutinio.
 
 ### B. El problema
-> [ANDAMIAJE] Este párrafo es el que cambió. NO decir "el subcampo no usa *baselines naive* ni tests de significancia" — eso es plomería y además es un encuadre débil. Y NO decir "nadie se dio cuenta": Sun, Schmöcker y Nakamura (2021) ya diagnosticaron el síntoma y hay que citarlos en las primeras dos oraciones.
->
-> El problema, en la forma que sí se sostiene:
->
-> La familia dominante de trabajos predice el *headway* con un regresor y después compara la predicción contra un umbral de *bunching* definido sobre observaciones. Sun et al. (2021) mostraron que esa familia rinde mal en detección aunque su error de regresión se degrade suavemente, y lo atribuyeron al hecho de que un pronóstico puntual entrega **un único punto de operación no ajustable**. Su remedio fue **cambiar de clase de modelo**: pasar a predicción probabilística y construir curvas ROC.
->
-> Lo que quedó sin hacer es lo anterior a esa decisión: **nadie midió por qué el umbral falla, ni probó recalibrarlo.** Un pronóstico puntual está sub-disperso —minimizar una pérdida puntual apunta a un funcional central de la distribución condicional— así que el vector predicho es más parejo que el real. Un corte calibrado en el espacio de las observaciones cae, sobre ese vector comprimido, mucho más adentro de la cola. La alarma no suena, y el diagnóstico natural —"el modelo no ve el *bunching*"— es falso.
->
-> La consecuencia para quien evalúa: **un veredicto de detección obtenido trasplantando un umbral relativo mide el umbral, no el modelo.** Y para quien despliega: la línea de trabajo se cierra por un motivo que no tiene nada que ver con lo que el modelo sabe, cuando el arreglo es un escalar.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Dos reglas vinculantes que se respetaron:
+> **NO** decir "el subcampo no usa *baselines naive* ni tests de significancia"
+> —es plomería y además es un encuadre débil, y va en I-D como contribución
+> metodológica, no acá como queja—; y **NO** decir "nadie se dio cuenta", porque
+> Sun et al. (2021) diagnosticaron el síntoma y están citados en las dos primeras
+> oraciones.
+
+Ese segundo paso arrastra un supuesto que rara vez se enuncia: que la regla de
+umbral con la que se etiquetan las observaciones significa lo mismo aplicada a un
+pronóstico. Sun, Schmöcker y Nakamura (2021) mostraron que el esquema falla —los
+regresores rinden mal en detección aunque su error de regresión se degrade de
+forma suave, y fallan justamente cuando el intervalo real se acorta— y
+atribuyeron la causa a que un pronóstico determinista entrega **un único punto de
+operación no ajustable**. Su remedio fue coherente con ese diagnóstico: cambiar
+de clase de modelo, pasar a predicción probabilística y construir curvas ROC.
+
+Lo que quedó sin examinar es el paso anterior a esa decisión: **por qué falla el
+umbral, y si basta con recalibrarlo.** Un pronóstico puntual está sub-disperso,
+porque minimizar una pérdida puntual apunta a un funcional central de la
+distribución condicional y ningún funcional central tiene por qué reproducir la
+dispersión. El vector predicho resulta entonces más parejo que el real, y un
+corte calibrado sobre observaciones cae, sobre ese vector comprimido, mucho más
+adentro de la cola de lo que caía sobre el original. Cuando además el corte es
+**relativo al propio vector** —la forma que impone la ausencia de horario
+programado— el efecto se duplica, porque el denominador se contrae junto con el
+numerador. La alarma deja de sonar, y el diagnóstico inmediato, que el modelo no
+ve el *bunching*, es falso.
+
+Las consecuencias se reparten entre dos audiencias. Para quien evalúa: **un
+veredicto de detección obtenido trasplantando un umbral entre espacios de
+distinta dispersión mide el umbral y no el modelo**, de modo que la comparación
+publicada puede ordenar los competidores al revés. Para quien despliega: una
+línea de trabajo se cierra por un motivo que nada tiene que ver con lo que el
+modelo sabe, cuando la reparación cuesta un escalar recalibrado sobre datos que
+la operación ya tiene.
 
 ### C. Contribuciones
 > [ANDAMIAJE] Rankeadas por defensibilidad, con la evidencia al lado. Cada una nombra explícitamente qué NO reclama, porque la mitad del argumento anterior estaba tomado y conviene que el revisor vea que lo sabemos.
@@ -69,16 +119,73 @@
 
 - **C4 (el hallazgo no es artefacto de nuestra regla).** Nuestro umbral normaliza por la media del propio vector porque estos datos son GPS crudo sin horario — la misma sustitución que hace Yu et al. (2016), que usan el *headway* observado en la primera parada por el mismo motivo. La diferencia es el punto de referencia, y **es el mecanismo**: la suya es observada y fija, la nuestra es predicha y se mueve. Para probar que el colapso no depende de esa elección, repetimos toda la detección con un **corte absoluto en minutos**, calibrado fuera de muestra e idéntico para observado y pronóstico. **No se atenúa: empeora**, y bajo la convención dominante del campo (un cuarto del programado) es **110 veces peor** que bajo la nuestra. Nuestra elección resultó ser la conservadora. Rezazada et al. (2024) confirman además que en este campo *"no existe un único valor de umbral"*, con los publicados entre 20 s y un cuarto del programado.
 
-> [ANDAMIAJE] Y un párrafo corto de "lo que este trabajo NO afirma", que en este venue es un diferenciador y no una debilidad:
-> - No afirma que estos modelos estén listos para operar una alarma. Un AUC de 0.60 es información real y está lejos de un sistema de despacho; falta la función de costo.
-> - No afirma que el nulo espacial sea una contribución: está publicado (Boudabbous et al. 2026; Rodrigues 2022) y se reporta como confirmación.
-> - No afirma que el cruce por horizonte sea nuevo: es conocido en pronóstico de tráfico.
+> [ANDAMIAJE — ESCRITO 2026-07-30] El párrafo de "lo que NO afirma", que en este
+> venue es diferenciador y no debilidad. Versión corta acá; el desarrollo con las
+> cuatro delimitaciones está en V-B, y no debe duplicarse.
+
+Conviene acotar el alcance desde el principio. Este trabajo **no** afirma que los
+modelos evaluados estén listos para operar una alarma de despacho: la capacidad
+de ordenamiento que medimos es información real y no equivale a un sistema
+operativo, y falta la función de costo que la traduzca en decisiones. **No**
+afirma que la sub-dispersión de los pronósticos puntuales sea un hallazgo nuevo;
+es un enunciado publicado y, en su dependencia del horizonte, un teorema. **No**
+afirma que el cruce por horizonte entre persistencia y aprendiz sea novedoso, que
+es conocido en pronóstico de tráfico. Y **no** afirma que el resultado nulo sobre
+las arquitecturas espaciales sea una contribución: está publicado y aquí se
+reporta como confirmación. La Sección V-B delimita cada uno de estos puntos
+frente a su antecedente.
 
 ### D. Aporte metodológico, declarado al frente
-> [ANDAMIAJE] Sección corta y deliberada. En los ocho papers de IJACSA que relevamos (Vol. 15–17), CERO reportan un test de significancia pareado y UNO declara un corte temporal real. Lo que en un venue exigente sería higiene, acá es diferenciador — pero solo si se declara explícitamente en lugar de esconderlo en Métodos. Listar: auditoría pareada sobre muestras idénticas, Diebold-Mariano con varianza agrupada por día de servicio, Wilcoxon, winsorización calculada en train y aplicada a todos los *splits*, hashes SHA-256 congelados de cada insumo con falla cerrada antes de entrenar, terciles de volatilidad congelados en train+val, y validación en tres orígenes de *rolling*. Agregar la declaración de disponibilidad de datos y código, que ninguno de los ocho tiene.
+> [ANDAMIAJE — ESCRITO 2026-07-30] Deliberadamente al frente y no escondido en
+> Métodos: en el relevamiento del venue (ocho artículos, Vol. 15–17), **0 de 8**
+> reportan un test de significancia pareado, **1 de 8** declara un corte temporal
+> real y **0 de 8** tienen declaración de disponibilidad de datos o código. Lo
+> que en un venue más exigente sería higiene, acá es diferenciador — pero solo si
+> se enuncia. **No** escribir la comparación con el venue en el artículo: es
+> insumo de decisión editorial, no contenido publicable.
+
+Una parte del aporte de este trabajo es de protocolo, y se declara aquí en lugar
+de quedar sepultada en la Sección III porque condiciona la lectura de todos los
+resultados. Las comparaciones entre modelos se hacen mediante **auditoría pareada
+sobre muestras idénticas**: cuando dos modelos se puntúan sobre conjuntos de
+filas distintos, el estadístico de Diebold-Mariano no queda sesgado sino
+**indefinido**, dado que se construye sobre el diferencial de pérdida fila a
+fila. Sobre esa base se reportan Diebold-Mariano con varianza agrupada por día de
+servicio y corrección de muestra pequeña, y Wilcoxon pareado, siempre con el
+tamaño de efecto por delante y el valor *p* como piso y no como veredicto.
+
+El resto del protocolo apunta a que los resultados sean reproducibles y a que las
+decisiones de preprocesamiento no filtren información del futuro. La
+winsorización se calcula **exclusivamente sobre el conjunto de entrenamiento** y
+se aplica a los tres cortes, en lugar de recalcularse en cada uno. Los terciles
+de volatilidad se congelan sobre entrenamiento y validación y se aplican a prueba,
+nunca se calibran sobre prueba. Cada insumo de entrenamiento está fijado por su
+*hash* SHA-256 y el procedimiento falla de forma cerrada antes de entrenar si los
+bytes no coinciden. La calibración del umbral se ajusta sobre una ventana
+anterior y disjunta y se aplica hacia adelante, que es la única dirección
+disponible para un operador. Y los veredictos se validan sobre **tres orígenes de
+*rolling*** con ventanas de prueba disjuntas, declarando que los conjuntos de
+entrenamiento correspondientes están anidados y no son independientes. El código
+de análisis y los residuos por muestra que sostienen cada tabla se publican junto
+al artículo.
 
 ### E. Estructura del artículo
-> [ANDAMIAJE] Un párrafo: "La Sección II revisa… la III describe… etc."
+> [ANDAMIAJE — ESCRITO 2026-07-30] Un párrafo. Al traducir, verificar que las
+> letras de subsección sigan coincidiendo si el maquetado fusiona secciones.
+
+El resto del artículo se organiza como sigue. La Sección II revisa la familia de
+trabajos que predice el *headway* y después umbraliza, la teoría de la
+sub-dispersión de los pronósticos puntuales, los precedentes de recalibración de
+umbrales fuera del transporte y los criterios para elegir una métrica de
+detección, y cierra delimitando el vacío. La Sección III describe los datos AVL,
+el preprocesamiento, los modelos comparados, la definición del evento de
+*bunching* y el protocolo de evaluación. La Sección IV presenta los resultados,
+empezando por el contexto escalar y siguiendo con la compresión de dispersión
+medida, el artefacto de umbral, su reparación, los análisis de robustez y la
+comparación entre criterios de calibración. La Sección V discute la
+interpretación operativa, delimita el aporte frente a sus antecedentes, sitúa el
+resultado nulo espacial y enumera las amenazas a la validez. La Sección VI
+concluye y ordena el trabajo futuro.
 
 ---
 
@@ -852,9 +959,9 @@ distinguiría un mecanismo general de una propiedad de estos tres corredores.
                              ✅ III.D Definición del evento
                              ✅ V.A Interpretación · V.B Aporte · V.C Nulo espacial
                              ✅ VI Conclusión y Trabajo Futuro
+                             ✅ SECCIÓN I COMPLETA — A, B, C, D y E
   [YA REDACTADO, trasladar]  III Métodos (parcial) · IV Resultados A-G · V.D Limitaciones
-  [POR ESCRIBIR]             I Introducción · Abstract · Referencias
-                             (en ese orden — el Abstract se escribe último)
+  [POR ESCRIBIR]             Abstract · Título (afinar) · Referencias
 
   NOTA para el Abstract: la Conclusión NO repite cifras a propósito. El Abstract
   SÍ tiene que traerlas (los candidatos están en el andamiaje del Abstract), y es
