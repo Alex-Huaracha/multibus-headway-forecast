@@ -204,7 +204,7 @@ buses en movimiento.
 |---|---|---|
 | Velocidad mínima para usar un ping | 10 km/h | Los buses detenidos en terminales y semáforos acumulan cientos de pings en un mismo punto y deforman la línea. Con 5 km/h no alcanzaba |
 | Recorte de coordenadas extremas | percentiles 0.5 y 99.5 | Descarta posiciones geográficamente absurdas antes de ajustar. Remueve ~1.7 % |
-| Cantidad de vértices de la línea | 50 | Probado estable contra 10 y 40 |
+| Resolución del trazado | 50 tramos | El corredor se parte en 50 tramos a lo largo de su eje y cada uno aporta un punto a la línea. Los tramos con menos de 5 posiciones se descartan, así que los puntos efectivos son 44 en E2, 50 en E4 y 49 en E59 |
 
 Un percentil indica el valor por debajo del cual queda cierto porcentaje de
 los datos. El percentil 99 es el valor que supera solo el 1 % más alto.

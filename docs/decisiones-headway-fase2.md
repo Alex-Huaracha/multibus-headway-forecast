@@ -78,7 +78,7 @@ Estos parámetros se fijan como contrato para `src/preprocessing/` de Fase 2. Cu
 | `GRID_SECONDS` | **60** | GPS pinguea cada ~20s; grilla 60s da factor 3× de smoothing sin perder granularidad operacional. Probado estable contra 30s y 120s (KL < 0.001). |
 | `MIN_SPEED_FOR_CENTERLINE_KMH` | **10.0** | Filtra terminales y semáforos del sample que construye la centerline. 5 km/h era insuficiente. |
 | `CENTERLINE_LATLON_QUANTILE` | **(0.005, 0.995)** | Box IQR pre-PCA para descartar outliers geográficos extremos antes de calcular el eje principal. Remueve ~1.7-1.8% de pings. |
-| `CENTERLINE_N_BINS` | **50** | Vertices del polyline. Probado estable contra 10 y 40 (KL < 0.01). |
+| `CENTERLINE_N_BINS` | **50** | Cantidad de tramos a lo largo del eje principal; cada tramo aporta un vértice al polyline. Los tramos con menos de 5 pings se descartan, así que los vértices efectivos son menos: 44 (E2), 50 (E4), 49 (E59). **Sin barrido de sensibilidad al momento de fijarlo.** El barrido posterior (§3.2) muestra que el parámetro no tiene meseta en [10, 80]. Valor conservado por contrato; ver deuda registrada. |
 | `LATERAL_OFFSET_THRESHOLD_M` | **300.0** | Pings proyectados a más de 300 m de la centerline se consideran "off-route" y se descartan. En el probe drop el 43.7% — agresivo pero limpia los pings de calles paralelas/depósitos. Revisable a 500 m en Fase 2 si baja demasiado el conteo. |
 | `DIRECTION_SMOOTH_WIN` | **5** | Ventana móvil para `sign(ds/dt)`. Suaviza ruido sin perder transiciones reales ida↔vuelta. |
 | `MAX_INTERPOLATION_LOOKBACK_MINUTES` | **30.0 min** | Límite temporal en la búsqueda de cruce histórico (C.2). Cruces más antiguos que 30 min → emitir `delta_t_min = NULL` en lugar de un valor absurdo. Headways típicos en Arequipa urbana: 5–15 min; 30 min = margen 2–3×. Corrige el 58.4% de ruido en E2 dir=1 (obs #27 — max observado: ~112 días). Ambas ramas de emisión de `_find_last_crossing_ns` (cruce exacto y cruce interpolado por cambio de signo) aplican el límite. Ver `fix(phase-2): bound C.2 trailing crossing with lookback window`. |
@@ -93,6 +93,70 @@ Estos parámetros se fijan como contrato para `src/preprocessing/` de Fase 2. Cu
 **Solución**: introducir un techo temporal de 30 min. Si `T − t_cross > 30 min`, el kernel retorna `None` (mismo centinela que "no hay cruce") y la fila se emite con `delta_t_min = NULL`. La conversión minutos → nanosegundos se hace UNA SOLA VEZ en `compute_headways_c2` antes del bucle de pares; dentro del kernel todo opera en nanosegundos int64/float64.
 
 **¿Por qué 30 min?**: El histograma de `delta_t_min` para E59 (corredor sin multi-filar) muestra una distribución exponencial truncada con percentil 95 en ~18 min. Un techo de 30 min = 2–3× el headway típico peak, preserva virtualmente todos los pares válidos de E59 (cambio esperado < 1% en conteo de pares no-null) y elimina los valores patológicos de E2 dir=1. La validación cuantitativa definitiva (AC-D4 y AC-D5 de la spec) se realiza en Kaggle v3 post-merge.
+
+### 3.2 Barrido de sensibilidad de `CENTERLINE_N_BINS` (2026-08-09)
+
+**Motivo**: la fila de `CENTERLINE_N_BINS` en §3 declaraba "probado estable contra
+10 y 40 (KL < 0.01)". Esa afirmación era una atribución errónea: el barrido
+`{10, 20, 40}` con criterio KL pertenece a `N_POINTS` de la **formulación A**
+(`src/build_notebook_03.py:133`, `N_POINTS_VARIANTS`), que es un parámetro
+distinto, con valor base 20, de una formulación **descartada** (§2.2). El conteo
+de bins del eje nunca se barrió.
+
+**Barrido ejecutado ahora**, replicando `build_centerline` (pings con
+`speed_kmh >= 10`, semilla 42, tope de muestra 50 000) y variando solo `n_bins`,
+sobre `data/processed/cleaned_gps_E{2,4,59}.parquet`.
+
+Reproducible con `uv run python -m src.build_centerline_sweep`. Las dos tablas de
+abajo salen de `docs/resultados/csv-multihorizon/centerline_bins_sweep.csv` y
+`centerline_bins_sweep_kl.csv`, que quedan commiteados. El builder importa
+`_build_centerline_from_points` y `_project_arc_length` de `src/preprocessing/` en
+lugar de reimplementarlos: `build_notebook_03.py` mantiene su propia copia de
+ambos, y esa duplicación es exactamente cómo sobrevivió la atribución errónea que
+esta sección corrige.
+
+| Corredor | n_bins | Vértices | Largo del eje | \|lateral\| mediana | \|lateral\| p95 |
+|---|---|---|---|---|---|
+| E2 | 10 / 20 / 40 / **50** / 80 | 10 / 19 / 35 / **44** / 67 | 6.98 / 7.86 / 8.69 / **9.12** / 9.94 km | 412 / 233 / 114 / **90** / 59 m | 771 / 482 / 376 / **358** / 336 m |
+| E4 | 10 / 20 / 40 / **50** / 80 | 10 / 20 / 40 / **50** / 80 | 8.54 / 9.12 / 9.69 / **9.94** / 10.43 km | 201 / 125 / 72 / **59** / 40 m | 747 / 584 / 389 / **313** / 258 m |
+| E59 | 10 / 20 / 40 / **50** / 80 | 10 / 20 / 40 / **49** / 80 | 12.62 / 14.24 / 16.15 / **16.80** / 18.49 km | 473 / 334 / 153 / **123** / 57 m | 1729 / 1568 / 1020 / **930** / 404 m |
+
+Divergencia KL entre las distribuciones de `s` normalizada (50 bins de
+histograma), máxima sobre los 10 pares:
+
+| Corredor | KL máxima | Par 40 vs 50 |
+|---|---|---|
+| E2 | **0.4026** | 0.0634 |
+| E4 | **0.1904** | 0.0333 |
+| E59 | **0.9885** | 0.0370 |
+
+**Veredicto**: ningún par baja de 0.01 en ningún corredor. El parámetro **no es
+estable en el rango probado**: es monótono. Más bins producen siempre un eje más
+largo y un ajuste lateral más apretado, sin meseta hasta 80 en los tres
+corredores. `n_bins = 80` domina a 50 en todas las métricas medidas.
+
+**Salvedades**:
+
+1. `cleaned_gps_*.parquet` ya está filtrado a 300 m contra el eje construido con
+   50 bins, así que la muestra de evaluación favorece a 50 y sus vecinos. La
+   conclusión "80 ajusta mejor que 50" corre **en contra** de ese sesgo, y por lo
+   tanto lo sobrevive. Las magnitudes absolutas de `|lateral|` sí están
+   condicionadas por el filtro y no deben leerse como error de ajuste crudo.
+2. La fuente original no declaraba sobre qué distribución medía su KL, así que
+   este barrido no reproduce su métrica: la define. El criterio "< 0.01" se
+   conserva solo para poder contrastar contra lo que la fila afirmaba.
+
+**Decisión**: `CENTERLINE_N_BINS` **se mantiene en 50**. El valor está congelado
+por contrato en `src/preprocessing/config.py:53`, verificado por
+`tests/preprocessing/test_config.py`, y moverlo obliga a regenerar la cadena
+completa de parquets, notebooks y residuos de Kaggle. Lo que se corrige acá es la
+**justificación**, no el valor.
+
+**Deuda registrada**: la elección de 50 no tiene respaldo empírico y existe
+evidencia de que 80 ajusta mejor. Si el eje del corredor se vuelve a construir en
+una fase futura, barrer `n_bins` contra una métrica **downstream** (cobertura de
+`delta_t_min`, o error de pronóstico) y no contra el ajuste geométrico, que es lo
+único que mide este barrido.
 
 ## 4. Caveats registrados (deuda técnica conocida)
 

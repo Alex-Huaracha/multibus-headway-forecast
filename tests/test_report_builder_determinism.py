@@ -16,6 +16,7 @@ from src.build_paired_audit import build
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORT_BUILDERS = (
+    "src.build_centerline_sweep",
     "src.build_paired_audit",
     "src.build_exante_curve",
     "src.build_volatility_table",
