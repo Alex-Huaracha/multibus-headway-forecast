@@ -186,16 +186,18 @@ mejor que el método trivial, en los tres corredores.
 
 Y midiendo sin ninguna raya, lo mismo.
 
-![El veredicto sin umbral](../resultados/contiguo-deteccion-sin-umbral.png)
+![El veredicto sin corte fijo](../resultados/contiguo-deteccion-sin-umbral.png)
 
 ---
 
 ## El aporte, en una frase
 
 > **La degradación de detección que este campo viene atribuyendo a los modelos es,
-> al menos en parte, un artefacto de trasplantar un umbral calibrado sobre la
-> realidad a un pronóstico que está aplanado por construcción. Y se corrige moviendo
-> el corte, no cambiando de modelo.**
+> al menos en parte, un artefacto de medición. Se toma la regla que define qué es
+> *bunching* en la realidad —hecha a la medida de un corredor real, que es
+> desparejo— y se la usa tal cual para decidir si suena la alarma sobre un
+> pronóstico, que está aplanado por construcción. Y se corrige moviendo el corte, no
+> cambiando de modelo.**
 
 Lo que le da peso es que no es una opinión sobre el campo: el procedimiento que
 produce el problema está enunciado, con esas palabras, por el trabajo más citado del

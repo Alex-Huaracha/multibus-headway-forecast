@@ -579,6 +579,18 @@ como umbral de decisión sobre las predicciones. No son intercambiables,
 porque las predicciones no tienen la misma variabilidad que las observaciones
 (Sección V.4).
 
+Hay una forma de verlo que deja el asunto más claro que cualquier tabla, y es
+cómo quedó escrito en el programa. Marcar una celda como *bunching* no es aplicar
+una regla aparte: es **puntuar cada celda por cuán apretado viene su intervalo, y
+después cortar ese puntaje en un valor**. El puntaje es continuo y no tiene nada
+de arbitrario. Lo arbitrario es dónde se corta.
+
+Vista así, la regla heredada del campo no es una definición: es **una elección
+particular de dónde cortar, hecha mirando corredores reales**. Y una vez que se
+entiende que es una elección y no una propiedad del fenómeno, la pregunta de si
+esa misma elección sirve para cortar un pronóstico —que no se parece a un corredor
+real en su variabilidad— deja de sonar herética y pasa a ser obligatoria.
+
 Qué es un umbral de decisión y por qué hace falta. El modelo produce números
 continuos: 7.3 minutos, 9.1, 6.8. Pero una alarma no puede sonar "7.3" — tiene que
 sonar o no sonar. Un umbral de decisión es la raya que convierte un número
@@ -625,10 +637,16 @@ repara moviendo el corte en lugar de cambiar el modelo. Que lo hayamos encontrad
 cometiéndolo nosotros mismos es la razón de que esté medido con este detalle, no
 el alcance del hallazgo.
 
-*Nota de terminología: la literatura de transporte llama "threshold" también al
-criterio del evento. La separación de nombres que se usa acá es una elección de
-redacción para que el argumento sea legible; al citar trabajos ajenos se respeta
-su vocabulario.*
+**Una nota de vocabulario que no es de estilo, sino parte del argumento.** La
+literatura llama *threshold* a las dos cosas: al criterio que define el evento y al
+corte que dispara la alarma. Una sola palabra para dos capas del sistema que se
+calibran sobre poblaciones distintas y con criterios distintos.
+
+**Esa colisión de vocabulario es el terreno donde crece el problema.** Cuando dos
+objetos comparten nombre, tratarlos como intercambiables deja de parecer un error y
+empieza a parecer una obviedad — y nadie revisa las obviedades. Por eso acá llevan
+nombres distintos y nunca se abrevian: **criterio de *bunching*** y **umbral de
+decisión**, siempre completos. Al citar trabajos ajenos se respeta su vocabulario.
 
 ## IV.2 Comparaciones sobre las mismas filas
 
@@ -941,7 +959,7 @@ pierden.
 Y no es un caso aislado de E2. Es el patrón completo, en los tres corredores y en
 los cuatro horizontes:
 
-![El artefacto de umbral](../resultados/contiguo-artefacto-umbral.png)
+![El artefacto del corte fijo](../resultados/contiguo-artefacto-umbral.png)
 
 *Figura 3 — Con qué frecuencia dispara cada método, contra la frecuencia con que
 el evento realmente ocurre (punteado). La persistencia (gris) se apoya sobre la
@@ -968,7 +986,8 @@ Se aplicaron las dos pruebas que separan esas hipótesis:
 
 1. Reajustar libremente el umbral de decisión sobre una ventana anterior y
    separada, y aplicarlo hacia adelante.
-2. Puntuar sin ningún umbral, midiendo solo si el modelo ordena bien los casos
+2. Puntuar sin ningún umbral de decisión, midiendo solo si el modelo ordena bien
+   los casos
    de más a menos peligroso.
 
 Las dos dieron lo mismo: **la información estaba presente. El modelo no es ciego.**
@@ -1070,10 +1089,11 @@ de azar de 0.50 recorre una fracción chica del camino. Lo que estos números
 establecen es que la información está presente y que el orden entre los dos
 métodos se invierte con el horizonte. No que ninguno de los dos sea desplegable.
 
-![El veredicto sin umbral](../resultados/contiguo-deteccion-sin-umbral.png)
+![El veredicto sin umbral de decisión](../resultados/contiguo-deteccion-sin-umbral.png)
 
 *Figura 5 — Los dos cruces, juntos. En azul, cuánto error le gana el modelo a la
-persistencia. En rojo y gris, la calidad de detección medida sin ningún umbral —
+persistencia. En rojo y gris, la calidad de detección medida sin ningún umbral de
+decisión —
 que por construcción no puede ser movida por el aplanamiento del vector. Los dos
 cruces van en el mismo sentido y en la misma zona. Ninguna serie cae por debajo del
 azar (0.5), de modo que el aprendiz no es ciego a este evento en ninguna celda —
