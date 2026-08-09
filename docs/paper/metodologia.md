@@ -925,8 +925,10 @@ Con eso establecido, empieza el hallazgo.
 
 ## V.2 Pero la alarma no suena
 
-La primera versión del análisis concluyó que los modelos profundos fallaban en
-detección aunque su error numérico mejorara. El cuadro parecía inapelable:
+Aplicado el procedimiento de evaluación estándar del subcampo —umbralizar el
+*headway* predicho contra el criterio de *bunching*, y resumir con F1— el veredicto
+es que el modelo profundo falla en detección aunque su error numérico mejore. El
+cuadro parece inapelable:
 
 | E2, a 10 minutos de anticipación | LSTM | Persistencia | Piso trivial |
 |---|---|---|---|
@@ -949,7 +951,8 @@ de ancho de vector declarado en el punto 13 de las limitaciones.*
 
 Leído directamente: el modelo profundo predice mejor los minutos y sin embargo tocó
 la alarma catorce veces donde había quince mil eventos. El cociente de F1 entre los
-dos es de 255 a 1. Parecía haberse vuelto ciego a la irregularidad.
+dos es de 255 a 1. La lectura inmediata es que se volvió ciego a la irregularidad,
+y es la lectura que este procedimiento induce.
 
 Pero la columna del piso trivial ya deja ver que algo no cierra en la medición:
 **un detector que marca absolutamente todo saca 0.465, y la persistencia saca
@@ -970,21 +973,30 @@ del modelo (roja) se hunde a cero.*
 Conviene mirar esa figura con cuidado, porque contiene la pista: **ninguna de las
 dos curvas mide qué sabe el modelo. Miden dónde quedó el corte.**
 
-## V.3 La auditoría: ¿esto mide al modelo, o al instrumento?
+## V.3 La prueba decisiva: ¿esto mide al modelo, o al instrumento?
 
-Esa conclusión estuvo a punto de publicarse. La pregunta que la desarmó fue si el
-número medía al modelo o a la regla con que se lo medía.
+El veredicto de la sección anterior es el que la práctica establecida entrega, y
+es el que quedaría publicado si el procedimiento no se somete a examen. La pregunta
+que lo desarma es una sola: **ese número, ¿mide al modelo, o mide a la regla con la
+que se lo está midiendo?**
 
-Para responderla se hicieron dos pruebas independientes:
+Es una pregunta contestable, porque las dos hipótesis predicen cosas distintas. Si
+el modelo carece de la información, ninguna manipulación del corte va a recuperar
+capacidad de detección. Si la información está y lo que falla es dónde quedó la
+raya, entonces basta con correrla —o con medir de un modo que no dependa de
+ninguna raya— para que reaparezca.
+
+Se aplicaron las dos pruebas que separan esas hipótesis:
 
 1. Reajustar libremente el umbral de decisión sobre una ventana anterior y
    separada, y aplicarlo hacia adelante.
 2. Puntuar sin ningún umbral, midiendo solo si el modelo ordena bien los casos
    de más a menos peligroso.
 
-Las dos dieron lo mismo: la información estaba presente. El modelo no era
-ciego. Recién entonces se midió la causa, y la afirmación original se retiró antes
-de publicarse.
+Las dos dieron lo mismo: **la información estaba presente. El modelo no es ciego.**
+La hipótesis del corte mal puesto sobrevive y la de la información ausente queda
+descartada, de modo que el veredicto de V.2 mide al instrumento y no al modelo. Lo
+que sigue es medir por qué el instrumento falla de esa manera.
 
 ## V.4 El mecanismo, medido
 
