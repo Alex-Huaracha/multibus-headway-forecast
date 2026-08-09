@@ -325,8 +325,10 @@ emite "sin dato" en lugar de un número absurdo.
 Por qué 30 y no otro número: en E59 —el corredor sin ese problema, o sea el caso
 limpio— el 95 % de los intervalos está por debajo de 18 minutos. Un techo de 30 es
 de dos a tres veces el intervalo típico en hora pico: conserva prácticamente todos
-los pares válidos y elimina los patológicos. Corrigió el 58.4 % de los intervalos patológicos en E2 — los que la búsqueda de
-cruce devolvía con más de media hora de antigüedad.
+los pares válidos y elimina los patológicos. Corrigió el 58.4 % de los intervalos
+patológicos en E2 **en el sentido de ida** —los que la búsqueda de cruce devolvía
+con más de media hora de antigüedad—, que es el sentido donde el problema se
+concentraba.
 
 ## II.7 Cobertura obtenida
 
@@ -541,7 +543,7 @@ paralelismo a un solo hilo, de modo que dos ejecuciones producen archivos
 idénticos byte a byte. Sin eso, el orden en que terminan los hilos puede cambiar
 los últimos decimales.
 
-Pruebas automáticas. Alrededor de 880 pruebas cubren los contratos descritos.
+Pruebas automáticas. Alrededor de 1700 pruebas cubren los contratos descritos.
 Los contratos metodológicos —recorte, control de entrada, terciles congelados,
 determinismo— tienen pruebas dedicadas cuyo único propósito es impedir que alguien
 los rompa sin darse cuenta.
@@ -850,8 +852,13 @@ observados en entrenamiento, para cada sentido, cada posición del vector y cada
 del día, y se aplica a prueba. Es deliberadamente ciego al presente — no mira la
 ventana de entrada, solo el reloj. Lo llamamos *almanaque* por eso.
 
-Se lo puntuó sobre **exactamente las mismas filas** que el LSTM y la persistencia,
-bajo el mismo contrato de identidad de muestra. A 10 minutos:
+Se lo puntuó sobre **las mismas filas** que el LSTM y la persistencia, bajo el
+mismo contrato de identidad de muestra. Con una precisión: esta comparación no
+incluye al modelo de árboles, así que su población no se interseca con él y es
+unas pocas filas más ancha que la de la Sección V.1 —83 200 contra 83 190 en E4—.
+Por eso el MAE del LSTM aparece acá como 5.145 y allá como 5.146: es el mismo
+modelo sobre poblaciones que difieren en diez filas, no dos mediciones distintas.
+A 10 minutos:
 
 | Corredor | LSTM | Almanaque | Persistencia | LSTM − almanaque |
 |---|---|---|---|---|
@@ -899,13 +906,20 @@ detección aunque su error numérico mejorara. El cuadro parecía inapelable:
 |---|---|---|---|
 | Error absoluto medio (menor es mejor) | **5.32 min** | 6.79 min | — |
 | F1 usando el criterio de *bunching* como corte fijo | 0.0013 | 0.332 | **0.465** |
-| Veces que sonó la alarma | **14** | 15 084 | 50 356 |
+| Veces que sonó la alarma | **14** | 15 083 | 50 353 |
 | Eventos reales que había que detectar | 15 245 | 15 245 | 15 245 |
 
 *La unidad de conteo es la **celda de detección**: una posición del vector en un
-minuto del conjunto de prueba. Son 50 356 en E2 a 10 minutos, y no coincide con las
+minuto del conjunto de prueba. Son 50 353 en E2 a 10 minutos, y no coincide con las
 75 747 predicciones escalares de la población pareada de V.1, que cuenta de otro
 modo.*
+
+*Y un detalle de población, porque el número reaparece más adelante con otro
+valor. Esta tabla se computa sobre la intersección de los tres modelos —el LSTM,
+el árbol y la persistencia sobre las mismas filas—, que da 50 353 celdas. Las
+tablas que solo comparan al LSTM contra la persistencia no necesitan esa
+intersección y trabajan sobre 50 356. La diferencia de tres celdas es el desajuste
+de ancho de vector declarado en el punto 13 de las limitaciones.*
 
 Leído directamente: el modelo profundo predice mejor los minutos y sin embargo tocó
 la alarma catorce veces donde había quince mil eventos. El cociente de F1 entre los
