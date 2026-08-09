@@ -168,16 +168,39 @@ a un minuto gana la persistencia. La afirmación sólida empieza a los 5 minutos
 
 ### 2. Pero la alarma no sonaba
 
-Acá aparece lo interesante. Al aplicar el procedimiento de detección estándar del
-campo, el mismo modelo que pronostica mejor **tocó la alarma 14 veces donde había
-15 245 eventos reales**.
+Antes del resultado hace falta la unidad de medida, porque de ahí salen todos los
+números que siguen.
+
+La evaluación parte el período de prueba en **celdas**: un bus, en un minuto. En E2
+a 10 minutos de anticipación hay 50 353 celdas. Y la regla que decide si una celda
+es *bunching* es esta:
+
+> Un intervalo cuenta como *bunching* cuando cae por debajo de **la mitad del
+> promedio de su corredor en ese instante**.
+
+Con ese criterio, **15 245 de las 50 353 celdas son evento**: casi una de cada
+tres. El corredor viene apretado alrededor de un tercio del tiempo. Ese es el
+problema que había que detectar.
+
+Ahora sí, el resultado. Al aplicar el procedimiento de detección estándar del campo,
+el mismo modelo que pronostica mejor tocó la alarma **catorce veces**:
+
+| E2, a 10 minutos | LSTM | Persistencia | Detector que marca todo |
+|---|---|---|---|
+| Alarmas que tocó | **14** | 15 083 | 50 353 |
+| Eventos reales que había | 15 245 | 15 245 | 15 245 |
+| Puntaje de detección | **0.0013** | 0.332 | **0.465** |
+
+*El puntaje de detección resume dos cosas a la vez: de las alarmas que sonaron,
+cuántas eran de verdad; y de los eventos que hubo, cuántos se agarraron. Va de 0 a
+1, y más es mejor.*
 
 Leído de frente: parecía haberse vuelto completamente ciego a la irregularidad.
 
-Pero había una pista incómoda en la misma tabla. Un detector que no sabe nada —que
-marca absolutamente todas las celdas como *bunching*— saca mejor puntaje que el
-"ganador" de esa comparación. Los dos métodos perdían contra una regla vacía. Lo
-único que los distinguía era cuánto perdían.
+Pero la tabla trae una pista incómoda en la última columna. Un detector que no sabe
+nada —que marca absolutamente todas las celdas como *bunching*, sin mirar el dato—
+saca **0.465 y le gana a los dos**. Los dos métodos perdían contra una regla vacía.
+Lo único que los distinguía era cuánto perdían.
 
 **Ninguna de las dos cifras estaba midiendo qué sabe el modelo. Estaban midiendo
 dónde había quedado el corte.**
