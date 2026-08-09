@@ -86,8 +86,11 @@ Es una definición por cruce de posición, no por parada. Y eso importa: la vuel
 inmune a la ausencia de una tabla de paradas, que es exactamente lo que falta acá.
 
 No se eligió por intuición. Se compararon cuatro definiciones posibles sobre siete
-criterios de calidad, y se adoptó la única que mide tiempo entre pasadas —que es la
-cantidad que el operador necesita— sin depender de datos que no existen.
+criterios de calidad —con qué frecuencia se puede calcular, cuánta señal tiene, si
+lo de ahora anticipa lo de dentro de un rato, si hay volumen suficiente, si la
+distribución aguanta cambios de parámetros—, y se adoptó la única que mide tiempo
+entre pasadas, que es la cantidad que el operador necesita, sin depender de datos
+que no existen.
 
 ---
 

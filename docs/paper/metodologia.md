@@ -268,7 +268,29 @@ Esa diferencia de tiempo es el headway.*
 ## II.5 Se evaluaron cuatro formulaciones, no una
 
 La definición no se eligió por intuición. Se probaron cuatro candidatas sobre
-siete criterios de calidad, en **E2 y E59**:
+siete criterios de calidad, en **E2 y E59**. Los criterios, y qué pregunta cada
+uno:
+
+| | Criterio | Pasa si | Qué pregunta |
+|---|---|---|---|
+| 1 | Computabilidad | ≥ 80 % | ¿Con qué frecuencia se puede calcular el valor? |
+| 2 | Variabilidad | CV ≥ 0.2 | ¿La señal se mueve lo suficiente como para que valga la pena predecirla? |
+| 3 | Autocorrelación a 5 min | ≥ 0.3 | ¿El valor de ahora dice algo sobre el de dentro de 5 minutos? |
+| 4 | Información mutua entre vecinos | ≥ 0.1 bits | ¿El intervalo de un bus informa sobre el de su vecino? |
+| 5 | R² de la persistencia | entre 0.5 y 0.85 | ¿La vara mínima es exigente pero superable? |
+| 6 | Volumen | ≥ 50 000 pares | ¿Alcanza el dato? |
+| 7 | Estabilidad | KL < 0.1 | ¿La distribución conserva su forma al mover los parámetros? |
+
+**Con una advertencia que conviene leer antes que la tabla siguiente: el criterio
+5 falla en las cuatro formulaciones y en los dos corredores.** Su umbral quedó mal
+calibrado — en estas series la persistencia da R² negativo, así que ninguna
+formulación podía entrar en la banda `[0.5, 0.85]`. El máximo alcanzable era 6 de
+7, y un "6 de 7" no significa que a esa formulación le falte algo, sino que pasó
+todos los criterios que estaban bien puestos. Que la persistencia sea una vara tan
+pobre no invalida el método: es información sobre el sistema, y reaparece en la
+Parte V como el resultado de que a horizonte corto sea difícil de superar.
+
+Con eso dicho, el veredicto:
 
 | ID | Definición | Veredicto |
 |---|---|---|
