@@ -599,12 +599,36 @@ desbalanceadas se conoce como *threshold moving*.
 > separación es precisamente la razón por la que el problema que este trabajo
 > documenta pasó inadvertido.
 
-**Y hay que ser honestos sobre el alcance de esta afirmación.** No se identifica en
-este documento ningún trabajo publicado que cometa el error. Lo que sí está medido
-es que **nosotros** lo cometimos, con datos reales y a punto de publicarlo, y que
-la confusión es fácil precisamente porque las dos capas se tratan por separado.
-Léase entonces como una advertencia metodológica respaldada por un caso medido, no
-como una acusación al campo.
+**Y conviene ser preciso sobre el alcance de esta afirmación, porque no se trata
+de un tropiezo propio.** La receta que produce el problema está enunciada sin
+ambigüedad por el trabajo más citado del subcampo. Yu et al. (2016) la escriben
+así: *"the occurrence of bus bunching can be detected by thresholding the
+predicted headway with the planned bus schedule."* Umbralizar el *headway*
+**predicho** contra una referencia calibrada sobre observaciones es, textualmente,
+el procedimiento estándar.
+
+Y la consecuencia no es un accidente que dependa de cómo esté implementado: es
+necesaria. Un pronóstico puntual devuelve un funcional central de la distribución
+condicional, y por lo tanto está sub-disperso por construcción — Patton y
+Timmermann (2012) lo establecen como teorema, con la sub-dispersión creciendo de
+forma monótona con el horizonte. Cualquier procedimiento que aplique a ese vector
+comprimido un corte calibrado sobre la realidad va a disparar de menos. No hace
+falta que alguien se equivoque para que ocurra; basta con seguir la receta.
+
+Podría pensarse que la referencia fija de Yu et al. —el *headway* observado en la
+primera parada, que no se mueve con el pronóstico— queda a salvo de esto. **La
+Sección V.6 mide que es al revés:** con un corte absoluto, que es exactamente el
+que no se mueve con el pronóstico, el colapso empeora hasta un F1 de cero. La
+forma de referencia fija está *más* expuesta, no menos.
+
+Dicho eso, hay un límite que este trabajo no cruza: **no se afirma que los
+resultados publicados por Yu et al. ni por ningún otro trabajo sean incorrectos.**
+Eso exigiría medir sobre sus datos, y no se hizo. Lo que se afirma es más acotado
+y más verificable: que el procedimiento que el subcampo describe como estándar
+tiene un modo de falla necesario, que acá está medido sobre datos reales, y que se
+repara moviendo el corte en lugar de cambiar el modelo. Que lo hayamos encontrado
+cometiéndolo nosotros mismos es la razón de que esté medido con este detalle, no
+el alcance del hallazgo.
 
 *Nota de terminología: la literatura de transporte llama "threshold" también al
 criterio del evento. La separación de nombres que se usa acá es una elección de
@@ -1003,6 +1027,17 @@ más. La compresión no es un defecto de las redes neuronales. Es lo que hace
 cualquier pronóstico puntual, porque predecir el valor esperado es exactamente
 promediar los futuros posibles.
 
+Y esto no es una interpretación de lo medido: es teoría establecida. Patton y
+Timmermann (2012) demuestran que la varianza de lo observado se descompone en la
+varianza del pronóstico óptimo más el error cuadrático medio, de modo que el
+pronóstico **no puede** tener tanta dispersión como la variable que predice; y su
+Corolario 2 establece que esa brecha **crece de forma monótona con el horizonte**.
+Los dos hechos son teoremas, no hallazgos de este trabajo. Lo que estas páginas
+aportan no es descubrir la sub-dispersión, sino medir su tamaño en este dominio y
+mostrar qué le hace a la detección de *bunching* — que el sesgo empeore con el
+horizonte en las 36 celdas es exactamente lo que el corolario predice, y sirve
+como verificación de que lo medido es el fenómeno y no un artefacto del montaje.
+
 ### Por qué eso rompe la detección
 
 El criterio de *bunching* fue calibrado sobre la realidad, que es despareja. Usado
@@ -1277,12 +1312,13 @@ uv run python -m src.build_ha_volatility
 
 # Referencias
 
-Las cinco fuentes que el documento cita.
+Las seis fuentes que el documento cita.
 
 | | |
 |---|---|
 | **TCQSM** | *Transit Capacity and Quality of Service Manual*, 3.ª ed. Transportation Research Board. Manual de referencia del sector; de acá salen el cociente de un medio y la escala de niveles de servicio A–F |
-| **Yu et al. (2016)** | Predicción de *bunching* en Pekín. Sustituyen el horario ausente por el *headway* observado en la primera parada de la misma corrida. Es el precedente de sustituir un horario por una referencia extraída del dato |
+| **Yu et al. (2016)** | Predicción de *bunching* en Pekín. Enuncian la receta que este trabajo examina —umbralizar el *headway* predicho contra la referencia programada— y sustituyen el horario ausente por el *headway* observado en la primera parada de la misma corrida. Es a la vez el precedente de sustituir un horario por una referencia del propio dato |
+| **Patton & Timmermann (2012)** | *Journal of Business & Economic Statistics* 30(1):1–17. Establecen como teorema que el pronóstico óptimo está sub-disperso respecto de la variable que predice, y que la sub-dispersión crece de forma monótona con el horizonte. Es el fundamento teórico del mecanismo de la Sección V.4 |
 | **Moreira-Matias et al. (2016)** | Usan un cuarto del *headway* programado como criterio de evento |
 | **Sun et al. (2021)** | Usan un corte absoluto en minutos como criterio de evento |
 | **Zhang et al. (2022)** | Uso reciente del cociente de un medio del TCQSM |
