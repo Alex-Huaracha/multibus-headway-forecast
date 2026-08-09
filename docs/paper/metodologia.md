@@ -520,8 +520,10 @@ decirlo acá y no solo en las limitaciones.** La bandera de día atípico viola 
 dos mitades: su punto de corte se calcula sobre los 152 días incluyendo prueba, y
 es un agregado del día completo usado en instantes en que ese total todavía no se
 conoce. El control no la detiene porque la variable no figura en su lista de
-prohibidas. Está activa en las corridas que producen los resultados de la Parte V,
-su efecto no está acotado, y el detalle completo está en VI.3.
+prohibidas. Está activa en las corridas que producen los resultados de la Parte V.
+Lo que sí está medido es que el hallazgo no depende de ella: el modelo de árboles
+no la recibe y reproduce el cruce con margen comparable o mayor. El detalle
+completo está en VI.3.
 
 Por qué importa la contigüidad. Sin ella, "predecir a 10 minutos" podría
 significar en realidad "predecir 10 filas más adelante". Si hay huecos en los
@@ -1171,9 +1173,22 @@ entrenar.
     agregado del día completo, así que a las 08:00 no se podría conocer el total
     del día — es información del futuro dentro de la prueba; (c) descarta la
     empresa, así que un día marcado para un corredor marca a los tres.
-    **Contradice el contrato de frontera de información de la Sección III.6**, y su
-    efecto sobre el 21-22 % no está acotado. Acotarlo no exige reentrenar: alcanza
-    con apagar la bandera en inferencia y reportar el delta. No se hizo.
+    **Contradice el contrato de frontera de información de la Sección III.6.**
+
+    **Pero el hallazgo no cuelga de ella, y eso sí está medido.** El modelo de
+    árboles **no recibe la bandera** —se excluyó a propósito, por ser un agregado
+    del día completo y por lo tanto no conocible al momento de predecir— y
+    reproduce el cruce sobre las mismas filas, con margen comparable o mayor. En
+    E2 le gana al LSTM en los tres horizontes largos: −1.585 contra −1.473 a 10
+    minutos, −1.155 contra −1.109 a 5, −0.866 contra −0.851 a 3. En 4 de las 9
+    celdas con horizonte ≥ 3 el modelo sin la bandera supera al que la tiene. Un
+    aprendiz que nunca la vio produce el mismo resultado, de modo que la bandera
+    no puede ser lo que lo fabrica.
+
+    Lo que queda sin acotar, entonces, es más chico de lo que parece: no si el
+    hallazgo depende de la bandera —no depende—, sino cuánto de la cifra concreta
+    del LSTM le debe a ella. Acotar eso no exige reentrenar: alcanza con apagar la
+    bandera en inferencia y reportar el delta. No se hizo.
 12. Cada objetivo se cuenta entre 2.4 y 5.4 veces. Por la forma de anclar las
     ventanas, un mismo objetivo se emite una vez por posición de anclaje. El error
     reportado es por lo tanto un promedio ponderado por densidad de flota, y esa
