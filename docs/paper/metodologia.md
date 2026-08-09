@@ -1003,8 +1003,10 @@ métodos se invierte con el horizonte. No que ninguno de los dos sea desplegable
 persistencia. En rojo y gris, la calidad de detección medida sin ningún umbral —
 que por construcción no puede ser movida por el aplanamiento del vector. Los dos
 cruces van en el mismo sentido y en la misma zona. Ninguna serie cae por debajo del
-azar (0.5), de modo que el aprendiz no es ciego al evento en ninguna celda — aunque
-a 10 minutos la persistencia queda muy cerca de ese piso (AUC 0.528 en E2).*
+azar (0.5), de modo que el aprendiz no es ciego a este evento en ninguna celda —
+aunque a 10 minutos la persistencia queda muy cerca de ese piso (AUC 0.528 en E2).
+La afirmación se limita al evento tal como esta figura lo define; bajo el corte
+absoluto del cociente del campo hay una celda en el azar (Sección V.6).*
 
 *Al leerla, ojo con los ejes: la serie azul usa el izquierdo, las series roja y gris
 el derecho.*
@@ -1027,21 +1029,44 @@ la convención del campo, no su denominador. Se probaron ρ = 0.5, para quedar
 comparable con nuestra regla, y ρ = 0.25, que es el cociente de Yu et al. (2016) y
 Moreira-Matias et al. (2016).
 
-| Corte aplicado | F1 del LSTM, E2 a 10 min |
-|---|---|
-| Nuestra regla — 0.5 × la media del propio vector | 0.0013 |
-| Absoluto — 0.5 × la mediana del Origen 2 | 0.040 |
-| Absoluto — 0.25 × la mediana del Origen 2 (cociente del campo) | **0.0007** |
+| Corte aplicado | F1 del LSTM, E2 a 10 min | Sub-disparo mediano, 12 celdas |
+|---|---|---|
+| Nuestra regla — 0.5 × la media del propio vector | 0.0013 | 0.079 |
+| Absoluto — 0.5 × la mediana del Origen 2 | 0.00056 | 0.040 |
+| Absoluto — 0.25 × la mediana del Origen 2 (cociente del campo) | **0.0000** | **0.00068** |
 
-**El colapso no se atenúa: con el cociente del campo empeora unas 110 veces**
-respecto de nuestra regla. La razón es geométrica: un corte absoluto vive en la
-cola lejana de la distribución, que es donde la compresión muerde más fuerte;
-nuestra regla al menos mueve su denominador con el nivel del vector. La regla
-propia resultó ser la conservadora de las dos.
+*Dos medidas distintas, y conviene no confundirlas. La primera columna es una
+celda: el F1 en E2 a 10 minutos, comparable con la tabla de la Sección V.2. La
+segunda es el sub-disparo —cuántas veces dispara el modelo por cada vez que el
+evento ocurre— en su mediana sobre las doce celdas. Un sub-disparo de 1.0 sería
+disparar tan seguido como el evento sucede.*
+
+**El colapso no se atenúa: con el cociente del campo el sub-disparo empeora unas
+115 veces** respecto de nuestra regla — 0.079 contra 0.00068, las dos cifras de la
+columna derecha. Y en la celda, el desenlace es más nítido todavía: con el cociente
+del campo el F1 en E2 a 10 minutos es **cero exacto**. El modelo no toca la alarma
+ni una sola vez en las 50 356 celdas del conjunto de prueba.
+
+La razón es geométrica: un corte absoluto vive en la cola lejana de la
+distribución, que es donde la compresión muerde más fuerte; nuestra regla al menos
+mueve su denominador con el nivel del vector. La regla propia resultó ser la
+conservadora de las dos.
+
+**Y una salvedad que corre en contra, que corresponde declarar acá y no dejarla
+para las limitaciones.** El modelo carga **menos** información sobre el evento
+absoluto que sobre el relativo. Con ρ = 0.25 el ROC-AUC mediano cae a **0.599**, y
+en E2 a 10 minutos toca **0.4934** — indistinguible del azar. Con ρ = 0.5 el cuadro
+mejora: mediana 0.655 y mínimo 0.518.
+
+La consecuencia es concreta y acota una afirmación de la Sección V.5: que el
+aprendiz no sea ciego al evento en ninguna celda **vale para el evento relativo, y
+no vale para el absoluto en esa celda**. Bajo el cociente del campo, en el peor
+caso medido, el modelo no ordena mejor que tirar una moneda.
 
 Este es el paso que sostiene el argumento frente a la objeción obvia. La regla no
 se defiende diciendo que es razonable: se pone a prueba contra la alternativa del
-campo, y el hallazgo sobrevive.
+campo, y el hallazgo sobrevive — declarando también la evidencia que le juega en
+contra, que es lo que separa una prueba de una defensa.
 
 ## V.7 Robustez: no es una casualidad de febrero
 
