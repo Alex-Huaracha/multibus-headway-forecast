@@ -72,7 +72,7 @@ GTFS ni una tabla de paradas confiable.
 Esa única carencia encadena el documento entero:
 
 > Sin horario → tampoco hay paradas confiables → hubo que reconstruir la geometría
-> del corredor desde los propios pings de GPS (Parte II) → eso permitió definir el
+> del corredor desde los propios registros de GPS (Parte II) → eso permitió definir el
 > *headway* por cruce de posición (Parte II) → con el *headway* definido se
 > armaron las muestras y el experimento (Parte III) → pero para medir detección
 > hacía falta definir el evento, y la definición del campo se apoya en el horario
@@ -123,6 +123,10 @@ que reporta la posición del bus, en este caso aproximadamente cada 20 segundos.
 Lo que llega es una lista enorme de registros con esta forma: *empresa, unidad,
 fecha y hora, latitud, longitud*. Nada más.
 
+A cada uno de esos registros —**un bus, un instante, una posición**— lo llamamos
+**ping**, que es el nombre habitual en telemetría. Es la unidad mínima del dato:
+todo lo que sigue se construye apilando pings.
+
 | | |
 |---|---|
 | Período | 2023-10-01 → 2024-02-29 |
@@ -130,11 +134,6 @@ fecha y hora, latitud, longitud*. Nada más.
 | Corredores en estudio | E2, E4, E59 |
 | Unidades operativas | **90 en total**: 31 (E2), 19 (E4), 40 (E59) |
 | Volumen crudo | del orden de 17.7 millones de registros en E2, 7.8 en E4 y 17.9 en E59 |
-
-Por qué son tres corredores y no cuatro. La propuesta original nombraba una
-cuarta empresa, E58. Nunca entró al procesamiento: no tiene datos procesados ni
-resultados ni código que la referencie. Cualquier mención a cuatro corredores es
-material desactualizado.
 
 ## I.2 La restricción raíz: no hay horario programado
 
@@ -1215,6 +1214,7 @@ Las cinco fuentes que el documento cita.
 | **Bunching** | Dos buses de la misma línea circulando pegados, seguidos de un hueco largo |
 | **Headway** / intervalo | Tiempo entre un bus y el siguiente por un mismo punto |
 | **AVL** | *Automatic Vehicle Location*: el GPS a bordo que reporta la posición del bus |
+| **Ping** | Un registro de GPS: un bus, un instante, una posición. La unidad mínima del dato |
 | **Vector** | Lista ordenada de números; acá, un intervalo por cada par de buses consecutivos |
 | **Horizonte** | Cuántos minutos hacia adelante se predice (1, 3, 5 o 10) |
 | **Umbral de decisión** (*decision threshold*) | La raya que convierte un número continuo en una decisión de sí o no. También llamado **punto de operación** (*operating point*) |
