@@ -274,13 +274,43 @@ siete criterios de calidad, en **E2 y E59**:
 | A | Tiempo entre puntos virtuales del recorrido | Descartada — la serie resultante era casi ruido |
 | B | Distancia en metros entre buses | Descartada — **pasa los criterios de calidad**, pero mide separación espacial y no tiempo entre pasadas, que es la cantidad que el operador necesita y la que la literatura de *bunching* define. Se descarta por el objeto de estudio, no por su desempeño |
 | C.1 | Tiempo estimado proyectando hacia adelante | Descartada — el modelo no aprendía nada de ella |
-| **C.2** | **Tiempo desde el cruce hacia atrás** | **Adoptada** — 6 de 7 criterios en ambos corredores, y la mejor relación entre buses vecinos |
+| **C.2** | **Tiempo desde el cruce hacia atrás** | **Adoptada** — 6 de 7 criterios en ambos corredores, en unidades de tiempo, y con la relación más fuerte entre buses vecinos de las tres formulaciones temporales |
 
-El criterio que decidió se llama información mutua, y mide cuánto dice el
-intervalo de un bus sobre el intervalo de su vecino. Que sea alta en C.2 confirma
-que la formulación captura la propagación del retraso de bus a bus, que es el
-mecanismo físico del *bunching*. Si fuera cero, el problema no tendría estructura
-que aprender y no habría nada que predecir.
+Lo que decidió, con precisión. C.2 y B empatan en 6 de 7 criterios; ninguna
+de las dos gana por desempeño. B se descartó porque mide metros y el objeto de
+estudio es tiempo. Entre las tres formulaciones que sí están en unidades de
+tiempo —A, C.1 y C.2— A quedó afuera por autocorrelación casi nula, y C.2 le gana
+a C.1 con holgura. Ese es el camino de la decisión.
+
+Una medida que conviene mirar es la información mutua, que dice cuánto informa
+el intervalo de un bus sobre el de su vecino. Que sea alta en C.2 confirma que la
+formulación captura la propagación del retraso de bus a bus, que es el mecanismo
+físico del *bunching*. Si fuera cero, el problema no tendría estructura que
+aprender y no habría nada que predecir.
+
+**Y hay que ser exacto con lo que esa medida dice y lo que no.** C.2 le gana a
+C.1 por factores de 6.6 a 58, y a B por factores de 3.8 a 22, que es la
+comparación pertinente. Pero **no tiene la información mutua más alta de las
+cuatro**: A la supera en dos de los tres corredores.
+
+| Información mutua entre vecinos, en bits | E2 | E4 | E59 |
+|---|---|---|---|
+| A — puntos virtuales | **1.367** | **2.466** | 0.638 |
+| B — distancia en metros | 0.153 | 0.142 | 0.059 |
+| C.1 — proyección hacia adelante | 0.088 | 0.052 | 0.022 |
+| **C.2 — adoptada** | 0.585 | 1.096 | **1.268** |
+
+Que A puntúe alto acá no la rehabilita: promedia sobre ventanas de cinco minutos
+en puntos fijos del recorrido, y esa suavización es también la razón de que su
+serie sea casi ruido en el tiempo, que es por lo que se la descartó. La medida se
+reporta completa en lugar de citar solo la celda favorable.
+
+*Estos valores se recalcularon con `uv run python -m src.build_mi_recheck`, que
+corre las definiciones del propio estudio de viabilidad sobre los datos
+procesados actuales; salen a `docs/resultados/csv-multihorizon/mi_recheck.csv`.
+No reproducen el estudio original —que construía su propio eje del corredor— sino
+que vuelven a hacerle la pregunta con la geometría de producción. E4 no formaba
+parte de aquella comparación y se agrega acá.*
 
 ## II.6 El techo de 30 minutos
 
