@@ -76,8 +76,9 @@ Esa única carencia encadena el documento entero:
 > *headway* por cruce de posición (Parte II) → con el *headway* definido se
 > armaron las muestras y el experimento (Parte III) → pero para medir detección
 > hacía falta definir el evento, y la definición del campo se apoya en el horario
-> que no existe → hubo que fabricar una alternativa (Parte IV) → y al fabricarla
-> apareció el hallazgo (Parte V).
+> que no existe → hubo que fabricar una alternativa (Parte IV) → y al medirla contra
+> la convención del campo quedó al descubierto un defecto que esa convención
+> arrastra (Parte V).
 
 Cada parte del documento resuelve el problema que dejó abierta la anterior.
 

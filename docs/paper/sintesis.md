@@ -43,7 +43,9 @@ Sin horario
                                    y la definición estándar necesita el horario
                                    que no existe
                                       └─> hubo que fabricar una alternativa
-                                             └─> y al fabricarla apareció el hallazgo
+                                             └─> y al medirla contra la convención
+                                                 del campo quedó al descubierto un
+                                                 defecto que esa convención arrastra
 ```
 
 Cada paso resuelve el problema que dejó abierto el anterior. Es la razón de que el
