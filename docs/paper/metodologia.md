@@ -991,7 +991,24 @@ métodos pierden contra el detector vacío; lo único que los distingue es cuán
 pierden.
 
 Y no es un caso aislado de E2. Es el patrón completo, en los tres corredores y en
-los cuatro horizontes:
+los cuatro horizontes. A 10 minutos, con la misma unidad de conteo de la tabla
+anterior:
+
+| A 10 minutos de anticipación | E2 | E4 | E59 |
+|---|---|---|---|
+| Celdas de detección | 50 353 | 54 430 | 209 106 |
+| Eventos reales que había que detectar | 15 245 | 9 760 | 43 470 |
+| Veces que sonó la alarma del LSTM | **14** | **150** | **1 572** |
+| Sub-disparo | **0.09 %** | **1.54 %** | **3.62 %** |
+| F1 del LSTM | 0.0013 | 0.0151 | 0.0345 |
+| Piso trivial | 0.465 | 0.304 | 0.344 |
+
+*El sub-disparo es cuántas veces dispara el modelo por cada vez que el evento
+ocurre; un 100 % sería disparar tan seguido como el evento sucede. A este horizonte
+los tres corredores quedan por debajo de su piso trivial. E2 es el caso más
+extremo, y es el que la tabla anterior desarrolla. Sobre las doce celdas —tres
+corredores por cuatro horizontes— el sub-disparo va de 0.09 % a 47.0 %, con mediana
+7.9 %, que es la cifra que reaparece en la Sección V.6.*
 
 ![El artefacto del corte fijo](../resultados/contiguo-artefacto-umbral.png)
 

@@ -195,6 +195,18 @@ el mismo modelo que pronostica mejor tocó la alarma **catorce veces**:
 cuántas eran de verdad; y de los eventos que hubo, cuántos se agarraron. Va de 0 a
 1, y más es mejor.*
 
+**Y no es solo E2.** A 10 minutos, en los tres corredores:
+
+| A 10 minutos | E2 | E4 | E59 |
+|---|---|---|---|
+| Eventos reales que había | 15 245 | 9 760 | 43 470 |
+| Alarmas que tocó el modelo | 14 | 150 | 1 572 |
+| Fracción de lo que debía | **0.1 %** | **1.5 %** | **3.6 %** |
+
+E2 es el caso más extremo, y por eso es el que se desarrolla arriba. Pero E59, el
+más benigno de los tres, igual toca la alarma unas **veintiocho veces menos** seguido
+de lo que el problema ocurre. El colapso es general, no una celda desafortunada.
+
 Leído de frente: parecía haberse vuelto completamente ciego a la irregularidad.
 
 Pero la tabla trae una pista incómoda en la última columna. Un detector que no sabe
