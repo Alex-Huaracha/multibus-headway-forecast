@@ -487,11 +487,12 @@ prueba**, que es una afirmación más modesta que una réplica independiente.
 
 ## III.5 Modelos comparados
 
-| Modelo | Qué hace | Por qué está |
+| Modelo | Qué es, y qué hace | Por qué está |
 |---|---|---|
-| **Persistencia** | Predice que dentro de N minutos todo estará igual que ahora | Es la vara mínima. Sobre series cortas es sorprendentemente difícil de superar, y es el rival que la literatura del subcampo rara vez incluye. Si un modelo no le gana a esto, no sirve |
-| **XGBoost** | Método de árboles de decisión, sobre la misma ventana de 12 minutos más hora, día y sentido | Es el competidor no profundo. Muy fuerte en datos de tabla |
-| **LSTM** | Red neuronal pensada para series de tiempo: procesa la secuencia paso a paso y arrastra memoria de lo anterior | Es el modelo profundo principal |
+| **Persistencia** | **No es un modelo: es una regla.** Predice que dentro de N minutos todo estará igual que ahora — formalmente, `ŷ(t+h) = y(t)`. No aprende nada, no tiene parámetros y no se entrena. En pronóstico de series de tiempo se la conoce como *pronóstico ingenuo* o de camino aleatorio | Es la vara mínima. Sobre series cortas es sorprendentemente difícil de superar, y es el rival que la literatura del subcampo rara vez incluye. Si un modelo no le gana a esto, no sirve |
+| **Promedio histórico por franja horaria** | Tampoco aprende del presente: es **estadística descriptiva**. La media de los intervalos observados en entrenamiento para cada sentido, cada posición del vector y cada hora del día. Solo mira el reloj. Lo llamamos *almanaque* | Es una vara más exigente que la persistencia, y responde una pregunta que ella no cubre: si el modelo aprendió algo del presente o solo lo que suele pasar a esa hora. Se desarrolla en la Sección V.1 |
+| **XGBoost** | **Aprendizaje automático clásico, no profundo.** Un conjunto de árboles de decisión que se corrigen entre sí, sobre la misma ventana de 12 minutos más hora, día y sentido | Es el competidor no profundo. Muy fuerte en datos de tabla |
+| **LSTM** | **Red neuronal recurrente**, pensada para series de tiempo: procesa la secuencia paso a paso y arrastra memoria de lo anterior | Es el modelo profundo principal, y el que produce los resultados de la Parte V |
 
 Se evaluaron además dos arquitecturas que incorporan explícitamente la estructura
 espacial del corredor. No superan al LSTM simple sobre estos datos. Ese resultado

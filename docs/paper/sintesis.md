@@ -106,13 +106,25 @@ primeros, se afina con los del medio, y se mide con los últimos, que no vio nun
 Si se mezclara al azar, el modelo entrenaría con minutos del futuro y el resultado
 sería optimista de mentira, porque en la operación real solo se tiene el pasado.
 
-Se lo compara contra tres rivales, y el orden importa:
+El modelo que se entrena es una **LSTM**: una red neuronal pensada para series de
+tiempo, que procesa la secuencia paso a paso y arrastra memoria de lo anterior.
 
-- **La persistencia** — predecir que dentro de N minutos todo estará igual que
-  ahora. Es la vara mínima. Si un modelo no le gana a esto, no sirve.
-- **Un método de árboles de decisión**, el competidor no profundo.
-- **El promedio histórico por hora** — un almanaque, ciego al presente, que solo
-  mira el reloj.
+Se la compara contra tres rivales, y el orden importa:
+
+- **La persistencia.** No es un modelo, es una regla: repetir el último valor
+  observado. No aprende nada y no se entrena. Es la vara mínima, y la referencia
+  habitual en pronóstico de series de tiempo. Si un modelo no le gana a esto, no
+  sirve.
+- **XGBoost.** Aprendizaje automático clásico, no profundo: un conjunto de árboles
+  de decisión que se corrigen entre sí. Es muy fuerte en datos de tabla, y es el
+  competidor serio de la red.
+- **El promedio histórico por hora.** Estadística descriptiva: qué intervalo suele
+  haber a esa hora, según lo observado en el pasado. Es ciego al presente —solo
+  mira el reloj— y lo llamamos *almanaque* por eso.
+
+Que la persistencia sea la vara y no un modelo sofisticado no es pereza: **es la
+regla más tonta posible, y a horizonte corto es difícil de superar.** Eso es en sí
+un resultado, y la mayoría de los trabajos del campo ni siquiera la incluyen.
 
 Todo se evalúa **sobre exactamente las mismas filas**, verificado automáticamente.
 Sin eso, parte de la diferencia entre dos modelos viene de qué filas le tocaron a
@@ -174,7 +186,7 @@ realmente es.
 
 ![El aplanamiento del pronóstico](../resultados/contiguo-compresion-dispersion.png)
 
-Y no es un defecto de las redes neuronales: el método de árboles aplana igual o más.
+Y no es un defecto de las redes neuronales: el XGBoost aplana igual o más.
 Es lo que hace cualquier pronóstico que devuelve un único número, porque predecir el
 valor esperado es exactamente promediar los futuros posibles. En estadística está
 demostrado como teorema desde hace más de una década.
