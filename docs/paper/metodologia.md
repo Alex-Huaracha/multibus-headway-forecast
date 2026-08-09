@@ -302,8 +302,7 @@ cuatro**: A la supera en dos de los tres corredores.
 
 Que A puntúe alto acá no la rehabilita: promedia sobre ventanas de cinco minutos
 en puntos fijos del recorrido, y esa suavización es también la razón de que su
-serie sea casi ruido en el tiempo, que es por lo que se la descartó. La medida se
-reporta completa en lugar de citar solo la celda favorable.
+serie sea casi ruido en el tiempo, que es por lo que se la descartó.
 
 *Estos valores se recalcularon con `uv run python -m src.build_mi_recheck`, que
 corre las definiciones del propio estudio de viabilidad sobre los datos
@@ -458,12 +457,10 @@ momento de calibrar.
 No es una re-partición de los mismos resultados: son entrenamientos nuevos, con
 todo el costo de cómputo que eso implica.
 
-Lo que se declara, y hay que declararlo: como los tres arrancan en la misma
-fecha, los conjuntos de entrenamiento están anidados y no son independientes en
+Como los tres arrancan en la misma fecha, los conjuntos de entrenamiento están anidados y no son independientes en
 sentido estricto — el Origen 3 vio todos los días que vio el Origen 1. Por lo
 tanto lo que esto establece es **estabilidad frente a la elección del período de
-prueba**, que es una afirmación más modesta que una réplica independiente. Se
-declara así en lugar de presentarlo como tres experimentos separados.
+prueba**, que es una afirmación más modesta que una réplica independiente.
 
 ## III.5 Modelos comparados
 
@@ -503,7 +500,7 @@ que, si no se cumple, **detiene la ejecución**. No advierte: se detiene.
 |---|---|---|
 | **Identidad de muestra** | Todos los modelos se evalúan sobre exactamente las mismas filas | Cada corrida recalcula el índice y compara su huella digital contra una copia congelada |
 | **Contigüidad temporal** | Los minutos de una ventana son consecutivos de verdad | Se verifica al construir; una violación aborta la corrida |
-| **Frontera de información** | Ninguna variable de entrada usa información posterior al momento de predecir | El control falla cerrado si aparece una variable prohibida. **Tiene una excepción conocida**, la bandera de día atípico: ver VI.3, defecto 10 |
+| **Frontera de información** | Ninguna variable de entrada usa información posterior al momento de predecir | El control falla cerrado si aparece una variable prohibida. **Tiene una excepción conocida**, la bandera de día atípico: ver VI.3, defecto 11 |
 | **Huella de entrada** | Ninguna corrida usa datos distintos de los declarados | Cada archivo de entrada tiene su **SHA-256** registrada. Antes de entrenar se recalcula y se compara |
 
 Por qué importa la identidad de muestra. Si dos modelos se evalúan sobre filas
@@ -515,8 +512,7 @@ procesamiento, sin estos contratos, ese sesgo iba de 0.28 a 0.53 minutos — má
 grande que la mayoría de las ventajas que se reclamaban por encima de él. Con los
 contratos activos, el sesgo medido es de 0.001 minutos como máximo.
 
-**El contrato de frontera de información no se cumple del todo, y corresponde
-decirlo acá y no solo en las limitaciones.** La bandera de día atípico viola sus
+**El contrato de frontera de información no se cumple del todo.** La bandera de día atípico viola sus
 dos mitades: su punto de corte se calcula sobre los 152 días incluyendo prueba, y
 es un agregado del día completo usado en instantes en que ese total todavía no se
 conoce. El control no la detiene porque la variable no figura en su lista de
@@ -560,8 +556,7 @@ entienda; sigue con las reglas de comparación, y termina con las métricas.
 
 ## IV.1 Criterio de *bunching* y umbral de decisión son dos cosas distintas
 
-**Si de toda esta parte se lee una sola sección, que sea ésta.** El hallazgo del
-trabajo consiste en haber confundido dos cosas y haberlo descubierto.
+Todo el argumento de la Parte V descansa en esta distinción.
 
 Todo el argumento depende de separar dos conceptos que la literatura trata como si
 fueran uno solo. Se les da acá nombres distintos, y nunca se comparten.
@@ -745,7 +740,7 @@ junto con la predicción.
 La regla produce entre **17.2 % y 30.3 %** de eventos, según corredor y horizonte.
 Es alto para el subcampo, cuyos trabajos reportan entre 0.15 % y 17 %.
 
-Esto no se esconde: se aprovecha. Cuanto más frecuente es el evento, más alto es
+Y juega a favor del argumento. Cuanto más frecuente es el evento, más alto es
 el puntaje que puede sacar un detector que no sabe nada con la métrica F1. El
 régimen de este trabajo vuelve ese argumento más exigente, no más laxo.
 
@@ -756,11 +751,8 @@ régimen de este trabajo vuelve ese argumento más exigente, no más laxo.
 - ROC-AUC — mide si el modelo ordena bien los casos de más a menos
   peligroso, sin necesitar ningún umbral de decisión. Un valor de 0.5 es azar
   puro.
-- Precisión media — cuán arriba quedan los casos verdaderos en ese
-  ordenamiento.
-
 En cada tabla de detección se reporta además el **piso trivial**: el puntaje que
-saca un detector sin ninguna información que marque absolutamente todas las celdas
+saca un detector sin ninguna información que marque absolutamente todas las celdas de detección
 como *bunching*. Con una tasa base *p*, ese piso vale 2*p*/(1+*p*) — en E2 a 10
 minutos, con *p* = 0.303, da **0.465**. Cualquier F1 por debajo de ese número es
 peor que no saber nada.
@@ -781,7 +773,7 @@ Por qué en esa dirección. Es la única en la que un operador podría calibrar 
 producción: con datos del pasado, aplicados al futuro. Ajustar el corte sobre la
 misma ventana donde después se mide sería hacer trampa.
 
-**Dos salvedades que hay que declarar.** La primera: la ventana de calibración
+**Dos salvedades.** La primera: la ventana de calibración
 —prueba del Origen 2, del 2024-01-14 al 2024-02-04— se solapa **dos días** con el
 entrenamiento del Origen 3, que llega hasta el 2024-01-15. No se solapa con el
 período donde después se mide, que es lo que invalidaría la comparación, pero el
@@ -834,7 +826,7 @@ los horizontes:
 | **h = 3** | Zona de transición. **Sin victoria declarable** |
 | **h ≥ 5** | El aprendiz gana en media y en mediana, con significancia amplia, en los tres corredores. **Esta es la afirmación sólida** |
 
-Dos matices que hay que declarar:
+Dos matices:
 
 - A h = 1 el error absoluto y el cuadrático nombran ganadores opuestos. El
   LSTM pierde el absoluto y gana el cuadrático, en los tres corredores. Es el
@@ -868,23 +860,17 @@ corredor está irregular, que es donde un operador necesitaría la alarma.
 
 ### ¿Aprendió algo, o encontró el promedio?
 
-La Sección V.4 mide que el pronóstico es casi plano. Medido eso, la pregunta se
-impone: **si la predicción apenas se mueve, ¿no está prediciendo simplemente lo que
-suele pasar a esa hora?**
+Ganarle a la persistencia deja abierta una pregunta incómoda: **¿el modelo aprendió
+algo del presente, o simplemente aprendió lo que suele pasar a esa hora?**
 
-Hay una vara que responde eso y que la comparación contra persistencia no cubre: el
-**promedio histórico por franja horaria**. Se calcula como la media de los intervalos
-observados en entrenamiento, para cada sentido, cada posición del vector y cada hora
-del día, y se aplica a prueba. Es deliberadamente ciego al presente — no mira la
-ventana de entrada, solo el reloj. Lo llamamos *almanaque* por eso.
+Hay una vara que responde eso y que la persistencia no cubre: el **promedio
+histórico por franja horaria**. Se calcula como la media de los intervalos
+observados en entrenamiento, para cada sentido, cada posición del vector y cada
+hora del día, y se aplica a prueba. Es deliberadamente ciego al presente — no mira
+la ventana de entrada, solo el reloj. Lo llamamos *almanaque* por eso.
 
-Se lo puntuó sobre **las mismas filas** que el LSTM y la persistencia, bajo el
-mismo contrato de identidad de muestra. Con una precisión: esta comparación no
-incluye al modelo de árboles, así que su población no se interseca con él y es
-unas pocas filas más ancha que la de la Sección V.1 —83 200 contra 83 190 en E4—.
-Por eso el MAE del LSTM aparece acá como 5.145 y allá como 5.146: es el mismo
-modelo sobre poblaciones que difieren en diez filas, no dos mediciones distintas.
-A 10 minutos:
+Se lo puntuó sobre las mismas filas que el LSTM y la persistencia, bajo el mismo
+contrato de identidad de muestra. A 10 minutos:
 
 | Corredor | LSTM | Almanaque | Persistencia | LSTM − almanaque |
 |---|---|---|---|---|
@@ -892,11 +878,15 @@ A 10 minutos:
 | E4 | **5.145** | 5.712 | 6.526 | −0.567 |
 | E59 | **4.162** | 4.761 | 5.335 | −0.599 |
 
+*El MAE del LSTM en E4 figura acá como 5.145 y en la tabla de V.1 como 5.146: esta
+comparación no incluye al modelo de árboles, así que corre sobre diez filas más.
+Mismo modelo, poblaciones que difieren en una diezmilésima parte.*
+
 **En 11 de las 12 celdas de corredor × horizonte el LSTM le gana al almanaque.** La
 excepción es E2 a 10 minutos, donde pierde por 0.071 min — cuatro segundos.
 
-Ese cruce no se esconde: se localiza. Separando por la volatilidad de la ventana de
-entrada, en E2 a 10 minutos:
+Ese cruce se localiza. Separando por la volatilidad de la ventana de entrada, en
+E2 a 10 minutos:
 
 | Ventana de entrada | LSTM | Almanaque | Diferencia |
 |---|---|---|---|
@@ -904,24 +894,18 @@ entrada, en E2 a 10 minutos:
 | Media | 5.338 | 5.292 | **+0.046** |
 | Volátil | 5.904 | 5.752 | **+0.152** |
 
-**La desventaja crece con la volatilidad, no se reduce.** Y el mismo patrón, sin
-cambiar de signo, aparece en los otros dos corredores: en E4 la ventaja del LSTM
-sobre el almanaque pasa de −0.702 en el tercio calmo a −0.460 en el volátil, y en
-E59 de −0.707 a −0.525.
+**La desventaja crece con la volatilidad, no se reduce.** El mismo patrón, sin
+cambiar de signo, aparece en los otros dos corredores: la ventaja del LSTM sobre el
+almanaque se encoge del tercio calmo al volátil.
 
-Conviene decir que esto contradice lo que esperábamos. Contra la persistencia la
-ventaja **crece** con la volatilidad; contra el almanaque **se encoge**. Los dos
-hechos son compatibles porque los rivales son distintos: en una ventana revuelta la
-persistencia se destroza —8.52 min en el tercio volátil de E2 contra 5.09 en el
-calmo— mientras que el almanaque, plano por construcción, no se destroza.
+Y eso contradice lo esperado. Contra la persistencia la ventaja **crece** con la
+volatilidad; contra el almanaque **se encoge**. Los dos hechos son compatibles
+porque los rivales son distintos: en una ventana revuelta la persistencia se
+destroza, mientras que el almanaque, plano por construcción, no.
 
-Y lo que queda al descubierto es el mecanismo de la Sección V.4 medido por otra vía:
-**en el régimen volátil el pronóstico se contrae tanto que su error se vuelve
-indistinguible del de un promedio.** La compresión de dispersión no era solo una
-propiedad de la varianza del vector predicho; también le pone un techo a lo que el
-error puede mejorar, justamente donde más haría falta.
-
-Con eso establecido, empieza el hallazgo.
+Lo que queda al descubierto es que **en el régimen volátil el pronóstico se contrae
+tanto que su error se vuelve indistinguible del de un promedio**. Por qué se
+contrae, y qué le hace eso a la detección, es lo que sigue.
 
 ## V.2 Pero la alarma no suena
 
@@ -938,16 +922,10 @@ cuadro parece inapelable:
 | Eventos reales que había que detectar | 15 245 | 15 245 | 15 245 |
 
 *La unidad de conteo es la **celda de detección**: una posición del vector en un
-minuto del conjunto de prueba. Son 50 353 en E2 a 10 minutos, y no coincide con las
-75 747 predicciones escalares de la población pareada de V.1, que cuenta de otro
-modo.*
-
-*Y un detalle de población, porque el número reaparece más adelante con otro
-valor. Esta tabla se computa sobre la intersección de los tres modelos —el LSTM,
-el árbol y la persistencia sobre las mismas filas—, que da 50 353 celdas. Las
-tablas que solo comparan al LSTM contra la persistencia no necesitan esa
-intersección y trabajan sobre 50 356. La diferencia de tres celdas es el desajuste
-de ancho de vector declarado en el punto 13 de las limitaciones.*
+minuto del conjunto de prueba. Son 50 353 acá, sobre la intersección de los tres
+modelos; las tablas que solo comparan LSTM contra persistencia no necesitan esa
+intersección y trabajan sobre 50 356. Ninguna de las dos coincide con las 75 747
+predicciones escalares de V.1, que cuenta de otro modo.*
 
 Leído directamente: el modelo profundo predice mejor los minutos y sin embargo tocó
 la alarma catorce veces donde había quince mil eventos. El cociente de F1 entre los
@@ -1017,14 +995,15 @@ variación sí.**
 > En E2, la realidad da **0.79** y la predicción del modelo da **0.16**. En E59 es
 > 0.61 contra 0.26, y en E4 0.58 contra 0.21.
 
-Con sesgo negativo en las 36 combinaciones de corredor × horizonte × ventana,
+Con sesgo negativo en las 36 mediciones —las doce celdas por cada uno de los tres
+períodos de prueba—,
 y empeorando de forma sostenida con el horizonte. Sin una sola excepción.
 
 Traducido con una relación que el propio TCQSM establece, el mismo corredor
 califica como nivel A, "servicio prestado como un reloj" según la predicción, y
 nivel F, "la mayoría de los vehículos van pegados" según lo observado.
 
-![La compresión de dispersión](../resultados/contiguo-compresion-dispersion.png)
+![El aplanamiento del pronóstico](../resultados/contiguo-compresion-dispersion.png)
 
 *Figura 4 — En gris, qué tan desparejo es el corredor de verdad; en rojo, qué tan
 desparejo lo describe cada método.*
@@ -1035,7 +1014,7 @@ vector observado y por lo tanto hereda su dispersión real. No es que la
 persistencia sea mejor: es que no predice nada, y por eso no aplana nada.
 
 Y un dato que cierra el argumento: el XGBoost aplana tanto como el LSTM, o
-más. La compresión no es un defecto de las redes neuronales. Es lo que hace
+más. El aplanamiento no es un defecto de las redes neuronales. Es lo que hace
 cualquier pronóstico puntual, porque predecir el valor esperado es exactamente
 promediar los futuros posibles.
 
@@ -1047,7 +1026,8 @@ Corolario 2 establece que esa brecha **crece de forma monótona con el horizonte
 Los dos hechos son teoremas, no hallazgos de este trabajo. Lo que estas páginas
 aportan no es descubrir la sub-dispersión, sino medir su tamaño en este dominio y
 mostrar qué le hace a la detección de *bunching* — que el sesgo empeore con el
-horizonte en las 36 celdas es exactamente lo que el corolario predice, y sirve
+horizonte en las 36 mediciones —doce celdas por cada uno de los tres períodos de
+prueba— es exactamente lo que el corolario predice, y sirve
 como verificación de que lo medido es el fenómeno y no un artefacto del montaje.
 
 ### Por qué eso rompe la detección
@@ -1138,15 +1118,14 @@ disparar tan seguido como el evento sucede.*
 115 veces** respecto de nuestra regla — 0.079 contra 0.00068, las dos cifras de la
 columna derecha. Y en la celda, el desenlace es más nítido todavía: con el cociente
 del campo el F1 en E2 a 10 minutos es **cero exacto**. El modelo no toca la alarma
-ni una sola vez en las 50 356 celdas del conjunto de prueba.
+ni una sola vez en las 50 356 celdas de detección del conjunto de prueba.
 
 La razón es geométrica: un corte absoluto vive en la cola lejana de la
-distribución, que es donde la compresión muerde más fuerte; nuestra regla al menos
+distribución, que es donde el aplanamiento muerde más fuerte; nuestra regla al menos
 mueve su denominador con el nivel del vector. La regla propia resultó ser la
 conservadora de las dos.
 
-**Y una salvedad que corre en contra, que corresponde declarar acá y no dejarla
-para las limitaciones.** El modelo carga **menos** información sobre el evento
+**Y una salvedad que corre en contra.** El modelo carga **menos** información sobre el evento
 absoluto que sobre el relativo. Con ρ = 0.25 el ROC-AUC mediano cae a **0.599**, y
 en E2 a 10 minutos toca **0.4934** — indistinguible del azar. Con ρ = 0.5 el cuadro
 mejora: mediana 0.655 y mínimo 0.518.
@@ -1158,8 +1137,7 @@ caso medido, el modelo no ordena mejor que tirar una moneda.
 
 Este es el paso que sostiene el argumento frente a la objeción obvia. La regla no
 se defiende diciendo que es razonable: se pone a prueba contra la alternativa del
-campo, y el hallazgo sobrevive — declarando también la evidencia que le juega en
-contra, que es lo que separa una prueba de una defensa.
+campo, y el hallazgo sobrevive.
 
 ## V.7 Robustez: no es una casualidad de febrero
 
@@ -1263,12 +1241,10 @@ entrenar.
    la prueba estadística ni siquiera está definida.
 5. Fallar de forma cerrada. Si un archivo de entrada cambió, el procedimiento
    se detiene en lugar de seguir con datos distintos de los declarados.
-6. Someter a prueba las decisiones propias en lugar de defenderlas. La
-   definición del evento se puso a prueba contra la convención del campo, y perdió
-   la convención.
-7. Declarar lo que no se hizo. El presupuesto no nivelado, los defectos de
-   auditoría y los límites de alcance figuran en el documento, no en una nota al
-   pie.
+6. Poner a prueba las decisiones propias. La definición del evento se contrastó
+   contra la convención del campo, y el resultado favoreció a la propia.
+7. Declarar lo que no se hizo. El presupuesto de ajuste no nivelado, los defectos
+   de auditoría interna y los límites de alcance están en la Parte VI.
 
 ---
 
@@ -1352,12 +1328,12 @@ Las seis fuentes que el documento cita.
 | **Umbral de decisión** (*decision threshold*) | La raya que convierte un número continuo en una decisión de sí o no. También llamado **punto de operación** (*operating point*) |
 | **Criterio de *bunching*** (*bunching criterion*) | La regla que define qué es *bunching* en la realidad. Es una convención de transporte, no de aprendizaje automático. En el código se llama `BUNCHING_RATIO` |
 | **Threshold moving** | Ajustar el umbral de decisión en lugar de cambiar el modelo. Es la reparación que propone este trabajo |
-| **Sub-dispersión** (*under-dispersion*) | Que una predicción tenga menos variabilidad que la realidad que describe. En el cuerpo del documento se la llama **compresión de dispersión** o **aplanamiento**: son la misma cosa |
+| **Aplanamiento** | Que una predicción tenga menos variabilidad que la realidad que describe. En la literatura estadística se lo llama *sub-dispersión* (*under-dispersion*) |
 | **Percentil** | Valor por debajo del cual queda cierto porcentaje de los datos |
 | **Winsorizar** | Recortar los valores extremos a un tope, en lugar de borrarlos |
 | **Persistencia** | Predecir que el futuro será igual al presente. La vara mínima |
 | **Aprendiz** | Cualquiera de los dos modelos que aprenden de los datos —LSTM o XGBoost— por oposición a la persistencia, que no aprende nada |
-| **Celda** | Una combinación de corredor y horizonte. Hay 12 (3 × 4); con los tres orígenes, 36 |
+| **Celda** | Una combinación de corredor y horizonte. Hay 12 (3 corredores × 4 horizontes). Cuando algo se mide en los tres períodos de prueba, son 36 mediciones sobre esas mismas 12 celdas |
 | **Celda de detección** | Una posición del vector en un minuto concreto del conjunto de prueba: la unidad sobre la que se cuenta si la alarma sonó |
 | **Piso trivial** | El F1 que saca un detector que marca absolutamente todo. Con tasa base *p* vale 2*p*/(1+*p*) |
 | **GTFS** | Formato estándar en que las agencias publican horarios y paradas. Estos datos no lo tienen |
