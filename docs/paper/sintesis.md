@@ -24,6 +24,16 @@ antes de que el problema ocurra.
 Los datos son de **tres corredores de Arequipa**, del sistema de GPS a bordo de los
 buses: 152 días seguidos, sin huecos.
 
+Cada corredor es el conjunto de unidades de una empresa operadora. Se los nombra con
+la letra **E** —de *empresa*— y su número:
+
+| Corredor | Unidades operativas | Registros GPS crudos |
+|---|---|---|
+| E2 | 31 | ~17.7 millones |
+| E4 | 19 | ~7.8 millones |
+| E59 | 40 | ~17.9 millones |
+| **Total** | **90** | **~43.4 millones** |
+
 ---
 
 ## El hecho del que cuelga todo lo demás
@@ -136,9 +146,22 @@ cada uno y la comparación deja de significar algo.
 
 ### 1. El modelo pronostica bien
 
-A 10 minutos de anticipación mejora el error frente a la persistencia **entre un
-21 % y un 22 %**, igual en los tres corredores. Y la ventaja se concentra donde más
-importa: en los momentos en que el corredor viene más irregular.
+A 10 minutos de anticipación mejora el error frente a la persistencia en los tres
+corredores, y por un margen prácticamente igual en los tres:
+
+| Corredor | Error del modelo | Error de la persistencia | Mejora |
+|---|---|---|---|
+| E2 | 5.32 min | 6.79 min | **−21.7 %** |
+| E4 | 5.15 min | 6.53 min | **−21.2 %** |
+| E59 | 4.16 min | 5.33 min | **−22.0 %** |
+
+*El error es el promedio de cuántos minutos se equivoca el pronóstico. Menos es
+mejor.*
+
+Que los tres corredores caigan dentro de un punto porcentual, siendo distintos en
+tamaño y en volumen de datos, es lo que hace creíble la mejora: no es un corredor
+afortunado. Y la ventaja se concentra donde más importa: en los momentos en que el
+corredor viene más irregular.
 
 Con dos fronteras que conviene dejar dichas: **a 1 y a 3 minutos no hay ventaja** —
 a un minuto gana la persistencia. La afirmación sólida empieza a los 5 minutos.

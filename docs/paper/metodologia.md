@@ -132,9 +132,19 @@ todo lo que sigue se construye apilando pings.
 |---|---|
 | Período | 2023-10-01 → 2024-02-29 |
 | Días | 152 días seguidos, sin huecos |
-| Corredores en estudio | E2, E4, E59 |
-| Unidades operativas | **90 en total**: 31 (E2), 19 (E4), 40 (E59) |
-| Volumen crudo | del orden de 17.7 millones de registros en E2, 7.8 en E4 y 17.9 en E59 |
+
+**Qué significan E2, E4 y E59.** El dato crudo viene identificado por empresa
+operadora, y el estudio toma tres. La letra **E** es de *empresa* y el número es su
+identificador en el sistema: E2 es la empresa 2. Un corredor, acá, es el conjunto de
+unidades de una empresa: el trazado, el eje y los intervalos se calculan por separado
+para cada una. Esta notación se usa en todo el documento.
+
+| Corredor | Unidades operativas | Registros GPS crudos |
+|---|---|---|
+| E2 | 31 | ~17.7 millones |
+| E4 | 19 | ~7.8 millones |
+| E59 | 40 | ~17.9 millones |
+| **Total** | **90** | **~43.4 millones** |
 
 ## I.2 La restricción raíz: no hay horario programado
 
