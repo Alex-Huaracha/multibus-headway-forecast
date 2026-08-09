@@ -45,7 +45,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CSV_DIR = REPO_ROOT / "docs" / "resultados" / "csv-multihorizon"
 OUT_DIR = REPO_ROOT / "docs" / "resultados"
 
-CORRIDORS = ("E2", "E59", "E4")
+# Panel order matches the tables in the document (E2, E4, E59). It used to be
+# E2/E59/E4, which forced the reader to re-map on every table-figure crossing.
+CORRIDORS = ("E2", "E4", "E59")
 HORIZONS = (1, 3, 5, 10)
 TERCILES = ("low", "mid", "high")
 TERCILE_LABELS = {
@@ -359,9 +361,73 @@ def detection_without_threshold() -> Path:
     return path
 
 
+def dispersion_compression() -> Path:
+    """Observed vs predicted coefficient of variation, by model and corridor.
+
+    This is the cause of the artefact plotted by ``threshold_artifact``: a point
+    forecast emits a vector flatter than the one it describes, so a cut calibrated
+    on observed dispersion lands in its left tail. Persistence is the control —
+    it propagates the observed vector, so it inherits the real dispersion and its
+    bias is ~0. That both learners compress, and by comparable amounts, is what
+    makes this a property of point forecasting rather than of one architecture.
+    """
+    metrics = _load("contiguous_vector_metrics.csv").filter(pl.col("horizon") == 10)
+
+    models = ("Persistence", "LSTM", "XGBoost")
+    labels = {"Persistence": "Persistencia", "LSTM": "LSTM", "XGBoost": "XGBoost"}
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.8), sharey=True)
+    x = range(len(models))
+    bar_w = 0.36
+
+    for ax, corridor in zip(axes, CORRIDORS):
+        sub = metrics.filter(pl.col("corridor") == corridor)
+        true_cv, pred_cv = [], []
+        for model in models:
+            row = sub.filter(pl.col("model") == model)
+            true_cv.append(float(row.get_column("mean_cv_true")[0]))
+            pred_cv.append(float(row.get_column("mean_cv_pred")[0]))
+
+        ax.bar([i - bar_w / 2 for i in x], true_cv, bar_w,
+               color="tab:gray", label="Realidad observada")
+        ax.bar([i + bar_w / 2 for i in x], pred_cv, bar_w,
+               color="tab:red", label="Lo que el modelo predice")
+
+        for i, (t, pr) in enumerate(zip(true_cv, pred_cv)):
+            ax.text(i - bar_w / 2, t + 0.018, f"{t:.2f}", ha="center", fontsize=8.5)
+            ax.text(i + bar_w / 2, pr + 0.018, f"{pr:.2f}", ha="center", fontsize=8.5)
+
+        ax.set_title(corridor)
+        ax.set_xticks(list(x))
+        ax.set_xticklabels([labels[m] for m in models])
+        ax.set_ylim(0, 1.0)
+        ax.grid(True, axis="y", alpha=0.3)
+
+    axes[0].set_ylabel("Coeficiente de variación del vector")
+    fig.suptitle(
+        "La compresión de dispersión: el pronóstico describe un corredor más parejo del que hay",
+        y=0.99, fontsize=12.5,
+    )
+    handles, labels_ = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels_, loc="upper center", bbox_to_anchor=(0.5, 0.935),
+               ncol=2, frameon=False)
+    _caption(fig, [
+        "Horizonte de 10 minutos. La persistencia propaga el vector observado, así que hereda su dispersión y su barra roja iguala a la gris: es el control.",
+        "Los dos aprendices la aplanan, y por márgenes comparables — el efecto es del pronóstico puntual, no de una arquitectura.",
+        "Sobre un vector aplanado, un corte calibrado en la dispersión real cae en la cola izquierda y no se dispara nunca.",
+    ])
+    fig.tight_layout(rect=(0, 0.13, 1, 0.88))
+
+    path = OUT_DIR / "contiguo-compresion-dispersion.png"
+    fig.savefig(path, dpi=DPI)
+    plt.close(fig)
+    return path
+
+
 def main() -> None:
     for renderer in (
-        degradation, volatility, threshold_artifact, detection_without_threshold
+        degradation, volatility, threshold_artifact, detection_without_threshold,
+        dispersion_compression,
     ):
         path = renderer()
         print(f"Figura escrita en {path.relative_to(REPO_ROOT)}")
