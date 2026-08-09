@@ -71,9 +71,9 @@ lleva recorridos el bus a lo largo del corredor.
 ![De dos dimensiones a una](figuras/esquema-proyeccion.png)
 
 Esto es clave y conviene detenerse un segundo. Con latitud y longitud no se puede
-decidir sin ambigüedad cuál bus va adelante. Con un solo número sí: el que lo tiene
-más grande va más adelantado. Todo el cálculo de intervalos depende de poder ordenar
-los buses.
+decidir sin ambigüedad cuál bus va adelante. Con un solo número sí: el bus que
+lleva más metros recorridos es el que va delante. Todo el cálculo de intervalos
+depende de poder ordenar los buses.
 
 **Tercero, la definición del intervalo:**
 
