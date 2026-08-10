@@ -319,17 +319,23 @@ real.
 
 ## El aporte, en una frase
 
-> **La degradación de detección que este campo viene atribuyendo a los modelos es,
-> al menos en parte, un artefacto de medición. Se toma la regla que define qué es
-> *bunching* en la realidad —hecha a la medida de un corredor real, que es
-> desparejo— y se la usa tal cual para decidir si suena la alarma sobre un
-> pronóstico, que está aplanado por construcción. Y se corrige moviendo el corte, no
-> cambiando de modelo.**
+> **Cuando un modelo parece incapaz de detectar el *bunching*, muchas veces no falla
+> el modelo: falla la regla con la que se lo mide.**
 
-Lo que le da peso es que no es una opinión sobre el campo: el procedimiento que
-produce el problema está enunciado, con esas palabras, por el trabajo más citado del
-subcampo. Y la consecuencia no es un accidente de implementación — es necesaria,
-porque el aplanamiento del pronóstico es un teorema, no una casualidad.
+El campo juzga los pronósticos con la misma regla que usó para definir el problema
+sobre la realidad. Pero un pronóstico siempre es más parejo que la realidad.
+Entonces la regla nunca se dispara, y el modelo parece ciego sin serlo.
+
+**Se arregla moviendo la regla, no cambiando el modelo.**
+
+Dos cosas le dan peso a esto.
+
+**No es una opinión sobre el campo.** El procedimiento que causa el problema está
+escrito, con esas palabras, en el trabajo más citado del tema.
+
+**Y no le pasa solo a este modelo.** Que un pronóstico salga más parejo que la
+realidad no es un defecto de la red, ni de estos datos, ni de esta ciudad: está
+demostrado como teorema. Le pasa a cualquier método que prediga un solo número.
 
 **Aporte secundario, y no menor:** todo el método funciona sin horario publicado, sin
 GTFS y sin tabla de paradas. Eso lo vuelve aplicable a la mayoría de las ciudades
