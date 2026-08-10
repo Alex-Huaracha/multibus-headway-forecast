@@ -36,7 +36,7 @@ Conviene adelantarlo, porque todas las decisiones de las Partes I a IV se
 entienden mejor sabiendo adónde llevan.
 
 **Primero, el modelo funciona.** A 10 minutos de anticipación, la red neuronal
-mejora el error de pronóstico sobre el método trivial —repetir el último valor
+mejora el error de predicción sobre el método trivial —repetir el último valor
 observado— entre un 21 % y un 22 % en los tres corredores estudiados, y contra ese
 rival la ventaja se concentra donde más importa: en los momentos de mayor
 irregularidad. Con dos fronteras que conviene fijar desde acá. **A 1 y a 3 minutos
@@ -53,7 +53,7 @@ alarmas donde había 15 245 eventos reales, en E2 a 10 minutos: un cociente de F
 255 a 1 contra el método trivial.
 
 **Tercero, esa ceguera resultó ser un artefacto del instrumento de medición, no
-una propiedad del modelo.** El pronóstico aplana la variabilidad: describe un
+una propiedad del modelo.** La predicción aplana la variabilidad: describe un
 corredor más parejo de lo que realmente es. La regla de detección del campo está
 calibrada sobre la realidad, que es despareja, y aplicada sobre una predicción
 aplanada simplemente nunca se dispara. Corrigiendo el punto de corte —o midiendo
@@ -622,7 +622,7 @@ de arbitrario. Lo arbitrario es dónde se corta.
 Vista así, la regla heredada del campo no es una definición: es **una elección
 particular de dónde cortar, hecha mirando corredores reales**. Y una vez que se
 entiende que es una elección y no una propiedad del fenómeno, la pregunta de si
-esa misma elección sirve para cortar un pronóstico —que no se parece a un corredor
+esa misma elección sirve para cortar una predicción —que no se parece a un corredor
 real en su variabilidad— deja de sonar herética y pasa a ser obligatoria.
 
 Qué es un umbral de decisión y por qué hace falta. El modelo produce números
@@ -649,7 +649,7 @@ predicted headway with the planned bus schedule."* Umbralizar el *headway*
 el procedimiento estándar.
 
 Y la consecuencia no es un accidente que dependa de cómo esté implementado: es
-necesaria. Un pronóstico puntual devuelve un funcional central de la distribución
+necesaria. Una predicción puntual devuelve un funcional central de la distribución
 condicional, y por lo tanto está sub-disperso por construcción — Patton y
 Timmermann (2012) lo establecen como teorema, con la sub-dispersión creciendo de
 forma monótona con el horizonte. Cualquier procedimiento que aplique a ese vector
@@ -657,9 +657,9 @@ comprimido un corte calibrado sobre la realidad va a disparar de menos. No hace
 falta que alguien se equivoque para que ocurra; basta con seguir la receta.
 
 Podría pensarse que la referencia fija de Yu et al. —el *headway* observado en la
-primera parada, que no se mueve con el pronóstico— queda a salvo de esto. **La
+primera parada, que no se mueve con la predicción— queda a salvo de esto. **La
 Sección V.6 mide que es al revés:** con un corte absoluto, que es exactamente el
-que no se mueve con el pronóstico, el colapso empeora hasta un F1 de cero. La
+que no se mueve con la predicción, el colapso empeora hasta un F1 de cero. La
 forma de referencia fija está *más* expuesta, no menos.
 
 Dicho eso, hay un límite que este trabajo no cruza: **no se afirma que los
@@ -687,7 +687,7 @@ decisión**, siempre completos. Al citar trabajos ajenos se respeta su vocabular
 Todas las comparaciones entre modelos son pareadas sobre muestras idénticas.
 
 No es una precaución cosmética. La prueba estadística estándar para comparar
-pronósticos —el contraste de Diebold-Mariano— se construye restando el error
+predicciones —el contraste de Diebold-Mariano— se construye restando el error
 de un modelo menos el error del otro, fila por fila. Si los modelos no comparten
 las filas, esa resta no existe, y el estadístico queda indefinido, no simplemente
 sesgado.
@@ -840,7 +840,7 @@ entre dos distribuciones de error que no son idénticas.
 Todos los números de esta parte salen de la población pareada bajo los contratos
 de la Sección III.6, sobre el conjunto de prueba del Origen 3.
 
-## V.1 El modelo pronostica bien
+## V.1 El modelo predice bien
 
 A 10 minutos de anticipación, sobre muestras idénticas:
 
@@ -864,7 +864,7 @@ distinto.
 
 ![Curva de degradación](../resultados/contiguo-degradacion.png)
 
-*Figura 1 — Error de pronóstico frente al horizonte, por corredor. Más bajo es
+*Figura 1 — Error de predicción frente al horizonte, por corredor. Más bajo es
 mejor. La persistencia (gris) empieza al nivel de los aprendices a 1 minuto —en E2
 prácticamente empatada— y termina claramente arriba a 10: ese cruce es el
 resultado. Los tres modelos puntúan exactamente las mismas celdas.*
@@ -882,7 +882,7 @@ Dos matices:
 
 - A h = 1 el error absoluto y el cuadrático nombran ganadores opuestos. El
   LSTM pierde el absoluto y gana el cuadrático, en los tres corredores. Es el
-  comportamiento esperable de un pronóstico contraído: evita los errores grandes
+  comportamiento esperable de una predicción contraída: evita los errores grandes
   —que el cuadrático castiga desproporcionadamente— al costo de fallar más seguido
   por poco, que es lo único que el absoluto cuenta. Esa contracción es el mismo
   fenómeno que causa el hallazgo de la Sección V.4.
@@ -955,7 +955,7 @@ volatilidad; contra el almanaque **se encoge**. Los dos hechos son compatibles
 porque los rivales son distintos: en una ventana revuelta la persistencia se
 destroza, mientras que el almanaque, plano por construcción, no.
 
-Lo que queda al descubierto es que **en el régimen volátil el pronóstico se contrae
+Lo que queda al descubierto es que **en el régimen volátil la predicción se contrae
 tanto que su error se vuelve indistinguible del de un promedio**. Por qué se
 contrae, y qué le hace eso a la detección, es lo que sigue.
 
@@ -1048,7 +1048,7 @@ que sigue es medir por qué el instrumento falla de esa manera.
 
 ## V.4 El mecanismo, medido
 
-El pronóstico aplana la variabilidad. Se midió con el **coeficiente de
+La predicción aplana la variabilidad. Se midió con el **coeficiente de
 variación**, que es la desviación estándar dividida por el promedio — o sea, qué
 tan desparejo es algo en relación a su tamaño.
 
@@ -1073,7 +1073,7 @@ Traducido con una relación que el propio TCQSM establece, el mismo corredor
 califica como nivel A, "servicio prestado como un reloj" según la predicción, y
 nivel F, "la mayoría de los vehículos van pegados" según lo observado.
 
-![El aplanamiento del pronóstico](../resultados/contiguo-compresion-dispersion.png)
+![El aplanamiento de la predicción](../resultados/contiguo-compresion-dispersion.png)
 
 *Figura 4 — En gris, qué tan desparejo es el corredor de verdad; en rojo, qué tan
 desparejo lo describe cada método.*
@@ -1085,13 +1085,13 @@ persistencia sea mejor: es que no predice nada, y por eso no aplana nada.
 
 Y un dato que cierra el argumento: el XGBoost aplana tanto como el LSTM, o
 más. El aplanamiento no es un defecto de las redes neuronales. Es lo que hace
-cualquier pronóstico puntual, porque predecir el valor esperado es exactamente
+cualquier predicción puntual, porque predecir el valor esperado es exactamente
 promediar los futuros posibles.
 
 Y esto no es una interpretación de lo medido: es teoría establecida. Patton y
 Timmermann (2012) demuestran que la varianza de lo observado se descompone en la
-varianza del pronóstico óptimo más el error cuadrático medio, de modo que el
-pronóstico **no puede** tener tanta dispersión como la variable que predice; y su
+varianza de la predicción óptima más el error cuadrático medio, de modo que la
+predicción **no puede** tener tanta dispersión como la variable que predice; y su
 Corolario 2 establece que esa brecha **crece de forma monótona con el horizonte**.
 Los dos hechos son teoremas, no hallazgos de este trabajo. Lo que estas páginas
 aportan no es descubrir la sub-dispersión, sino medir su tamaño en este dominio y
@@ -1183,7 +1183,7 @@ Lo único que cambia entre una y otra es si se mide a través del corte fijo o s
 Como la definición del evento es elección propia, no se defendió con argumentos:
 se sometió a prueba. Se repitió la detección completa con un **corte absoluto en
 minutos**, que no es auto-referencial: su denominador no se mueve con el
-pronóstico. El corte se fijó como ρ × la mediana observada en el Origen 2,
+predicción. El corte se fijó como ρ × la mediana observada en el Origen 2,
 calibrado fuera de muestra y aplicado idéntico a lo observado y a lo predicho.
 
 Conviene ser exacto en algo que es fácil de confundir: **no se usó ningún horario
@@ -1396,7 +1396,7 @@ Las seis fuentes que el documento cita.
 |---|---|
 | **TCQSM** | *Transit Capacity and Quality of Service Manual*, 3.ª ed. Transportation Research Board. Manual de referencia del sector; de acá salen el cociente de un medio y la escala de niveles de servicio A–F |
 | **Yu et al. (2016)** | Predicción de *bunching* en Pekín. Enuncian la receta que este trabajo examina —umbralizar el *headway* predicho contra la referencia programada— y sustituyen el horario ausente por el *headway* observado en la primera parada de la misma corrida. Es a la vez el precedente de sustituir un horario por una referencia del propio dato |
-| **Patton & Timmermann (2012)** | *Journal of Business & Economic Statistics* 30(1):1–17. Establecen como teorema que el pronóstico óptimo está sub-disperso respecto de la variable que predice, y que la sub-dispersión crece de forma monótona con el horizonte. Es el fundamento teórico del mecanismo de la Sección V.4 |
+| **Patton & Timmermann (2012)** | *Journal of Business & Economic Statistics* 30(1):1–17. Establecen como teorema que la predicción óptima está sub-dispersa respecto de la variable que predice, y que la sub-dispersión crece de forma monótona con el horizonte. Es el fundamento teórico del mecanismo de la Sección V.4 |
 | **Moreira-Matias et al. (2016)** | Usan un cuarto del *headway* programado como criterio de evento |
 | **Sun et al. (2021)** | Usan un corte absoluto en minutos como criterio de evento |
 | **Zhang et al. (2022)** | Uso reciente del cociente de un medio del TCQSM |
@@ -1422,6 +1422,7 @@ Las seis fuentes que el documento cita.
 | **Percentil** | Valor por debajo del cual queda cierto porcentaje de los datos |
 | **Winsorizar** | Recortar los valores extremos a un tope, en lugar de borrarlos |
 | **Persistencia** | Predecir que el futuro será igual al presente. La vara mínima |
+| **Predicción** | El vector de intervalos que el modelo dice que va a haber. Este documento la llama siempre así; *pronóstico* es sinónimo y se reserva para nombrar la disciplina (*pronóstico de series de tiempo*) |
 | **Aprendiz** | Cualquiera de los dos modelos que aprenden de los datos —LSTM o XGBoost— por oposición a la persistencia, que no aprende nada |
 | **Celda** | Una combinación de corredor y horizonte. Hay 12 (3 corredores × 4 horizontes). Cuando algo se mide en los tres períodos de prueba, son 36 mediciones sobre esas mismas 12 celdas |
 | **Celda de detección** | Una posición del vector en un minuto concreto del conjunto de prueba: la unidad sobre la que se cuenta si la alarma sonó |
@@ -1439,7 +1440,7 @@ Las seis fuentes que el documento cita.
 | **Terciles** | Los dos cortes que parten los datos en tres grupos del mismo tamaño |
 | **Origen rodante** | Repetir todo el experimento moviendo el punto de corte en el tiempo, para comprobar que la conclusión no dependa de un período particular |
 | **Ventana expansiva** | Variante del anterior en la que el entrenamiento se alarga en cada repetición en lugar de desplazarse |
-| **Diebold-Mariano** | Prueba estadística para comparar dos pronósticos, fila por fila |
+| **Diebold-Mariano** | Prueba estadística para comparar dos predicciones, fila por fila |
 | **Wilcoxon** | Prueba estadística que no supone ninguna forma de distribución |
 | **Valor *p*** | Probabilidad de que el resultado observado sea casualidad |
 | **SHA-256** | Huella digital de un archivo; cambia por completo si se altera un solo byte |

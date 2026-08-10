@@ -107,7 +107,8 @@ que no existen.
 ## Cómo se armó el experimento
 
 El modelo mira **12 minutos de historia reciente** y predice cómo va a estar el
-corredor completo a 1, 3, 5 y 10 minutos hacia adelante.
+corredor completo a 1, 3, 5 y 10 minutos hacia adelante. A eso que entrega —los
+intervalos que dice que va a haber— lo llamamos **la predicción**.
 
 ![Partición temporal](figuras/esquema-particion-temporal.png)
 
@@ -123,7 +124,7 @@ Se la compara contra tres rivales, y el orden importa:
 
 - **La persistencia.** No es un modelo, es una regla: repetir el último valor
   observado. No aprende nada y no se entrena. Es la vara mínima, y la referencia
-  habitual en pronóstico de series de tiempo. Si un modelo no le gana a esto, no
+  habitual en el campo del pronóstico de series de tiempo. Si un modelo no le gana a esto, no
   sirve.
 - **XGBoost.** Aprendizaje automático clásico, no profundo: un conjunto de árboles
   de decisión que se corrigen entre sí. Es muy fuerte en datos de tabla, y es el
@@ -144,7 +145,7 @@ cada uno y la comparación deja de significar algo.
 
 ## Lo que se encontró
 
-### 1. El modelo pronostica bien
+### 1. El modelo predice bien
 
 A 10 minutos de anticipación mejora el error frente a la persistencia en los tres
 corredores, y por un margen prácticamente igual en los tres:
@@ -155,7 +156,7 @@ corredores, y por un margen prácticamente igual en los tres:
 | E4 | 5.15 min | 6.53 min | **−21.2 %** |
 | E59 | 4.16 min | 5.33 min | **−22.0 %** |
 
-*El error es el promedio de cuántos minutos se equivoca el pronóstico. Menos es
+*El error es el promedio de cuántos minutos se equivoca la predicción. Menos es
 mejor.*
 
 Que los tres corredores caigan dentro de un punto porcentual, siendo distintos en
@@ -183,7 +184,7 @@ tres. El corredor viene apretado alrededor de un tercio del tiempo. Ese es el
 problema que había que detectar.
 
 Ahora sí, el resultado. Al aplicar el procedimiento de detección estándar del campo,
-el mismo modelo que pronostica mejor tocó la alarma **catorce veces**:
+el mismo modelo que predice mejor tocó la alarma **catorce veces**:
 
 | E2, a 10 minutos | LSTM | Persistencia | Detector que marca todo |
 |---|---|---|---|
@@ -239,13 +240,13 @@ intervalos como 9, 10, 11, 10. Uno con *bunching*, como 2, 18, 3, 17. **El prome
 de los dos es el mismo.** Lo que los distingue es qué tan desparejos son.
 
 Medido con esa idea, la realidad de un corredor da **0.79 y la predicción del modelo
-da 0.16**. El pronóstico describe un corredor casi cinco veces más parejo de lo que
+da 0.16**. La predicción describe un corredor casi cinco veces más parejo de lo que
 realmente es.
 
-![El aplanamiento del pronóstico](../resultados/contiguo-compresion-dispersion.png)
+![El aplanamiento de la predicción](../resultados/contiguo-compresion-dispersion.png)
 
 Y no es un defecto de las redes neuronales: el XGBoost aplana igual o más.
-Es lo que hace cualquier pronóstico que devuelve un único número, porque predecir el
+Es lo que hace cualquier predicción que sea un único número, porque predecir el
 valor esperado es exactamente promediar los futuros posibles. En estadística está
 demostrado como teorema desde hace más de una década.
 
@@ -256,7 +257,7 @@ simplemente nunca se dispara.
 ### 5. Se repara moviendo el corte, no el modelo
 
 El problema, en una línea: **la alarma estaba puesta para sonar en un nivel de
-irregularidad que un pronóstico aplanado nunca alcanza.**
+irregularidad que una predicción aplanada nunca alcanza.**
 
 Hay dos maneras de comprobar que el culpable es ese y no el modelo. Se hicieron las
 dos.
@@ -278,7 +279,7 @@ poco corta; en E4 y E59 se excede, suena más seguido de lo que el problema ocur
 No queda perfecta — queda utilizable.
 
 Y hay un detalle que cierra el caso. Se buscó también dónde le queda mejor la raya
-**a la persistencia**, que es un pronóstico que no está aplanado. Le queda donde el
+**a la persistencia**, que es una predicción que no está aplanada. Le queda donde el
 campo la puso —en la mitad— en 10 de las 12 combinaciones de corredor y horizonte.
 Al modelo no le queda ahí en ninguna: siempre necesita una raya más floja.
 
@@ -322,8 +323,8 @@ real.
 > **Cuando un modelo parece incapaz de detectar el *bunching*, muchas veces no falla
 > el modelo: falla la regla con la que se lo mide.**
 
-El campo juzga los pronósticos con la misma regla que usó para definir el problema
-sobre la realidad. Pero un pronóstico siempre es más parejo que la realidad.
+El campo juzga las predicciones con la misma regla que usó para definir el problema
+sobre la realidad. Pero una predicción siempre es más pareja que la realidad.
 Entonces la regla nunca se dispara, y el modelo parece ciego sin serlo.
 
 **Se arregla moviendo la regla, no cambiando el modelo.**
@@ -333,7 +334,7 @@ Dos cosas le dan peso a esto.
 **No es una opinión sobre el campo.** El procedimiento que causa el problema está
 escrito, con esas palabras, en el trabajo más citado del tema.
 
-**Y no le pasa solo a este modelo.** Que un pronóstico salga más parejo que la
+**Y no le pasa solo a este modelo.** Que una predicción salga más pareja que la
 realidad no es un defecto de la red, ni de estos datos, ni de esta ciudad: está
 demostrado como teorema. Le pasa a cualquier método que prediga un solo número.
 
@@ -349,7 +350,7 @@ Conviene ser explícito, porque marca el borde de lo que se puede afirmar.
 
 - **No construye un sistema de despacho.** Lo que se establece es que la información
   está presente y es explotable, no que alcance para operar un servicio real.
-- **Las magnitudes absolutas son modestas.** El error de pronóstico sigue siendo
+- **Las magnitudes absolutas son modestas.** El error de predicción sigue siendo
   grande frente al tamaño típico de un intervalo, y la calidad de detección, aunque
   mejor que el azar, recorre una fracción chica del camino.
 - **Contra una vara más exigente que la persistencia** —el almanaque por franja
