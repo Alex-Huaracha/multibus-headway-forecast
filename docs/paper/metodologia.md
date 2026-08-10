@@ -1121,6 +1121,19 @@ Ajustando el corte por MCC sobre una ventana anterior y separada:
 Es decir: para la persistencia, el 0.5 publicado era prácticamente su óptimo. Para
 el modelo profundo, no lo era.
 
+Lo primero que se recupera es la frecuencia de disparo. Con el corte del campo el
+LSTM estaba prácticamente mudo; con el corte reajustado vuelve al orden de magnitud
+del evento:
+
+| A 10 minutos — alarmas del LSTM sobre los eventos que había | E2 | E4 | E59 |
+|---|---|---|---|
+| Con el corte del campo | 0.09 % | 1.54 % | 3.62 % |
+| Con el corte reajustado | **89.1 %** | **163.5 %** | **135.3 %** |
+
+*Reajustar el corte no calibra la frecuencia de disparo: la devuelve al orden de
+magnitud del evento. En E4 y E59 el modelo pasa a disparar más seguido de lo que el
+evento ocurre.*
+
 Con el corte reajustado, o midiendo sin ningún umbral de decisión, **el veredicto
 se invierte**. Los números, a 10 minutos:
 

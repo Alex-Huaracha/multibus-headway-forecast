@@ -255,28 +255,36 @@ simplemente nunca se dispara.
 
 ### 5. Se repara moviendo el corte, no el modelo
 
-Se hicieron las dos reparaciones por separado, y las dos dan lo mismo: **el
-veredicto se da vuelta.**
+El problema, en una línea: **la alarma estaba puesta para sonar en un nivel de
+irregularidad que un pronóstico aplanado nunca alcanza.**
 
-Antes de los números, una aclaración sobre el puntaje, porque cambia. El del
-hallazgo 2 no sirve acá, y el propio documento ya mostró por qué: un detector que
-marca absolutamente todo sacaba 0.465 con ese puntaje. **Un puntaje que premia
-marcar todo no puede juzgar una reparación.** Los dos que siguen no se dejan
-engañar así — miran las cuatro casillas del acierto y descuentan lo que se saca por
-azar.
+Hay dos maneras de comprobar que el culpable es ese y no el modelo. Se hicieron las
+dos.
 
-**Primero, reajustando dónde va la raya** —con datos de un período anterior, nunca
-con los del período donde después se mide:
+**La primera: correr la raya.** Es un detector de humo tan poco sensible que nunca
+suena. No se tira el detector — se le sube la sensibilidad. ¿Cuánto? Eso se mide
+sobre un período anterior, nunca sobre el que después se usa para evaluar. Si no,
+sería hacer trampa mirando la respuesta.
 
-| A 10 minutos | El modelo | La persistencia |
-|---|---|---|
-| E2 | **0.085** | 0.027 |
-| E4 | **0.126** | 0.111 |
-| E59 | **0.161** | 0.119 |
+Con la raya en su nuevo lugar, la alarma vuelve a sonar:
 
-**Segundo, midiendo sin ninguna raya.** Acá el puntaje responde otra pregunta: de
-dos momentos tomados al azar, uno con *bunching* y otro sin, cuántas veces el
-modelo le asigna más riesgo al que corresponde. Un 0.5 es tirar una moneda.
+| A 10 minutos | E2 | E4 | E59 |
+|---|---|---|---|
+| Antes — de las alarmas que debía tocar, tocó | 0.1 % | 1.5 % | 3.6 % |
+| **Después** | **89 %** | **164 %** | **135 %** |
+
+De estar prácticamente muda pasa a sonar en el orden correcto. En E2 se queda un
+poco corta; en E4 y E59 se excede, suena más seguido de lo que el problema ocurre.
+No queda perfecta — queda utilizable.
+
+**La segunda: medir sin ninguna raya.** Si el problema es dónde está la raya,
+entonces hay que medir algo que no la tenga. En lugar de preguntar "¿suena o no
+suena?", se pregunta:
+
+> Tomamos dos momentos al azar, uno con *bunching* y otro sin. ¿El modelo le da más
+> riesgo al que corresponde?
+
+Una moneda acierta la mitad de las veces. Eso es el 0.5:
 
 | A 10 minutos | El modelo | La persistencia |
 |---|---|---|
@@ -284,15 +292,18 @@ modelo le asigna más riesgo al que corresponde. Un 0.5 es tirar una moneda.
 | E4 | **0.604** | 0.558 |
 | E59 | **0.632** | 0.571 |
 
-Gana en los tres corredores y en las dos pruebas. Ese es el desenlace: la
-información estaba, y aparece apenas se deja de medirla con una raya puesta en el
-lugar equivocado.
+Acierta más que la moneda, y más que la persistencia, en los tres corredores.
 
-**Pero hay que leer las magnitudes, no solo los signos.** Un 0.60 sobre un piso de
-azar de 0.50 recorre una fracción chica del camino. Lo que estos números
-establecen es que la información está presente y que el orden entre los dos métodos
-se invierte con el horizonte. **No** que ninguno de los dos esté listo para operar
-un servicio real.
+**Las dos pruebas no se eligieron al azar:** se eligieron porque las dos
+explicaciones posibles predicen resultados distintos. Si al modelo le faltara la
+información, correr la raya no la haría aparecer, y medir sin raya tampoco.
+Apareció en las dos. Eso descarta una explicación y deja la otra en pie: **el
+modelo tiene la información, y el procedimiento estándar no la deja ver.**
+
+**Ahora, la magnitud.** Un 0.565 le gana a la moneda, pero no por mucho. Estos
+números muestran que la información está y que el orden entre los dos métodos se da
+vuelta con el horizonte. No muestran que ninguno esté listo para operar un servicio
+real.
 
 ![El veredicto sin corte fijo](../resultados/contiguo-deteccion-sin-umbral.png)
 
