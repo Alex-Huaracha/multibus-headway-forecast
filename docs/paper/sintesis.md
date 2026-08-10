@@ -277,6 +277,14 @@ De estar prácticamente muda pasa a sonar en el orden correcto. En E2 se queda u
 poco corta; en E4 y E59 se excede, suena más seguido de lo que el problema ocurre.
 No queda perfecta — queda utilizable.
 
+Y hay un detalle que cierra el caso. Se buscó también dónde le queda mejor la raya
+**a la persistencia**, que es un pronóstico que no está aplanado. Le queda donde el
+campo la puso —en la mitad— en 10 de las 12 combinaciones de corredor y horizonte.
+Al modelo no le queda ahí en ninguna: siempre necesita una raya más floja.
+
+Mismo dato, mismo evento, mismo código. **Lo único que cambia es si la predicción
+está aplanada o no.** Eso descarta que el problema sea del modelo, o de esta ciudad.
+
 **La segunda: medir sin ninguna raya.** Si el problema es dónde está la raya,
 entonces hay que medir algo que no la tenga. En lugar de preguntar "¿suena o no
 suena?", se pregunta:

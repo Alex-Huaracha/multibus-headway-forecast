@@ -1115,11 +1115,17 @@ Ajustando el corte por MCC sobre una ventana anterior y separada:
 
 | | Multiplicador que le queda mejor |
 |---|---|
-| Persistencia | **cerca de 0.5×** — 11 de 12 casos redondean a 0.5; el rango completo va de 0.46 a 0.60 |
-| LSTM | **0.58× a 0.91×**, siempre más laxo |
+| Persistencia | **cerca de 0.5×** en 10 de los 12 casos — de 0.465 a 0.544. Las dos excepciones son E2: 0.597 a h = 5 y **1.202 a h = 10** |
+| LSTM | **de 0.584× a 0.913×** en los 12 casos, siempre más laxo que 0.5 |
 
-Es decir: para la persistencia, el 0.5 publicado era prácticamente su óptimo. Para
-el modelo profundo, no lo era.
+*La excepción de E2 a h = 10 merece nombrarse porque cae en la celda que este
+documento usa como ilustración. Ahí la persistencia calibrada alcanza un MCC de
+0.027 sobre el conjunto de prueba —prácticamente nulo—, de modo que el
+multiplicador ajustado no identifica un punto de operación informativo y no debe
+leerse como tal.*
+
+Es decir: para la persistencia el 0.5 publicado era prácticamente su óptimo en 10
+de las 12 celdas. Para el modelo profundo no lo fue en **ninguna**.
 
 Lo primero que se recupera es la frecuencia de disparo. Con el corte del campo el
 LSTM estaba prácticamente mudo; con el corte reajustado vuelve al orden de magnitud
