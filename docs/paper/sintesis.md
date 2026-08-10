@@ -255,11 +255,44 @@ simplemente nunca se dispara.
 
 ### 5. Se repara moviendo el corte, no el modelo
 
-Reajustando dónde va la raya —con datos de un período anterior, nunca con los del
-período donde después se mide— **el veredicto se da vuelta**: el modelo detecta
-mejor que el método trivial, en los tres corredores.
+Se hicieron las dos reparaciones por separado, y las dos dan lo mismo: **el
+veredicto se da vuelta.**
 
-Y midiendo sin ninguna raya, lo mismo.
+Antes de los números, una aclaración sobre el puntaje, porque cambia. El del
+hallazgo 2 no sirve acá, y el propio documento ya mostró por qué: un detector que
+marca absolutamente todo sacaba 0.465 con ese puntaje. **Un puntaje que premia
+marcar todo no puede juzgar una reparación.** Los dos que siguen no se dejan
+engañar así — miran las cuatro casillas del acierto y descuentan lo que se saca por
+azar.
+
+**Primero, reajustando dónde va la raya** —con datos de un período anterior, nunca
+con los del período donde después se mide:
+
+| A 10 minutos | El modelo | La persistencia |
+|---|---|---|
+| E2 | **0.085** | 0.027 |
+| E4 | **0.126** | 0.111 |
+| E59 | **0.161** | 0.119 |
+
+**Segundo, midiendo sin ninguna raya.** Acá el puntaje responde otra pregunta: de
+dos momentos tomados al azar, uno con *bunching* y otro sin, cuántas veces el
+modelo le asigna más riesgo al que corresponde. Un 0.5 es tirar una moneda.
+
+| A 10 minutos | El modelo | La persistencia |
+|---|---|---|
+| E2 | **0.565** | 0.528 |
+| E4 | **0.604** | 0.558 |
+| E59 | **0.632** | 0.571 |
+
+Gana en los tres corredores y en las dos pruebas. Ese es el desenlace: la
+información estaba, y aparece apenas se deja de medirla con una raya puesta en el
+lugar equivocado.
+
+**Pero hay que leer las magnitudes, no solo los signos.** Un 0.60 sobre un piso de
+azar de 0.50 recorre una fracción chica del camino. Lo que estos números
+establecen es que la información está presente y que el orden entre los dos métodos
+se invierte con el horizonte. **No** que ninguno de los dos esté listo para operar
+un servicio real.
 
 ![El veredicto sin corte fijo](../resultados/contiguo-deteccion-sin-umbral.png)
 
