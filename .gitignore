@@ -2,6 +2,11 @@
 kaggle.json
 .kaggle/
 access_token
+# Project-local Kaggle credentials (KAGGLE_CONFIG_DIR points here) so nothing is
+# written to ~/.kaggle on a machine that is not ours. Delete the folder and .env
+# when done. See CLAUDE.md "The Kaggle CLI" and .env.example.
+.kaggle-local/
+.env
 
 # Python
 .venv/

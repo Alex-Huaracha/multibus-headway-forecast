@@ -59,7 +59,18 @@ uv run python src/...      # corre cualquier script
 uv add <paquete>            # agregar dependencias
 ```
 
-Token de Kaggle en `~/.kaggle/access_token` (chmod 600). En Windows: `%USERPROFILE%\.kaggle\access_token`.
+Token de Kaggle en `.env` (`KAGGLE_API_TOKEN`, ver `.env.example`). Las
+credenciales quedan dentro del repo: borrar `.env` y `.kaggle-local/` no deja
+rastro en la máquina. El cliente también acepta `~/.kaggle/access_token`, pero
+esa ruta sí persiste fuera del repo.
+
+`uv run` no lee `.env` solo, así que antes de cualquier `uv run kaggle ...` de
+este README hay que exportarlo una vez por shell — o pasarlo por llamada:
+
+```bash
+$env:UV_ENV_FILE = ".env"                     # PowerShell; en bash: export UV_ENV_FILE=.env
+uv run --env-file .env kaggle ...             # alternativa por llamada
+```
 
 ## Reproducción de resultados (recertificación)
 

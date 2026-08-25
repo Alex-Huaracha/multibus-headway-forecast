@@ -15,11 +15,16 @@ análisis locales.
 ```bash
 cd multibus-headway-forecast
 uv sync
+cp .env.example .env                 # pegar el token; ver comentarios del archivo
+$env:UV_ENV_FILE = ".env"            # una vez por shell — sin esto no autentica
 uv run kaggle kernels list -m -p 1   # debe responder sin error
 ```
 
-- Credenciales en `~/.kaggle/access_token` (Kaggle → Settings → API → Create New
-  Token), `chmod 600`. **No es `kaggle.json`**: ese es el formato antiguo.
+- Credenciales: `KAGGLE_API_TOKEN` en `.env` (gitignored). El token sale de
+  Kaggle → Settings → API → Create New Token; **no** lleva usuario.
+- **Todos los `uv run kaggle ...` de esta guía asumen `UV_ENV_FILE` exportado.**
+  `uv run` no lee `.env` por su cuenta; la alternativa por llamada es
+  `uv run --env-file .env kaggle ...`.
 - El CLI es dependencia del proyecto: **siempre** `uv run kaggle ...`, nunca
   `kaggle` global ni `pip install kaggle`.
 
@@ -126,7 +131,7 @@ fd "lstm_contig_E4_residuals" $D | wc -l       # 4 — E4,     corte publicado
 
 | Síntoma | Causa y qué hacer |
 |---|---|
-| `403 Forbidden` en push | Token vencido o kernel de otra cuenta. Regenerar `~/.kaggle/access_token`. |
+| `403 Forbidden` en push | Token vencido o kernel de otra cuenta. Regenerar el token y actualizar `KAGGLE_API_TOKEN` en `.env`. |
 | `no kernel image is available for execution on the device` | Desajuste de entorno GPU (P100 en vez de T4×2). **Se corrige desde la web**, no desde el CLI ni el builder. |
 | `CANCEL_REQUESTED` + `Maximum batch GPU session count of 2 reached` | Límite de sesiones. Esperar y relanzar. |
 | `kaggle kernels output` trae archivos gigantes | Descarga TODOS los outputs; los kernels fuente incluyen parquets. Los DL solo emiten CSVs + log. |
