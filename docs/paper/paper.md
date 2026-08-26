@@ -433,7 +433,95 @@ absoluto de la convención dominante.
 
 ## V. Discusión y limitaciones
 
-_(pendiente)_
+### A. Qué significa para quien opera un corredor
+
+El resultado operativo no es que el modelo detecte mejor. Es que **el modelo calla
+mucho y acierta cuando habla**, y esas son dos cosas distintas que la métrica
+habitual suma en un solo número.
+
+Con el corte trasladado, el aprendiz marca el 0,1 % de las celdas en E2 a diez
+minutos y acierta el 71 % de las veces que marca, contra una tasa base del 30 %.
+En E59 marca más y acierta la mitad, contra un 21 % de base. En los tres corredores
+la señal, cuando aparece, es entre dos y tres veces más informativa que el azar.
+
+Eso no es una alarma y no conviene venderlo como tal. Una alarma tiene que sonar
+cuando ocurre el evento, y ésta se queda callada la mayoría de las veces. Lo que sí
+es, es un **filtro de prioridad**: un despachador que vigila tres corredores no
+puede mirar todo a la vez, y un aviso que acierta la mitad de las veces que habla
+merece que se lo mire, siempre que se acepte de antemano que no va a hablar en la
+mayoría de los casos.
+
+Y hay una consecuencia inmediata para cualquiera que hoy esté evaluando un
+pronóstico de este tipo: **el punto de operación se recalibra contra la
+distribución del propio pronóstico, no se hereda de las observaciones.** Es una
+línea de código y no requiere reentrenar nada.
+
+### B. Qué es nuestro y qué no
+
+Buena parte del mecanismo que este trabajo mide ya está publicado, y conviene
+decirlo antes de que lo diga un revisor.
+
+Que un pronóstico optimizado en error cuadrático salga más parejo que la realidad
+está enunciado por Mayer y Yang y **demostrado como teorema** por Patton y
+Timmermann. No lo reclamamos. Tampoco reclamamos haber sido los primeros en atar
+esa compresión a una métrica categórica ni en observar que empeora con el
+horizonte: las dos cosas están en Petetin y colaboradores. Que el paradigma de
+predecir-y-umbralizar falla, y que el veredicto se revierte al puntuar sin punto de
+operación, lo diagnosticaron Sun, Schmöcker y Nakamura. Y recalcular un umbral
+contra la distribución de cada modelo es, exactamente, el procedimiento de
+Hoffmann, Menz y Spekat en reducción de escala climática, ocho años antes. El cruce
+entre persistencia y modelo aprendido al alargar el horizonte es folclore conocido
+en pronóstico de tráfico, y el resultado nulo de las variantes espaciales confirma
+trabajo publicado: llegar segundo a una conclusión no la vuelve propia.
+
+Lo que reclamamos son tres cosas más angostas. **Primera**, medir la compresión
+sobre el vector de intervalos, como dispersión entre buses en un mismo instante —
+los precedentes trabajan sobre la variabilidad temporal de una serie escalar, que
+no es lo mismo. **Segunda**, dar vuelta la fórmula de calidad de servicio del
+manual del oficio y aplicarla al pronóstico en lugar de a lo observado. **Tercera**,
+y es la que no tiene precedente dentro ni fuera del transporte, atarlo a una regla
+de evento **relativa y auto-referencial**, donde la compresión mueve el numerador y
+el denominador a la vez. En Petetin eso no falta por descuido sino por
+construcción: sus umbrales son regulatorios y no admiten recalibración.
+
+### C. Alcance y limitaciones
+
+El alcance de cada afirmación se enuncia completo.
+
+**El hallazgo del umbral vale para el evento relativo.** Bajo un corte absoluto en
+minutos —la convención dominante— el efecto se agrava, pero la capacidad de
+discriminación del aprendiz cae, y en E2 a diez minutos llega a 0,49: azar. Ahí la
+afirmación *el aprendiz no es ciego* no se sostiene.
+
+**Las dos formas de puntuar la detección coinciden en once de doce celdas.** La
+excepción es E59 a cinco minutos, donde el aprendiz gana el área bajo la curva y
+pierde la correlación recalibrada. Ordenar bien y operar bien en un punto fijo son
+capacidades distintas, y esa celda las separa.
+
+**El eje escalar tiene un competidor que le gana en una celda.** Frente al promedio
+histórico por franja horaria, el aprendiz gana en once de doce; pierde en E2 a diez
+minutos por 0,07 minutos. Es cuatro segundos y está en el eje que este trabajo
+reporta como contexto, pero el número existe y se declara.
+
+**La comparación entre los dos aprendices no está nivelada.** Como se dijo en la
+Sección III, el conjunto de árboles recibió veinticuatro configuraciones por celda
+y la red una sola en dos corredores. Donde la red pierde, la causa no es
+atribuible a la clase de modelo.
+
+**El umbral del evento no está calibrado contra incidentes registrados.** Se eligió
+por analogía con la convención del campo, no contra un registro operativo de
+apelotonamientos. Validarlo así exige un dato que estos corredores no producen.
+
+**La evidencia es de tres corredores de una ciudad y cinco meses**, y el período de
+prueba contiene los días de Carnaval, cuya composición no se caracterizó. Los tres
+orígenes comparten día de inicio, de modo que establecen estabilidad frente a la
+elección del período de prueba y no réplica independiente.
+
+**Y lo que este trabajo no afirma:** que estos modelos estén listos para operar una
+alarma de apelotonamiento. Un área bajo la curva de 0,60 es información real y está
+muy lejos de un sistema de despacho. Ninguna función de costo liga aquí un error de
+1,47 minutos, ni un área de 0,60, a una decisión de intervención concreta. Cerrar
+esa distancia es trabajo por hacer, no resultado logrado.
 
 ---
 

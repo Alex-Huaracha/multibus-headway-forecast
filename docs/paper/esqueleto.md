@@ -337,6 +337,14 @@ Ninguno requiere GPU ni Kaggle. Los números ya están calculados y commiteados.
       81–91 % de fotos utilizables) y `contiguous_winsorization_sensitivity.csv`
       (0,78–1,11 % de objetivos topados). El promedio histórico entra como cuarto
       competidor, cerrando el pendiente 1 del §5.
+- [x] **Sección V escrita** — 920 palabras contra 900. Las limitaciones se
+      redactan como **alcance, no como disculpa**: cada una delimita dónde vale la
+      afirmación en vez de pedir perdón por dónde no. Entran las tres incómodas
+      —promedio histórico en E2 h10, tensión AUC/MCC en E59 h5, AUC de azar bajo
+      corte absoluto— más la asimetría de búsqueda y los orígenes anidados.
+- [x] Pendiente 2 del §5 (**doble estándar media/mediana**) **resuelto por
+      construcción**: la Sección IV se escribió desde cero y esa afirmación nunca
+      entró. No hay nada que borrar.
 - [ ] Redacción — orden vigente: **IV → III → V → II → VI → I → Resumen**.
       Se escribe IV primero porque sus cifras están cerradas y el resto del paper
       calibra contra ellas; II va tarde porque el recorte de 3 923 a 850 palabras
