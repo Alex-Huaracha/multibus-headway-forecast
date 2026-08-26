@@ -20,7 +20,146 @@ _(pendiente)_
 
 ## III. Datos y método
 
-_(pendiente)_
+### A. Los datos
+
+El trabajo usa los registros de posición de la flota del Sistema Integrado de
+Transporte de Arequipa: cada unidad emite su coordenada cada pocos segundos.
+Se cubren tres corredores —identificados aquí como E2, E4 y E59— durante 152 días
+seguidos, del 1 de octubre de 2023 al 29 de febrero de 2024, sin huecos de
+calendario.
+
+Importa tanto lo que el dato tiene como lo que no. **No hay horario publicado, no
+hay archivo GTFS y no hay tabla de paradas.** Eso obliga a construir todo desde la
+posición cruda, que es trabajo extra, pero también es lo que vuelve el método
+aplicable: la mayoría de las ciudades donde el apelotonamiento es un problema
+cotidiano son exactamente las que no tienen ese dato ordenado. Un método que exija
+GTFS no sirve donde más falta hace.
+
+Una advertencia de identidad, porque condiciona todo lo demás: el identificador de
+unidad se repite entre empresas, así que un bus solo queda determinado por el par
+empresa-unidad. Tratarlo de otro modo mezcla vehículos de corredores distintos.
+
+### B. Del GPS al intervalo entre buses
+
+Sin tabla de paradas no se puede medir el intervalo en una parada. Lo que sigue
+reconstruye la geometría del corredor desde los propios datos.
+
+Primero se ajusta el **eje del corredor**: se toman las posiciones de los buses en
+movimiento y se les ajusta una línea central, que después se suaviza. El eje no
+viene de un archivo de ruta; sale de por dónde circularon los buses. Cada posición
+se proyecta sobre ese eje y queda reducida a un solo número: cuánto ha avanzado el
+bus a lo largo del corredor. Las posiciones que caen a más de 300 metros del eje se
+descartan por no pertenecer al corredor.
+
+El **sentido de marcha** se deduce del signo de ese avance, suavizado sobre varias
+posiciones para que un error de GPS aislado no invierta la dirección. Después el
+recorrido de cada bus se corta en viajes: un salto de más de treinta minutos sin
+señal, una inversión de sentido o una espera prolongada en terminal cierran el
+viaje en curso. Por último todo se lleva a una **rejilla de sesenta segundos**, de
+modo que en cada minuto exista una foto del corredor completo.
+
+Sobre esa foto se define el intervalo. Para cada par de buses consecutivos en el
+mismo sentido, el intervalo es **hace cuánto tiempo el bus de adelante pasó por el
+punto donde el de atrás está ahora**. Es un cruce por posición y no por parada, que
+es precisamente lo que permite prescindir de la tabla de paradas. Con *N* buses
+circulando, el corredor queda descrito en cada minuto por un vector de *N* − 1
+números. Si el cruce hallado tiene más de treinta minutos de antigüedad se emite
+«sin dato», para no arrastrar un paso de horas antes.
+
+Esta forma no se eligió por comodidad. Se compararon cuatro definiciones
+alternativas del intervalo sobre siete criterios de viabilidad —entre ellos la
+cobertura, la plausibilidad física de la velocidad implícita y la información
+compartida entre buses vecinos—, y ésta ganó en seis de los siete.
+
+![Definición del intervalo entre buses](figuras/esquema-headway.png)
+
+**Fig. 1.** El intervalo entre dos buses consecutivos. Trayectorias ilustrativas,
+no datos reales.
+
+### C. Los métodos comparados
+
+Se comparan cuatro. Una **red recurrente** que recibe el vector de intervalos de
+los últimos doce minutos junto a cuatro variables de contexto, y emite el vector
+completo para el horizonte pedido. Un **conjunto de árboles con refuerzo de
+gradiente**, que recibe la misma información en forma de rezagos y variables de
+calendario. **Repetir el último valor observado**, que es la línea base obligada de
+todo pronóstico de series de tiempo. Y el **promedio histórico por franja horaria**,
+que responde con lo que suele pasar a esa hora del día.
+
+Los dos últimos no son adorno. Repetir el último valor es una vara exigente a
+horizonte corto y se vuelve débil al alargarlo, de modo que por sí sola dejaría al
+aprendiz compitiendo contra nadie a diez minutos. El promedio histórico cubre
+justamente ese flanco: como no depende del horizonte, su error es plano, y a diez
+minutos se convierte en el competidor real.
+
+Corresponde declarar una asimetría del procedimiento. El conjunto de árboles se
+seleccionó sobre veinticuatro configuraciones por celda; la red heredó una única
+configuración en dos de los tres corredores. **Donde la red pierde contra los
+árboles, ese resultado no es atribuible a la clase de modelo**, y el trabajo no lo
+usa como si lo fuera.
+
+### D. Qué cuenta como apelotonamiento
+
+Hay que decidir cuándo un intervalo cuenta como apelotonamiento. La convención del
+campo es una fracción del intervalo programado —normalmente un cuarto—, pero aquí
+no hay programación contra la cual comparar. Se sustituye por el análogo directo:
+**un intervalo cuenta como apelotonamiento si cae por debajo de la mitad del
+promedio de su propio vector en ese instante.** Se exige que el vector tenga al
+menos tres buses, porque con dos el promedio es poco informativo.
+
+La sustitución es nuestra y se declara como tal: esta forma —fracción del promedio
+observado— no se encontró como definición de evento en la literatura publicada. La
+elección del valor tampoco es neutral, y el campo lo sabe: los umbrales publicados
+van desde veinte segundos hasta un cuarto del intervalo programado, y no existe un
+único valor aceptado.
+
+Conviene hacer explícita una propiedad de esta regla, porque es la bisagra de todo
+el trabajo. **El corte se mide contra el promedio del propio vector que se está
+evaluando.** No es un número fijo en minutos: se mueve con el vector. Aplicado a lo
+observado se calibra sobre la dispersión observada; aplicado a un pronóstico se
+mide contra la dispersión del pronóstico. Si esas dos dispersiones difieren, no es
+el mismo corte aunque se escriba igual. La Sección IV mide qué ocurre cuando se
+ignora esa diferencia.
+
+### E. Cómo se evalúa
+
+La partición es **por fecha y nunca al azar**, porque un operador solo dispone del
+pasado: 107 días de entrenamiento, 23 de validación y 22 de prueba. Para comprobar
+que el resultado no depende del mes elegido, todo se repite sobre tres orígenes que
+arrancan el mismo día y alargan el entrenamiento —61, 83 y 107 días—, con períodos
+de prueba que no se solapan entre sí. Como los entrenamientos están anidados, esto
+establece estabilidad frente a la elección del período de prueba, y no réplica
+independiente; se declara así.
+
+![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.png)
+
+**Fig. 2.** La partición por tiempo y los tres orígenes de evaluación.
+
+Cuatro reglas más gobiernan la comparación, y las cuatro existen para cerrar un
+camino por el que un número podría entrar sin merecerlo.
+
+**Continuidad estricta.** Una muestra solo es válida si los minutos que la componen
+son consecutivos de verdad. Sin esa exigencia, una ventana puede saltar un hueco de
+señal y un «horizonte de diez minutos» aterrizar horas después. Cumplirla cuesta
+datos —sobrevive entre el 81 % y el 91 % de las fotos— y ese es el precio de que el
+horizonte signifique lo que dice.
+
+**Población compartida.** Los métodos se puntúan sobre exactamente las mismas
+filas. No se declara: se verifica. El trabajo de entrenamiento recalcula la lista
+de muestras, compara su huella criptográfica contra la registrada y **aborta antes
+de tocar la GPU** si no coincide. Cuando dos métodos se puntúan sobre conjuntos de
+filas distintos, la comparación no queda sesgada sino indefinida.
+
+**Tope al 1 % más alto.** El umbral se calcula **solo sobre el entrenamiento** y se
+aplica a las tres particiones por igual. Calcularlo sobre cada partición dejaría
+entrar información del período de prueba. Afecta entre el 0,78 % y el 1,11 % de los
+objetivos.
+
+**Varianza agrupada por día de servicio.** Dos minutos del mismo día no son
+observaciones independientes. Agrupar por día lleva el tamaño efectivo de muestra
+de decenas de miles de filas a 22 días, que es la cifra honesta. Tres veredictos
+que parecían significativos no sobreviven a ese cambio, y se reportan como no
+significativos.
 
 ---
 
@@ -92,13 +231,13 @@ instante**. Las 36 celdas son por lo tanto un resultado empírico, no un corolar
 
 ![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
 
-**Fig. 1.** Dispersión observada frente a dispersión predicha, horizonte de diez
+**Fig. 3.** Dispersión observada frente a dispersión predicha, horizonte de diez
 minutos. La barra de la persistencia iguala a la observada: hereda el vector real
 y sirve de control. Los dos aprendices lo aplanan.
 
 ![Sesgo de dispersión contra horizonte](figuras/compresion-vs-horizonte.es.png)
 
-**Fig. 2.** El mismo sesgo contra el horizonte. La persistencia no se despega de
+**Fig. 4.** El mismo sesgo contra el horizonte. La persistencia no se despega de
 cero; los dos aprendices se hunden de forma monótona. La compresión escala con la
 distancia que se pide anticipar.
 
@@ -143,7 +282,7 @@ al que calla y al que se equivoca no distingue esos dos casos.
 
 ![Tasa de disparo contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 3.** Fracción de celdas que cada método marca como apelotonamiento, contra
+**Fig. 5.** Fracción de celdas que cada método marca como apelotonamiento, contra
 la tasa real del evento (punteada). La persistencia propaga el vector observado,
 hereda su dispersión y el corte cae donde fue diseñado: marca casi tan seguido
 como el evento ocurre. El pronóstico puntual emite un vector comprimido, y el
@@ -211,7 +350,7 @@ era el punto de partida de todo este análisis, no existía. La fabricaba el umb
 
 Frente a una falla de detección, el campo cambia de modelo: otra arquitectura,
 más capas, más datos. Acá no hizo falta ninguna de esas cosas. Los pronósticos
-que produce la Fig. 4 son, uno por uno, los mismos que produce la Fig. 3.
+que produce la Fig. 6 son, uno por uno, los mismos que produce la Fig. 5.
 No se reentrenó, no se agregó información y no se tocó una línea del modelo. Se
 movió un número —dónde se traza la raya entre alarma y silencio— y el ganador
 cambió de bando.
@@ -224,7 +363,7 @@ datos que ya se tienen.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
-**Fig. 4.** Las mismas predicciones puntuadas sin umbral. Eje izquierdo: cuánto
+**Fig. 6.** Las mismas predicciones puntuadas sin umbral. Eje izquierdo: cuánto
 error absoluto le gana el aprendiz a la persistencia. Eje derecho: área bajo la
 curva de detección, invariante a cualquier reescalado monótono del pronóstico y
 por lo tanto inmune al artefacto. Los dos cruces van en el mismo sentido y en la

@@ -332,6 +332,11 @@ Ninguno requiere GPU ni Kaggle. Los números ya están calculados y commiteados.
       manuscrito se escribe a mano:** si cambia un CSV se re-corre el builder y se
       vuelve a pegar. Los nombres de archivo no llevan número de figura —el orden
       de aparición todavía se mueve y solo `paper.md` lo conoce.
+- [x] **Sección III escrita** — 1.352 palabras contra 1.400. Cifras verificadas
+      contra `sample_index_manifest.csv` (107/23/22 días, orígenes de 61/83/107,
+      81–91 % de fotos utilizables) y `contiguous_winsorization_sensitivity.csv`
+      (0,78–1,11 % de objetivos topados). El promedio histórico entra como cuarto
+      competidor, cerrando el pendiente 1 del §5.
 - [ ] Redacción — orden vigente: **IV → III → V → II → VI → I → Resumen**.
       Se escribe IV primero porque sus cifras están cerradas y el resto del paper
       calibra contra ellas; II va tarde porque el recorte de 3 923 a 850 palabras
@@ -347,5 +352,13 @@ Ninguno requiere GPU ni Kaggle. Los números ya están calculados y commiteados.
 
       Las tablas se re-emiten en inglés cambiando `DECIMAL_SEP` a `"."` y las
       cabeceras en `src/build_paper_tables.py`.
+
+      ⚠️ **Los dos esquemas de la Sección III son la excepción.**
+      `esquema-headway.png` y `esquema-particion-temporal.png` salen de
+      `src/build_schematic_figures.py`, que todavía no pasó por el tratamiento
+      bilingüe: llevan título y pie horneados y existen solo en español. Antes de
+      traducir hay que aplicarles lo mismo que a `build_contiguous_figures.py`
+      —diccionario `LANG`, parámetros `lang` y `chrome`—. Es el mismo patrón, ya
+      resuelto una vez.
 - [ ] Plantilla IJACSA a dos columnas
 - [ ] Referencias en formato del venue
