@@ -353,12 +353,11 @@ Ninguno requiere GPU ni Kaggle. Los números ya están calculados y commiteados.
       Las tablas se re-emiten en inglés cambiando `DECIMAL_SEP` a `"."` y las
       cabeceras en `src/build_paper_tables.py`.
 
-      ⚠️ **Los dos esquemas de la Sección III son la excepción.**
-      `esquema-headway.png` y `esquema-particion-temporal.png` salen de
-      `src/build_schematic_figures.py`, que todavía no pasó por el tratamiento
-      bilingüe: llevan título y pie horneados y existen solo en español. Antes de
-      traducir hay que aplicarles lo mismo que a `build_contiguous_figures.py`
-      —diccionario `LANG`, parámetros `lang` y `chrome`—. Es el mismo patrón, ya
-      resuelto una vez.
+      ✅ **Sin excepciones.** `build_schematic_figures.py` recibió el mismo
+      tratamiento el 2026-08-26, así que los esquemas de la Sección III también
+      salen en `.es.png` y `.en.png`. **Las seis figuras del paper responden al
+      mismo comando.** Los cinco `esquema-*.png` con título horneado siguen
+      existiendo sin cambios para `metodologia.md` y `sintesis.md`, que los
+      embeben.
 - [ ] Plantilla IJACSA a dos columnas
 - [ ] Referencias en formato del venue

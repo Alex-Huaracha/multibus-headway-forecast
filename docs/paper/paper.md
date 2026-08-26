@@ -71,10 +71,11 @@ alternativas del intervalo sobre siete criterios de viabilidad —entre ellos la
 cobertura, la plausibilidad física de la velocidad implícita y la información
 compartida entre buses vecinos—, y ésta ganó en seis de los siete.
 
-![Definición del intervalo entre buses](figuras/esquema-headway.png)
+![Definición del intervalo entre buses](figuras/esquema-headway.es.png)
 
-**Fig. 1.** El intervalo entre dos buses consecutivos. Trayectorias ilustrativas,
-no datos reales.
+**Fig. 1.** El intervalo entre dos buses consecutivos. Es una definición de cruce
+por posición y no por parada, que es lo que permite prescindir de la tabla de
+paradas. Trayectorias ilustrativas, no datos reales.
 
 ### C. Los métodos comparados
 
@@ -131,9 +132,11 @@ de prueba que no se solapan entre sí. Como los entrenamientos están anidados, 
 establece estabilidad frente a la elección del período de prueba, y no réplica
 independiente; se declara así.
 
-![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.png)
+![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.es.png)
 
-**Fig. 2.** La partición por tiempo y los tres orígenes de evaluación.
+**Fig. 2.** La partición por tiempo y los tres orígenes de evaluación. Los tres
+arrancan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
+solapan.
 
 Cuatro reglas más gobiernan la comparación, y las cuatro existen para cerrar un
 camino por el que un número podría entrar sin merecerlo.
