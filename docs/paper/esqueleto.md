@@ -23,39 +23,19 @@ Todo lo que entra al paper sostiene esta frase o la acota. Lo que no hace ningun
 de las dos cosas, sale.
 
 **Título de trabajo:** *El umbral, no el modelo: por qué un pronóstico de
-intervalos parece ciego al apelotonamiento, y cómo se repara.*
+headways parece ciego al apelotonamiento, y cómo se repara.*
 
 ---
 
 ## 2. Reglas de escritura
 
-### 2.1 Presupuesto
-
-Techo IJACSA: 10 páginas de cuerpo, **sin contar referencias, tablas ni figuras**.
-El recurso escaso es la prosa. La evidencia se mueve a tablas y figuras, que son
-baratas.
-
-| Sección | Palabras |
-|---|---|
-| Resumen | 200 |
-| I. Introducción | 800 |
-| II. Trabajos relacionados | 850 |
-| III. Datos y método | 1 400 |
-| IV. Resultados | 2 200 |
-| V. Discusión y limitaciones | 900 |
-| VI. Conclusión | 350 |
-| **Total** | **≈ 6 700** |
-
-Si una sección se pasa, el excedente sale de esa sección. No se compensa entre
-secciones.
-
-### 2.2 La prosa no recorre celdas
+### 2.1 La prosa no recorre celdas
 
 La prosa **enuncia el patrón y apunta a la tabla**. Nunca narra celda por celda.
 Si un párrafo enumera más de tres cifras seguidas, ese párrafo es una tabla mal
 escrita.
 
-### 2.3 Política de jerga
+### 2.2 Política de jerga
 
 Cada término del oficio **se gana su lugar o se traduce**. Un término se conserva
 solo si (a) es el nombre estándar en el campo y el revisor lo espera, o (b) no
@@ -67,16 +47,35 @@ existe forma corta de decirlo. Todo lo demás se dice en palabras normales.
 | compresión de dispersión | el pronóstico sale más parejo que la realidad |
 | umbral auto-referencial | el corte se mide contra el promedio del propio pronóstico |
 | población compartida verificable | los tres modelos se puntúan sobre exactamente las mismas filas |
-| coeficiente de variación transversal | qué tan disparejos están los intervalos de un corredor en un instante |
+| coeficiente de variación transversal | qué tan disparejos están los headways de un corredor en un instante |
 
-Se conservan, definidos **una sola vez** y en una cláusula: *headway* / intervalo,
+Se conservan, definidos **una sola vez** y en una cláusula: **headway**,
 apelotonamiento (*bunching*), correlación de Matthews, área bajo la curva ROC,
 Diebold-Mariano.
+
+**La regla ataca la jerga que oculta, no el vocabulario canónico del campo.** Son
+dos cosas distintas y confundirlas cuesta caro en direcciones opuestas:
+
+| Clase | Ejemplo | Qué hacer | Por qué |
+|---|---|---|---|
+| Jerga que **oculta** una idea simple | winsorización | Traducir | La palabra no aporta nada que no diga «tope al 1 % más alto» |
+| Término **canónico** del campo | headway | Conservar | Es el nombre del objeto de estudio; el revisor lo espera |
+
+Decidido 2026-08-27: **el objeto de estudio se llama `headway` en todo el texto,
+y `intervalo` no se usa como sinónimo.** Un artículo de transporte que escribe
+«intervalo entre buses» en vez de «headway» le señala al revisor que el autor
+viene de fuera del campo, y en la versión en inglés sería descalificante. La
+figura `esquema-headway` ya usaba el término correcto mientras el texto no: ese
+desacuerdo fue el síntoma.
+
+⚠️ Al reemplazar, **`intervalo de confianza` no se toca** —es el intervalo
+estadístico— y `intervalo programado` pasa a `headway programado`, que es el
+*scheduled headway* de la convención del campo.
 
 Regla de cierre: **una sigla no definida en la oración donde aparece por primera
 vez es un error, no un estilo.**
 
-### 2.4 Ningún dato se enuncia sin su consecuencia
+### 2.3 Ningún dato se enuncia sin su consecuencia
 
 Un hecho metodológico escrito como acta de laboratorio no le sirve a nadie. Todo
 dato del paper se enuncia **junto a por qué le importa al lector**, y hay dos
@@ -96,189 +95,160 @@ Prueba a aplicar en cada párrafo: *si el lector pregunta "¿y eso para qué me
 sirve?", ¿la respuesta está en el mismo párrafo?* Si no está, el párrafo está a
 medio escribir.
 
+### 2.4 El paper nunca habla de su propia revisión
+
+Prohibido escribir «conviene decirlo antes de que lo diga un revisor», «un
+revisor podría objetar», «para anticipar críticas». Un artículo publicado no
+menciona a sus revisores: rompe el marco, y además delata una motivación
+equivocada —parece que se cede por miedo a que descubran algo, no porque sea el
+estado del conocimiento.
+
+La razón para ceder autoría se enuncia **hacia el lector**, no hacia el revisor:
+
+| Mal | Bien |
+|---|---|
+| «conviene decirlo antes de que lo diga un revisor» | «delimitar qué es previo es lo que deja a la vista la contribución» |
+
+El razonamiento sobre revisores va en este esqueleto, que nadie publica. En el
+paper va solo su conclusión.
+
 ---
 
 ## 3. Estructura
 
-### Resumen — 200 palabras
+**Molde: NADOS** (*Reliability-Gated Difficulty-Aware Oversampling*, IJACSA
+vol. 17 n.º 7). Elegido el 2026-08-27 tras medir las cinco estructuras del número.
+Tres razones, todas verificadas contra el PDF:
 
-Único lugar del paper donde el lector ve cifras antes de la Sección IV. La
+- **Separa el método del diseño experimental.** Es el único de los cinco que lo
+  hace, y es exactamente la división que tiene este trabajo: una cosa es construir
+  el headway y definir el evento, y otra son los tres orígenes, la población
+  compartida, la continuidad estricta, el tope y la agrupación por día.
+- **Amenazas a la validez con número propio.** Hay material de sobra.
+- **Declaraciones** aloja la reproducibilidad, que casi nadie en ese venue puede
+  escribir.
+
+Y el dato que decide: **NADOS es el único de los cinco que reporta significancia
+estadística.** Mismo perfil metodológico que el nuestro.
+
+Su coste: Resultados y Discusión van fusionados, así que la interpretación
+operativa vive dentro de Resultados (V-G) y no en sección propia.
+
+---
+
+### Resumen
+
+Único lugar del paper donde el lector ve cifras antes de la Sección V. La
 Conclusión **no las repite**.
 
-Debe contener, en este orden: el problema operativo · el mecanismo · el número
-que duele (14 alarmas contra 15 245 eventos reales) · la reparación · el alcance.
+En este orden: el problema operativo · el mecanismo · el número que duele (14
+alarmas contra 15 245 eventos reales) · la reparación · el alcance.
 
 Sin citas. Sin siglas sin desarrollar.
 
 ---
 
-### I. Introducción — 800 palabras
+### I. Introducción
 
-**A. Contexto** (200) — El apelotonamiento como problema operativo real. Cierra
-sobre el paradigma que la sección siguiente ataca: predecir el intervalo y después
-compararlo contra un umbral.
+**A. Contexto** — El apelotonamiento como problema operativo real. Cierra
+sobre el paradigma que el paper ataca: predecir el headway y compararlo contra un
+umbral.
 
-**B. El problema** (250) — Ese paso —comparar contra el umbral— nunca se examinó.
-La pregunta del paper es por qué falla y si basta con recalibrarlo.
+**B. El problema** — Ese paso —comparar contra el umbral— nunca se examinó.
 
-> Prohibido: decir "nadie se dio cuenta". Sun et al. (2021) diagnosticaron el
-> síntoma y se citan en las dos primeras oraciones. Prohibido también quejarse de
-> que el subcampo no usa líneas base ni tests de significancia: eso va en I-C
-> como aporte, no acá como reclamo.
+> Prohibido: decir «nadie se dio cuenta». Sun et al. (2021) diagnosticaron el
+> síntoma y se citan en las dos primeras oraciones.
 
-**C. Contribuciones** (250) — **Cuatro viñetas, una oración cada una.** En el
-manuscrito viejo esto ocupaba 1 002 palabras porque cada viñeta arrastraba su
-propio párrafo de delimitación bibliográfica. La delimitación se hace **una vez**,
-en V-B, no cuatro veces acá.
+**C. Contribuciones** — **Cuatro viñetas, una oración cada una.** La
+delimitación bibliográfica NO se hace aquí: vive en II-D.
 
-1. Medimos que el pronóstico sale más parejo que la realidad, sobre el vector de
-   intervalos y en todas las celdas medidas.
-2. Mostramos que trasplantar el umbral produce un veredicto invertido, y que
-   recalibrar el corte —sin tocar el modelo— lo endereza.
-3. Reportamos el piso del detector trivial, que el subcampo no publica.
-4. El método completo funciona sin horario publicado, sin GTFS y sin tabla de
-   paradas.
-
-**D. Estructura** (100) — Un párrafo. No una lista.
+**D. Estructura** — Un párrafo, no una lista.
 
 ---
 
-### II. Trabajos relacionados — 850 palabras
+### II. Trabajos relacionados
 
-**El recorte más grande del paper: de 3 923 a 850.**
+**A. La receta estándar** — Predecir el headway y umbralizarlo contra la
+referencia. Yu et al. (2016) es la formulación canónica.
 
-Lo que se conserva son los tres movimientos, un párrafo cada uno:
+**B. Por qué el umbral se mueve** — Mayer y Yang (2022) lo enuncian; Patton
+y Timmermann (2012) lo prueban como teorema; Petetin et al. (2022) ya ataron la
+compresión a una métrica categórica.
 
-**A. La receta estándar** (250) — Predecir el intervalo y umbralizarlo contra la
-referencia. Yu et al. (2016) es la formulación canónica y se cita textual.
+**C. Recalibrar el corte: precedente fuera del transporte** — Hoffmann, Menz
+y Spekat (2018), en clima, ocho años antes. **Obligatoria.**
 
-**B. Por qué el umbral se mueve** (300) — Un pronóstico óptimo en error cuadrático
-sale más parejo que la realidad. Esto **está publicado y no lo reclamamos**:
-Mayer y Yang (2022) lo enuncian; Patton y Timmermann (2012) lo prueban. Petetin
-et al. (2022) ya ataron la compresión a una métrica categórica.
-
-**C. Recalibrar el corte: precedente fuera del transporte** (200) — Hoffmann,
-Menz y Spekat (2018) hacen exactamente este procedimiento en clima, ocho años
-antes.
-
-> Esta subsección es **obligatoria**. Sin ella, un revisor de meteorología liquida
-> el paper con una cita de 2018.
-
-**D. El hueco** (100) — Dos ejes, no uno: *dominio* (transporte) y *tipo de
-umbral* (relativo y medido contra el propio pronóstico). Ese segundo eje no lo
-tiene nadie, y en Petetin no por omisión sino por construcción: sus umbrales son
-regulatorios y no admiten recalibración.
+**D. Qué es previo y qué no** — ✅ **ESCRITA.** Se movió aquí desde la
+antigua V-B, donde duplicaba lo que esta sección hace por definición.
 
 > Prohibido: ensanchar el reclamo más allá del caso relativo y auto-referencial.
 
-**Cómo se recorta sin perder honestidad:** ceder autoría cuesta **una frase por
-precedente**, no un párrafo. "No reclamamos X; está en [cita]." Punto.
+---
+
+### III. Método propuesto
+
+**A. Del GPS al headway** — ✅ **ESCRITA.** El eje ajustado desde los
+propios datos, la proyección, el sentido, los viajes, la rejilla y el cruce por
+posición. Tiene margen para crecer: es el aporte metodológico, y el revisor lo va
+a mirar con lupa precisamente por no ser estándar.
+→ **Fig. 1**
+
+**B. Qué cuenta como apelotonamiento** — ✅ **ESCRITA.** La bisagra
+del paper. Cierra dejando explícito que el corte se mide contra el promedio del
+propio vector, de modo que no es el mismo corte cuando cambia la dispersión.
 
 ---
 
-### III. Datos y método — 1 400 palabras
+### IV. Diseño experimental
 
-**A. Datos** (200) — GPS del SIT Arequipa. Tres corredores, cinco meses. Sin
-hardware adicional, sin horario publicado.
+**A. Los datos** — ✅ **ESCRITA.** Cadencia de 20 s, 152 días, tres
+corredores, y la ausencia de horario, GTFS y tabla de paradas.
 
-**B. Del GPS al intervalo** (350) — Cómo se construye el intervalo entre buses
-cuando no hay tabla de paradas. Es el aporte secundario y hay que decirlo en
-palabras normales, no en nombres de función.
+**B. Los métodos comparados** — ✅ **ESCRITA.** Los cuatro, con el promedio
+histórico como competidor real a horizonte largo. Aquí se declara la asimetría de
+búsqueda.
 
-**C. Modelos comparados** (200) — LSTM, XGBoost, persistencia, promedio histórico
-horario. **El promedio histórico entra acá** (ver §5).
-
-**D. Qué cuenta como apelotonamiento, y por qué** (350) — La definición del evento
-es la bisagra del paper entero. Un intervalo por debajo de la mitad del promedio
-de su propio vector. Se declara que la forma "fracción del promedio observado" no
-se encontró como definición de evento en la literatura, y que es sustitución
-nuestra, no herencia.
-
-**E. Cómo se evalúa** (300) — Corte temporal real, tres orígenes, los tres modelos
-puntuados sobre exactamente las mismas filas, varianza agrupada por día de
-servicio. **Se dice en cuatro oraciones, no en cuatro párrafos.** El aparato es
-Métodos, no es el hallazgo.
+**C. Protocolo de evaluación** — ✅ **ESCRITA.** Partición por fecha, tres
+orígenes, y las cuatro reglas: continuidad, población compartida, tope al 1 % y
+varianza agrupada por día.
+→ **Fig. 2**
 
 ---
 
-### IV. Resultados — 2 200 palabras
+### V. Resultados y discusión
 
-**A. Contexto escalar y su frontera** (250) — Demotado. Tres cifras y una frase:
-a diez minutos el aprendiz le gana a la persistencia por ~21 %, a un minuto
-pierde, y la frontera real no es el horizonte sino qué tan movida viene la
-ventana. Nada más. *(Hoy: 637 palabras.)*
+✅ **ESCRITA.** Subsecciones A–G. La G es la interpretación operativa,
+que en este molde vive dentro de Resultados.
 
-**B. El pronóstico sale más parejo** (400) — El mecanismo. Sesgo negativo en las
-**36 de 36** celdas, empeorando con el horizonte. La escala del manual del oficio
-califica al mismo corredor como "servicio de reloj" según el pronóstico y "casi
-todo apelotonado" según lo observado.
-→ **Figura 2** (dosis-respuesta: compresión vs horizonte).
-
-> Obligatorio y no se puede ablandar: las 36 celdas son un **resultado empírico,
-> no un corolario** del teorema. El teorema cubre la varianza temporal de una
-> serie escalar; esto es dispersión entre buses en un mismo instante.
-
-**C. La alarma no suena** (450) — El artefacto. En E2 a diez minutos: 14 alarmas
-contra 15 245 eventos. La persistencia dispara 15 083. Un factor aparente de 253×.
-Y el detector trivial —marcar todo— le gana al ganador declarado en 5 de 12 celdas.
-→ **Figura 1a**, **Tabla 1**.
-
-**D. El 253× no mide al modelo** (300) — **El argumento demoledor, y hoy está
-enterrado.** Ese mismo factor vale 2 299× en una ventana, 817× en otra, 253× en la
-tercera. Un número que se mueve un orden de magnitud según el mes no está midiendo
-una capacidad. Merece su propia subsección.
-
-**E. La reparación** (400) — Recalibrando el corte fuera de muestra, el veredicto
-se invierte. A diez minutos el aprendiz gana el área bajo la curva en 9 de 9
-combinaciones de corredor y ventana. Y cuando dispara, acierta: 71 % de precisión
-contra una tasa base de 30 %.
-→ **Figura 1b**, **Tabla 2**.
-
-> Obligatorio: declarar el intervalo de confianza de ese 71 %. Son 14 disparos.
-
-**F. Robustez, incluido el ataque a nosotros mismos** (400) — Tres ventanas
-temporales. Y la prueba con el umbral absoluto de la convención dominante del
-campo: esperábamos que atenuara el hallazgo y lo **empeoró 110×**. Nuestra
-elección resultó ser la conservadora.
-
-> Obligatorio: declarar el contra-caveat. Bajo esa convención, en E2 a diez
-> minutos el área bajo la curva cae a 0,49 — indistinguible del azar. El alcance
-> se enuncia completo o no se enuncia.
+| | Contenido | Evidencia |
+|---|---|---|
+| A | El resultado escalar y su frontera | — |
+| B | El pronóstico sale más parejo | Fig. 3, Fig. 4 |
+| C | La alarma no suena | Fig. 5, Tabla 1 |
+| D | Ese factor no mide al modelo | — |
+| E | La reparación | Fig. 6, Tabla 2 |
+| F | Robustez y el ataque a nosotros mismos | Tabla 3 |
+| G | Qué significa para quien opera un corredor | — |
 
 ---
 
-### V. Discusión y limitaciones — 900 palabras
+### VI. Amenazas a la validez
 
-**A. Qué significa para un operador** (250) — El modelo no se equivoca: está
-callado. Precisión alta, cobertura baja. Eso es una herramienta distinta a una
-alarma, y sirve para otra cosa.
+✅ **ESCRITA.** Se redacta como **alcance, no como disculpa**: cada entrada
+delimita dónde vale la afirmación en vez de pedir perdón por dónde no.
 
-**B. Qué es nuestro y qué no** (250) — **Toda la delimitación bibliográfica del
-paper vive acá y solo acá.** Frente a Petetin, a Sun, a Hoffmann: qué no
-reclamamos. Y qué se retiró durante la propia investigación.
-
-> No ablandar el cierre. Nombrar lo que se retiró es diferenciador en este venue,
-> no debilidad.
-
-**C. Limitaciones** (400) — Sustantiva, no de trámite. En el relevamiento del
-venue solo 3 de 8 artículos tienen algo parecido. **No recortarla al maquetar.**
-
-Debe incluir, sin excepción:
-- El aprendiz **pierde contra el promedio histórico horario en E2 a diez minutos**.
-- El presupuesto de búsqueda está torcido: 24 configuraciones para el árbol contra
-  1 para la red. Donde la red pierde, no es atribuible a la clase de modelo.
-- El umbral del evento no está calibrado contra incidentes registrados.
-- Tres corredores de una ciudad, cinco meses, y la ventana de prueba contiene
-  Carnaval.
-- El aprendiz no está listo para operar una alarma. Un área bajo la curva de 0,60
-  es información real y está muy lejos de un sistema de despacho.
+Entra sin excepción: la derrota contra el promedio histórico en E2 h10 · la
+tensión AUC/MCC en E59 h5 · el AUC de azar bajo corte absoluto · la asimetría de
+búsqueda · el umbral sin calibrar contra incidentes · tres corredores y cinco
+meses con Carnaval dentro · los orígenes anidados · y que esto no está listo para
+operar una alarma.
 
 ---
 
-### VI. Conclusión — 350 palabras
+### VII. Conclusión
 
 Cierra sobre **el hueco**, no sobre los resultados. Las cifras están en la Sección
-IV y repetirlas las devalúa.
+V y repetirlas las devalúa.
 
 Termina con la prescripción: reportar al menos una métrica sin umbral junto a la
 métrica de alarma, publicar el piso del detector trivial, y declarar en qué
@@ -286,15 +256,28 @@ espacio se calibró el corte.
 
 ---
 
+### VIII. Declaraciones
+
+Disponibilidad de datos y de código. **Es regalo:** hay manifiestos con huellas
+SHA-256, semillas fijas, builders deterministas y un gate de población compartida
+que aborta antes de tocar la GPU. De los cinco papers medidos, **uno solo** tiene
+esta sección.
+
+---
+
 ## 4. Evidencia: qué entra al cuerpo y qué al apéndice
 
 | Cuerpo | Apéndice / suplementario |
 |---|---|
-| **Fig. 1a/1b** — el par artefacto ↔ reparación. *Funcionan solo como par; compararlas es el aporte.* | Desglose por dirección (+1 / −1) |
-| **Fig. 2** — compresión vs horizonte, 36 celdas | Barrido de semillas |
-| **Tabla 1** — detección con corte trasplantado + piso trivial, 12 celdas | El enrutador (7 de 12 políticas degeneradas) |
-| **Tabla 2** — veredicto recalibrado, 12 celdas | Tablas escalares completas de MAE/RMSE |
-| **Tabla 3** — robustez: 3 ventanas + el ataque con umbral absoluto | Configuraciones ganadoras de la búsqueda |
+| **Fig. 1** — la definición del headway (III-A) | Desglose por dirección (+1 / −1) |
+| **Fig. 2** — la partición temporal y los tres orígenes (IV-C) | Barrido de semillas |
+| **Fig. 3 y 4** — compresión: a diez minutos, y contra el horizonte (V-B) | El enrutador (7 de 12 políticas degeneradas) |
+| **Fig. 5 + Tabla 1** — el artefacto y el piso del detector trivial (V-C) | Tablas escalares completas de MAE/RMSE |
+| **Fig. 6 + Tabla 2** — la reparación, con y sin umbral (V-E) | Configuraciones ganadoras de la búsqueda |
+| **Tabla 3** — robustez: 3 ventanas + el ataque con umbral absoluto (V-F) | |
+
+Las Fig. 5 y 6 **funcionan solo como par**: compararlas es el aporte. Publicar
+cualquiera de las dos sola tergiversa el resultado.
 
 Grilla completa en el cuerpo: **3 corredores × 4 horizontes.** El horizonte no es
 un eje de reporte, es la evidencia de causa: la compresión y el colapso aparente
@@ -319,53 +302,50 @@ Ninguno requiere GPU ni Kaggle. Los números ya están calculados y commiteados.
 
 ## 6. Estado
 
+**Estructura fijada el 2026-08-27 sobre el molde NADOS.** La numeración anterior
+(I–VI, con Datos y método juntos y Discusión y limitaciones juntas) queda obsoleta:
+cualquier nota que la cite está desactualizada.
+
 - [x] Afirmación central fijada
-- [x] Presupuesto por sección
+- [x] Estructura elegida y justificada contra los cinco moldes del número
 - [x] Reparto cuerpo / apéndice
-- [ ] Pendientes §5 (el 4 está resuelto)
-- [x] **Sección IV escrita y verificada** — 23/23 cifras contrastadas contra los CSV
-      el 2026-08-26 con `scratchpad/verify_seccion_iv.py`
-- [x] **Figuras 1–4 y Tablas 1–3 embebidas en `paper.md`.** Las figuras salen de
-      `src/build_contiguous_figures.py` a `docs/paper/figuras/*.{es,en}.png`
-      (limpias, sin título ni pie horneado); las tablas salen de
+- [ ] Pendientes §5 (los pendientes 2 y 4 están resueltos)
+
+Redacción, sección por sección:
+
+| Sección | Estado |
+|---|---|
+| Resumen | ⬜ se escribe al final |
+| I. Introducción | ⬜ |
+| II. Trabajos relacionados | 🟨 solo II-D |
+| III. Método propuesto | ✅ |
+| IV. Diseño experimental | ✅ |
+| V. Resultados y discusión | ✅ verificada 23/23 |
+| VI. Amenazas a la validez | ✅ |
+| VII. Conclusión | ⬜ |
+| VIII. Declaraciones | ⬜ |
+| Referencias | ⬜ **bloqueada** |
+
+- [x] **Figuras 1–6 y Tablas 1–3 embebidas.** Las figuras salen de
+      `src/build_contiguous_figures.py` y `src/build_schematic_figures.py` a
+      `docs/paper/figuras/*.{es,en}.png`; las tablas de
       `src/build_paper_tables.py` a `docs/paper/tablas/*.md`. **Ningún número del
-      manuscrito se escribe a mano:** si cambia un CSV se re-corre el builder y se
-      vuelve a pegar. Los nombres de archivo no llevan número de figura —el orden
-      de aparición todavía se mueve y solo `paper.md` lo conoce.
-- [x] **Sección III escrita** — 1.352 palabras contra 1.400. Cifras verificadas
-      contra `sample_index_manifest.csv` (107/23/22 días, orígenes de 61/83/107,
-      81–91 % de fotos utilizables) y `contiguous_winsorization_sensitivity.csv`
-      (0,78–1,11 % de objetivos topados). El promedio histórico entra como cuarto
-      competidor, cerrando el pendiente 1 del §5.
-- [x] **Sección V escrita** — 920 palabras contra 900. Las limitaciones se
-      redactan como **alcance, no como disculpa**: cada una delimita dónde vale la
-      afirmación en vez de pedir perdón por dónde no. Entran las tres incómodas
-      —promedio histórico en E2 h10, tensión AUC/MCC en E59 h5, AUC de azar bajo
-      corte absoluto— más la asimetría de búsqueda y los orígenes anidados.
-- [x] Pendiente 2 del §5 (**doble estándar media/mediana**) **resuelto por
-      construcción**: la Sección IV se escribió desde cero y esa afirmación nunca
-      entró. No hay nada que borrar.
-- [ ] Redacción — orden vigente: **IV → III → V → II → VI → I → Resumen**.
-      Se escribe IV primero porque sus cifras están cerradas y el resto del paper
-      calibra contra ellas; II va tarde porque el recorte de 3 923 a 850 palabras
-      es más fácil cuando ya se sabe exactamente qué hay que enmarcar.
-- [ ] Traducción al inglés. **Las figuras ya están traducidas**: el builder emite
-      `.es.png` y `.en.png` de la misma fuente. `paper.md` apunta hoy a las `.es`
-      porque el borrador es en español. Al traducir, un solo comando cambia las
-      cuatro rutas y no hay que regenerar nada:
+      manuscrito se escribe a mano.** Los nombres de archivo no llevan número de
+      figura, y por eso el remapeo a NADOS no obligó a regenerar nada.
+- [ ] **Los 8 defectos de la lectura crítica del 2026-08-26.** Los dos graves
+      siguen abiertos: la sobreafirmación de V-E que la Tabla 2 contradice, y el
+      pie de la Fig. 6 contra V-F.
+- [ ] **Referencias.** `paper.md` tiene **cero citas**. `fuentes-verificadas.md`
+      tiene 23 marcas de pendiente contra 7 verificadas, y hay antecedente de
+      títulos inventados en un borrador previo: **ninguna entrada se reescribe de
+      memoria.** Bloquea la Sección II.
+- [ ] Traducción al inglés. Un solo comando cambia las seis rutas de figura:
 
       ```bash
       sed -i 's/\.es\.png/.en.png/g' docs/paper/paper.md
       ```
 
-      Las tablas se re-emiten en inglés cambiando `DECIMAL_SEP` a `"."` y las
-      cabeceras en `src/build_paper_tables.py`.
-
-      ✅ **Sin excepciones.** `build_schematic_figures.py` recibió el mismo
-      tratamiento el 2026-08-26, así que los esquemas de la Sección III también
-      salen en `.es.png` y `.en.png`. **Las seis figuras del paper responden al
-      mismo comando.** Los cinco `esquema-*.png` con título horneado siguen
-      existiendo sin cambios para `metodologia.md` y `sintesis.md`, que los
-      embeben.
+      Las tablas se re-emiten cambiando `DECIMAL_SEP` a `"."` y las cabeceras en
+      `src/build_paper_tables.py`.
 - [ ] Plantilla IJACSA a dos columnas
 - [ ] Referencias en formato del venue

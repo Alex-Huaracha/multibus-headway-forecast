@@ -1,4 +1,4 @@
-# El umbral, no el modelo: por qué un pronóstico de intervalos parece ciego al apelotonamiento, y cómo se repara
+# El umbral, no el modelo: por qué un pronóstico de headways parece ciego al apelotonamiento, y cómo se repara
 
 ## Resumen
 
@@ -14,34 +14,45 @@ _(pendiente)_
 
 ## II. Trabajos relacionados
 
-_(pendiente)_
+_(A–C pendientes: la receta estándar, por qué el umbral se mueve,
+y el precedente de recalibración fuera del transporte.)_
+
+### D. Qué es nuestro y qué no
+
+Buena parte del mecanismo que este trabajo mide ya está publicado. Delimitar qué
+es previo es lo que deja a la vista la contribución, que es más angosta de lo que
+el mecanismo completo sugiere.
+
+Que un pronóstico optimizado en error cuadrático salga más parejo que la realidad
+está enunciado por Mayer y Yang y **demostrado como teorema** por Patton y
+Timmermann. No lo reclamamos. Tampoco reclamamos haber sido los primeros en atar
+esa compresión a una métrica categórica ni en observar que empeora con el
+horizonte: las dos cosas están en Petetin y colaboradores. Que el paradigma de
+predecir-y-umbralizar falla, y que el veredicto se revierte al puntuar sin punto de
+operación, lo diagnosticaron Sun, Schmöcker y Nakamura. Y recalcular un umbral
+contra la distribución de cada modelo es, exactamente, el procedimiento de
+Hoffmann, Menz y Spekat en reducción de escala climática, ocho años antes. El cruce
+entre persistencia y modelo aprendido al alargar el horizonte es folclore conocido
+en pronóstico de tráfico, y el resultado nulo de las variantes espaciales confirma
+trabajo publicado: llegar segundo a una conclusión no la vuelve propia.
+
+Lo que reclamamos son tres cosas más angostas. **Primera**, medir la compresión
+sobre el vector de headways, como dispersión entre buses en un mismo instante —
+los precedentes trabajan sobre la variabilidad temporal de una serie escalar, que
+no es lo mismo. **Segunda**, dar vuelta la fórmula de calidad de servicio del
+manual del oficio y aplicarla al pronóstico en lugar de a lo observado. **Tercera**,
+y es la que no tiene precedente dentro ni fuera del transporte, atarlo a una regla
+de evento **relativa y auto-referencial**, donde la compresión mueve el numerador y
+el denominador a la vez. En Petetin eso no falta por descuido sino por
+construcción: sus umbrales son regulatorios y no admiten recalibración.
 
 ---
 
-## III. Datos y método
+## III. Método propuesto
 
-### A. Los datos
+### A. Del GPS al headway
 
-El trabajo usa los registros de posición de la flota del Sistema Integrado de
-Transporte de Arequipa: cada unidad emite su coordenada cada pocos segundos.
-Se cubren tres corredores —identificados aquí como E2, E4 y E59— durante 152 días
-seguidos, del 1 de octubre de 2023 al 29 de febrero de 2024, sin huecos de
-calendario.
-
-Importa tanto lo que el dato tiene como lo que no. **No hay horario publicado, no
-hay archivo GTFS y no hay tabla de paradas.** Eso obliga a construir todo desde la
-posición cruda, que es trabajo extra, pero también es lo que vuelve el método
-aplicable: la mayoría de las ciudades donde el apelotonamiento es un problema
-cotidiano son exactamente las que no tienen ese dato ordenado. Un método que exija
-GTFS no sirve donde más falta hace.
-
-Una advertencia de identidad, porque condiciona todo lo demás: el identificador de
-unidad se repite entre empresas, así que un bus solo queda determinado por el par
-empresa-unidad. Tratarlo de otro modo mezcla vehículos de corredores distintos.
-
-### B. Del GPS al intervalo entre buses
-
-Sin tabla de paradas no se puede medir el intervalo en una parada. Lo que sigue
+Sin tabla de paradas no se puede medir el headway en una parada. Lo que sigue
 reconstruye la geometría del corredor desde los propios datos.
 
 Primero se ajusta el **eje del corredor**: se toman las posiciones de los buses en
@@ -58,8 +69,8 @@ señal, una inversión de sentido o una espera prolongada en terminal cierran el
 viaje en curso. Por último todo se lleva a una **rejilla de sesenta segundos**, de
 modo que en cada minuto exista una foto del corredor completo.
 
-Sobre esa foto se define el intervalo. Para cada par de buses consecutivos en el
-mismo sentido, el intervalo es **hace cuánto tiempo el bus de adelante pasó por el
+Sobre esa foto se define el headway. Para cada par de buses consecutivos en el
+mismo sentido, el headway es **hace cuánto tiempo el bus de adelante pasó por el
 punto donde el de atrás está ahora**. Es un cruce por posición y no por parada, que
 es precisamente lo que permite prescindir de la tabla de paradas. Con *N* buses
 circulando, el corredor queda descrito en cada minuto por un vector de *N* − 1
@@ -67,19 +78,68 @@ números. Si el cruce hallado tiene más de treinta minutos de antigüedad se em
 «sin dato», para no arrastrar un paso de horas antes.
 
 Esta forma no se eligió por comodidad. Se compararon cuatro definiciones
-alternativas del intervalo sobre siete criterios de viabilidad —entre ellos la
+alternativas del headway sobre siete criterios de viabilidad —entre ellos la
 cobertura, la plausibilidad física de la velocidad implícita y la información
 compartida entre buses vecinos—, y ésta ganó en seis de los siete.
 
-![Definición del intervalo entre buses](figuras/esquema-headway.es.png)
+![Definición del headway](figuras/esquema-headway.es.png)
 
-**Fig. 1.** El intervalo entre dos buses consecutivos. Es una definición de cruce
+**Fig. 1.** El headway entre dos buses consecutivos. Es una definición de cruce
 por posición y no por parada, que es lo que permite prescindir de la tabla de
 paradas. Trayectorias ilustrativas, no datos reales.
 
-### C. Los métodos comparados
+### B. Qué cuenta como apelotonamiento
 
-Se comparan cuatro. Una **red recurrente** que recibe el vector de intervalos de
+Hay que decidir cuándo un headway cuenta como apelotonamiento. La convención del
+campo es una fracción del headway programado —normalmente un cuarto—, pero aquí
+no hay programación contra la cual comparar. Se sustituye por el análogo directo:
+**un headway cuenta como apelotonamiento si cae por debajo de la mitad del
+promedio de su propio vector en ese instante.** Se exige que el vector tenga al
+menos tres buses, porque con dos el promedio es poco informativo.
+
+La sustitución es nuestra y se declara como tal: esta forma —fracción del promedio
+observado— no se encontró como definición de evento en la literatura publicada. La
+elección del valor tampoco es neutral, y el campo lo sabe: los umbrales publicados
+van desde veinte segundos hasta un cuarto del headway programado, y no existe un
+único valor aceptado.
+
+Conviene hacer explícita una propiedad de esta regla, porque es la bisagra de todo
+el trabajo. **El corte se mide contra el promedio del propio vector que se está
+evaluando.** No es un número fijo en minutos: se mueve con el vector. Aplicado a lo
+observado se calibra sobre la dispersión observada; aplicado a un pronóstico se
+mide contra la dispersión del pronóstico. Si esas dos dispersiones difieren, no es
+el mismo corte aunque se escriba igual. La Sección V mide qué ocurre cuando se
+ignora esa diferencia.
+
+---
+
+## IV. Diseño experimental
+
+### A. Los datos
+
+El trabajo usa los registros de posición de la flota del Sistema Integrado de
+Transporte de Arequipa. Cada unidad emite su coordenada **cada 20 segundos**, y la
+cadencia es regular: la mediana y el percentil 95 del tiempo entre emisiones
+coinciden en los tres corredores, de modo que el dato no llega a ráfagas. Pero cada
+bus emite por su cuenta y sin sincronizarse con los demás, así que dos posiciones
+del mismo corredor casi nunca corresponden al mismo instante. De ahí la rejilla
+común de la sub sección siguiente, y de ahí que sea de 60 segundos: con emisiones
+cada 20, promedia tres por bus sin perder granularidad operativa.
+
+Se cubren tres corredores —identificados aquí como E2, E4 y E59— durante 152 días
+seguidos, del 1 de octubre de 2023 al 29 de febrero de 2024, sin huecos de
+calendario.
+
+Importa tanto lo que el dato tiene como lo que no. **No hay horario publicado, no
+hay archivo GTFS y no hay tabla de paradas.** Eso obliga a construir todo desde la
+posición cruda, que es trabajo extra, pero también es lo que vuelve el método
+aplicable: la mayoría de las ciudades donde el apelotonamiento es un problema
+cotidiano son exactamente las que no tienen ese dato ordenado. Un método que exija
+GTFS no sirve donde más falta hace.
+
+### B. Los métodos comparados
+
+Se comparan cuatro. Una **red recurrente** que recibe el vector de headways de
 los últimos doce minutos junto a cuatro variables de contexto, y emite el vector
 completo para el horizonte pedido. Un **conjunto de árboles con refuerzo de
 gradiente**, que recibe la misma información en forma de rezagos y variables de
@@ -99,30 +159,7 @@ configuración en dos de los tres corredores. **Donde la red pierde contra los
 árboles, ese resultado no es atribuible a la clase de modelo**, y el trabajo no lo
 usa como si lo fuera.
 
-### D. Qué cuenta como apelotonamiento
-
-Hay que decidir cuándo un intervalo cuenta como apelotonamiento. La convención del
-campo es una fracción del intervalo programado —normalmente un cuarto—, pero aquí
-no hay programación contra la cual comparar. Se sustituye por el análogo directo:
-**un intervalo cuenta como apelotonamiento si cae por debajo de la mitad del
-promedio de su propio vector en ese instante.** Se exige que el vector tenga al
-menos tres buses, porque con dos el promedio es poco informativo.
-
-La sustitución es nuestra y se declara como tal: esta forma —fracción del promedio
-observado— no se encontró como definición de evento en la literatura publicada. La
-elección del valor tampoco es neutral, y el campo lo sabe: los umbrales publicados
-van desde veinte segundos hasta un cuarto del intervalo programado, y no existe un
-único valor aceptado.
-
-Conviene hacer explícita una propiedad de esta regla, porque es la bisagra de todo
-el trabajo. **El corte se mide contra el promedio del propio vector que se está
-evaluando.** No es un número fijo en minutos: se mueve con el vector. Aplicado a lo
-observado se calibra sobre la dispersión observada; aplicado a un pronóstico se
-mide contra la dispersión del pronóstico. Si esas dos dispersiones difieren, no es
-el mismo corte aunque se escriba igual. La Sección IV mide qué ocurre cuando se
-ignora esa diferencia.
-
-### E. Cómo se evalúa
+### C. Cómo se evalúa
 
 La partición es **por fecha y nunca al azar**, porque un operador solo dispone del
 pasado: 107 días de entrenamiento, 23 de validación y 22 de prueba. Para comprobar
@@ -164,13 +201,14 @@ de decenas de miles de filas a 22 días, que es la cifra honesta. Tres veredicto
 que parecían significativos no sobreviven a ese cambio, y se reportan como no
 significativos.
 
+
 ---
 
-## IV. Resultados
+## V. Resultados y discusión
 
 ### A. El resultado escalar y su frontera
 
-A diez minutos de anticipación, el modelo aprendido predice el intervalo entre
+A diez minutos de anticipación, el modelo aprendido predice el headway entre
 buses mejor que repetir el último valor observado. El error absoluto medio baja
 1,47 minutos en E2, 1,38 en E4 y 1,17 en E59: entre 21 % y 22 % en los tres
 corredores. A un minuto la relación se invierte y repetir el último valor gana,
@@ -183,7 +221,7 @@ propiedad del aprendizaje profundo: el modelo de árboles lo reproduce entero, y
 diez minutos aventaja a la repetición por 1,59 minutos en E2, 1,09 en E4 y 0,79
 en E59. La segunda es que la frontera real no es el horizonte sino qué tan movida
 viene la ventana de entrada. Separando cada celda en tercios según la dispersión
-de los intervalos que el modelo recibe —y fijando los cortes sobre los datos de
+de los headways que el modelo recibe —y fijando los cortes sobre los datos de
 entrenamiento, nunca sobre los de prueba—, la ventaja del aprendiz crece de forma
 ordenada del tercio calmo al volátil en 11 de las 12 celdas. Alargar el horizonte
 no cambia quién gana: mueve la ventaja hacia tercios cada vez más tranquilos.
@@ -195,7 +233,7 @@ de tráfico. Lo que sigue es el objeto del trabajo.
 ### B. El pronóstico sale más parejo que la realidad
 
 Un corredor de buses puede describirse, en cada instante, por lo disparejos que
-están sus intervalos: la desviación de los intervalos dividida por su promedio.
+están sus headways: la desviación de los headways dividida por su promedio.
 Cero significa buses perfectamente espaciados; valores altos significan pelotones
 y huecos.
 
@@ -246,7 +284,7 @@ distancia que se pide anticipar.
 
 ### C. La alarma no suena
 
-El apelotonamiento se define aquí como un intervalo que cae por debajo de la mitad
+El apelotonamiento se define aquí como un headway que cae por debajo de la mitad
 del promedio de su propio corredor en ese instante. Aplicada a lo observado, esa
 regla marca 15 245 eventos en E2 a diez minutos. Aplicada al pronóstico del modelo
 aprendido, con el mismo corte, se dispara **catorce veces**.
@@ -268,7 +306,7 @@ ordenando modelos.
 
 El segundo es el mecanismo de la sección anterior. El corte se mide contra el
 promedio del propio vector evaluado. Si el pronóstico es más parejo que la realidad,
-sus intervalos se apartan menos de su propio promedio, y el corte deja de alcanzarse
+sus headways se apartan menos de su propio promedio, y el corte deja de alcanzarse
 casi siempre. Lo que la regla registra no es que el modelo no vea el evento: es que
 el modelo no produce la dispersión necesaria para cruzar un umbral calibrado sobre
 otra distribución.
@@ -429,11 +467,7 @@ absoluto de la convención dominante.
 
 ‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y se declara como tal.
 
----
-
-## V. Discusión y limitaciones
-
-### A. Qué significa para quien opera un corredor
+### G. Qué significa para quien opera un corredor
 
 El resultado operativo no es que el modelo detecte mejor. Es que **el modelo calla
 mucho y acierta cuando habla**, y esas son dos cosas distintas que la métrica
@@ -456,35 +490,9 @@ pronóstico de este tipo: **el punto de operación se recalibra contra la
 distribución del propio pronóstico, no se hereda de las observaciones.** Es una
 línea de código y no requiere reentrenar nada.
 
-### B. Qué es nuestro y qué no
+---
 
-Buena parte del mecanismo que este trabajo mide ya está publicado, y conviene
-decirlo antes de que lo diga un revisor.
-
-Que un pronóstico optimizado en error cuadrático salga más parejo que la realidad
-está enunciado por Mayer y Yang y **demostrado como teorema** por Patton y
-Timmermann. No lo reclamamos. Tampoco reclamamos haber sido los primeros en atar
-esa compresión a una métrica categórica ni en observar que empeora con el
-horizonte: las dos cosas están en Petetin y colaboradores. Que el paradigma de
-predecir-y-umbralizar falla, y que el veredicto se revierte al puntuar sin punto de
-operación, lo diagnosticaron Sun, Schmöcker y Nakamura. Y recalcular un umbral
-contra la distribución de cada modelo es, exactamente, el procedimiento de
-Hoffmann, Menz y Spekat en reducción de escala climática, ocho años antes. El cruce
-entre persistencia y modelo aprendido al alargar el horizonte es folclore conocido
-en pronóstico de tráfico, y el resultado nulo de las variantes espaciales confirma
-trabajo publicado: llegar segundo a una conclusión no la vuelve propia.
-
-Lo que reclamamos son tres cosas más angostas. **Primera**, medir la compresión
-sobre el vector de intervalos, como dispersión entre buses en un mismo instante —
-los precedentes trabajan sobre la variabilidad temporal de una serie escalar, que
-no es lo mismo. **Segunda**, dar vuelta la fórmula de calidad de servicio del
-manual del oficio y aplicarla al pronóstico en lugar de a lo observado. **Tercera**,
-y es la que no tiene precedente dentro ni fuera del transporte, atarlo a una regla
-de evento **relativa y auto-referencial**, donde la compresión mueve el numerador y
-el denominador a la vez. En Petetin eso no falta por descuido sino por
-construcción: sus umbrales son regulatorios y no admiten recalibración.
-
-### C. Alcance y limitaciones
+## VI. Amenazas a la validez
 
 El alcance de cada afirmación se enuncia completo.
 
@@ -504,7 +512,7 @@ minutos por 0,07 minutos. Es cuatro segundos y está en el eje que este trabajo
 reporta como contexto, pero el número existe y se declara.
 
 **La comparación entre los dos aprendices no está nivelada.** Como se dijo en la
-Sección III, el conjunto de árboles recibió veinticuatro configuraciones por celda
+Sección IV, el conjunto de árboles recibió veinticuatro configuraciones por celda
 y la red una sola en dos corredores. Donde la red pierde, la causa no es
 atribuible a la clase de modelo.
 
@@ -525,9 +533,15 @@ esa distancia es trabajo por hacer, no resultado logrado.
 
 ---
 
-## VI. Conclusión
+## VII. Conclusión
 
 _(pendiente)_
+
+---
+
+## VIII. Declaraciones
+
+_(pendiente — disponibilidad de datos y código)_
 
 ---
 
