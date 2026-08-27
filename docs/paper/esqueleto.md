@@ -183,9 +183,12 @@ Asignación vigente, toda en la Sección III:
 | (1) | proyección al eje: `s(p)`, `ℓ(p)` | III-A, paso 2 |
 | (2) | sentido de marcha: `d` | III-A, paso 3 |
 | (3) | el headway: `t_c`, `h` | III-A, paso 6 |
-| (4) | promedio y corte: `h̄(t)`, `τ(t)` | III-B |
-| (5) | indicador de bunching: `b_i(t)` | III-B |
-| (6) | `τ(ĥ) ≠ τ(h)` | III-B |
+| (4) | la tarea de pronóstico: `ĥ(t+H) = f(·)` | III-B |
+| (5) | el objetivo de error cuadrático: `L` | III-B |
+| (6) | promedio y corte: `h̄(t)`, `τ(t)` | III-C |
+| (7) | indicador de bunching sobre lo observado: `b_i(t)` | III-C |
+| (8) | el detector evaluado, sobre el pronóstico: `b̂_i(t)` | III-C |
+| (9) | `τ(ĥ) ≠ τ(h)` | III-C |
 
 Toda ecuación nueva continúa la secuencia por orden de aparición, lo que obliga a
 renumerar si se inserta una en el medio. `\tag{}` lo renderizan KaTeX y MathJax, así
@@ -281,15 +284,37 @@ antigua V-B, donde duplicaba lo que esta sección hace por definición.
 
 ### III. Método propuesto
 
+**Orden fijado el 2026-08-27: headway → pronóstico → bunching.** Sigue el flujo
+real del dato, y no es solo cosmético: con bunching al final, el lector llega a la
+definición del evento con `h` y `ĥ` ya sobre la mesa, así que las Ecuaciones (7) y
+(8) se definen juntas. En el orden anterior —A headway, B bunching— la subsección
+del evento tenía que invocar `ĥ` sin que nada lo hubiera definido.
+
 **A. Del GPS al headway** — ✅ **ESCRITA.** El eje ajustado desde los
 propios datos, la proyección, el sentido, los viajes, la rejilla y el cruce por
-posición. Tiene margen para crecer: es el aporte metodológico, y el revisor lo va
-a mirar con lupa precisamente por no ser estándar.
+posición, en seis pasos numerados. Ecuaciones (1)–(3).
 → **Fig. 1**
 
-**B. Qué cuenta como bunching** — ✅ **ESCRITA.** La bisagra
-del paper. Cierra dejando explícito que el corte se mide contra el promedio del
-propio vector, de modo que no es el mismo corte cuando cambia la dispersión.
+Pendiente: los cuatro parámetros del procesamiento que hoy quedan implícitos —el
+umbral de 10 km/h para «en movimiento», las **dos** estrategias de ajuste del eje
+(PCA por sentido en dos corredores, PCA única en el tercero), los 50 bins del
+ajuste, y que la velocidad se deriva del desplazamiento y no se lee del campo del
+proveedor. El segundo es el que un revisor va a pedir: hoy el eje se presenta como
+un procedimiento único cuando son dos.
+
+**B. La tarea de pronóstico** — ✅ **ESCRITA.** Qué se recibe, qué se emite, los
+cuatro horizontes directos, y el objetivo de error cuadrático con su consecuencia:
+tiende a la media condicional, que es más pareja que la realidad. Ecuaciones (4)–(5).
+
+> El título NO dice «LSTM». Acá va la **tarea**; la configuración entrenada
+> —32 unidades, Adam, semilla 42— vive en IV-B. El mecanismo del objetivo se movió
+> aquí desde IV-B, donde era una propiedad del objetivo escondida en la resaca de
+> una tabla de hiperparámetros.
+
+**C. Qué cuenta como bunching** — ✅ **ESCRITA.** La definición del evento sobre lo
+observado y el detector compuesto sobre el pronóstico, definidos uno al lado del
+otro, y de ahí que el corte no sea el mismo cuando cambia la dispersión.
+Ecuaciones (6)–(9).
 → **Fig. 2 y 3**
 
 ---

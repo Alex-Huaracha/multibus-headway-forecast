@@ -145,19 +145,48 @@ operador necesita y la que define el bunching.
 **4) Tiempo desde el cruce hacia atrás** — la definición de la Ecuación (3), y la
 adoptada.
 
-### B. Qué cuenta como bunching
+### B. La tarea de pronóstico
+
+La Sección III-A deja el corredor descrito, minuto a minuto, por un vector de
+headways. Lo que este trabajo pronostica es ese vector completo: no un headway
+suelto ni un promedio del corredor, sino todas sus posiciones a la vez.
+
+Dado el historial de los últimos $T$ minutos y un contexto de calendario $c(t)$, se
+busca el vector del corredor $H$ minutos más adelante:
+
+$$\hat{h}(t+H) \;=\; f\big(h(t-T+1), \dots, h(t);\; c(t)\big),
+\qquad T = 12 \tag{4}$$
+
+Se pronostica a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
+ajustado por separado para cada uno: no hay recursión, cada horizonte se predice
+directo. El vector no tiene longitud fija, porque cuántos headways hay en un minuto
+depende de cuántos buses estén circulando, así que el modelo emite una salida de
+longitud fija y el error se computa solo sobre las posiciones donde hay bus.
+
+**El objetivo que se minimiza es el error cuadrático**, promediado sobre esas
+posiciones válidas $\mathcal{V}$:
+
+$$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
+\big(\hat{h}_i - h_i\big)^{2} \tag{5}$$
+
+Esa elección gobierna el resto del trabajo, y conviene decir por qué desde ahora: un
+pronóstico que minimiza error cuadrático tiende a la media condicional, que es más
+pareja que la realidad. La compresión de dispersión que documenta la Sección V-B no
+es entonces una falla del ajuste, es lo que este objetivo pide. Lo que esa
+compresión le hace a la regla del evento es el asunto de la subsección siguiente.
+
+### C. Qué cuenta como bunching
 
 Hay que decidir cuándo un headway cuenta como bunching. La convención del
 campo es una fracción del headway programado —normalmente un cuarto—, pero aquí
 no hay programación contra la cual comparar. Se sustituye por el análogo directo:
 **un headway cuenta como bunching si cae por debajo de la mitad del
 promedio de su propio vector en ese instante.** Se exige que el vector tenga al
-menos tres headways —o sea cuatro buses en circulación— y los vectores más cortos
-se descartan. Con dos
-headways hay un solo hueco: cualquier medida de qué tan desparejo está
-el corredor se reduce a esa única diferencia, que no describe una forma. Con tres
-ya hay patrón —uno colapsado, uno estirado, uno normal—, y por eso el mínimo está
-ahí y no en dos.
+menos tres headways —o sea cuatro buses en circulación— y los vectores más cortos se
+descartan. Con dos headways hay un solo hueco: cualquier medida de qué tan desparejo
+está el corredor se reduce a esa única diferencia, que no describe una forma. Con
+tres ya hay patrón —uno colapsado, uno estirado, uno normal—, y por eso el mínimo
+está ahí y no en dos.
 
 El promedio del propio vector cumple la función que cumplía la programación: fijar
 cuál es la separación normal en ese corredor en ese instante. Un corte fijo en
@@ -170,20 +199,30 @@ En notación: sea $h(t) = (h_1, \dots, h_m)$ el vector de headways del corredor 
 instante $t$, con $m = N - 1$ posiciones. Su promedio y el corte del evento son
 
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
-\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2} \tag{4}$$
+\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2} \tag{6}$$
 
 y la posición $i$ cuenta como bunching cuando cae por debajo de ese corte:
 
 $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
-\qquad \text{definido solo si } m \ge 3. \tag{5}$$
+\qquad \text{definido solo si } m \ge 3. \tag{7}$$
 
-Nótese que $\tau$ no es un número fijo de minutos: es función del propio vector que
-se evalúa. Aplicar la misma regla a lo observado y a un pronóstico $\hat{h}(t)$
-produce por eso dos cortes distintos:
+El detector que este trabajo evalúa es esa misma regla aplicada al vector predicho
+de la Ecuación (4), con el promedio del propio pronóstico fijando el corte:
+
+$$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
+\,\right] \tag{8}$$
+
+Que el corte salga del vector predicho y no del observado no es un detalle de
+implementación: quien opera un corredor no dispone del observado. Al momento de
+decidir, lo único que tiene es el pronóstico, así que puntuar contra el promedio
+real mediría algo que nadie puede desplegar.
+
+Como $\tau$ es función del propio vector que se evalúa, y no un número fijo de
+minutos, las Ecuaciones (7) y (8) no comparan contra el mismo corte:
 
 $$\tau(\hat{h}) \;=\; \rho\,\bar{\hat{h}}
 \;\neq\; \rho\,\bar{h} \;=\; \tau(h)
-\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}. \tag{6}$$
+\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}. \tag{9}$$
 
 Escribir «la mitad del promedio» en los dos casos no los vuelve el mismo corte. Los
 dos ejemplos siguientes lo muestran con el mismo headway de dos minutos.
@@ -202,13 +241,8 @@ corte: **no es bunching.**
 
 Dos minutos entre buses es el mismo hecho físico en las dos figuras, y la regla lo
 clasifica al revés. No cambió el corredor ni cambió la medición: cambió el corte,
-porque bajó de 3,0 a 1,6 cuando el vector se volvió más parejo.
-
-De ahí sale la consecuencia que ocupa el resto del trabajo. Aplicado a lo
-observado, el corte se calibra sobre la dispersión observada; aplicado a un
-pronóstico, se mide contra la dispersión del pronóstico. Si esas dos dispersiones
-difieren, no es el mismo corte aunque se escriba igual. La Sección V mide qué
-ocurre cuando se ignora esa diferencia.
+porque bajó de 3,0 a 1,6 cuando el vector se volvió más parejo. La Sección V mide
+qué ocurre cuando esa diferencia se ignora sobre datos reales.
 
 ---
 
@@ -232,7 +266,7 @@ posiciones crudas.
 
 **El vector es corto, y conviene fijarlo antes de leer cualquier medida de
 dispersión.** En promedio, un corredor queda descrito en cada minuto por 3,2
-headways en E4, 3,9 en E2 y 6,3 en E59. El mínimo que exige la Sección III-B son
+headways en E4, 3,9 en E2 y 6,3 en E59. El mínimo que exige la Sección III-C son
 tres, de modo que la restricción no es una salvaguarda ocasional: el vector medio
 de E4 está apenas por encima del corte y la regla está actuando casi siempre. Y
 toda la dispersión que mide la Sección V se calcula sobre listas de esa longitud,
@@ -278,12 +312,7 @@ La configuración completa del LSTM es la siguiente.
 | Contexto | seno y coseno de la hora del día y del día de la semana |
 | Red | 32 unidades ocultas; una capa en E2, dos capas con 20 % de apagado aleatorio de unidades en E59; en E4 se eligió entre tres configuraciones en validación |
 | Ajuste | Adam con paso 5 × 10⁻⁴, lotes de 128, hasta 50 pasadas por los datos, corte temprano tras 10 sin mejora, semilla fija en 42 |
-| Objetivo | error cuadrático medio, calculado solo sobre las posiciones donde hay bus |
-
-La última fila gobierna el resto del trabajo. **El objetivo que se minimiza es el
-error cuadrático**, y un pronóstico que minimiza error cuadrático tiende a la media
-condicional, que es más pareja que la realidad. La compresión que documenta la
-Sección V-B no es entonces una falla del ajuste: es lo que este objetivo pide.
+| Objetivo | el error cuadrático de la Ecuación (5), calculado solo sobre las posiciones donde hay bus |
 
 Las cuatro variables de contexto son de calendario y nada más: en el momento de
 predecir, ninguna depende de lo que va a pasar.
@@ -442,7 +471,7 @@ distancia que se pide anticipar.
 
 ### C. La alarma no suena
 
-La regla de la Sección III-B, aplicada a lo observado, marca 15 245 eventos en E2 a
+La regla de la Sección III-C, aplicada a lo observado, marca 15 245 eventos en E2 a
 diez minutos. Aplicada al pronóstico del modelo aprendido, con el mismo corte, se
 dispara **catorce veces**.
 
