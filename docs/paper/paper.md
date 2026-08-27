@@ -52,44 +52,58 @@ construcción: sus umbrales son regulatorios y no admiten recalibración.
 
 ### A. Del GPS al headway
 
-Sin tabla de paradas no es posible medir el headway en una parada. Entonces lo que
-sigue es reconstruir la geometría del corredor desde los propios datos.
+El headway es el tiempo que separa a dos buses consecutivos: si uno pasa por una
+esquina y el siguiente llega cinco minutos después, el headway en esa esquina es de
+cinco minutos. Es la cantidad que dice si un corredor va parejo o si sus buses
+viajan en pelotón, y es lo que este trabajo pronostica.
 
-**El eje.** Se ajusta una línea central a las posiciones de los buses en
-movimiento y después se suaviza; es una curva principal calculada sobre tramos del
-recorrido. El eje no viene de un archivo de ruta, sale de por dónde circularon los
-buses.
+La forma habitual de medirlo es en una parada, usando la lista de paradas de la ruta
+y los horarios de paso. Acá no existe ninguna de las dos cosas: el dato disponible
+son coordenadas GPS crudas.
 
-**La proyección a una dimensión.** Cada posición *p* se reduce a un solo número,
-cuánto ha avanzado el bus a lo largo del corredor, más su distancia al eje. Es la
-operación estándar de referenciación lineal, proyectar un punto sobre una
-polilínea:
+Entonces, para llegar al headway desde esas coordenadas, se aplicó una serie de
+procesos en el siguiente orden.
+
+**1) El eje.** Lo primero es saber por dónde va el corredor, y eso sale de los
+propios buses: se ajusta una línea central a las posiciones de los que están en
+movimiento y después se suaviza, lo que da una curva principal a lo largo del
+recorrido.
+
+**2) La proyección a una dimensión.** Con el eje ya trazado, cada posición *p* se
+reduce a dos números: cuánto ha avanzado el bus a lo largo del corredor y a qué
+distancia quedó del eje. Es la operación estándar de referenciación lineal,
+proyectar un punto sobre una polilínea:
 
 $$s(p) = \text{arco del punto del eje } C \text{ más cercano a } p,
-\qquad \ell(p) = \lVert\, p - C(s(p)) \,\rVert$$
+\qquad \ell(p) = \lVert\, p - C(s(p)) \,\rVert \tag{1}$$
 
 La posición se conserva solo si $\ell(p) \le 300$ m; lo que cae más lejos no
 pertenece al corredor.
 
-**El sentido de marcha** no se lee del GPS. La definición adoptada es el signo
-del desplazamiento promediado sobre cinco posiciones, de modo que un error aislado
-no invierta la dirección:
+**3) El sentido de marcha.** Sobre ese mismo eje circulan los buses de ida y los de
+vuelta, y el dato no dice cuál es cuál. La definición adoptada es el signo del
+desplazamiento promediado sobre cinco posiciones, de modo que un error aislado no
+invierta la dirección:
 
-$$d = \operatorname{sign}\!\big(\overline{\Delta s}_{5}\big)$$
+$$d = \operatorname{sign}\!\big(\overline{\Delta s}_{5}\big) \tag{2}$$
 
-Se deriva porque no había alternativa: E59 no reporta rumbo en absoluto.
+Se deriva porque no había alternativa: uno de los corredores no reporta rumbo en
+absoluto.
 
-**Viajes y rejilla.** El recorrido de cada bus se corta en viajes: un salto de más
-de treinta minutos sin señal, una inversión de sentido o una espera prolongada en
-terminal cierran el viaje en curso. Después todo se lleva a una rejilla de sesenta
-segundos, de modo que en cada minuto exista una foto del corredor completo.
+**4) Los viajes.** Ya con sentido, el recorrido de cada bus se corta en viajes: un
+salto de más de treinta minutos sin señal, una inversión de sentido o una espera
+prolongada en terminal cierran el viaje en curso.
 
-**El headway.** Sobre esa foto, para un par de buses
-consecutivos en el mismo sentido —el de adelante *L*, el de atrás *F*— en el
-instante *T*:
+**5) La rejilla común.** Los buses no emiten sincronizados entre sí, de modo que
+hace falta un instante compartido. Todo se lleva a una rejilla de sesenta segundos,
+y así cada minuto queda descrito por una **foto** del corredor: la posición de todos
+sus buses en ese momento.
+
+**6) El headway.** Sobre esa foto, para un par de buses consecutivos en el mismo
+sentido —el de adelante *L*, el de atrás *F*— en el instante *T*:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
-\qquad h = T - t_{c}$$
+\qquad h = T - t_{c} \tag{3}$$
 
 Es decir: **hace cuánto tiempo el bus de adelante pasó por el punto donde el de
 atrás está ahora.** Es un cruce por posición y no por parada, y eso es exactamente
@@ -101,29 +115,35 @@ por un vector de *N* − 1 números.
 ![Definición del headway](figuras/headway/headway.png)
 
 **Fig. 1.** El headway, medido en un punto fijo del corredor. El bus de adelante
-—Bus 1, el *L* de la ecuación— pasó por el punto p₂ a las 12:30; el de atrás
+—Bus 1, el *L* de la Ecuación (3)— pasó por el punto p₂ a las 12:30; el de atrás
 —Bus 2, el *F*— llega a ese mismo punto a las 12:35. El headway en p₂ es la
-diferencia entre esas dos horas: cinco minutos. Es un cruce por posición y no por
-parada, y eso es lo que permite prescindir de la tabla de paradas. La separación
-espacial entre los dos buses no interviene. Esquema ilustrativo, no datos reales.
+diferencia entre esas dos horas: cinco minutos. La separación espacial entre los dos
+buses no interviene. Esquema ilustrativo, no datos reales.
 
-Esta forma de medir el headway no se eligió por comodidad. Se compararon cuatro
-formulaciones sobre criterios de cobertura, variabilidad, autocorrelación,
-información compartida entre buses vecinos y estabilidad de la distribución.
+Esta forma de medir el headway no se eligió por comodidad. Se compararon las
+siguientes cuatro formulaciones, sobre criterios de cobertura, variabilidad,
+autocorrelación, información compartida entre buses vecinos y estabilidad de la
+distribución.
 
-**Tiempo entre pasadas por puntos virtuales del eje** —sembrar puntos artificiales
-a lo largo del corredor y medir el tiempo entre buses sucesivos por cada uno—
-quedó afuera por autocorrelación demasiado baja: el valor de ahora casi no
-informaba sobre el de cinco minutos después, que es justamente lo que hay que
-predecir. **Tiempo proyectado hacia adelante** —la separación entre los dos buses
-dividida por la velocidad del de atrás— quedó afuera por lo mismo, y arrastra
-además una debilidad de forma: dividir por la velocidad actual supone que esa
-velocidad se mantiene, de modo que introduce una estimación dentro de la cantidad
-que después se quiere estimar. **Distancia en metros entre buses consecutivos**
-iguala a la adoptada en calidad de señal, y se descartó por el objeto de estudio y
-no por su desempeño: mide separación espacial y no tiempo entre pasadas, que es la
-cantidad que el operador necesita y la que define el bunching. Queda el
-**tiempo desde el cruce hacia atrás**, que es la ecuación de arriba.
+**1) Tiempo entre pasadas por puntos virtuales del eje** — sembrar puntos
+artificiales a lo largo del corredor y medir el tiempo entre buses sucesivos por
+cada uno. Quedó afuera por autocorrelación demasiado baja: el valor de ahora casi
+no informaba sobre el de cinco minutos más tarde, que es uno de los horizontes que
+hay que predecir.
+
+**2) Tiempo proyectado hacia adelante** — la separación entre los dos buses dividida
+por la velocidad del de atrás. Quedó afuera por lo mismo, y arrastra además una
+debilidad de forma: dividir por la velocidad actual supone que esa velocidad se
+mantiene, de modo que introduce una estimación dentro de la cantidad que después se
+quiere estimar.
+
+**3) Distancia en metros entre buses consecutivos** — iguala a la adoptada en
+calidad de señal, y se descartó por el objeto de estudio y no por su desempeño:
+mide separación espacial y no tiempo entre pasadas, que es la cantidad que el
+operador necesita y la que define el bunching.
+
+**4) Tiempo desde el cruce hacia atrás** — la definición de la Ecuación (3), y la
+adoptada.
 
 ### B. Qué cuenta como bunching
 
@@ -132,8 +152,8 @@ campo es una fracción del headway programado —normalmente un cuarto—, pero 
 no hay programación contra la cual comparar. Se sustituye por el análogo directo:
 **un headway cuenta como bunching si cae por debajo de la mitad del
 promedio de su propio vector en ese instante.** Se exige que el vector tenga al
-menos tres headways —o sea cuatro buses en circulación, porque *N* buses dejan
-*N* − 1 huecos entre ellos—, y los vectores más cortos se descartan. Con dos
+menos tres headways —o sea cuatro buses en circulación— y los vectores más cortos
+se descartan. Con dos
 headways hay un solo hueco: cualquier medida de qué tan desparejo está
 el corredor se reduce a esa única diferencia, que no describe una forma. Con tres
 ya hay patrón —uno colapsado, uno estirado, uno normal—, y por eso el mínimo está
@@ -150,12 +170,12 @@ En notación: sea $h(t) = (h_1, \dots, h_m)$ el vector de headways del corredor 
 instante $t$, con $m = N - 1$ posiciones. Su promedio y el corte del evento son
 
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
-\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}$$
+\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2} \tag{4}$$
 
 y la posición $i$ cuenta como bunching cuando cae por debajo de ese corte:
 
 $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
-\qquad \text{definido solo si } m \ge 3.$$
+\qquad \text{definido solo si } m \ge 3. \tag{5}$$
 
 Nótese que $\tau$ no es un número fijo de minutos: es función del propio vector que
 se evalúa. Aplicar la misma regla a lo observado y a un pronóstico $\hat{h}(t)$
@@ -163,7 +183,7 @@ produce por eso dos cortes distintos:
 
 $$\tau(\hat{h}) \;=\; \rho\,\bar{\hat{h}}
 \;\neq\; \rho\,\bar{h} \;=\; \tau(h)
-\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}.$$
+\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}. \tag{6}$$
 
 Escribir «la mitad del promedio» en los dos casos no los vuelve el mismo corte. Los
 dos ejemplos siguientes lo muestran con el mismo headway de dos minutos.
@@ -347,7 +367,7 @@ por 0,46 minutos en E4 y 0,33 en E59; en E2 la diferencia es de 0,07 minutos y n
 resiste la prueba estadística una vez que se agrupan las observaciones por día de
 servicio.
 
-Dos precisiones acotan ese resultado. La primera es que el cruce no es una
+Tres precisiones acotan ese resultado. La primera es que el cruce no es una
 propiedad del aprendizaje profundo: el modelo de árboles lo reproduce entero, y a
 diez minutos aventaja a la repetición por 1,59 minutos en E2, 1,09 en E4 y 0,79
 en E59. La segunda es que la frontera real no es el horizonte sino qué tan movida
@@ -356,6 +376,14 @@ de los headways que el modelo recibe —y fijando los cortes sobre los datos de
 entrenamiento, nunca sobre los de prueba—, la ventaja del aprendiz crece de forma
 ordenada del tercio calmo al volátil en 11 de las 12 celdas. Alargar el horizonte
 no cambia quién gana: mueve la ventaja hacia tercios cada vez más tranquilos.
+
+La tercera es que el promedio histórico por franja horaria cumple el papel que la
+Sección IV-B le asignaba. Su error no se mueve con el horizonte —se queda entre 4,7
+y 5,7 minutos en los tres corredores—, así que la ventaja del aprendiz sobre él se
+estrecha a medida que el horizonte crece: en E2 el aprendiz le gana por 0,99
+minutos a un horizonte de un minuto y le pierde por 0,07 a diez. Esa es la única
+de las doce celdas donde el promedio histórico gana, y es la razón de que a
+horizonte largo el competidor exigente sea él y no la repetición.
 
 Este eje se reporta como contexto y no como contribución. El cruce entre
 persistencia y modelo aprendido al alargar el horizonte es conocido en pronóstico
@@ -395,12 +423,10 @@ calidad de servicio que usa el manual del oficio. El mismo corredor, en el mismo
 instante, califica como *servicio de reloj* según el pronóstico y como *casi todos
 los buses apelotonados* según lo observado.
 
-Conviene ser preciso sobre qué es nuevo acá. Que un pronóstico optimizado en error
-cuadrático salga más parejo que la realidad está publicado y demostrado como
-teorema, pero ese teorema cubre la variabilidad de una serie a lo largo del tiempo.
-Lo que este trabajo mide es otra cosa: cuán disparejos están los buses **entre sí
-en un mismo instante**. Las 36 celdas son por lo tanto un resultado empírico, no
-un corolario.
+Conviene ser preciso sobre qué es nuevo acá. El teorema que la Sección II-D
+reconoce como previo cubre la variabilidad de una serie a lo largo del tiempo. Lo
+que estas 36 celdas miden es otra cosa: cuán disparejos están los buses **entre sí
+en un mismo instante**. Son por lo tanto un resultado empírico y no un corolario.
 
 ![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
 
@@ -416,10 +442,9 @@ distancia que se pide anticipar.
 
 ### C. La alarma no suena
 
-El bunching se define aquí como un headway que cae por debajo de la mitad
-del promedio de su propio corredor en ese instante. Aplicada a lo observado, esa
-regla marca 15 245 eventos en E2 a diez minutos. Aplicada al pronóstico del modelo
-aprendido, con el mismo corte, se dispara **catorce veces**.
+La regla de la Sección III-B, aplicada a lo observado, marca 15 245 eventos en E2 a
+diez minutos. Aplicada al pronóstico del modelo aprendido, con el mismo corte, se
+dispara **catorce veces**.
 
 Repetir el último valor observado dispara 15 083 veces. Puntuada con la medida
 habitual de detección, la repetición aparece 253 veces mejor que el modelo. En las
@@ -483,8 +508,8 @@ al lado.
 
 ### D. Ese factor no mide al modelo
 
-Si el 253 midiera una capacidad del modelo, debería ser aproximadamente estable al
-cambiar la ventana de prueba. No lo es.
+Si el factor de 253 de la sección anterior midiera una capacidad del modelo,
+debería ser aproximadamente estable al cambiar la ventana de prueba. No lo es.
 
 En la misma celda —E2, diez minutos, el mismo modelo, la misma regla— el factor
 vale **2 299** en la primera ventana, **817** en la segunda y **253** en la tercera.
@@ -502,9 +527,9 @@ distinta.
 
 Si el problema es el punto de operación, entonces debería bastar con recalibrarlo.
 
-Ajustamos el corte sobre una ventana temporal y lo aplicamos a la siguiente, sin
-mirar nunca los datos con los que se lo puntúa, y sin tocar el modelo. Fijamos el
-corte maximizando la correlación de Matthews. La alternativa habitual —maximizar la
+El corte se ajusta sobre una ventana temporal y se aplica a la siguiente, sin mirar
+nunca los datos con los que se lo puntúa y sin tocar el modelo. Se fija maximizando
+la correlación de Matthews. La alternativa habitual —maximizar la
 medida de detección usual— tiene un modo de falla que la descarta: sobre la
 repetición en E2, de tres minutos en adelante, el corte que la optimiza dispara
 entre el 99,9 % y el 100 % de las veces. Es decir, reencuentra la regla vacía.
@@ -518,12 +543,13 @@ ganaba el error escalar.
 Esa coincidencia es el resultado, y merece decirse aparte. Puestos en el mismo
 eje, el cruce del error escalar y el cruce de la detección van en el mismo sentido
 y ocurren en la misma zona de horizontes. Las dos métricas —una continua, la otra
-categórica— coinciden en quién gana y desde dónde. La disociación entre ellas, que
-era el punto de partida de todo este análisis, no existía. La fabricaba el umbral.
+categórica— coinciden en quién gana y desde dónde. La disociación que las Secciones
+V-A y V-C parecían mostrar —el aprendiz ganando en error y perdiendo en detección—
+no existía. La fabricaba el umbral.
 
 Frente a una falla de detección, el campo cambia de modelo: otra arquitectura,
-más capas, más datos. Acá no hizo falta ninguna de esas cosas. Los pronósticos
-que produce la Fig. 8 son, uno por uno, los mismos que produce la Fig. 7.
+más capas, más datos. Acá no hizo falta ninguna de esas cosas. Las predicciones
+que puntúa la Fig. 8 son, una por una, las mismas que puntúa la Fig. 7.
 No se reentrenó, no se agregó información y no se tocó una línea del modelo. Se
 movió un número —dónde se traza la raya entre alarma y silencio— y el ganador
 cambió de bando.

@@ -164,6 +164,36 @@ Cuando hace falta atribuir autoría, el sujeto es **el trabajo**, no las persona
 
 ---
 
+### 2.6 Toda ecuación desplegada lleva número
+
+**Decidida el 2026-08-27.** Cada ecuación desplegada del manuscrito lleva su número
+con `\tag{n}`, en una sola secuencia por orden de aparición. Las referencias citan
+el número —«la Ecuación (3)»— y nunca la posición.
+
+Prohibido: «la ecuación de arriba», «esa fórmula», «la ecuación anterior». Una
+referencia posicional se rompe en silencio en cuanto algo se mueve de lugar, y en un
+journal no se cita por posición. El síntoma que la motivó: la formulación adoptada
+del headway se citaba como «la ecuación de arriba» desde una lista que estaba
+**debajo** de la Fig. 1.
+
+Asignación vigente, toda en la Sección III:
+
+| Ec. | Qué define | Dónde |
+|---|---|---|
+| (1) | proyección al eje: `s(p)`, `ℓ(p)` | III-A, paso 2 |
+| (2) | sentido de marcha: `d` | III-A, paso 3 |
+| (3) | el headway: `t_c`, `h` | III-A, paso 6 |
+| (4) | promedio y corte: `h̄(t)`, `τ(t)` | III-B |
+| (5) | indicador de bunching: `b_i(t)` | III-B |
+| (6) | `τ(ĥ) ≠ τ(h)` | III-B |
+
+Toda ecuación nueva continúa la secuencia por orden de aparición, lo que obliga a
+renumerar si se inserta una en el medio. `\tag{}` lo renderizan KaTeX y MathJax, así
+que sirve en el borrador markdown y traduce directo a `\label`/`\eqref` cuando se
+genere el PDF con LaTeX.
+
+---
+
 ## 3. Estructura
 
 **Molde: NADOS** (*Reliability-Gated Difficulty-Aware Oversampling*, IJACSA
