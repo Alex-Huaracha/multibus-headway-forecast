@@ -1,4 +1,4 @@
-# El umbral, no el modelo: por qué un pronóstico de headways parece ciego al apelotonamiento, y cómo se repara
+# El umbral, no el modelo: por qué un pronóstico de headways parece ciego al bunching, y cómo se repara
 
 ## Resumen
 
@@ -52,48 +52,85 @@ construcción: sus umbrales son regulatorios y no admiten recalibración.
 
 ### A. Del GPS al headway
 
-Sin tabla de paradas no se puede medir el headway en una parada. Lo que sigue
-reconstruye la geometría del corredor desde los propios datos.
+Sin tabla de paradas no es posible medir el headway en una parada. Entonces lo que
+sigue es reconstruir la geometría del corredor desde los propios datos.
 
-Primero se ajusta el **eje del corredor**: se toman las posiciones de los buses en
-movimiento y se les ajusta una línea central, que después se suaviza. El eje no
-viene de un archivo de ruta; sale de por dónde circularon los buses. Cada posición
-se proyecta sobre ese eje y queda reducida a un solo número: cuánto ha avanzado el
-bus a lo largo del corredor. Las posiciones que caen a más de 300 metros del eje se
-descartan por no pertenecer al corredor.
+**El eje.** Se ajusta una línea central a las posiciones de los buses en
+movimiento y después se suaviza; es una curva principal calculada sobre tramos del
+recorrido. El eje no viene de un archivo de ruta, sale de por dónde circularon los
+buses.
 
-El **sentido de marcha** se deduce del signo de ese avance, suavizado sobre varias
-posiciones para que un error de GPS aislado no invierta la dirección. Después el
-recorrido de cada bus se corta en viajes: un salto de más de treinta minutos sin
-señal, una inversión de sentido o una espera prolongada en terminal cierran el
-viaje en curso. Por último todo se lleva a una **rejilla de sesenta segundos**, de
-modo que en cada minuto exista una foto del corredor completo.
+**La proyección a una dimensión.** Cada posición *p* se reduce a un solo número,
+cuánto ha avanzado el bus a lo largo del corredor, más su distancia al eje. Es la
+operación estándar de referenciación lineal, proyectar un punto sobre una
+polilínea:
 
-Sobre esa foto se define el headway. Para cada par de buses consecutivos en el
-mismo sentido, el headway es **hace cuánto tiempo el bus de adelante pasó por el
-punto donde el de atrás está ahora**. Es un cruce por posición y no por parada, que
-es precisamente lo que permite prescindir de la tabla de paradas. Con *N* buses
-circulando, el corredor queda descrito en cada minuto por un vector de *N* − 1
-números. Si el cruce hallado tiene más de treinta minutos de antigüedad se emite
-«sin dato», para no arrastrar un paso de horas antes.
+$$s(p) = \text{arco del punto del eje } C \text{ más cercano a } p,
+\qquad \ell(p) = \lVert\, p - C(s(p)) \,\rVert$$
 
-Esta forma no se eligió por comodidad. Se compararon cuatro definiciones
-alternativas del headway sobre siete criterios de viabilidad —entre ellos la
-cobertura, la plausibilidad física de la velocidad implícita y la información
-compartida entre buses vecinos—, y ésta ganó en seis de los siete.
+La posición se conserva solo si $\ell(p) \le 300$ m; lo que cae más lejos no
+pertenece al corredor.
 
-![Definición del headway](figuras/esquema-headway.es.png)
+**El sentido de marcha** no se lee del GPS. La definición que usamos es el signo
+del desplazamiento promediado sobre cinco posiciones, de modo que un error aislado
+no invierta la dirección:
 
-**Fig. 1.** El headway entre dos buses consecutivos. Es una definición de cruce
-por posición y no por parada, que es lo que permite prescindir de la tabla de
-paradas. Trayectorias ilustrativas, no datos reales.
+$$d = \operatorname{sign}\!\big(\overline{\Delta s}_{5}\big)$$
 
-### B. Qué cuenta como apelotonamiento
+Se deriva porque no había alternativa: E59 no reporta rumbo en absoluto.
 
-Hay que decidir cuándo un headway cuenta como apelotonamiento. La convención del
+**Viajes y rejilla.** El recorrido de cada bus se corta en viajes: un salto de más
+de treinta minutos sin señal, una inversión de sentido o una espera prolongada en
+terminal cierran el viaje en curso. Después todo se lleva a una rejilla de sesenta
+segundos, de modo que en cada minuto exista una foto del corredor completo.
+
+**El headway.** Acá la formulación es nuestra. Sobre esa foto, para un par de buses
+consecutivos en el mismo sentido —el de adelante *L*, el de atrás *F*— en el
+instante *T*:
+
+$$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
+\qquad h = T - t_{c}$$
+
+Es decir: **hace cuánto tiempo el bus de adelante pasó por el punto donde el de
+atrás está ahora.** Es un cruce por posición y no por parada, y eso es exactamente
+lo que permite prescindir de la tabla de paradas. Si no existe tal $t_c$, o si
+$h$ supera los treinta minutos, se emite «sin dato» en lugar de arrastrar un paso
+de horas antes. Con *N* buses circulando, el corredor queda descrito en cada minuto
+por un vector de *N* − 1 números.
+
+![Definición del headway](figuras/headway/headway.png)
+
+**Fig. 1.** El headway, medido en un punto fijo del corredor. El bus de adelante
+—Bus 1, el *L* de la ecuación— pasó por el punto p₂ a las 12:30; el de atrás
+—Bus 2, el *F*— llega a ese mismo punto a las 12:35. El headway en p₂ es la
+diferencia entre esas dos horas: cinco minutos. Es un cruce por posición y no por
+parada, y eso es lo que permite prescindir de la tabla de paradas. La separación
+espacial entre los dos buses no interviene. Esquema ilustrativo, no datos reales.
+
+Esta forma de medir el headway no se eligió por comodidad. Se compararon cuatro
+formulaciones sobre criterios de cobertura, variabilidad, autocorrelación,
+información compartida entre buses vecinos y estabilidad de la distribución.
+
+**Tiempo entre pasadas por puntos virtuales del eje** —sembrar puntos artificiales
+a lo largo del corredor y medir el tiempo entre buses sucesivos por cada uno—
+quedó afuera por autocorrelación demasiado baja: el valor de ahora casi no
+informaba sobre el de cinco minutos después, que es justamente lo que hay que
+predecir. **Tiempo proyectado hacia adelante** —la separación entre los dos buses
+dividida por la velocidad del de atrás— quedó afuera por lo mismo, y arrastra
+además una debilidad de forma: dividir por la velocidad actual supone que esa
+velocidad se mantiene, de modo que introduce una estimación dentro de la cantidad
+que después se quiere estimar. **Distancia en metros entre buses consecutivos**
+iguala a la adoptada en calidad de señal, y se descartó por el objeto de estudio y
+no por su desempeño: mide separación espacial y no tiempo entre pasadas, que es la
+cantidad que el operador necesita y la que define el bunching. Queda el
+**tiempo desde el cruce hacia atrás**, que es la ecuación de arriba.
+
+### B. Qué cuenta como bunching
+
+Hay que decidir cuándo un headway cuenta como bunching. La convención del
 campo es una fracción del headway programado —normalmente un cuarto—, pero aquí
 no hay programación contra la cual comparar. Se sustituye por el análogo directo:
-**un headway cuenta como apelotonamiento si cae por debajo de la mitad del
+**un headway cuenta como bunching si cae por debajo de la mitad del
 promedio de su propio vector en ese instante.** Se exige que el vector tenga al
 menos tres buses, porque con dos el promedio es poco informativo.
 
@@ -123,41 +160,92 @@ cadencia es regular: la mediana y el percentil 95 del tiempo entre emisiones
 coinciden en los tres corredores, de modo que el dato no llega a ráfagas. Pero cada
 bus emite por su cuenta y sin sincronizarse con los demás, así que dos posiciones
 del mismo corredor casi nunca corresponden al mismo instante. De ahí la rejilla
-común de la sub sección siguiente, y de ahí que sea de 60 segundos: con emisiones
-cada 20, promedia tres por bus sin perder granularidad operativa.
+común de la Sección III-A, y de ahí que sea de sesenta segundos: con emisiones cada
+veinte, promedia tres por bus sin perder granularidad operativa.
 
-Se cubren tres corredores —identificados aquí como E2, E4 y E59— durante 152 días
-seguidos, del 1 de octubre de 2023 al 29 de febrero de 2024, sin huecos de
-calendario.
+Se cubren tres corredores —identificados aquí como E2, E4 y E59, uno por empresa
+operadora— durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de
+2024, sin huecos de calendario. Son 90 unidades en total y 43,4 millones de
+posiciones crudas.
+
+**El vector es corto, y conviene fijarlo antes de leer cualquier medida de
+dispersión.** En promedio, un corredor queda descrito en cada minuto por 3,2
+headways en E4, 3,9 en E2 y 6,3 en E59. La regla de la Sección III-B, que exige al
+menos tres buses, no es entonces una salvaguarda ocasional: está actuando casi
+siempre. Y toda la dispersión que mide la Sección V se calcula sobre listas de esa
+longitud, lo que la vuelve un estadístico ruidoso en los dos corredores cortos y
+bastante más firme en E59.
 
 Importa tanto lo que el dato tiene como lo que no. **No hay horario publicado, no
 hay archivo GTFS y no hay tabla de paradas.** Eso obliga a construir todo desde la
 posición cruda, que es trabajo extra, pero también es lo que vuelve el método
-aplicable: la mayoría de las ciudades donde el apelotonamiento es un problema
+aplicable: la mayoría de las ciudades donde el bunching es un problema
 cotidiano son exactamente las que no tienen ese dato ordenado. Un método que exija
 GTFS no sirve donde más falta hace.
 
+Aplicado a estos datos, el procedimiento de la Sección III-A deja alrededor de tres
+millones de headways válidos en E2 y E59, con una cobertura que va del 57,9 % al
+79,7 % según corredor y sentido. Una posición del vector sin headway válido queda
+como «sin dato»: no se imputa ni se convierte en cero, y el error se computa solo
+sobre las posiciones observadas. La consecuencia hay que decirla: los resultados
+describen el corredor **donde el dato existe**, y esa cobertura no es uniforme.
+
 ### B. Los métodos comparados
 
-Se comparan cuatro. Una **red recurrente** que recibe el vector de headways de
-los últimos doce minutos junto a cuatro variables de contexto, y emite el vector
-completo para el horizonte pedido. Un **conjunto de árboles con refuerzo de
-gradiente**, que recibe la misma información en forma de rezagos y variables de
-calendario. **Repetir el último valor observado**, que es la línea base obligada de
-todo pronóstico de series de tiempo. Y el **promedio histórico por franja horaria**,
-que responde con lo que suele pasar a esa hora del día.
+Se comparan cuatro. Una red recurrente con memoria de largo y corto plazo
+(**LSTM**), que recibe el vector de headways reciente junto a variables de
+calendario y emite el vector completo para el horizonte pedido. Un conjunto de
+árboles con refuerzo de gradiente (**XGBoost**), que recibe la misma información en
+forma de rezagos y variables de calendario. La **persistencia**, que repite el
+último valor observado y es la línea base obligada de todo pronóstico de series de
+tiempo. Y el **promedio histórico por franja horaria**, que responde con lo que
+suele pasar a esa hora del día.
 
 Los dos últimos no son adorno. Repetir el último valor es una vara exigente a
 horizonte corto y se vuelve débil al alargarlo, de modo que por sí sola dejaría al
-aprendiz compitiendo contra nadie a diez minutos. El promedio histórico cubre
+LSTM compitiendo contra nadie a diez minutos. El promedio histórico cubre
 justamente ese flanco: como no depende del horizonte, su error es plano, y a diez
 minutos se convierte en el competidor real.
 
-Corresponde declarar una asimetría del procedimiento. El conjunto de árboles se
-seleccionó sobre veinticuatro configuraciones por celda; la red heredó una única
-configuración en dos de los tres corredores. **Donde la red pierde contra los
-árboles, ese resultado no es atribuible a la clase de modelo**, y el trabajo no lo
+La configuración completa del LSTM es la siguiente.
+
+| | |
+| :--- | :--- |
+| Entrada | vector de headways de los últimos 12 minutos, rellenado hasta una longitud fija —el percentil 99 de la cantidad de pares de buses en entrenamiento— y estandarizado con estadísticos calculados solo sobre entrenamiento, por corredor y sentido |
+| Contexto | seno y coseno de la hora del día y del día de la semana |
+| Red | 32 unidades ocultas; una capa en E2, dos capas con 20 % de apagado aleatorio de unidades en E59; en E4 se eligió entre tres configuraciones en validación |
+| Ajuste | Adam con paso 5 × 10⁻⁴, lotes de 128, hasta 50 pasadas por los datos, corte temprano tras 10 sin mejora, semilla fija en 42 |
+| Objetivo | error cuadrático medio, calculado solo sobre las posiciones donde hay bus |
+
+La última fila gobierna el resto del trabajo. **El objetivo que se minimiza es el
+error cuadrático**, y un pronóstico que minimiza error cuadrático tiende a la media
+condicional, que es más pareja que la realidad. La compresión que documenta la
+Sección V-B no es entonces una falla del ajuste: es lo que este objetivo pide.
+
+Las cuatro variables de contexto son de calendario y nada más: en el momento de
+predecir, ninguna depende de lo que va a pasar.
+
+Corresponde declarar una asimetría del procedimiento. El XGBoost se seleccionó
+sobre veinticuatro configuraciones por celda; el LSTM heredó una única
+configuración en dos de los tres corredores. **Donde el LSTM pierde contra el
+XGBoost, ese resultado no es atribuible a la clase de modelo**, y el trabajo no lo
 usa como si lo fuera.
+
+El trabajo probó más métodos de los que compara, y ninguno mejoró al LSTM. Del lado
+estadístico quedaron afuera la media del período de entrenamiento, una media móvil
+causal en ventanas de cinco, diez y quince minutos, y un suavizado exponencial
+simple con factor 0,3: el LSTM le gana a las tres en las doce combinaciones de
+corredor y horizonte.
+
+Del lado del aprendizaje profundo se probaron dos arquitecturas que modelan
+explícitamente la relación entre buses vecinos: una convolución a lo largo del eje
+de los buses (**SpatialConvLSTM**) y atención entre las posiciones del vector
+(**SpatialTransformer**). Ninguna de las dos supera al LSTM plano en ninguna celda.
+Sobre las veinticuatro comparaciones —dos arquitecturas, tres corredores, cuatro
+horizontes— **no hay una sola victoria espacial**, y las cuatro celdas donde la
+convolución sale nominalmente mejor lo hacen por menos de 0,005 minutos, frente a
+un ruido de semilla de ±0,009 medido sobre cinco semillas. El vecino inmediato en
+el vector no aporta información que la red plana no tenga ya.
 
 ### C. Cómo se evalúa
 
@@ -284,7 +372,7 @@ distancia que se pide anticipar.
 
 ### C. La alarma no suena
 
-El apelotonamiento se define aquí como un headway que cae por debajo de la mitad
+El bunching se define aquí como un headway que cae por debajo de la mitad
 del promedio de su propio corredor en ese instante. Aplicada a lo observado, esa
 regla marca 15 245 eventos en E2 a diez minutos. Aplicada al pronóstico del modelo
 aprendido, con el mismo corte, se dispara **catorce veces**.
@@ -299,7 +387,7 @@ fenómeno que se le pidió anticipar. Hay tres motivos para desconfiar de esa
 lectura.
 
 El primero es que el ganador declarado tampoco es bueno. Una regla sin ningún
-contenido —marcar todas las celdas como apelotonamiento— supera a la repetición en
+contenido —marcar todas las celdas como bunching— supera a la repetición en
 5 de las 12 celdas, y en 15 de las 36 al considerar las tres ventanas. Un
 procedimiento de evaluación en el que una regla vacía vence al ganador no está
 ordenando modelos.
@@ -312,7 +400,7 @@ el modelo no produce la dispersión necesaria para cruzar un umbral calibrado so
 otra distribución.
 
 El tercero es que, en esas pocas ocasiones en que sí dispara, el modelo acierta.
-De los catorce disparos de E2, diez corresponden a apelotonamientos reales: 71 %
+De los catorce disparos de E2, diez corresponden a eventos de bunching reales: 71 %
 de precisión contra una tasa base de 30 %. La muestra es pequeña y el intervalo de
 confianza va aproximadamente de 42 % a 92 %, de modo que la cifra señala un
 régimen y no un valor. Las celdas con más disparos lo confirman con menos
@@ -323,7 +411,7 @@ al que calla y al que se equivoca no distingue esos dos casos.
 
 ![Tasa de disparo contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 5.** Fracción de celdas que cada método marca como apelotonamiento, contra
+**Fig. 5.** Fracción de celdas que cada método marca como bunching, contra
 la tasa real del evento (punteada). La persistencia propaga el vector observado,
 hereda su dispersión y el corte cae donde fue diseñado: marca casi tan seguido
 como el evento ocurre. El pronóstico puntual emite un vector comprimido, y el
@@ -518,7 +606,15 @@ atribuible a la clase de modelo.
 
 **El umbral del evento no está calibrado contra incidentes registrados.** Se eligió
 por analogía con la convención del campo, no contra un registro operativo de
-apelotonamientos. Validarlo así exige un dato que estos corredores no producen.
+eventos de bunching. Validarlo así exige un dato que estos corredores no producen.
+
+**La dispersión se mide sobre vectores cortos.** Un corredor queda descrito por
+entre 3,2 y 6,3 headways por minuto según el corredor, así que la dispersión
+transversal es un estadístico de pocas observaciones, y el corte del evento se
+compara contra un promedio que incluye al propio elemento evaluado. El efecto es el
+mismo en los tres corredores y en las tres ventanas, lo que hace poco probable que
+lo produzca la longitud del vector; pero la precisión de cada cifra individual es
+menor en E4 y E2, donde el vector es más corto, que en E59.
 
 **La evidencia es de tres corredores de una ciudad y cinco meses**, y el período de
 prueba contiene los días de Carnaval, cuya composición no se caracterizó. Los tres
@@ -526,7 +622,7 @@ orígenes comparten día de inicio, de modo que establecen estabilidad frente a 
 elección del período de prueba y no réplica independiente.
 
 **Y lo que este trabajo no afirma:** que estos modelos estén listos para operar una
-alarma de apelotonamiento. Un área bajo la curva de 0,60 es información real y está
+alarma de bunching. Un área bajo la curva de 0,60 es información real y está
 muy lejos de un sistema de despacho. Ninguna función de costo liga aquí un error de
 1,47 minutos, ni un área de 0,60, a una decisión de intervención concreta. Cerrar
 esa distancia es trabajo por hacer, no resultado logrado.

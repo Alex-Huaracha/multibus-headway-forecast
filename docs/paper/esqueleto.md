@@ -13,7 +13,7 @@ Insumos vinculantes:
 
 ## 1. La afirmación central
 
-> Cuando un modelo parece incapaz de detectar el apelotonamiento de buses, muchas
+> Cuando un modelo parece incapaz de detectar el bunching de buses, muchas
 > veces no falla el modelo: falla la regla con la que se lo mide. Un pronóstico
 > siempre sale más parejo que la realidad, así que una alarma calibrada sobre la
 > realidad casi nunca se dispara sobre el pronóstico. El modelo parece ciego sin
@@ -23,7 +23,7 @@ Todo lo que entra al paper sostiene esta frase o la acota. Lo que no hace ningun
 de las dos cosas, sale.
 
 **Título de trabajo:** *El umbral, no el modelo: por qué un pronóstico de
-headways parece ciego al apelotonamiento, y cómo se repara.*
+headways parece ciego al bunching, y cómo se repara.*
 
 ---
 
@@ -50,7 +50,7 @@ existe forma corta de decirlo. Todo lo demás se dice en palabras normales.
 | coeficiente de variación transversal | qué tan disparejos están los headways de un corredor en un instante |
 
 Se conservan, definidos **una sola vez** y en una cláusula: **headway**,
-apelotonamiento (*bunching*), correlación de Matthews, área bajo la curva ROC,
+*bunching*, correlación de Matthews, área bajo la curva ROC,
 Diebold-Mariano.
 
 **La regla ataca la jerga que oculta, no el vocabulario canónico del campo.** Son
@@ -71,6 +71,32 @@ desacuerdo fue el síntoma.
 ⚠️ Al reemplazar, **`intervalo de confianza` no se toca** —es el intervalo
 estadístico— y `intervalo programado` pasa a `headway programado`, que es el
 *scheduled headway* de la convención del campo.
+
+Decidido 2026-08-27, por la misma razón: **el evento se llama `bunching`, y
+`apelotonamiento` no se usa ni como sinónimo ni como glosa entre paréntesis.** Es
+el nombre canónico del fenómeno y el que el revisor espera; la traducción
+descriptiva delata al autor de afuera exactamente igual que «intervalo entre
+buses». Ya reemplazado en las doce apariciones del paper. Ninguna figura usaba el
+término, así que no hubo nada que regenerar.
+
+Decidido 2026-08-27: **los «días atípicos» no se mencionan en el paper.** Ni el
+término, ni la variable, ni su descarte, ni el archivo que los produce. La línea
+publicada (notebooks 21/22) no los usa —el cargador revienta si aparecen— y ningún
+módulo de `src/evaluation/` los referencia: no filtran, no estratifican, no entran
+en ninguna métrica ni en ningún test. Explicar por qué se descartó algo que nunca
+tocó un resultado le gasta al lector atención que el paper necesita para el umbral.
+
+⚠️ Fueron variable **activa y obligatoria** en la generación congelada (11/12/13,
+17/18/19, 20). Eso queda en `docs/`, no en el paper. Y si alguna cifra citada sale
+de esas corridas, se cita sin narrar el calendario atípico.
+
+⚠️ La regla prohíbe la **variable** y su historia de descarte, no nombrar un
+feriado real que cae dentro de la ventana de evaluación. Carnaval sigue en VI: la
+prueba principal va del 8 al 29 de febrero de 2024 y Carnaval cayó del 10 al 13,
+así que está adentro de las cifras que el paper publica. El origen `r1` prueba en
+cambio del 23 de diciembre al 13 de enero —Navidad y Año Nuevo—, y los veredictos
+coinciden entre ventanas con feriados distintos: la salvedad viene con su propia
+respuesta.
 
 Regla de cierre: **una sigla no definida en la oración donde aparece por primera
 vez es un error, no un estilo.**
@@ -134,6 +160,20 @@ estadística.** Mismo perfil metodológico que el nuestro.
 Su coste: Resultados y Discusión van fusionados, así que la interpretación
 operativa vive dentro de Resultados (V-G) y no en sección propia.
 
+**Regla de reparto, decidida el 2026-08-27 después de romperla.** La prueba es:
+*¿esto existiría igual si nadie lo hubiera evaluado nunca?* Si sí, va a **III**; si
+existe solo para producir un número, va a **IV**. En consecuencia **III no
+cuantifica el dataset**: no dice cuántas unidades, ni cuántas posiciones, ni la
+cobertura, ni usa los códigos de corredor. Puede sí enunciar la restricción que
+motiva el método —no hay tabla de paradas—, porque eso es el problema, no el
+inventario.
+
+El síntoma cuando se rompe: III-A citaba «43,4 millones de posiciones de 90
+unidades» y «tres millones de headways en E2 y E59» **antes** de que IV-A
+presentara la ciudad, las tres empresas y el significado de E2. El lector se
+encontraba las cifras y los códigos sin haberlos conocido. Todo eso se movió a IV-A,
+donde además cierra la subsección con el rendimiento del procedimiento.
+
 ---
 
 ### Resumen
@@ -150,7 +190,7 @@ Sin citas. Sin siglas sin desarrollar.
 
 ### I. Introducción
 
-**A. Contexto** — El apelotonamiento como problema operativo real. Cierra
+**A. Contexto** — El bunching como problema operativo real. Cierra
 sobre el paradigma que el paper ataca: predecir el headway y compararlo contra un
 umbral.
 
@@ -193,7 +233,7 @@ posición. Tiene margen para crecer: es el aporte metodológico, y el revisor lo
 a mirar con lupa precisamente por no ser estándar.
 → **Fig. 1**
 
-**B. Qué cuenta como apelotonamiento** — ✅ **ESCRITA.** La bisagra
+**B. Qué cuenta como bunching** — ✅ **ESCRITA.** La bisagra
 del paper. Cierra dejando explícito que el corte se mide contra el promedio del
 propio vector, de modo que no es el mismo corte cuando cambia la dispersión.
 
