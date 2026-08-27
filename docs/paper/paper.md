@@ -17,7 +17,7 @@ _(pendiente)_
 _(A–C pendientes: la receta estándar, por qué el umbral se mueve,
 y el precedente de recalibración fuera del transporte.)_
 
-### D. Qué es nuestro y qué no
+### D. Qué es previo y qué no
 
 Buena parte del mecanismo que este trabajo mide ya está publicado. Delimitar qué
 es previo es lo que deja a la vista la contribución, que es más angosta de lo que
@@ -25,8 +25,8 @@ el mecanismo completo sugiere.
 
 Que un pronóstico optimizado en error cuadrático salga más parejo que la realidad
 está enunciado por Mayer y Yang y **demostrado como teorema** por Patton y
-Timmermann. No lo reclamamos. Tampoco reclamamos haber sido los primeros en atar
-esa compresión a una métrica categórica ni en observar que empeora con el
+Timmermann. Nada de eso se reclama acá. Tampoco se reclama haber sido los primeros
+en atar esa compresión a una métrica categórica ni en observar que empeora con el
 horizonte: las dos cosas están en Petetin y colaboradores. Que el paradigma de
 predecir-y-umbralizar falla, y que el veredicto se revierte al puntuar sin punto de
 operación, lo diagnosticaron Sun, Schmöcker y Nakamura. Y recalcular un umbral
@@ -36,8 +36,8 @@ entre persistencia y modelo aprendido al alargar el horizonte es folclore conoci
 en pronóstico de tráfico, y el resultado nulo de las variantes espaciales confirma
 trabajo publicado: llegar segundo a una conclusión no la vuelve propia.
 
-Lo que reclamamos son tres cosas más angostas. **Primera**, medir la compresión
-sobre el vector de headways, como dispersión entre buses en un mismo instante —
+Lo que este trabajo reclama son tres cosas más angostas. **Primera**, medir la
+compresión sobre el vector de headways, como dispersión entre buses en un instante —
 los precedentes trabajan sobre la variabilidad temporal de una serie escalar, que
 no es lo mismo. **Segunda**, dar vuelta la fórmula de calidad de servicio del
 manual del oficio y aplicarla al pronóstico en lugar de a lo observado. **Tercera**,
@@ -71,7 +71,7 @@ $$s(p) = \text{arco del punto del eje } C \text{ más cercano a } p,
 La posición se conserva solo si $\ell(p) \le 300$ m; lo que cae más lejos no
 pertenece al corredor.
 
-**El sentido de marcha** no se lee del GPS. La definición que usamos es el signo
+**El sentido de marcha** no se lee del GPS. La definición adoptada es el signo
 del desplazamiento promediado sobre cinco posiciones, de modo que un error aislado
 no invierta la dirección:
 
@@ -84,7 +84,7 @@ de treinta minutos sin señal, una inversión de sentido o una espera prolongada
 terminal cierran el viaje en curso. Después todo se lleva a una rejilla de sesenta
 segundos, de modo que en cada minuto exista una foto del corredor completo.
 
-**El headway.** Acá la formulación es nuestra. Sobre esa foto, para un par de buses
+**El headway.** Sobre esa foto, para un par de buses
 consecutivos en el mismo sentido —el de adelante *L*, el de atrás *F*— en el
 instante *T*:
 
@@ -132,21 +132,63 @@ campo es una fracción del headway programado —normalmente un cuarto—, pero 
 no hay programación contra la cual comparar. Se sustituye por el análogo directo:
 **un headway cuenta como bunching si cae por debajo de la mitad del
 promedio de su propio vector en ese instante.** Se exige que el vector tenga al
-menos tres buses, porque con dos el promedio es poco informativo.
+menos tres headways —o sea cuatro buses en circulación, porque *N* buses dejan
+*N* − 1 huecos entre ellos—, y los vectores más cortos se descartan. Con dos
+headways hay un solo hueco: cualquier medida de qué tan desparejo está
+el corredor se reduce a esa única diferencia, que no describe una forma. Con tres
+ya hay patrón —uno colapsado, uno estirado, uno normal—, y por eso el mínimo está
+ahí y no en dos.
 
-La sustitución es nuestra y se declara como tal: esta forma —fracción del promedio
-observado— no se encontró como definición de evento en la literatura publicada. La
-elección del valor tampoco es neutral, y el campo lo sabe: los umbrales publicados
-van desde veinte segundos hasta un cuarto del headway programado, y no existe un
-único valor aceptado.
+El promedio del propio vector cumple la función que cumplía la programación: fijar
+cuál es la separación normal en ese corredor en ese instante. Un corte fijo en
+minutos no la cumple, porque no es comparable entre corredores que corren a
+frecuencias distintas. La elección del valor no es neutral y conviene decirlo: los
+umbrales publicados van desde veinte segundos hasta un cuarto del headway
+programado, y no existe un único valor aceptado.
 
-Conviene hacer explícita una propiedad de esta regla, porque es la bisagra de todo
-el trabajo. **El corte se mide contra el promedio del propio vector que se está
-evaluando.** No es un número fijo en minutos: se mueve con el vector. Aplicado a lo
-observado se calibra sobre la dispersión observada; aplicado a un pronóstico se
-mide contra la dispersión del pronóstico. Si esas dos dispersiones difieren, no es
-el mismo corte aunque se escriba igual. La Sección V mide qué ocurre cuando se
-ignora esa diferencia.
+En notación: sea $h(t) = (h_1, \dots, h_m)$ el vector de headways del corredor en el
+instante $t$, con $m = N - 1$ posiciones. Su promedio y el corte del evento son
+
+$$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
+\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}$$
+
+y la posición $i$ cuenta como bunching cuando cae por debajo de ese corte:
+
+$$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
+\qquad \text{definido solo si } m \ge 3.$$
+
+Nótese que $\tau$ no es un número fijo de minutos: es función del propio vector que
+se evalúa. Aplicar la misma regla a lo observado y a un pronóstico $\hat{h}(t)$
+produce por eso dos cortes distintos:
+
+$$\tau(\hat{h}) \;=\; \rho\,\bar{\hat{h}}
+\;\neq\; \rho\,\bar{h} \;=\; \tau(h)
+\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}.$$
+
+Escribir «la mitad del promedio» en los dos casos no los vuelve el mismo corte. Los
+dos ejemplos siguientes lo muestran con el mismo headway de dos minutos.
+
+![Corredor disparejo](figuras/bunching/with_bunching.png)
+
+**Fig. 2.** Corredor disparejo. El vector es [9,5 · 1,2 · 11,0 · 2,0], su promedio
+5,9 min y el corte 3,0 min. Los headways de 2,0 y 1,2 quedan debajo del corte:
+**los dos son bunching.**
+
+![Corredor parejo](figuras/bunching/without_bunching.png)
+
+**Fig. 3.** Corredor parejo. El vector es [3,5 · 2,0 · 4,0 · 3,0], su promedio
+3,1 min y el corte 1,6 min. El mismo headway de 2,0 min queda ahora encima del
+corte: **no es bunching.**
+
+Dos minutos entre buses es el mismo hecho físico en las dos figuras, y la regla lo
+clasifica al revés. No cambió el corredor ni cambió la medición: cambió el corte,
+porque bajó de 3,0 a 1,6 cuando el vector se volvió más parejo.
+
+De ahí sale la consecuencia que ocupa el resto del trabajo. Aplicado a lo
+observado, el corte se calibra sobre la dispersión observada; aplicado a un
+pronóstico, se mide contra la dispersión del pronóstico. Si esas dos dispersiones
+difieren, no es el mismo corte aunque se escriba igual. La Sección V mide qué
+ocurre cuando se ignora esa diferencia.
 
 ---
 
@@ -170,11 +212,12 @@ posiciones crudas.
 
 **El vector es corto, y conviene fijarlo antes de leer cualquier medida de
 dispersión.** En promedio, un corredor queda descrito en cada minuto por 3,2
-headways en E4, 3,9 en E2 y 6,3 en E59. La regla de la Sección III-B, que exige al
-menos tres buses, no es entonces una salvaguarda ocasional: está actuando casi
-siempre. Y toda la dispersión que mide la Sección V se calcula sobre listas de esa
-longitud, lo que la vuelve un estadístico ruidoso en los dos corredores cortos y
-bastante más firme en E59.
+headways en E4, 3,9 en E2 y 6,3 en E59. El mínimo que exige la Sección III-B son
+tres, de modo que la restricción no es una salvaguarda ocasional: el vector medio
+de E4 está apenas por encima del corte y la regla está actuando casi siempre. Y
+toda la dispersión que mide la Sección V se calcula sobre listas de esa longitud,
+lo que la vuelve un estadístico ruidoso en los dos corredores cortos y bastante
+más firme en E59.
 
 Importa tanto lo que el dato tiene como lo que no. **No hay horario publicado, no
 hay archivo GTFS y no hay tabla de paradas.** Eso obliga a construir todo desde la
@@ -259,7 +302,7 @@ independiente; se declara así.
 
 ![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.es.png)
 
-**Fig. 2.** La partición por tiempo y los tres orígenes de evaluación. Los tres
+**Fig. 4.** La partición por tiempo y los tres orígenes de evaluación. Los tres
 arrancan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
 solapan.
 
@@ -355,18 +398,19 @@ los buses apelotonados* según lo observado.
 Conviene ser preciso sobre qué es nuevo acá. Que un pronóstico optimizado en error
 cuadrático salga más parejo que la realidad está publicado y demostrado como
 teorema, pero ese teorema cubre la variabilidad de una serie a lo largo del tiempo.
-Lo que medimos es otra cosa: cuán disparejos están los buses **entre sí en un mismo
-instante**. Las 36 celdas son por lo tanto un resultado empírico, no un corolario.
+Lo que este trabajo mide es otra cosa: cuán disparejos están los buses **entre sí
+en un mismo instante**. Las 36 celdas son por lo tanto un resultado empírico, no
+un corolario.
 
 ![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
 
-**Fig. 3.** Dispersión observada frente a dispersión predicha, horizonte de diez
+**Fig. 5.** Dispersión observada frente a dispersión predicha, horizonte de diez
 minutos. La barra de la persistencia iguala a la observada: hereda el vector real
 y sirve de control. Los dos aprendices lo aplanan.
 
 ![Sesgo de dispersión contra horizonte](figuras/compresion-vs-horizonte.es.png)
 
-**Fig. 4.** El mismo sesgo contra el horizonte. La persistencia no se despega de
+**Fig. 6.** El mismo sesgo contra el horizonte. La persistencia no se despega de
 cero; los dos aprendices se hunden de forma monótona. La compresión escala con la
 distancia que se pide anticipar.
 
@@ -411,7 +455,7 @@ al que calla y al que se equivoca no distingue esos dos casos.
 
 ![Tasa de disparo contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 5.** Fracción de celdas que cada método marca como bunching, contra
+**Fig. 7.** Fracción de celdas que cada método marca como bunching, contra
 la tasa real del evento (punteada). La persistencia propaga el vector observado,
 hereda su dispersión y el corte cae donde fue diseñado: marca casi tan seguido
 como el evento ocurre. El pronóstico puntual emite un vector comprimido, y el
@@ -479,7 +523,7 @@ era el punto de partida de todo este análisis, no existía. La fabricaba el umb
 
 Frente a una falla de detección, el campo cambia de modelo: otra arquitectura,
 más capas, más datos. Acá no hizo falta ninguna de esas cosas. Los pronósticos
-que produce la Fig. 6 son, uno por uno, los mismos que produce la Fig. 5.
+que produce la Fig. 8 son, uno por uno, los mismos que produce la Fig. 7.
 No se reentrenó, no se agregó información y no se tocó una línea del modelo. Se
 movió un número —dónde se traza la raya entre alarma y silencio— y el ganador
 cambió de bando.
@@ -492,7 +536,7 @@ datos que ya se tienen.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
-**Fig. 6.** Las mismas predicciones puntuadas sin umbral. Eje izquierdo: cuánto
+**Fig. 8.** Las mismas predicciones puntuadas sin umbral. Eje izquierdo: cuánto
 error absoluto le gana el aprendiz a la persistencia. Eje derecho: área bajo la
 curva de detección, invariante a cualquier reescalado monótono del pronóstico y
 por lo tanto inmune al artefacto. Los dos cruces van en el mismo sentido y en la
@@ -515,18 +559,18 @@ misma zona, y ninguna serie se acerca al azar.
 | E59 | 5 | **0,665** | 0,648 | 0,205 | **0,249** | aprendiz |
 | E59 | 10 | **0,632** | 0,571 | **0,161** | 0,119 | aprendiz |
 
-### F. Robustez, incluido el ataque más duro que encontramos
+### F. Robustez, incluido el ataque más duro encontrado
 
 El hallazgo no depende del mes: las tres ventanas temporales coinciden en el
 veredicto sin umbral en 11 de 12 celdas, y a diez minutos coinciden en las nueve.
 
-Tampoco depende de nuestra definición del evento, y esto es lo que más nos costó
-aceptar. La objeción evidente es que el corte relativo —media del propio vector— es
-una elección nuestra, y que un corte absoluto en minutos, como el que usa la mayor
-parte de la literatura, disolvería el efecto. Lo probamos. **No se atenúa: empeora.**
-Bajo la convención dominante del campo, la fracción de eventos que el modelo
-efectivamente marca es unas 115 veces menor que bajo nuestra propia regla.
-Nuestra elección resultó ser la conservadora.
+Tampoco depende de la definición del evento adoptada acá, y conviene enfrentar la
+objeción de frente: el corte relativo —media del propio vector— es una elección de
+este trabajo, y un corte absoluto en minutos, como el que usa la mayor parte de la
+literatura, podría disolver el efecto. Se probó. **No se atenúa: empeora.** Bajo la
+convención dominante del campo, la fracción de eventos que el modelo efectivamente
+marca es unas 115 veces menor que bajo la regla relativa. La elección adoptada
+resultó ser la conservadora.
 
 Ese mismo ensayo impone un límite que corresponde declarar. Bajo esa convención más
 exigente, la capacidad de discriminación del modelo cae: la mediana del área bajo la

@@ -140,6 +140,30 @@ paper va solo su conclusión.
 
 ---
 
+### 2.5 Tercera persona en todo el manuscrito
+
+**Decidida el 2026-08-27.** El paper se redacta íntegramente en tercera persona.
+Prohibida la primera persona del plural en cualquier forma: «nuestro», «nuestra»,
+«reclamamos», «usamos», «medimos», «probamos», «encontramos», «nos costó».
+
+No es una exigencia del venue —el IEEE Editorial Style Manual admite primera
+persona y IJACSA también—. Es consistencia: el manuscrito ya estaba escrito casi
+por completo en impersonal («Se sustituye», «Se exige», «Se compararon»), y los
+diez saltos a primera persona que quedaban se leían como dos autores con manías
+distintas.
+
+Cuando hace falta atribuir autoría, el sujeto es **el trabajo**, no las personas:
+
+| Mal | Bien |
+|---|---|
+| «Lo que reclamamos son tres cosas» | «Lo que este trabajo reclama son tres cosas» |
+| «La definición que usamos» | «La definición adoptada» |
+| «Lo probamos» | «Se probó» |
+| «bajo nuestra propia regla» | «bajo la regla relativa» |
+| «Qué es nuestro y qué no» | «Qué es previo y qué no» |
+
+---
+
 ## 3. Estructura
 
 **Molde: NADOS** (*Reliability-Gated Difficulty-Aware Oversampling*, IJACSA
@@ -236,6 +260,7 @@ a mirar con lupa precisamente por no ser estándar.
 **B. Qué cuenta como bunching** — ✅ **ESCRITA.** La bisagra
 del paper. Cierra dejando explícito que el corte se mide contra el promedio del
 propio vector, de modo que no es el mismo corte cuando cambia la dispersión.
+→ **Fig. 2 y 3**
 
 ---
 
@@ -251,7 +276,7 @@ búsqueda.
 **C. Protocolo de evaluación** — ✅ **ESCRITA.** Partición por fecha, tres
 orígenes, y las cuatro reglas: continuidad, población compartida, tope al 1 % y
 varianza agrupada por día.
-→ **Fig. 2**
+→ **Fig. 4**
 
 ---
 
@@ -263,10 +288,10 @@ que en este molde vive dentro de Resultados.
 | | Contenido | Evidencia |
 |---|---|---|
 | A | El resultado escalar y su frontera | — |
-| B | El pronóstico sale más parejo | Fig. 3, Fig. 4 |
-| C | La alarma no suena | Fig. 5, Tabla 1 |
+| B | El pronóstico sale más parejo | Fig. 5, Fig. 6 |
+| C | La alarma no suena | Fig. 7, Tabla 1 |
 | D | Ese factor no mide al modelo | — |
-| E | La reparación | Fig. 6, Tabla 2 |
+| E | La reparación | Fig. 8, Tabla 2 |
 | F | Robustez y el ataque a nosotros mismos | Tabla 3 |
 | G | Qué significa para quien opera un corredor | — |
 
@@ -310,13 +335,14 @@ esta sección.
 | Cuerpo | Apéndice / suplementario |
 |---|---|
 | **Fig. 1** — la definición del headway (III-A) | Desglose por dirección (+1 / −1) |
-| **Fig. 2** — la partición temporal y los tres orígenes (IV-C) | Barrido de semillas |
-| **Fig. 3 y 4** — compresión: a diez minutos, y contra el horizonte (V-B) | El enrutador (7 de 12 políticas degeneradas) |
-| **Fig. 5 + Tabla 1** — el artefacto y el piso del detector trivial (V-C) | Tablas escalares completas de MAE/RMSE |
-| **Fig. 6 + Tabla 2** — la reparación, con y sin umbral (V-E) | Configuraciones ganadoras de la búsqueda |
+| **Fig. 2 y 3** — el corte se mueve con el vector (III-B) | |
+| **Fig. 4** — la partición temporal y los tres orígenes (IV-C) | Barrido de semillas |
+| **Fig. 5 y 6** — compresión: a diez minutos, y contra el horizonte (V-B) | El enrutador (7 de 12 políticas degeneradas) |
+| **Fig. 7 + Tabla 1** — el artefacto y el piso del detector trivial (V-C) | Tablas escalares completas de MAE/RMSE |
+| **Fig. 8 + Tabla 2** — la reparación, con y sin umbral (V-E) | Configuraciones ganadoras de la búsqueda |
 | **Tabla 3** — robustez: 3 ventanas + el ataque con umbral absoluto (V-F) | |
 
-Las Fig. 5 y 6 **funcionan solo como par**: compararlas es el aporte. Publicar
+Las Fig. 7 y 8 **funcionan solo como par**: compararlas es el aporte. Publicar
 cualquiera de las dos sola tergiversa el resultado.
 
 Grilla completa en el cuerpo: **3 corredores × 4 horizontes.** El horizonte no es
@@ -374,7 +400,7 @@ Redacción, sección por sección:
       figura, y por eso el remapeo a NADOS no obligó a regenerar nada.
 - [ ] **Los 8 defectos de la lectura crítica del 2026-08-26.** Los dos graves
       siguen abiertos: la sobreafirmación de V-E que la Tabla 2 contradice, y el
-      pie de la Fig. 6 contra V-F.
+      pie de la Fig. 8 contra V-F.
 - [ ] **Referencias.** `paper.md` tiene **cero citas**. `fuentes-verificadas.md`
       tiene 23 marcas de pendiente contra 7 verificadas, y hay antecedente de
       títulos inventados en un borrador previo: **ninguna entrada se reescribe de
