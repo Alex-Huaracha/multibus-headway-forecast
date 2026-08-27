@@ -22,15 +22,15 @@ figure has to carry its own argument.
 
 The **clean** variant drops both and lands beside it as ``<stem>.<lang>.png``,
 because the manuscript numbers and captions its own figures — a baked-in title
-there would be a second, competing title. Only the two schematics ``paper.md``
+there would be a second, competing title. Only the schematics ``paper.md``
 reproduces have a clean variant, and each is emitted in both languages. The
 plotting code is written once and parameterised; the two variants differ only in
 the chrome, the layout band it needs, and the language of the labels.
 
 Unlike ``build_contiguous_figures``, both variants land in the SAME directory:
 the chrome schematics were always paper assets, so there is no second document
-tree to write into. Hence ``esquema-headway.png`` is the chrome Spanish figure
-and ``esquema-headway.es.png`` is the clean Spanish one.
+tree to write into. Hence ``esquema-particion-temporal.png`` is the chrome
+Spanish figure and ``esquema-particion-temporal.es.png`` is the clean Spanish one.
 
 Determinism: the only stochastic element is the illustrative ping cloud, drawn
 from a seeded generator, so repeated runs are byte-identical (CLAUDE.md contract).
@@ -261,7 +261,11 @@ FIGURE_NAMES = {
     "pipeline": ("esquema-pipeline.png", None),
     "corridor_axis": ("esquema-eje-corredor.png", None),
     "projection": ("esquema-proyeccion.png", None),
-    "headway": ("esquema-headway.png", "esquema-headway"),
+    # No paper stem: the manuscript's Fig. 1 is now a hand-drawn two-snapshot
+    # diagram (``figuras/headway/``, Excalidraw source beside the PNG). The
+    # time-space schematic below is still what metodologia.md and sintesis.md
+    # embed, so the chrome variant stays; only the clean pair is dead output.
+    "headway": ("esquema-headway.png", None),
     "temporal_split": (
         "esquema-particion-temporal.png", "esquema-particion-temporal",
     ),
