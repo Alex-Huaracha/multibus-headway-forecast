@@ -1,4 +1,4 @@
-# Compresión de dispersión en el pronóstico del vector de headways: el punto de operación, y no el modelo, determina la detección de bunching
+# Compresión de dispersión en la predicción del vector de headways: el punto de operación, y no el modelo, determina la detección de bunching
 
 ## Resumen
 
@@ -21,7 +21,7 @@ y el precedente de recalibración fuera del transporte.)_
 
 Buena parte del mecanismo que este trabajo mide ya está publicada, y delimitar
 qué es previo deja a la vista una contribución más angosta que ese mecanismo
-completo. Que un pronóstico optimizado en error cuadrático resulte menos disperso
+completo. Que una predicción optimizada en error cuadrático resulte menos dispersa
 que la realidad está enunciado por Mayer y Yang y demostrado como teorema por
 Patton y Timmermann. Nada de eso lo reclamamos. Tampoco reclamamos haber sido los
 primeros en atar esa compresión a una métrica categórica ni en observar que
@@ -30,9 +30,9 @@ paradigma de predecir y umbralizar falle, y que el veredicto se revierta al
 puntuar sin punto de operación, lo diagnosticaron Sun, Schmöcker y Nakamura.
 Recalcular un umbral contra la distribución de cada modelo es el procedimiento de
 Hoffmann, Menz y Spekat en reducción de escala climática, ocho años antes. El
-cruce entre persistencia y modelo aprendido al alargar el horizonte ya se reporta
-en pronóstico de tráfico [CITA_REQUERIDA]. Y el resultado nulo de las variantes
-espaciales coincide con trabajo previo [CITA_REQUERIDA]. Llegar segundo a una
+cruce entre la persistencia y un método entrenado al alargar el horizonte ya se
+reporta en predicción de tráfico [CITA_REQUERIDA]. Y el resultado nulo de las
+variantes espaciales coincide con trabajo previo [CITA_REQUERIDA]. Llegar segundo a una
 conclusión no la vuelve propia.
 
 Reclamamos tres contribuciones más angostas. **Primera**, medimos la compresión
@@ -40,7 +40,7 @@ sobre el vector de headways, como dispersión entre buses en un mismo instante;
 los precedentes trabajan sobre la variabilidad temporal de una serie escalar, que
 no es la misma cantidad. **Segunda**, invertimos la fórmula de calidad de
 servicio del *Transit Capacity and Quality of Service Manual* (TCQSM) y la
-aplicamos al pronóstico en lugar de a lo observado. **Tercera**, y es la que no
+aplicamos a lo predicho en lugar de a lo observado. **Tercera**, y es la que no
 encontramos con precedente dentro ni fuera del transporte, la atamos a una regla
 de evento **relativa y auto-referencial**, donde la compresión mueve el numerador
 y el denominador a la vez. En Petetin y colaboradores esa pieza no falta por
@@ -58,7 +58,7 @@ punto: si uno pasa por una esquina y el siguiente llega cinco minutos después, 
 headway en esa esquina es de cinco minutos. Es la cantidad que revela si un
 corredor mantiene sus buses espaciados o si circulan apelotonados, el fenómeno que
 la Sección III-C define como **bunching**. El headway es la variable que
-pronosticamos.
+predecimos.
 
 La forma habitual de medir el headway es en una parada, con la lista de paradas de
 la ruta y los horarios de paso. Ninguna de las dos existe en este caso: el dato
@@ -153,10 +153,10 @@ operador necesita y la que define el bunching.
 **4) Tiempo desde el cruce hacia atrás** — la definición de la Ecuación (3), y la
 adoptada.
 
-### B. Formulación de la tarea de pronóstico
+### B. Formulación de la tarea de predicción
 
 La Sección III-A deja el corredor descrito, minuto a minuto, por un vector de
-headways. Lo que pronosticamos es ese vector completo: no un headway suelto ni un
+headways. Lo que predecimos es ese vector completo: no un headway suelto ni un
 promedio del corredor, sino todas sus posiciones a la vez. Dado el historial de
 los últimos $T$ minutos y un contexto de calendario, se busca el vector del
 corredor $H$ minutos más adelante:
@@ -165,11 +165,11 @@ $$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\; c
 \qquad T = 12 \tag{4}$$
 
 donde $\mathbf{h}(t)$ es el vector de headways del corredor en el minuto $t$ y
-$\hat{\mathbf{h}}(t+H)$ es el pronóstico de ese vector $H$ minutos más adelante.
+$\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante.
 El término $c(t)$ reúne las variables de calendario disponibles en $t$, $f$ es el
 modelo ajustado y $T$ es la cantidad de minutos de historia que recibe.
 
-Se pronostica a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
+Se predice a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
 ajustado por separado para cada uno: no hay recursión, cada horizonte se predice
 de forma directa. El vector no tiene longitud fija, porque cuántos headways hay en
 un minuto depende de cuántos buses estén circulando. El modelo emite entonces una
@@ -184,7 +184,7 @@ donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en 
 instante objetivo, $|\mathcal{V}|$ es su cardinal, y $\hat{h}_i$ y $h_i$ son el
 valor predicho y el observado en la posición $i$.
 
-Esa elección gobierna el resto del trabajo. Un pronóstico que minimiza error
+Esa elección gobierna el resto del trabajo. Una predicción que minimiza error
 cuadrático tiende a la media condicional, que es menos dispersa que la realidad.
 La compresión de dispersión que documenta la Sección V-B no es entonces una falla
 del ajuste: es lo que este objetivo pide. El efecto de esa compresión sobre la
@@ -245,7 +245,7 @@ esa única diferencia. Con tres ya hay patrón —uno colapsado, uno estirado, u
 normal—, y por eso el mínimo se fija ahí y no en dos.
 
 El detector que este trabajo evalúa es esa misma regla aplicada al vector predicho
-de la Ecuación (4), con el promedio del propio pronóstico fijando el corte:
+de la Ecuación (4), con el promedio de ese mismo vector fijando el corte:
 
 $$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
 \,\right] \tag{8}$$
@@ -254,7 +254,7 @@ donde $\hat{b}_i(t)$ es la detección emitida sobre la posición $i$ del vector
 predicho y $\bar{\hat{h}}(t)$ es el promedio de ese mismo vector predicho. Que el
 corte salga del vector predicho y no del observado no es un detalle de
 implementación: quien opera un corredor no dispone del observado. Al momento de
-decidir solo cuenta con el pronóstico, así que puntuar contra el promedio real
+decidir solo cuenta con lo predicho, así que puntuar contra el promedio real
 mediría algo que nadie puede desplegar.
 
 Como $\tau$ es función del propio vector que se evalúa, y no un número fijo de
@@ -328,58 +328,79 @@ lo tanto, de bases igual de completas.
 
 ### B. Métodos comparados
 
-Se comparan cuatro métodos. Una red recurrente con memoria de largo y corto plazo
-(**LSTM**), que recibe el vector de headways reciente junto a variables de
-calendario y emite el vector completo para el horizonte pedido. Un conjunto de
-árboles con refuerzo de gradiente (**XGBoost**), que recibe la misma información
-en forma de rezagos y variables de calendario. La **persistencia**, que repite el
-último valor observado. Y el **promedio histórico por franja horaria**, que
-responde con el valor típico de esa hora del día. En lo que sigue, *aprendiz*
-designa indistintamente al LSTM y al XGBoost, los dos métodos ajustados sobre los
-datos.
+Se comparan cuatro métodos, evaluados todos sobre las mismas muestras. Dos ajustan
+parámetros al entrenamiento: una red recurrente con memoria de largo y corto plazo
+(**LSTM**) y un conjunto de árboles con refuerzo de gradiente (**XGBoost**). Los
+otros dos no ajustan ninguno y sirven de **método de referencia**: fijan el error
+que un método de predicción debe bajar para ser útil.
 
-Las dos últimas líneas base cumplen una función específica, y no se las trata como
-exigentes por convención sino porque la Sección V-A lo mide. Repetir el último
-valor le gana al modelo aprendido a un minuto de anticipación en los tres
-corredores, y se debilita al alargar el horizonte, de modo que por sí sola dejaría
-la comparación sin rival serio a diez minutos. El promedio histórico cubre
-justamente ese flanco: como no depende del horizonte, su error es plano, y a diez
-minutos se convierte en el competidor real.
+La **persistencia** repite el último vector observado, así que su error crece con
+el horizonte: cuanto más lejos se pregunta, más envejecida está la copia. El
+**promedio histórico por franja horaria** responde con el valor típico de esa hora
+del día, calculado sobre entrenamiento por corredor y sentido. No lee la ventana de
+entrada, de modo que su error no depende del horizonte. La persistencia es entonces
+el rival a batir a horizonte corto, y el promedio histórico lo es a horizonte
+largo. Con los dos dentro, ningún horizonte queda sin rival: un método de
+predicción que solo superara a la persistencia a diez minutos podría estar
+perdiendo contra una tabla de promedios. La Sección V-A compara el desempeño de los cuatro.
 
-La configuración completa del LSTM es la siguiente.
+Ese conjunto de cuatro no se fijó de una vez. La comparación corrió en dos fases.
+Una primera fase de **tamizaje** decidió qué familias y qué arquitecturas merecían
+un lugar, y una segunda midió a los sobrevivientes bajo los contratos de la
+Sección IV-C. Del lado estadístico, el tamizaje evaluó tres familias y ninguna
+quedó. El margen es la distancia en error absoluto medio entre la familia y el
+LSTM, sobre las doce combinaciones de corredor y horizonte de esa
+fase.
 
-| | |
-| :--- | :--- |
-| Entrada | vector de headways de los últimos 12 minutos, rellenado hasta una longitud fija —el percentil 99 de la cantidad de pares de buses en entrenamiento— y estandarizado con estadísticos calculados solo sobre entrenamiento, por corredor y sentido |
-| Contexto | seno y coseno de la hora del día y del día de la semana; las cuatro son de calendario, así que en el momento de predecir ninguna depende de lo que va a ocurrir |
-| Red | 32 unidades ocultas; una capa en E2, dos capas con 20 % de apagado aleatorio de unidades en E59; en E4 se eligió entre tres configuraciones en validación |
-| Ajuste | Adam con paso 5 × 10⁻⁴, lotes de 128, hasta 50 pasadas por los datos, corte temprano tras 10 sin mejora, semilla fija en 42 |
-| Objetivo | el error cuadrático de la Ecuación (5), calculado solo sobre las posiciones donde hay bus |
+| Familia evaluada en el tamizaje | Margen mediano | Rango |
+| :--- | ---: | :--- |
+| Media del período de entrenamiento | 0,791 min | 0,159 – 1,997 |
+| Media móvil causal sobre las últimas 5, 10 y 15 observaciones válidas del mismo par de buses | 0,751 min | 0,322 – 1,458 |
+| Suavizado exponencial simple, factor 0,3 | 0,426 min | 0,136 – 1,055 |
 
-Corresponde declarar una asimetría del procedimiento de selección, porque corre en
-contra de una de las dos arquitecturas. El XGBoost se seleccionó sobre veinticuatro
-configuraciones por celda; el LSTM heredó una única configuración en dos de los
-tres corredores y eligió entre tres en el restante. **Donde el LSTM pierde contra
-el XGBoost, ese resultado no es atribuible a la clase de modelo**, y el trabajo no
-lo usa como si lo fuera. Nivelar el presupuesto de búsqueda no se hizo.
+El tamizaje se resolvió a nivel de familia y no de celda, y la razón es su propia
+precisión. En esa fase, el error de un mismo modelo se desplazaba entre 0,12 y
+0,13 minutos en la mediana, y hasta 0,44 en el peor caso, según cuáles filas le
+tocara puntuar: cada método descartaba muestras por motivos propios. Las celdas más
+ajustadas no deciden nada por sí solas. Lo que decide es la distancia mediana: una
+familia que pierde por medio minuto no se rescata porque una de sus doce celdas
+quede a 0,14.
 
-El trabajo probó más métodos de los que compara, y ninguno mejoró al LSTM. Del
-lado estadístico quedaron afuera tres familias: la media del período de
-entrenamiento, una media móvil causal en ventanas de cinco, diez y quince minutos,
-y un suavizado exponencial simple con factor 0,3. El LSTM le gana a las tres en
-las doce combinaciones de corredor y horizonte.
+El tamizaje evaluó además dos arquitecturas que modelan de forma explícita la
+relación entre posiciones vecinas del vector: una convolución a lo largo del eje de
+los buses (**SpatialConvLSTM**) y atención entre las posiciones del vector
+(**SpatialTransformer**). Ninguna entró al conjunto comparado, y el motivo no es su
+margen de error: ese margen no pasó de 0,08 minutos en ninguna celda, muy por
+debajo del desplazamiento que el tamizaje podía resolver. El motivo es la propia
+búsqueda de hiperparámetros, que teniendo la opción de dimensionar el componente
+espacial lo dejó en su mínimo. La convolución se quedó con un solo canal —el menor
+que la grilla ofrecía— en E2 y en E59, y la atención con una sola cabeza y la
+dimensión interna más chica en E2. Esa comparación corre entre configuraciones de
+una misma arquitectura sobre las mismas filas, de modo que la precisión de la fase
+no la afecta. El vecino inmediato en el vector no aporta entonces información que
+la red plana no tenga ya.
 
-Del lado del aprendizaje profundo se probaron dos arquitecturas que modelan de
-forma explícita la relación entre buses vecinos: una convolución a lo largo del
-eje de los buses (**SpatialConvLSTM**) y atención entre las posiciones del vector
-(**SpatialTransformer**). Las comparaciones son veinticuatro: dos arquitecturas,
-tres corredores y cuatro horizontes. En diecinueve el LSTM plano queda por debajo,
-y en las cinco restantes el margen a favor de la variante espacial es inferior a
-0,005 minutos. El semiancho del intervalo por semilla llega a 0,009 minutos sobre
-cinco semillas, así que esos cinco márgenes no se distinguen del ruido de
-inicialización y ninguna de las dos arquitecturas registra una ventaja
-interpretable. El vecino inmediato en el vector no aporta información que la red
-plana no tenga ya.
+El LSTM se ajusta por corredor y por horizonte, lo que da doce
+ajustes. Los dos sentidos comparten el modelo de su corredor y entran juntos al
+entrenamiento. Lo que se separa por sentido son los estadísticos de
+estandarización, de modo que lo predicho se devuelve a minutos con los del
+sentido que le corresponde. El XGBoost lee los mismos doce valores,
+sobre exactamente las mismas muestras.
+
+| | LSTM | XGBoost |
+| :--- | :--- | :--- |
+| Entrada | vector de headways de los últimos 12 minutos, rellenado hasta una longitud fija —el percentil 99 de la cantidad de pares de buses en entrenamiento— y estandarizado con estadísticos calculados solo sobre entrenamiento | los mismos 12 valores, como rezagos del headway de la posición evaluada, leídos sobre la rejilla de minutos de la Sección III-A: sin relleno hacia adelante y sin desplazamiento por posición de fila |
+| Contexto | seno y coseno de la hora del día y del día de la semana; las cuatro son de calendario, así que en el momento de predecir ninguna depende de lo que va a ocurrir | hora del día, día de la semana, sentido e índice de la posición dentro del vector |
+| Capacidad | 32 unidades ocultas; una capa en E2, dos capas con 20 % de apagado aleatorio de unidades en E59 | hasta 400 rondas de refuerzo, con corte tras 30 sin mejora |
+| Ajuste | Adam con paso 5 × 10⁻⁴, lotes de 128, hasta 50 pasadas por los datos, corte temprano tras 10 sin mejora, semilla fija en 42 | árboles por histograma, semilla fija en 42 |
+| Búsqueda | una configuración heredada en E2 y E59, ganadora de una búsqueda previa a un minuto de horizonte; tres en E4, elegidas sobre validación | veinticuatro por celda, sorteadas con semilla fija de un espacio de 22 500 combinaciones y elegidas solo con el error de validación |
+| Objetivo | el error cuadrático de la Ecuación (5), calculado solo sobre las posiciones donde hay bus | el error cuadrático sobre el headway de la posición evaluada |
+
+El presupuesto de búsqueda no quedó nivelado entre los dos, y la diferencia corre
+en contra de la red: su configuración se heredó de una fase anterior, mientras que
+la del XGBoost se eligió dentro de esta. Nivelarlo exigía repetir la
+búsqueda completa de la red, y no se hizo. La Sección VI acota qué afirmaciones
+sobreviven a esa diferencia y cuáles no.
 
 ### C. Protocolo de evaluación
 
@@ -431,7 +452,7 @@ significativos.
 
 ### A. Error escalar y su frontera de régimen
 
-A diez minutos de anticipación, el modelo aprendido predice el headway entre buses
+A diez minutos de anticipación, el LSTM predice el headway entre buses
 mejor que la persistencia. El error absoluto medio baja 1,47 minutos en E2, 1,38
 en E4 y 1,17 en E59: entre 21 % y 22 % en los tres corredores. A un minuto la
 relación se invierte y la persistencia gana, por 0,46 minutos en E4 y 0,33 en E59;
@@ -439,27 +460,27 @@ en E2 la diferencia es de 0,07 minutos y no resiste la prueba estadística una v
 que se agrupan las observaciones por día de servicio.
 
 Tres precisiones acotan ese resultado. La primera es que el cruce no es una
-propiedad del aprendizaje profundo: el modelo de árboles lo reproduce entero, y a
+propiedad del aprendizaje profundo: el XGBoost lo reproduce entero, y a
 diez minutos aventaja a la persistencia por 1,59 minutos en E2, 1,09 en E4 y 0,79
 en E59. La segunda es que la frontera real no es el horizonte sino la dispersión
 de la ventana de entrada. Cada celda se separó en tercios según la dispersión de
 los headways que el modelo recibe, con los cortes fijados sobre los datos de
-entrenamiento y nunca sobre los de prueba. Así medida, la ventaja del aprendiz
+entrenamiento y nunca sobre los de prueba. Así medida, la ventaja del LSTM
 crece de forma ordenada del tercio calmo al volátil en 11 de las 12 celdas.
 Alargar el horizonte no cambia quién gana: mueve la ventaja hacia tercios cada vez
 más tranquilos.
 
 La tercera es que el promedio histórico por franja horaria cumple el papel que la
 Sección IV-B le asignaba. Su error no se mueve con el horizonte: se queda entre
-4,7 y 5,7 minutos en los tres corredores. La ventaja del aprendiz sobre él se
-estrecha entonces a medida que el horizonte crece. En E2 el aprendiz le gana por
+4,7 y 5,7 minutos en los tres corredores. La ventaja del LSTM sobre él se
+estrecha entonces a medida que el horizonte crece. En E2 el LSTM le gana por
 0,99 minutos a un horizonte de un minuto y le pierde por 0,07 a diez. Esa es la
 única
 de las doce celdas donde el promedio histórico gana, y es la razón de que a
 horizonte largo el competidor exigente sea él y no la persistencia. Este eje se
-reporta como contexto y no como contribución, porque el cruce entre persistencia y
-modelo aprendido al alargar el horizonte ya se reporta en pronóstico de tráfico
-[CITA_REQUERIDA].
+reporta como contexto y no como contribución, porque el cruce entre la persistencia
+y un método entrenado al alargar el horizonte ya se reporta en predicción de
+tráfico [CITA_REQUERIDA].
 
 ### B. Compresión de la dispersión transversal
 
@@ -468,10 +489,10 @@ sus headways: la desviación estándar del vector dividida por su promedio. Cero
 significa buses perfectamente espaciados; valores altos significan grupos y
 huecos. Medida sobre lo observado, esa cifra vale 0,79 en E2. Medida sobre lo que
 el modelo predice para el mismo instante y el mismo corredor a diez minutos, vale
-0,16. El pronóstico describe un corredor casi cinco veces más regular que el real.
+0,16. El vector predicho describe un corredor casi cinco veces más regular que el real.
 
 No es un caso aislado. El sesgo, definido como la dispersión predicha menos la
-observada, es negativo —el pronóstico siempre más regular que la realidad— en
+observada, es negativo —lo predicho siempre más regular que la realidad— en
 **las 36 celdas** que resultan de cruzar tres corredores, cuatro horizontes y tres
 ventanas de prueba. Y se profundiza de forma estrictamente
 ordenada a medida que se alarga el horizonte: en E2 pasa de −0,42 a un minuto a
@@ -482,7 +503,7 @@ por descarte: la persistencia no comprime nada. Su sesgo se mantiene dentro de
 ±0,022 en las 36 celdas, porque propaga el vector observado y hereda su dispersión
 sin traducción. Es el control del experimento, y sitúa el efecto en el acto de
 **emitir un número por celda**, no en los datos ni en el corredor. La segunda
-descarta la arquitectura: el modelo de árboles comprime igual que la red en E2, y
+descarta la arquitectura: el XGBoost comprime igual que la red en E2, y
 las dos curvas se superponen. En los otros dos corredores comprime **más** que
 ella, con un sesgo de −0,46 contra −0,35 en E59 a diez minutos. Un fenómeno que
 aparece
@@ -491,7 +512,7 @@ ninguna de las dos.
 
 La consecuencia práctica se aprecia al traducir esas cifras a la escala de nivel
 de servicio del TCQSM. El mismo corredor, en el mismo instante, califica como
-nivel A —«service provided like clockwork»— según el pronóstico y como nivel F
+nivel A —«service provided like clockwork»— según lo predicho y como nivel F
 —«most vehicles bunched»— según lo observado. Conviene ser preciso sobre qué es
 nuevo. El teorema que la Sección II-D reconoce como previo cubre la variabilidad
 de una serie a lo largo del tiempo. Lo que estas 36 celdas miden es otra cantidad:
@@ -503,26 +524,26 @@ efecto y su dependencia del horizonte.
 
 **Fig. 5.** Dispersión observada frente a dispersión predicha, horizonte de diez
 minutos. La barra de la persistencia iguala a la observada: hereda el vector real
-y sirve de control. Los dos aprendices la comprimen.
+y sirve de control. Los dos modelos ajustados la comprimen.
 
 ![Sesgo de dispersión contra horizonte](figuras/compresion-vs-horizonte.es.png)
 
 **Fig. 6.** El mismo sesgo contra el horizonte. La persistencia no se despega de
-cero; los dos aprendices descienden de forma monótona. La compresión escala con la
+cero; los dos modelos ajustados descienden de forma monótona. La compresión escala con la
 distancia que se pide anticipar.
 
 ### C. Colapso de la detección al trasladar el umbral
 
 La regla de la Sección III-C, aplicada a lo observado, marca 15 245 eventos en E2
-a diez minutos. Aplicada al pronóstico del modelo aprendido, con el mismo corte,
+a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo corte,
 se dispara **catorce veces**. La persistencia dispara 15 083 veces. Puntuada con
 la medida habitual de detección —F1, la media armónica entre precisión y
-cobertura—, la persistencia aparece 253 veces mejor que el modelo aprendido. En
-las otras celdas el factor va de 1,5 a 36. El modelo de árboles obtiene un F1
+cobertura—, la persistencia aparece 253 veces mejor que el LSTM. En
+las otras celdas el factor va de 1,5 a 36. El XGBoost obtiene un F1
 exactamente cero en tres de las doce celdas: ahí no dispara nunca. La Tabla 1
 recoge las doce celdas.
 
-Leído sin más contexto, ese resultado dice que el aprendiz es incapaz de ver el
+Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
 fenómeno que se le pidió anticipar. Hay tres motivos para desconfiar de esa
 lectura. El primero es que el ganador declarado tampoco detecta bien. Una regla
 sin ningún contenido —marcar todas las celdas como bunching— supera a la
@@ -531,7 +552,7 @@ ventanas. Un procedimiento de evaluación en el que una regla vacía vence al
 ganador declarado no ordena modelos.
 
 El segundo es el mecanismo de la Sección V-B. El corte se mide contra el promedio
-del propio vector evaluado. Si el pronóstico es más regular que la realidad, sus
+del propio vector evaluado. Si el vector predicho es más regular que la realidad, sus
 headways se apartan menos de su propio promedio, y el corte deja de alcanzarse
 casi siempre. Lo que la regla registra no es que el modelo no vea el evento: es
 que el modelo no produce la dispersión necesaria para cruzar un umbral calibrado
@@ -552,13 +573,12 @@ mal no distingue esos dos casos.
 **Fig. 7.** Fracción de celdas que cada método marca como bunching, contra la tasa
 real del evento (punteada). La persistencia propaga el vector observado, hereda su
 dispersión y el corte cae donde fue diseñado: marca casi tan seguido como el
-evento ocurre. El pronóstico puntual emite un vector comprimido, y el mismo corte
+evento ocurre. La predicción puntual es un vector comprimido, y el mismo corte
 relativo le queda en la cola.
 
-**Tabla 1.** Detección con el corte del evento observado aplicado sin cambios al
-pronóstico, con el piso del detector trivial al lado.
+**Tabla 1.** Detección con el corte del evento observado aplicado sin cambios a lo predicho, con el piso del detector trivial al lado.
 
-| Corredor | h | Tasa base | Piso trivial | F1 persistencia | F1 aprendiz | Factor |
+| Corredor | h | Tasa base | Piso trivial | F1 persistencia | F1 LSTM | Factor |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
 | E2 | 1 | 0,299 | 0,460 | 0,581 | 0,207 | 2,8× |
 | E2 | 3 | 0,301 | 0,462 | 0,414&nbsp;† | 0,038 | 11× |
@@ -602,7 +622,7 @@ adelante, el corte que optimiza el F1 dispara entre el 99,9 % y el 100 % de las
 veces. Es decir, reencuentra la regla vacía.
 
 Con el corte recalibrado, el veredicto se invierte. Puntuado sin umbral, mediante
-el área bajo la curva ROC (AUC), **el modelo aprendido gana en las nueve
+el área bajo la curva ROC (AUC), **el LSTM gana en las nueve
 combinaciones de corredor y ventana a diez minutos**, y en 6 de 12 celdas en la
 ventana principal. La persistencia conserva la ventaja en el horizonte de un
 minuto, donde también ganaba el error escalar. La Tabla 2 reúne los dos
@@ -612,7 +632,7 @@ Esa coincidencia es el resultado, y merece decirse aparte. Puestos en el mismo
 eje, el cruce del error escalar y el cruce de la detección van en el mismo sentido
 y ocurren en la misma zona de horizontes. Las dos métricas —una continua, la otra
 categórica— coinciden en quién gana y desde dónde. La disociación que las
-Secciones V-A y V-C parecían mostrar, con el aprendiz ganando en error y perdiendo
+Secciones V-A y V-C parecían mostrar, con el LSTM ganando en error y perdiendo
 en detección, no existía: la producía el umbral.
 
 Frente a una falla de detección, la respuesta habitual del campo es cambiar de
@@ -631,27 +651,27 @@ que ya se tienen.
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
 **Fig. 8.** Las mismas predicciones puntuadas sin umbral. Eje izquierdo: cuánto
-error absoluto le gana el aprendiz a la persistencia. Eje derecho: área bajo la
-curva de detección, invariante a cualquier reescalado monótono del pronóstico y
+error absoluto le gana el LSTM a la persistencia. Eje derecho: área bajo la
+curva de detección, invariante a cualquier reescalado monótono de lo predicho y
 por lo tanto inmune al artefacto. Los dos cruces van en el mismo sentido y en la
 misma zona, y ninguna serie se acerca al azar.
 
 **Tabla 2.** Veredicto sin umbral y con el corte recalibrado fuera de muestra.
 
-| Corredor | h | AUC aprendiz | AUC persist. | MCC recal. aprendiz | MCC recal. persist. | Gana AUC |
+| Corredor | h | AUC LSTM | AUC persist. | MCC recal. LSTM | MCC recal. persist. | Gana AUC |
 | :--- | ---: | ---: | ---: | ---: | ---: | :--- |
 | E2 | 1 | 0,714 | **0,723** | 0,310 | **0,401** | persistencia |
-| E2 | 3 | **0,629** | 0,598 | **0,178** | 0,160 | aprendiz |
-| E2 | 5 | **0,604** | 0,567 | **0,139** | 0,102 | aprendiz |
-| E2 | 10 | **0,565** | 0,528 | **0,085** | 0,027 | aprendiz |
+| E2 | 3 | **0,629** | 0,598 | **0,178** | 0,160 | LSTM |
+| E2 | 5 | **0,604** | 0,567 | **0,139** | 0,102 | LSTM |
+| E2 | 10 | **0,565** | 0,528 | **0,085** | 0,027 | LSTM |
 | E4 | 1 | 0,811 | **0,833** | 0,476 | **0,615** | persistencia |
 | E4 | 3 | 0,702 | **0,719** | 0,269 | **0,375** | persistencia |
 | E4 | 5 | 0,648 | **0,649** | 0,190 | **0,254** | persistencia |
-| E4 | 10 | **0,604** | 0,558 | **0,126** | 0,111 | aprendiz |
+| E4 | 10 | **0,604** | 0,558 | **0,126** | 0,111 | LSTM |
 | E59 | 1 | 0,760 | **0,781** | 0,363 | **0,517** | persistencia |
 | E59 | 3 | 0,688 | **0,689** | 0,237 | **0,328** | persistencia |
-| E59 | 5 | **0,665** | 0,648 | 0,205 | **0,249** | aprendiz |
-| E59 | 10 | **0,632** | 0,571 | **0,161** | 0,119 | aprendiz |
+| E59 | 5 | **0,665** | 0,648 | 0,205 | **0,249** | LSTM |
+| E59 | 10 | **0,632** | 0,571 | **0,161** | 0,119 | LSTM |
 
 ### F. Robustez frente a la ventana y a la definición del evento
 
@@ -668,7 +688,7 @@ elección adoptada resultó ser la conservadora.
 Ese mismo ensayo impone un límite que corresponde declarar. Bajo esa convención
 más exigente, la capacidad de discriminación del modelo cae: la mediana del área
 bajo la curva baja a 0,60, y en E2 a diez minutos llega a 0,49, indistinguible del
-azar. La afirmación de que el aprendiz no es ciego se sostiene para el evento
+azar. La afirmación de que el LSTM no es ciego se sostiene para el evento
 definido en términos relativos y falla para el evento absoluto en esa celda. La
 Tabla 3 recoge las tres ventanas y el ensayo con el umbral absoluto.
 
@@ -678,17 +698,17 @@ absoluto de la convención dominante.
 | Corredor | h | Ventana 1 | Ventana 2 | Ventana 3 | Coinciden | AUC, corte absoluto |
 | :--- | ---: | :--- | :--- | :--- | :---: | ---: |
 | E2 | 1 | persist. | persist. | persist. | sí | 0,645 |
-| E2 | 3 | aprendiz | aprendiz | aprendiz | sí | 0,582 |
-| E2 | 5 | aprendiz | aprendiz | aprendiz | sí | 0,550 |
-| E2 | 10 | aprendiz | aprendiz | aprendiz | sí | 0,493&nbsp;‡ |
+| E2 | 3 | LSTM | LSTM | LSTM | sí | 0,582 |
+| E2 | 5 | LSTM | LSTM | LSTM | sí | 0,550 |
+| E2 | 10 | LSTM | LSTM | LSTM | sí | 0,493&nbsp;‡ |
 | E4 | 1 | persist. | persist. | persist. | sí | 0,728 |
 | E4 | 3 | persist. | persist. | persist. | sí | 0,576 |
-| E4 | 5 | persist. | aprendiz | persist. | **no** | 0,566 |
-| E4 | 10 | aprendiz | aprendiz | aprendiz | sí | 0,551 |
+| E4 | 5 | persist. | LSTM | persist. | **no** | 0,566 |
+| E4 | 10 | LSTM | LSTM | LSTM | sí | 0,551 |
 | E59 | 1 | persist. | persist. | persist. | sí | 0,731 |
 | E59 | 3 | persist. | persist. | persist. | sí | 0,654 |
-| E59 | 5 | aprendiz | aprendiz | aprendiz | sí | 0,637 |
-| E59 | 10 | aprendiz | aprendiz | aprendiz | sí | 0,616 |
+| E59 | 5 | LSTM | LSTM | LSTM | sí | 0,637 |
+| E59 | 10 | LSTM | LSTM | LSTM | sí | 0,616 |
 
 ‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y se declara como tal.
 
@@ -696,7 +716,7 @@ absoluto de la convención dominante.
 
 El resultado operativo no es que el modelo detecte mejor. Es que **el modelo marca
 poco y acierta cuando marca**, y esas son dos propiedades distintas que la métrica
-habitual suma en un solo número. Con el corte trasladado, el aprendiz marca 14 de
+habitual suma en un solo número. Con el corte trasladado, el LSTM marca 14 de
 las 50 353 celdas de E2 a diez minutos y acierta el 71 % de las veces que marca,
 contra una tasa base del 30 %. En E59 marca más y acierta la mitad, contra un
 21 % de base. En los tres corredores la señal, cuando aparece, es entre dos y tres
@@ -707,8 +727,8 @@ sonar cuando ocurre el evento, y ésta se queda callada la mayoría de las veces
 que sí constituye es un **filtro de prioridad**: un aviso poco frecuente pero más
 informativo que el azar, útil para ordenar la atención de un despachador que
 vigila tres corredores y no puede mirar todo a la vez. Y hay una consecuencia
-inmediata para cualquiera que hoy esté evaluando un pronóstico de este tipo: **el
-punto de operación se recalibra contra la distribución del propio pronóstico, no
+inmediata para cualquiera que hoy esté evaluando una predicción de este tipo: **el
+punto de operación se recalibra contra la distribución de lo predicho, no
 se hereda de las observaciones.** Requiere recalcular un escalar y no reentrenar
 nada.
 
@@ -721,23 +741,23 @@ sostiene.
 
 **El hallazgo del umbral vale para el evento relativo.** Bajo un corte absoluto en
 minutos —la convención dominante— el efecto se agrava, pero la capacidad de
-discriminación del aprendiz cae, y en E2 a diez minutos llega a 0,49: azar. Ahí la
-afirmación de que el aprendiz no es ciego no se sostiene.
+discriminación del LSTM cae, y en E2 a diez minutos llega a 0,49: azar. Ahí la
+afirmación de que el LSTM no es ciego no se sostiene.
 
 **Las dos formas de puntuar la detección coinciden en once de doce celdas.** La
-excepción es E59 a cinco minutos, donde el aprendiz gana el área bajo la curva y
+excepción es E59 a cinco minutos, donde el LSTM gana el área bajo la curva y
 pierde la correlación recalibrada. Ordenar bien y operar bien en un punto fijo son
 capacidades distintas, y esa celda las separa.
 
 **El eje escalar tiene un competidor que le gana en una celda.** Frente al
-promedio histórico por franja horaria, el aprendiz gana en once de doce; pierde en
+promedio histórico por franja horaria, el LSTM gana en once de doce; pierde en
 E2 a diez minutos por 0,07 minutos. Es cuatro segundos y está en el eje que este
 trabajo reporta como contexto, pero el número existe y se declara.
 
-**La comparación entre los dos aprendices no está nivelada.** Como se dijo en la
-Sección IV-B, el conjunto de árboles recibió veinticuatro configuraciones por
-celda y la red una sola en dos corredores. Donde la red pierde, la causa no es
-atribuible a la clase de modelo.
+**La comparación entre los dos modelos ajustados no está nivelada.** Como se dijo
+en la Sección IV-B, el XGBoost recibió veinticuatro configuraciones por celda y el
+LSTM una sola en dos corredores. Donde el LSTM pierde, la causa no es atribuible a
+la clase de modelo.
 
 **El umbral del evento no está calibrado contra incidentes registrados.** Se
 eligió por analogía con la convención del campo, no contra un registro operativo
