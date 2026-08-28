@@ -344,43 +344,35 @@ largo. Con los dos dentro, ningún horizonte queda sin rival: un método de
 predicción que solo superara a la persistencia a diez minutos podría estar
 perdiendo contra una tabla de promedios. La Sección V-A compara el desempeño de los cuatro.
 
-Ese conjunto de cuatro no se fijó de una vez. La comparación corrió en dos fases.
-Una primera fase de **tamizaje** decidió qué familias y qué arquitecturas merecían
-un lugar, y una segunda midió a los sobrevivientes bajo los contratos de la
-Sección IV-C. Del lado estadístico, el tamizaje evaluó tres familias y ninguna
-quedó. El margen es la distancia en error absoluto medio entre la familia y el
-LSTM, sobre las doce combinaciones de corredor y horizonte de esa
-fase.
+Esos cuatro métodos no se eligieron de una vez. La comparación corrió en dos fases.
+La primera evaluó nueve métodos y descartó cinco: tres estadísticos y dos
+arquitecturas de aprendizaje profundo. Los cuatro que quedaron son los que esta
+sección compara, y la segunda fase los midió bajo los contratos de la Sección
+IV-C. El margen de un método es su error absoluto medio menos el del otro con que
+se compara, mediano sobre las doce celdas que resultan de cruzar tres corredores y
+cuatro horizontes.
 
-| Familia evaluada en el tamizaje | Margen mediano | Rango |
-| :--- | ---: | :--- |
-| Media del período de entrenamiento | 0,791 min | 0,159 – 1,997 |
-| Media móvil causal sobre las últimas 5, 10 y 15 observaciones válidas del mismo par de buses | 0,751 min | 0,322 – 1,458 |
-| Suavizado exponencial simple, factor 0,3 | 0,426 min | 0,136 – 1,055 |
+Ninguno de los tres estadísticos combina las dos fuentes de la Ecuación (4) —el
+historial reciente y el calendario—, y ahí está su límite. La media del período de
+entrenamiento no usa ninguna de las dos, y el LSTM le gana en las doce celdas por
+una mediana de 0,791 minutos. La media móvil causal en tres ventanas y el suavizado
+exponencial simple de factor 0,3 promedian el historial, lo que descarta el valor
+más fresco, y no leen el calendario. Quedan apretados por los dos métodos de
+referencia: a diez minutos el promedio histórico les gana por 0,597 y 0,658
+minutos, y a un minuto la persistencia le gana a la media móvil por 0,962.
 
-El tamizaje se resolvió a nivel de familia y no de celda, y la razón es su propia
-precisión. En esa fase, el error de un mismo modelo se desplazaba entre 0,12 y
-0,13 minutos en la mediana, y hasta 0,44 en el peor caso, según cuáles filas le
-tocara puntuar: cada método descartaba muestras por motivos propios. Las celdas más
-ajustadas no deciden nada por sí solas. Lo que decide es la distancia mediana: una
-familia que pierde por medio minuto no se rescata porque una de sus doce celdas
-quede a 0,14.
+Las otras dos descartadas modelan la relación entre posiciones vecinas del vector,
+con una convolución sobre el eje de los buses (**SpatialConvLSTM**) y con atención
+entre posiciones (**SpatialTransformer**). Sus márgenes contra el LSTM tienen
+medianas de 0,004 y 0,027 minutos. Eso queda por debajo de los 0,44 que el error de
+un mismo modelo podía moverse en esa fase según cuáles filas le tocara puntuar, así
+que el margen no decide. Lo decide que la búsqueda de hiperparámetros, pudiendo
+dimensionar el componente espacial, lo dejó en el mínimo de la grilla en tres de las
+cuatro combinaciones de arquitectura y corredor: el vecino inmediato no aporta
+información que la red plana no tenga ya. Los dos descartes quedaron establecidos
+en la primera fase y no se rehicieron en la segunda.
 
-El tamizaje evaluó además dos arquitecturas que modelan de forma explícita la
-relación entre posiciones vecinas del vector: una convolución a lo largo del eje de
-los buses (**SpatialConvLSTM**) y atención entre las posiciones del vector
-(**SpatialTransformer**). Ninguna entró al conjunto comparado, y el motivo no es su
-margen de error: ese margen no pasó de 0,08 minutos en ninguna celda, muy por
-debajo del desplazamiento que el tamizaje podía resolver. El motivo es la propia
-búsqueda de hiperparámetros, que teniendo la opción de dimensionar el componente
-espacial lo dejó en su mínimo. La convolución se quedó con un solo canal —el menor
-que la grilla ofrecía— en E2 y en E59, y la atención con una sola cabeza y la
-dimensión interna más chica en E2. Esa comparación corre entre configuraciones de
-una misma arquitectura sobre las mismas filas, de modo que la precisión de la fase
-no la afecta. El vecino inmediato en el vector no aporta entonces información que
-la red plana no tenga ya.
-
-El LSTM se ajusta por corredor y por horizonte, lo que da doce
+En la segunda fase, el LSTM se ajusta por corredor y por horizonte, lo que da doce
 ajustes. Los dos sentidos comparten el modelo de su corredor y entran juntos al
 entrenamiento. Lo que se separa por sentido son los estadísticos de
 estandarización, de modo que lo predicho se devuelve a minutos con los del
@@ -393,12 +385,12 @@ sobre exactamente las mismas muestras.
 | Contexto | seno y coseno de la hora del día y del día de la semana; las cuatro son de calendario, así que en el momento de predecir ninguna depende de lo que va a ocurrir | hora del día, día de la semana, sentido e índice de la posición dentro del vector |
 | Capacidad | 32 unidades ocultas; una capa en E2, dos capas con 20 % de apagado aleatorio de unidades en E59 | hasta 400 rondas de refuerzo, con corte tras 30 sin mejora |
 | Ajuste | Adam con paso 5 × 10⁻⁴, lotes de 128, hasta 50 pasadas por los datos, corte temprano tras 10 sin mejora, semilla fija en 42 | árboles por histograma, semilla fija en 42 |
-| Búsqueda | una configuración heredada en E2 y E59, ganadora de una búsqueda previa a un minuto de horizonte; tres en E4, elegidas sobre validación | veinticuatro por celda, sorteadas con semilla fija de un espacio de 22 500 combinaciones y elegidas solo con el error de validación |
+| Búsqueda | una configuración heredada en E2 y E59, ganadora de la búsqueda de la primera fase a un minuto de horizonte; tres en E4, elegidas sobre validación | veinticuatro por celda, sorteadas con semilla fija de un espacio de 22 500 combinaciones y elegidas solo con el error de validación |
 | Objetivo | el error cuadrático de la Ecuación (5), calculado solo sobre las posiciones donde hay bus | el error cuadrático sobre el headway de la posición evaluada |
 
 El presupuesto de búsqueda no quedó nivelado entre los dos, y la diferencia corre
-en contra de la red: su configuración se heredó de una fase anterior, mientras que
-la del XGBoost se eligió dentro de esta. Nivelarlo exigía repetir la
+en contra de la red: su configuración se heredó de la primera fase, mientras que la
+del XGBoost se eligió en la segunda. Nivelarlo exigía repetir la
 búsqueda completa de la red, y no se hizo. La Sección VI acota qué afirmaciones
 sobreviven a esa diferencia y cuáles no.
 
