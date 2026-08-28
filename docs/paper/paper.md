@@ -295,39 +295,36 @@ Sección V mide qué ocurre cuando esa diferencia se ignora sobre datos reales.
 El trabajo usa los registros de posición de la flota del Sistema Integrado de
 Transporte de Arequipa. Cada unidad emite su coordenada **cada 20 segundos**, y la
 cadencia es regular: la mediana y el percentil 95 del tiempo entre emisiones
-coinciden en los tres corredores, de modo que el dato no llega a ráfagas. Pero
-cada bus emite por su cuenta y sin sincronizarse con los demás, así que dos
-posiciones del mismo corredor casi nunca corresponden al mismo instante. De ahí la
-rejilla común de la Sección III-A, y de ahí que sea de sesenta segundos: con
-emisiones cada veinte, promedia tres por bus sin perder granularidad operativa.
+coinciden, de modo que el dato no llega a ráfagas. Esa regularidad es la que
+sostiene la rejilla de sesenta segundos de la Sección III-A, porque cada minuto
+reúne unas tres emisiones por bus.
 
 Se cubren tres corredores —identificados aquí como E2, E4 y E59, uno por empresa
 operadora— durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de
-2024, sin huecos de calendario. Son 90 unidades en total y
-[INSERTAR DATO/MÉTRICA] posiciones crudas. **El vector es corto, y conviene fijar
-su longitud antes de leer cualquier medida de dispersión.** Los vectores que
-sobreviven la restricción de la Sección III-C promedian entre 3,8 y 4,0 posiciones
-en E2, entre 3,8 y 3,9 en E4 y entre 5,6 y 5,9 en E59, según el horizonte. El
-mínimo exigido son tres, así que en E2 y en E4 el vector medio está a menos de una
-posición del corte. Toda la dispersión que mide la Sección V se calcula sobre
-listas de esa longitud, lo que la vuelve un estadístico ruidoso en los dos
-corredores cortos y bastante más firme en E59.
+2024, sin huecos de calendario. Son 90 unidades en total. Importa tanto lo que el
+dato tiene como lo que no: **no hay horario publicado, no hay archivo GTFS y no
+hay tabla de paradas.** Eso obliga a construir todo desde la posición cruda, que
+es trabajo extra, pero también es lo que vuelve el método aplicable. La mayoría de
+las ciudades donde el bunching es un problema cotidiano son exactamente las que no
+tienen ese dato ordenado. Un método que exija GTFS no se puede desplegar donde el
+problema es más frecuente.
 
-Importa tanto lo que el dato tiene como lo que no. **No hay horario publicado, no
-hay archivo GTFS y no hay tabla de paradas.** Eso obliga a construir todo desde la
-posición cruda, que es trabajo extra, pero también es lo que vuelve el método
-aplicable. La mayoría de las ciudades donde el bunching es un problema cotidiano
-son exactamente las que no tienen ese dato ordenado. Un método que exija GTFS no
-se puede desplegar donde el problema es más frecuente.
+Construir el headway desde la posición cruda no siempre resulta. Un par de buses
+queda sin valor cuando la Ecuación (3) no encuentra el cruce, o cuando el headway
+supera los treinta minutos. Medido sobre todos los pares evaluados, dieron headway
+válido el 63,5 % en E2, el 64,8 % en E4 y el 77,1 % en E59: casi cuatro millones en
+total. El resto quedó **sin dato**. Una posición del vector sin headway válido no 
+se rellena con un valor estimado ni con un cero: se enmascara, y el error se computa 
+solo sobre las posiciones observadas del vector.
 
-Aplicado a estos datos, el procedimiento de la Sección III-A deja alrededor de
-tres millones de headways válidos en E2 y E59, con una cobertura que va del 57,9 %
-al 79,7 % según corredor y sentido. Una posición del vector sin headway válido
-queda como «sin dato»: no se imputa ni se convierte en cero, y el error se computa
-solo sobre las posiciones observadas. La consecuencia corresponde declararla: los
-resultados describen el corredor **donde el dato existe**, y esa cobertura no es
-uniforme. Sobre las posiciones que quedan, el evento de la Sección III-C no es
-raro: afecta entre el 17 % y el 30 % de ellas según corredor y horizonte.
+Los huecos que deja ese enmascaramiento no se distribuyen al azar: ninguna de las
+dos condiciones es neutral, y ambas recortan por el extremo alto de la
+distribución. Los descartados son entonces **los intervalos más largos**, de modo 
+que el corredor evaluado excluye parte de su peor servicio. Las cifras de la 
+Sección V describen esa población recortada y no la operación completa. La 
+cobertura tampoco es pareja: entre el corredor mejor y el peor medido hay casi 
+catorce puntos porcentuales. Las comparaciones **entre** corredores no parten, por 
+lo tanto, de bases igual de completas.
 
 ### B. Métodos comparados
 
@@ -336,34 +333,35 @@ Se comparan cuatro métodos. Una red recurrente con memoria de largo y corto pla
 calendario y emite el vector completo para el horizonte pedido. Un conjunto de
 árboles con refuerzo de gradiente (**XGBoost**), que recibe la misma información
 en forma de rezagos y variables de calendario. La **persistencia**, que repite el
-último valor observado y es la línea base obligada de todo pronóstico de series de
-tiempo. Y el **promedio histórico por franja horaria**, que responde con el valor
-típico de esa hora del día. En lo que sigue, *aprendiz* designa indistintamente al
-LSTM y al XGBoost, los dos métodos ajustados sobre los datos.
+último valor observado. Y el **promedio histórico por franja horaria**, que
+responde con el valor típico de esa hora del día. En lo que sigue, *aprendiz*
+designa indistintamente al LSTM y al XGBoost, los dos métodos ajustados sobre los
+datos.
 
-Las dos últimas líneas base cumplen una función específica. Repetir el último
-valor es una referencia exigente a horizonte corto y se debilita al alargarlo, de
-modo que por sí sola dejaría la comparación sin rival serio a diez minutos. El
-promedio histórico cubre justamente ese flanco: como no depende del horizonte, su
-error es plano, y a diez minutos se convierte en el competidor real.
+Las dos últimas líneas base cumplen una función específica, y no se las trata como
+exigentes por convención sino porque la Sección V-A lo mide. Repetir el último
+valor le gana al modelo aprendido a un minuto de anticipación en los tres
+corredores, y se debilita al alargar el horizonte, de modo que por sí sola dejaría
+la comparación sin rival serio a diez minutos. El promedio histórico cubre
+justamente ese flanco: como no depende del horizonte, su error es plano, y a diez
+minutos se convierte en el competidor real.
 
 La configuración completa del LSTM es la siguiente.
 
 | | |
 | :--- | :--- |
 | Entrada | vector de headways de los últimos 12 minutos, rellenado hasta una longitud fija —el percentil 99 de la cantidad de pares de buses en entrenamiento— y estandarizado con estadísticos calculados solo sobre entrenamiento, por corredor y sentido |
-| Contexto | seno y coseno de la hora del día y del día de la semana |
+| Contexto | seno y coseno de la hora del día y del día de la semana; las cuatro son de calendario, así que en el momento de predecir ninguna depende de lo que va a ocurrir |
 | Red | 32 unidades ocultas; una capa en E2, dos capas con 20 % de apagado aleatorio de unidades en E59; en E4 se eligió entre tres configuraciones en validación |
 | Ajuste | Adam con paso 5 × 10⁻⁴, lotes de 128, hasta 50 pasadas por los datos, corte temprano tras 10 sin mejora, semilla fija en 42 |
 | Objetivo | el error cuadrático de la Ecuación (5), calculado solo sobre las posiciones donde hay bus |
 
-Las cuatro variables de contexto son de calendario y nada más: en el momento de
-predecir, ninguna depende de lo que va a ocurrir. Corresponde declarar además una
-asimetría del procedimiento. El XGBoost se seleccionó sobre veinticuatro
+Corresponde declarar una asimetría del procedimiento de selección, porque corre en
+contra de una de las dos arquitecturas. El XGBoost se seleccionó sobre veinticuatro
 configuraciones por celda; el LSTM heredó una única configuración en dos de los
 tres corredores y eligió entre tres en el restante. **Donde el LSTM pierde contra
 el XGBoost, ese resultado no es atribuible a la clase de modelo**, y el trabajo no
-lo usa como si lo fuera.
+lo usa como si lo fuera. Nivelar el presupuesto de búsqueda no se hizo.
 
 El trabajo probó más métodos de los que compara, y ninguno mejoró al LSTM. Del
 lado estadístico quedaron afuera tres familias: la media del período de
@@ -374,13 +372,14 @@ las doce combinaciones de corredor y horizonte.
 Del lado del aprendizaje profundo se probaron dos arquitecturas que modelan de
 forma explícita la relación entre buses vecinos: una convolución a lo largo del
 eje de los buses (**SpatialConvLSTM**) y atención entre las posiciones del vector
-(**SpatialTransformer**). Ninguna de las dos supera al LSTM plano en ninguna
-celda. Las comparaciones son veinticuatro: dos arquitecturas, tres corredores y
-cuatro horizontes. En las cinco celdas donde una variante espacial queda
-nominalmente por debajo del LSTM, el margen es inferior a 0,005 minutos. El
-semiancho del intervalo por semilla llega a 0,009 minutos sobre cinco semillas, de
-modo que esos cinco márgenes no se distinguen del ruido de inicialización. El
-vecino inmediato en el vector no aporta información que la red plana no tenga ya.
+(**SpatialTransformer**). Las comparaciones son veinticuatro: dos arquitecturas,
+tres corredores y cuatro horizontes. En diecinueve el LSTM plano queda por debajo,
+y en las cinco restantes el margen a favor de la variante espacial es inferior a
+0,005 minutos. El semiancho del intervalo por semilla llega a 0,009 minutos sobre
+cinco semillas, así que esos cinco márgenes no se distinguen del ruido de
+inicialización y ninguna de las dos arquitecturas registra una ventaja
+interpretable. El vecino inmediato en el vector no aporta información que la red
+plana no tenga ya.
 
 ### C. Protocolo de evaluación
 
@@ -399,8 +398,9 @@ esquema.
 arrancan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
 solapan.
 
-Cuatro reglas más gobiernan la comparación, y las cuatro existen para cerrar un
-camino por el que un número podría entrar sin merecerlo.
+Cuatro reglas más gobiernan la comparación. Cada una descarta un mecanismo
+concreto por el cual una ventaja aparente podría no corresponder al modelo que la
+reclama.
 
 **Continuidad estricta.** Una muestra solo es válida si los minutos que la
 componen son consecutivos de verdad. Sin esa exigencia, una ventana puede saltar

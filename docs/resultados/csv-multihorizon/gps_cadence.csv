@@ -1,0 +1,4 @@
+corridor,n_buses,n_gaps,median_gap_s,p95_gap_s,emissions_per_minute
+E2,31,9595535,20.0,20.0,3.0
+E4,19,4048239,20.0,20.0,3.0
+E59,40,10557928,20.0,20.0,3.0
