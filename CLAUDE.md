@@ -5,9 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 Research code for a paper (target: IJACSA) on forecasting the full headway vector
-of urban bus corridors from real SIT Arequipa GPS data, comparing deep learning
-(LSTM / SpatialConvLSTM / SpatialTransformer) against classical and persistence
-baselines. The deliverable is the paper's results, not a product.
+of urban bus corridors from real SIT Arequipa GPS data. The published line compares
+LSTM against XGBoost and persistence; SpatialConvLSTM and SpatialTransformer belong
+to the frozen generation and are out of scope for it. The deliverable is the paper's
+results, not a product.
+
+Paper prose is governed by the `redaccion-paper` skill
+(`.claude/skills/redaccion-paper/`), not by this file.
 
 ## Environment & commands
 

@@ -1,12 +1,15 @@
 # Paper — esqueleto de trabajo
 
 Destino: **IJACSA**. Idioma de redacción: español; traducción al inglés al final.
-Reemplaza a `manuscrito.md`, que se conserva **solo como cantera de material**.
+
+Este documento cubre **estructura, evidencia y estado**. Las reglas de redacción
+no viven acá: son la skill `redaccion-paper`
+(`.claude/skills/redaccion-paper/`), y su archivo `references/reglas-redaccion.md`
+es la única norma vinculante sobre cómo se escribe.
 
 Insumos vinculantes:
 
 - `docs/resultados/documento-resultados.md` — todas las cifras salen de acá
-- `docs/paper/notas-de-redaccion.md` — prohibiciones de redacción, siguen vigentes
 - `docs/paper/fuentes-verificadas.md` — estado de verificación de cada referencia
 
 ---
@@ -27,156 +30,9 @@ headways parece ciego al bunching, y cómo se repara.*
 
 ---
 
-## 2. Reglas de escritura
+## 2. Numeración de ecuaciones vigente
 
-### 2.1 La prosa no recorre celdas
-
-La prosa **enuncia el patrón y apunta a la tabla**. Nunca narra celda por celda.
-Si un párrafo enumera más de tres cifras seguidas, ese párrafo es una tabla mal
-escrita.
-
-### 2.2 Política de jerga
-
-Cada término del oficio **se gana su lugar o se traduce**. Un término se conserva
-solo si (a) es el nombre estándar en el campo y el revisor lo espera, o (b) no
-existe forma corta de decirlo. Todo lo demás se dice en palabras normales.
-
-| No escribir | Escribir |
-|---|---|
-| winsorización | le pusimos un tope al 1 % más alto |
-| compresión de dispersión | el pronóstico sale más parejo que la realidad |
-| umbral auto-referencial | el corte se mide contra el promedio del propio pronóstico |
-| población compartida verificable | los tres modelos se puntúan sobre exactamente las mismas filas |
-| coeficiente de variación transversal | qué tan disparejos están los headways de un corredor en un instante |
-
-Se conservan, definidos **una sola vez** y en una cláusula: **headway**,
-*bunching*, correlación de Matthews, área bajo la curva ROC,
-Diebold-Mariano.
-
-**La regla ataca la jerga que oculta, no el vocabulario canónico del campo.** Son
-dos cosas distintas y confundirlas cuesta caro en direcciones opuestas:
-
-| Clase | Ejemplo | Qué hacer | Por qué |
-|---|---|---|---|
-| Jerga que **oculta** una idea simple | winsorización | Traducir | La palabra no aporta nada que no diga «tope al 1 % más alto» |
-| Término **canónico** del campo | headway | Conservar | Es el nombre del objeto de estudio; el revisor lo espera |
-
-Decidido 2026-08-27: **el objeto de estudio se llama `headway` en todo el texto,
-y `intervalo` no se usa como sinónimo.** Un artículo de transporte que escribe
-«intervalo entre buses» en vez de «headway» le señala al revisor que el autor
-viene de fuera del campo, y en la versión en inglés sería descalificante. La
-figura `esquema-headway` ya usaba el término correcto mientras el texto no: ese
-desacuerdo fue el síntoma.
-
-⚠️ Al reemplazar, **`intervalo de confianza` no se toca** —es el intervalo
-estadístico— y `intervalo programado` pasa a `headway programado`, que es el
-*scheduled headway* de la convención del campo.
-
-Decidido 2026-08-27, por la misma razón: **el evento se llama `bunching`, y
-`apelotonamiento` no se usa ni como sinónimo ni como glosa entre paréntesis.** Es
-el nombre canónico del fenómeno y el que el revisor espera; la traducción
-descriptiva delata al autor de afuera exactamente igual que «intervalo entre
-buses». Ya reemplazado en las doce apariciones del paper. Ninguna figura usaba el
-término, así que no hubo nada que regenerar.
-
-Decidido 2026-08-27: **los «días atípicos» no se mencionan en el paper.** Ni el
-término, ni la variable, ni su descarte, ni el archivo que los produce. La línea
-publicada (notebooks 21/22) no los usa —el cargador revienta si aparecen— y ningún
-módulo de `src/evaluation/` los referencia: no filtran, no estratifican, no entran
-en ninguna métrica ni en ningún test. Explicar por qué se descartó algo que nunca
-tocó un resultado le gasta al lector atención que el paper necesita para el umbral.
-
-⚠️ Fueron variable **activa y obligatoria** en la generación congelada (11/12/13,
-17/18/19, 20). Eso queda en `docs/`, no en el paper. Y si alguna cifra citada sale
-de esas corridas, se cita sin narrar el calendario atípico.
-
-⚠️ La regla prohíbe la **variable** y su historia de descarte, no nombrar un
-feriado real que cae dentro de la ventana de evaluación. Carnaval sigue en VI: la
-prueba principal va del 8 al 29 de febrero de 2024 y Carnaval cayó del 10 al 13,
-así que está adentro de las cifras que el paper publica. El origen `r1` prueba en
-cambio del 23 de diciembre al 13 de enero —Navidad y Año Nuevo—, y los veredictos
-coinciden entre ventanas con feriados distintos: la salvedad viene con su propia
-respuesta.
-
-Regla de cierre: **una sigla no definida en la oración donde aparece por primera
-vez es un error, no un estilo.**
-
-### 2.3 Ningún dato se enuncia sin su consecuencia
-
-Un hecho metodológico escrito como acta de laboratorio no le sirve a nadie. Todo
-dato del paper se enuncia **junto a por qué le importa al lector**, y hay dos
-lectores distintos: el que evalúa y el que opera.
-
-Ejemplo del error y su corrección:
-
-| Acta de laboratorio | Lo mismo, con su consecuencia |
-|---|---|
-| "No se reentrenó nada, no se modificó ninguna arquitectura." | "El campo responde a una falla de detección cambiando de modelo. Acá no hizo falta: se movió un número y el ganador cambió de bando. Como nada más varió, nada más puede explicar la inversión —y reparar esto no cuesta una GPU, cuesta recalibrar." |
-
-Esto **no es inflar el resultado**. La cifra es la misma y el alcance es el mismo;
-lo que cambia es que el lector entiende qué hacer con ella. Inflar sería afirmar
-más de lo que el dato sostiene, y eso está prohibido en todo el documento.
-
-Prueba a aplicar en cada párrafo: *si el lector pregunta "¿y eso para qué me
-sirve?", ¿la respuesta está en el mismo párrafo?* Si no está, el párrafo está a
-medio escribir.
-
-### 2.4 El paper nunca habla de su propia revisión
-
-Prohibido escribir «conviene decirlo antes de que lo diga un revisor», «un
-revisor podría objetar», «para anticipar críticas». Un artículo publicado no
-menciona a sus revisores: rompe el marco, y además delata una motivación
-equivocada —parece que se cede por miedo a que descubran algo, no porque sea el
-estado del conocimiento.
-
-La razón para ceder autoría se enuncia **hacia el lector**, no hacia el revisor:
-
-| Mal | Bien |
-|---|---|
-| «conviene decirlo antes de que lo diga un revisor» | «delimitar qué es previo es lo que deja a la vista la contribución» |
-
-El razonamiento sobre revisores va en este esqueleto, que nadie publica. En el
-paper va solo su conclusión.
-
----
-
-### 2.5 Tercera persona en todo el manuscrito
-
-**Decidida el 2026-08-27.** El paper se redacta íntegramente en tercera persona.
-Prohibida la primera persona del plural en cualquier forma: «nuestro», «nuestra»,
-«reclamamos», «usamos», «medimos», «probamos», «encontramos», «nos costó».
-
-No es una exigencia del venue —el IEEE Editorial Style Manual admite primera
-persona y IJACSA también—. Es consistencia: el manuscrito ya estaba escrito casi
-por completo en impersonal («Se sustituye», «Se exige», «Se compararon»), y los
-diez saltos a primera persona que quedaban se leían como dos autores con manías
-distintas.
-
-Cuando hace falta atribuir autoría, el sujeto es **el trabajo**, no las personas:
-
-| Mal | Bien |
-|---|---|
-| «Lo que reclamamos son tres cosas» | «Lo que este trabajo reclama son tres cosas» |
-| «La definición que usamos» | «La definición adoptada» |
-| «Lo probamos» | «Se probó» |
-| «bajo nuestra propia regla» | «bajo la regla relativa» |
-| «Qué es nuestro y qué no» | «Qué es previo y qué no» |
-
----
-
-### 2.6 Toda ecuación desplegada lleva número
-
-**Decidida el 2026-08-27.** Cada ecuación desplegada del manuscrito lleva su número
-con `\tag{n}`, en una sola secuencia por orden de aparición. Las referencias citan
-el número —«la Ecuación (3)»— y nunca la posición.
-
-Prohibido: «la ecuación de arriba», «esa fórmula», «la ecuación anterior». Una
-referencia posicional se rompe en silencio en cuanto algo se mueve de lugar, y en un
-journal no se cita por posición. El síntoma que la motivó: la formulación adoptada
-del headway se citaba como «la ecuación de arriba» desde una lista que estaba
-**debajo** de la Fig. 1.
-
-Asignación vigente, toda en la Sección III:
+Asignación actual, toda en la Sección III:
 
 | Ec. | Qué define | Dónde |
 |---|---|---|
@@ -190,10 +46,8 @@ Asignación vigente, toda en la Sección III:
 | (8) | el detector evaluado, sobre el pronóstico: `b̂_i(t)` | III-C |
 | (9) | `τ(ĥ) ≠ τ(h)` | III-C |
 
-Toda ecuación nueva continúa la secuencia por orden de aparición, lo que obliga a
-renumerar si se inserta una en el medio. `\tag{}` lo renderizan KaTeX y MathJax, así
-que sirve en el borrador markdown y traduce directo a `\label`/`\eqref` cuando se
-genere el PDF con LaTeX.
+Esta tabla es estado, no norma: registra qué número tiene hoy cada ecuación. Las
+reglas de numeración y de referencia cruzada viven en la skill.
 
 ---
 
@@ -415,8 +269,8 @@ Ninguno requiere GPU ni Kaggle. Los números ya están calculados y commiteados.
 |---|---|---|---|
 | 1 | **Promedio histórico horario:** entra a III-C y a V-C. El aprendiz le pierde en E2 a diez minutos. Hoy no aparece ni una vez en el manuscrito. | `contiguous_ha_paired.csv` | 20 min |
 | 2 | **Doble estándar media/mediana:** el paper se niega a dar veredicto en h=3 por disociación media-mediana, pero usa la afirmación de error cuadrático en h=1 que tiene la misma patología (Wilcoxon 0,77 / 1,00 / 1,00). Se borra la afirmación: no sostiene la tesis del umbral. | `contiguous_significance.csv` | 10 min |
-| 3 | **Resolver 11/12 vs 10/12.** El manuscrito dice 11, la metodología dice 10, la síntesis dice 10. Una de las tres está mal. | CSVs | 15 min |
-| 4 | ~~Resolver 110× vs 115×~~ **RESUELTO 2026-08-26: es 115×.** Recomputado de `threshold_absolute_comparison.csv`: mediana de marcado relativo 0,078775 ÷ absoluto a ρ=0,25 0,000682 = **115,4**. `metodologia.md` tenía razón; `manuscrito.md` decía 110 y estaba mal. Ya corregido en `paper.md` §IV-F. | — | hecho |
+| 3 | **Resolver 11/12 vs 10/12.** `paper.md` dice 11; los dos documentos que decían 10 se borraron el 2026-08-28 sin que se dirimiera cuál era el correcto. Hay que recontarlo contra los CSV y corregir el manuscrito si hace falta. | CSVs | 15 min |
+| 4 | ~~Resolver 110× vs 115×~~ **RESUELTO 2026-08-26: es 115×.** Recomputado de `threshold_absolute_comparison.csv`: mediana de marcado relativo 0,078775 ÷ absoluto a ρ=0,25 0,000682 = **115,4**. Ya corregido en `paper.md` §IV-F. | — | hecho |
 | 5 | `fase-15.md` todavía presenta como "el resultado más estable del trabajo" la lectura que se **retiró**. Poner banner de alcance. | `docs/proceso/fase-15.md` | 10 min |
 
 ---
