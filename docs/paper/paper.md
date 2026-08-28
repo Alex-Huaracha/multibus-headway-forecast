@@ -1,4 +1,4 @@
-# El umbral, no el modelo: por qué un pronóstico de headways parece ciego al bunching, y cómo se repara
+# Compresión de dispersión en el pronóstico del vector de headways: el punto de operación, y no el modelo, determina la detección de bunching
 
 ## Resumen
 
@@ -17,59 +17,59 @@ _(pendiente)_
 _(A–C pendientes: la receta estándar, por qué el umbral se mueve,
 y el precedente de recalibración fuera del transporte.)_
 
-### D. Qué es previo y qué no
+### D. Delimitación de lo previo y de la contribución
 
-Buena parte del mecanismo que este trabajo mide ya está publicado. Delimitar qué
-es previo es lo que deja a la vista la contribución, que es más angosta de lo que
-el mecanismo completo sugiere.
+Buena parte del mecanismo que este trabajo mide ya está publicada, y delimitar
+qué es previo deja a la vista una contribución más angosta que ese mecanismo
+completo. Que un pronóstico optimizado en error cuadrático resulte menos disperso
+que la realidad está enunciado por Mayer y Yang y demostrado como teorema por
+Patton y Timmermann. Nada de eso lo reclamamos. Tampoco reclamamos haber sido los
+primeros en atar esa compresión a una métrica categórica ni en observar que
+empeora con el horizonte: las dos cosas están en Petetin y colaboradores. Que el
+paradigma de predecir y umbralizar falle, y que el veredicto se revierta al
+puntuar sin punto de operación, lo diagnosticaron Sun, Schmöcker y Nakamura.
+Recalcular un umbral contra la distribución de cada modelo es el procedimiento de
+Hoffmann, Menz y Spekat en reducción de escala climática, ocho años antes. El
+cruce entre persistencia y modelo aprendido al alargar el horizonte ya se reporta
+en pronóstico de tráfico [CITA_REQUERIDA]. Y el resultado nulo de las variantes
+espaciales coincide con trabajo previo [CITA_REQUERIDA]. Llegar segundo a una
+conclusión no la vuelve propia.
 
-Que un pronóstico optimizado en error cuadrático salga más parejo que la realidad
-está enunciado por Mayer y Yang y **demostrado como teorema** por Patton y
-Timmermann. Nada de eso se reclama acá. Tampoco se reclama haber sido los primeros
-en atar esa compresión a una métrica categórica ni en observar que empeora con el
-horizonte: las dos cosas están en Petetin y colaboradores. Que el paradigma de
-predecir-y-umbralizar falla, y que el veredicto se revierte al puntuar sin punto de
-operación, lo diagnosticaron Sun, Schmöcker y Nakamura. Y recalcular un umbral
-contra la distribución de cada modelo es, exactamente, el procedimiento de
-Hoffmann, Menz y Spekat en reducción de escala climática, ocho años antes. El cruce
-entre persistencia y modelo aprendido al alargar el horizonte es folclore conocido
-en pronóstico de tráfico, y el resultado nulo de las variantes espaciales confirma
-trabajo publicado: llegar segundo a una conclusión no la vuelve propia.
-
-Lo que este trabajo reclama son tres cosas más angostas. **Primera**, medir la
-compresión sobre el vector de headways, como dispersión entre buses en un instante —
+Reclamamos tres contribuciones más angostas. **Primera**, medimos la compresión
+sobre el vector de headways, como dispersión entre buses en un mismo instante;
 los precedentes trabajan sobre la variabilidad temporal de una serie escalar, que
-no es lo mismo. **Segunda**, dar vuelta la fórmula de calidad de servicio del
-manual del oficio y aplicarla al pronóstico en lugar de a lo observado. **Tercera**,
-y es la que no tiene precedente dentro ni fuera del transporte, atarlo a una regla
-de evento **relativa y auto-referencial**, donde la compresión mueve el numerador y
-el denominador a la vez. En Petetin eso no falta por descuido sino por
-construcción: sus umbrales son regulatorios y no admiten recalibración.
+no es la misma cantidad. **Segunda**, invertimos la fórmula de calidad de
+servicio del *Transit Capacity and Quality of Service Manual* (TCQSM) y la
+aplicamos al pronóstico en lugar de a lo observado. **Tercera**, y es la que no
+encontramos con precedente dentro ni fuera del transporte, la atamos a una regla
+de evento **relativa y auto-referencial**, donde la compresión mueve el numerador
+y el denominador a la vez. En Petetin y colaboradores esa pieza no falta por
+descuido sino por construcción: sus umbrales son regulatorios y no admiten
+recalibración.
 
 ---
 
 ## III. Método propuesto
 
-### A. Del GPS al headway
+### A. Construcción del headway a partir de posiciones GPS
 
-El headway es el tiempo que separa a dos buses consecutivos: si uno pasa por una
-esquina y el siguiente llega cinco minutos después, el headway en esa esquina es de
-cinco minutos. Es la cantidad que dice si un corredor va parejo o si sus buses
-viajan en pelotón, y es lo que este trabajo pronostica.
+El headway es el tiempo que separa el paso de dos buses consecutivos por un mismo
+punto: si uno pasa por una esquina y el siguiente llega cinco minutos después, el
+headway en esa esquina es de cinco minutos. Es la cantidad que revela si un
+corredor mantiene sus buses espaciados o si circulan apelotonados, el fenómeno que
+la Sección III-C define como **bunching**. El headway es la variable que
+pronosticamos.
 
-La forma habitual de medirlo es en una parada, usando la lista de paradas de la ruta
-y los horarios de paso. Acá no existe ninguna de las dos cosas: el dato disponible
-son coordenadas GPS crudas.
+La forma habitual de medir el headway es en una parada, con la lista de paradas de
+la ruta y los horarios de paso. Ninguna de las dos existe en este caso: el dato
+disponible son coordenadas GPS crudas. Para llegar al headway desde esas
+coordenadas se aplicó la secuencia de seis pasos que sigue.
 
-Entonces, para llegar al headway desde esas coordenadas, se aplicó una serie de
-procesos en el siguiente orden.
+**1) El eje.** El trazado del corredor se estima de los propios buses: se ajusta
+una línea central a las posiciones de las unidades en movimiento y después se
+suaviza, lo que entrega una curva principal a lo largo del recorrido.
 
-**1) El eje.** Lo primero es saber por dónde va el corredor, y eso sale de los
-propios buses: se ajusta una línea central a las posiciones de los que están en
-movimiento y después se suaviza, lo que da una curva principal a lo largo del
-recorrido.
-
-**2) La proyección a una dimensión.** Con el eje ya trazado, cada posición *p* se
+**2) La proyección a una dimensión.** Con el eje ya trazado, cada posición se
 reduce a dos números: cuánto ha avanzado el bus a lo largo del corredor y a qué
 distancia quedó del eje. Es la operación estándar de referenciación lineal,
 proyectar un punto sobre una polilínea:
@@ -77,51 +77,59 @@ proyectar un punto sobre una polilínea:
 $$s(p) = \text{arco del punto del eje } C \text{ más cercano a } p,
 \qquad \ell(p) = \lVert\, p - C(s(p)) \,\rVert \tag{1}$$
 
-La posición se conserva solo si $\ell(p) \le 300$ m; lo que cae más lejos no
-pertenece al corredor.
+donde $C$ es el eje del corredor parametrizado por su longitud de arco y $p$ es la
+posición reportada por el bus. La coordenada $s(p)$ es el arco del punto de $C$
+más cercano a $p$, y $\ell(p)$ es la distancia de $p$ a ese punto. La posición se
+conserva solo si $\ell(p) \le 300$ m; lo que cae más lejos no pertenece al
+corredor.
 
-**3) El sentido de marcha.** Sobre ese mismo eje circulan los buses de ida y los de
-vuelta, y el dato no dice cuál es cuál. La definición adoptada es el signo del
-desplazamiento promediado sobre cinco posiciones, de modo que un error aislado no
-invierta la dirección:
+**3) El sentido de marcha.** Sobre ese mismo eje circulan los buses de ida y los
+de vuelta, y el dato no distingue unos de otros. El sentido se define como el
+signo del desplazamiento promediado sobre cinco posiciones, de modo que un error
+aislado no invierta la dirección:
 
 $$d = \operatorname{sign}\!\big(\overline{\Delta s}_{5}\big) \tag{2}$$
 
-Se deriva porque no había alternativa: uno de los corredores no reporta rumbo en
-absoluto.
+donde $\overline{\Delta s}_{5}$ es el promedio del avance sobre el eje en las
+últimas cinco posiciones y $d \in \{-1, 0, +1\}$ es el sentido asignado. La
+derivación es forzosa: uno de los corredores no reporta rumbo en absoluto.
 
 **4) Los viajes.** Ya con sentido, el recorrido de cada bus se corta en viajes: un
 salto de más de treinta minutos sin señal, una inversión de sentido o una espera
 prolongada en terminal cierran el viaje en curso.
 
 **5) La rejilla común.** Los buses no emiten sincronizados entre sí, de modo que
-hace falta un instante compartido. Todo se lleva a una rejilla de sesenta segundos,
-y así cada minuto queda descrito por una **foto** del corredor: la posición de todos
-sus buses en ese momento.
+hace falta un instante compartido. Todo se lleva a una rejilla de sesenta
+segundos, y así cada minuto queda descrito por una **instantánea** del corredor:
+la posición de todos sus buses en ese momento.
 
-**6) El headway.** Sobre esa foto, para un par de buses consecutivos en el mismo
-sentido —el de adelante *L*, el de atrás *F*— en el instante *T*:
+**6) El headway.** Sobre esa instantánea, para un par de buses consecutivos en el
+mismo sentido —el de adelante *L*, el de atrás *F*— en el instante *T*:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
 \qquad h = T - t_{c} \tag{3}$$
 
-Es decir: **hace cuánto tiempo el bus de adelante pasó por el punto donde el de
-atrás está ahora.** Es un cruce por posición y no por parada, y eso es exactamente
-lo que permite prescindir de la tabla de paradas. Si no existe tal $t_c$, o si
-$h$ supera los treinta minutos, se emite «sin dato» en lugar de arrastrar un paso
-de horas antes. Con *N* buses circulando, el corredor queda descrito en cada minuto
-por un vector de *N* − 1 números.
+donde $T$ es el instante evaluado, y $s_{L}$ y $s_{F}$ son las coordenadas de arco
+del bus de adelante y del de atrás. El instante $t_{c}$ es el último en que el de
+adelante ocupó la posición que el de atrás ocupa en $T$, y $h$ es el headway
+resultante. La Ecuación (3) mide **hace cuánto tiempo el bus de adelante pasó por
+el punto donde el de atrás está ahora.** Es un cruce por posición y no por parada,
+y eso es exactamente lo que permite prescindir de la tabla de paradas. Si no
+existe tal $t_{c}$, o si $h$ supera los treinta minutos, se emite «sin dato» en
+lugar de arrastrar un paso de horas antes. Con $N$ buses circulando, el corredor
+queda descrito en cada minuto por un vector de $N-1$ números, y la Figura 1
+ilustra la medición sobre un punto fijo.
 
 ![Definición del headway](figuras/headway/headway.png)
 
 **Fig. 1.** El headway, medido en un punto fijo del corredor. El bus de adelante
 —Bus 1, el *L* de la Ecuación (3)— pasó por el punto p₂ a las 12:30; el de atrás
 —Bus 2, el *F*— llega a ese mismo punto a las 12:35. El headway en p₂ es la
-diferencia entre esas dos horas: cinco minutos. La separación espacial entre los dos
-buses no interviene. Esquema ilustrativo, no datos reales.
+diferencia entre esas dos horas: cinco minutos. La separación espacial entre los
+dos buses no interviene. Esquema ilustrativo, no datos reales.
 
 Esta forma de medir el headway no se eligió por comodidad. Se compararon las
-siguientes cuatro formulaciones, sobre criterios de cobertura, variabilidad,
+cuatro formulaciones siguientes, sobre criterios de cobertura, variabilidad,
 autocorrelación, información compartida entre buses vecinos y estabilidad de la
 distribución.
 
@@ -131,80 +139,110 @@ cada uno. Quedó afuera por autocorrelación demasiado baja: el valor de ahora c
 no informaba sobre el de cinco minutos más tarde, que es uno de los horizontes que
 hay que predecir.
 
-**2) Tiempo proyectado hacia adelante** — la separación entre los dos buses dividida
-por la velocidad del de atrás. Quedó afuera por lo mismo, y arrastra además una
-debilidad de forma: dividir por la velocidad actual supone que esa velocidad se
-mantiene, de modo que introduce una estimación dentro de la cantidad que después se
-quiere estimar.
+**2) Tiempo proyectado hacia adelante** — la separación entre los dos buses
+dividida por la velocidad del de atrás. Quedó afuera por lo mismo, y arrastra
+además una debilidad de forma: dividir por la velocidad actual supone que esa
+velocidad se mantiene, de modo que introduce una estimación dentro de la cantidad
+que después se quiere estimar.
 
 **3) Distancia en metros entre buses consecutivos** — iguala a la adoptada en
-calidad de señal, y se descartó por el objeto de estudio y no por su desempeño:
-mide separación espacial y no tiempo entre pasadas, que es la cantidad que el
+calidad de señal, y se descartó por el objeto de estudio y no por su desempeño.
+Mide separación espacial y no tiempo entre pasadas, que es la cantidad que el
 operador necesita y la que define el bunching.
 
 **4) Tiempo desde el cruce hacia atrás** — la definición de la Ecuación (3), y la
 adoptada.
 
-### B. La tarea de pronóstico
+### B. Formulación de la tarea de pronóstico
 
 La Sección III-A deja el corredor descrito, minuto a minuto, por un vector de
-headways. Lo que este trabajo pronostica es ese vector completo: no un headway
-suelto ni un promedio del corredor, sino todas sus posiciones a la vez.
+headways. Lo que pronosticamos es ese vector completo: no un headway suelto ni un
+promedio del corredor, sino todas sus posiciones a la vez. Dado el historial de
+los últimos $T$ minutos y un contexto de calendario, se busca el vector del
+corredor $H$ minutos más adelante:
 
-Dado el historial de los últimos $T$ minutos y un contexto de calendario $c(t)$, se
-busca el vector del corredor $H$ minutos más adelante:
-
-$$\hat{h}(t+H) \;=\; f\big(h(t-T+1), \dots, h(t);\; c(t)\big),
+$$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\; c(t)\big),
 \qquad T = 12 \tag{4}$$
+
+donde $\mathbf{h}(t)$ es el vector de headways del corredor en el minuto $t$ y
+$\hat{\mathbf{h}}(t+H)$ es el pronóstico de ese vector $H$ minutos más adelante.
+El término $c(t)$ reúne las variables de calendario disponibles en $t$, $f$ es el
+modelo ajustado y $T$ es la cantidad de minutos de historia que recibe.
 
 Se pronostica a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
 ajustado por separado para cada uno: no hay recursión, cada horizonte se predice
-directo. El vector no tiene longitud fija, porque cuántos headways hay en un minuto
-depende de cuántos buses estén circulando, así que el modelo emite una salida de
-longitud fija y el error se computa solo sobre las posiciones donde hay bus.
-
-**El objetivo que se minimiza es el error cuadrático**, promediado sobre esas
-posiciones válidas $\mathcal{V}$:
+de forma directa. El vector no tiene longitud fija, porque cuántos headways hay en
+un minuto depende de cuántos buses estén circulando. El modelo emite entonces una
+salida de longitud fija y el error se computa solo sobre las posiciones donde hay
+bus. **El objetivo que se minimiza es el error cuadrático**, promediado sobre esas
+posiciones válidas:
 
 $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 \big(\hat{h}_i - h_i\big)^{2} \tag{5}$$
 
-Esa elección gobierna el resto del trabajo, y conviene decir por qué desde ahora: un
-pronóstico que minimiza error cuadrático tiende a la media condicional, que es más
-pareja que la realidad. La compresión de dispersión que documenta la Sección V-B no
-es entonces una falla del ajuste, es lo que este objetivo pide. Lo que esa
-compresión le hace a la regla del evento es el asunto de la subsección siguiente.
+donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en el
+instante objetivo, $|\mathcal{V}|$ es su cardinal, y $\hat{h}_i$ y $h_i$ son el
+valor predicho y el observado en la posición $i$.
 
-### C. Qué cuenta como bunching
+Esa elección gobierna el resto del trabajo. Un pronóstico que minimiza error
+cuadrático tiende a la media condicional, que es menos dispersa que la realidad.
+La compresión de dispersión que documenta la Sección V-B no es entonces una falla
+del ajuste: es lo que este objetivo pide. El efecto de esa compresión sobre la
+regla del evento es el asunto de la Sección III-C.
 
-Hay que decidir cuándo un headway cuenta como bunching. La convención del
-campo es una fracción del headway programado —normalmente un cuarto—, pero aquí
-no hay programación contra la cual comparar. Se sustituye por el análogo directo:
-**un headway cuenta como bunching si cae por debajo de la mitad del
-promedio de su propio vector en ese instante.** Se exige que el vector tenga al
-menos tres headways —o sea cuatro buses en circulación— y los vectores más cortos se
-descartan. Con dos headways hay un solo hueco: cualquier medida de qué tan desparejo
-está el corredor se reduce a esa única diferencia, que no describe una forma. Con
-tres ya hay patrón —uno colapsado, uno estirado, uno normal—, y por eso el mínimo
-está ahí y no en dos.
+### C. Definición del evento de bunching
 
-El promedio del propio vector cumple la función que cumplía la programación: fijar
-cuál es la separación normal en ese corredor en ese instante. Un corte fijo en
-minutos no la cumple, porque no es comparable entre corredores que corren a
-frecuencias distintas. La elección del valor no es neutral y conviene decirlo: los
-umbrales publicados van desde veinte segundos hasta un cuarto del headway
-programado, y no existe un único valor aceptado.
+El bunching es el fenómeno en que dos o más buses que deberían circular espaciados
+terminan viajando casi juntos y dejan un intervalo largo detrás de ellos. Su costo
+recae sobre quien espera en ese intervalo: la espera que enfrenta es la que el
+intervalo mide, y no el headway promedio del corredor. Sus causas son
+heterogéneas, entre ellas la congestión, un día de demanda atípica, la acumulación
+de pasajeros en el bus adelantado o las restricciones horarias del conductor
+[CITA_REQUERIDA]. Este trabajo no observa ninguna de ellas: el registro disponible
+trae identificador, instante y coordenada, y no pasajeros, ocupación ni estado del
+tránsito. Por eso el evento se define sobre la geometría del vector de headways,
+que sí es observable, y no sobre lo que la produjo.
 
-En notación: sea $h(t) = (h_1, \dots, h_m)$ el vector de headways del corredor en el
-instante $t$, con $m = N - 1$ posiciones. Su promedio y el corte del evento son
+Dos rasgos del fenómeno gobiernan cómo se lo define aquí. Es una propiedad del
+patrón colectivo y no de una unidad: cada bus puede estar donde le corresponde y
+el corredor estar apelotonado igual. Y se manifiesta en posiciones del vector de
+la Sección III-A, de modo que un mismo instante puede llevar varias posiciones
+afectadas a la vez.
+
+Resta decidir cuándo un headway cuenta como bunching. La convención del campo es
+una fracción del headway programado, normalmente un cuarto, pero en estos
+corredores no hay programación contra la cual comparar. Se sustituye por el
+análogo directo: **un headway cuenta como bunching si cae por debajo de la mitad
+del promedio de su propio vector en ese instante.** El promedio del propio vector
+cumple así la función que cumplía la programación: fijar cuál es la separación
+normal en ese corredor en ese instante. Un corte fijo en minutos no la cumple,
+porque no es comparable entre corredores que operan a frecuencias distintas. La
+elección del valor tampoco es neutral, y conviene declararlo: los umbrales
+publicados van desde veinte segundos hasta el cuarto ya mencionado, y no existe un
+único valor aceptado.
+
+En notación, sea $\mathbf{h}(t) = (h_1, \dots, h_m)$ el vector de headways del
+corredor en el instante $t$. Su promedio y el corte del evento son
 
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
 \qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2} \tag{6}$$
 
-y la posición $i$ cuenta como bunching cuando cae por debajo de ese corte:
+donde $m = N - 1$ es la cantidad de posiciones del vector, $N$ es la cantidad de
+buses en circulación y $h_j(t)$ es el headway de la posición $j$. El promedio del
+vector es $\bar{h}(t)$, el corte del evento es $\tau(t)$ y $\rho$ es la fracción
+que lo fija. La posición $i$ cuenta como bunching cuando cae por debajo de ese
+corte:
 
 $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
-\qquad \text{definido solo si } m \ge 3. \tag{7}$$
+\qquad \text{definido solo si } m \ge 3, \tag{7}$$
+
+donde $b_i(t)$ vale 1 si la posición $i$ cuenta como bunching y 0 si no, y
+$\mathbb{1}[\cdot]$ es la función indicadora. La condición $m \ge 3$ descarta los
+vectores más cortos y exige al menos cuatro buses en circulación. Su razón es que
+por debajo de tres posiciones no hay forma que describir: con dos headways hay un
+solo intervalo intermedio, así que cualquier medida de irregularidad se reduce a
+esa única diferencia. Con tres ya hay patrón —uno colapsado, uno estirado, uno
+normal—, y por eso el mínimo se fija ahí y no en dos.
 
 El detector que este trabajo evalúa es esa misma regla aplicada al vector predicho
 de la Ecuación (4), con el promedio del propio pronóstico fijando el corte:
@@ -212,20 +250,24 @@ de la Ecuación (4), con el promedio del propio pronóstico fijando el corte:
 $$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
 \,\right] \tag{8}$$
 
-Que el corte salga del vector predicho y no del observado no es un detalle de
+donde $\hat{b}_i(t)$ es la detección emitida sobre la posición $i$ del vector
+predicho y $\bar{\hat{h}}(t)$ es el promedio de ese mismo vector predicho. Que el
+corte salga del vector predicho y no del observado no es un detalle de
 implementación: quien opera un corredor no dispone del observado. Al momento de
-decidir, lo único que tiene es el pronóstico, así que puntuar contra el promedio
-real mediría algo que nadie puede desplegar.
+decidir solo cuenta con el pronóstico, así que puntuar contra el promedio real
+mediría algo que nadie puede desplegar.
 
 Como $\tau$ es función del propio vector que se evalúa, y no un número fijo de
 minutos, las Ecuaciones (7) y (8) no comparan contra el mismo corte:
 
-$$\tau(\hat{h}) \;=\; \rho\,\bar{\hat{h}}
-\;\neq\; \rho\,\bar{h} \;=\; \tau(h)
-\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}. \tag{9}$$
+$$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
+\;\neq\; \rho\,\bar{h} \;=\; \tau(\mathbf{h})
+\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{9}$$
 
-Escribir «la mitad del promedio» en los dos casos no los vuelve el mismo corte. Los
-dos ejemplos siguientes lo muestran con el mismo headway de dos minutos.
+donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los cortes que resultan de
+aplicar $\rho$ al vector observado y al vector predicho. Escribir «la mitad del
+promedio» en los dos casos no los vuelve el mismo corte. Las Figuras 2 y 3 lo
+muestran con el mismo headway de dos minutos.
 
 ![Corredor disparejo](figuras/bunching/with_bunching.png)
 
@@ -241,68 +283,69 @@ corte: **no es bunching.**
 
 Dos minutos entre buses es el mismo hecho físico en las dos figuras, y la regla lo
 clasifica al revés. No cambió el corredor ni cambió la medición: cambió el corte,
-porque bajó de 3,0 a 1,6 cuando el vector se volvió más parejo. La Sección V mide
-qué ocurre cuando esa diferencia se ignora sobre datos reales.
+porque bajó de 3,0 a 1,6 minutos cuando el vector se volvió más regular. La
+Sección V mide qué ocurre cuando esa diferencia se ignora sobre datos reales.
 
 ---
 
 ## IV. Diseño experimental
 
-### A. Los datos
+### A. Datos
 
 El trabajo usa los registros de posición de la flota del Sistema Integrado de
 Transporte de Arequipa. Cada unidad emite su coordenada **cada 20 segundos**, y la
 cadencia es regular: la mediana y el percentil 95 del tiempo entre emisiones
-coinciden en los tres corredores, de modo que el dato no llega a ráfagas. Pero cada
-bus emite por su cuenta y sin sincronizarse con los demás, así que dos posiciones
-del mismo corredor casi nunca corresponden al mismo instante. De ahí la rejilla
-común de la Sección III-A, y de ahí que sea de sesenta segundos: con emisiones cada
-veinte, promedia tres por bus sin perder granularidad operativa.
+coinciden en los tres corredores, de modo que el dato no llega a ráfagas. Pero
+cada bus emite por su cuenta y sin sincronizarse con los demás, así que dos
+posiciones del mismo corredor casi nunca corresponden al mismo instante. De ahí la
+rejilla común de la Sección III-A, y de ahí que sea de sesenta segundos: con
+emisiones cada veinte, promedia tres por bus sin perder granularidad operativa.
 
 Se cubren tres corredores —identificados aquí como E2, E4 y E59, uno por empresa
 operadora— durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de
-2024, sin huecos de calendario. Son 90 unidades en total y 43,4 millones de
-posiciones crudas.
-
-**El vector es corto, y conviene fijarlo antes de leer cualquier medida de
-dispersión.** En promedio, un corredor queda descrito en cada minuto por 3,2
-headways en E4, 3,9 en E2 y 6,3 en E59. El mínimo que exige la Sección III-C son
-tres, de modo que la restricción no es una salvaguarda ocasional: el vector medio
-de E4 está apenas por encima del corte y la regla está actuando casi siempre. Y
-toda la dispersión que mide la Sección V se calcula sobre listas de esa longitud,
-lo que la vuelve un estadístico ruidoso en los dos corredores cortos y bastante
-más firme en E59.
+2024, sin huecos de calendario. Son 90 unidades en total y
+[INSERTAR DATO/MÉTRICA] posiciones crudas. **El vector es corto, y conviene fijar
+su longitud antes de leer cualquier medida de dispersión.** Los vectores que
+sobreviven la restricción de la Sección III-C promedian entre 3,8 y 4,0 posiciones
+en E2, entre 3,8 y 3,9 en E4 y entre 5,6 y 5,9 en E59, según el horizonte. El
+mínimo exigido son tres, así que en E2 y en E4 el vector medio está a menos de una
+posición del corte. Toda la dispersión que mide la Sección V se calcula sobre
+listas de esa longitud, lo que la vuelve un estadístico ruidoso en los dos
+corredores cortos y bastante más firme en E59.
 
 Importa tanto lo que el dato tiene como lo que no. **No hay horario publicado, no
 hay archivo GTFS y no hay tabla de paradas.** Eso obliga a construir todo desde la
 posición cruda, que es trabajo extra, pero también es lo que vuelve el método
-aplicable: la mayoría de las ciudades donde el bunching es un problema
-cotidiano son exactamente las que no tienen ese dato ordenado. Un método que exija
-GTFS no sirve donde más falta hace.
+aplicable. La mayoría de las ciudades donde el bunching es un problema cotidiano
+son exactamente las que no tienen ese dato ordenado. Un método que exija GTFS no
+se puede desplegar donde el problema es más frecuente.
 
-Aplicado a estos datos, el procedimiento de la Sección III-A deja alrededor de tres
-millones de headways válidos en E2 y E59, con una cobertura que va del 57,9 % al
-79,7 % según corredor y sentido. Una posición del vector sin headway válido queda
-como «sin dato»: no se imputa ni se convierte en cero, y el error se computa solo
-sobre las posiciones observadas. La consecuencia hay que decirla: los resultados
-describen el corredor **donde el dato existe**, y esa cobertura no es uniforme.
+Aplicado a estos datos, el procedimiento de la Sección III-A deja alrededor de
+tres millones de headways válidos en E2 y E59, con una cobertura que va del 57,9 %
+al 79,7 % según corredor y sentido. Una posición del vector sin headway válido
+queda como «sin dato»: no se imputa ni se convierte en cero, y el error se computa
+solo sobre las posiciones observadas. La consecuencia corresponde declararla: los
+resultados describen el corredor **donde el dato existe**, y esa cobertura no es
+uniforme. Sobre las posiciones que quedan, el evento de la Sección III-C no es
+raro: afecta entre el 17 % y el 30 % de ellas según corredor y horizonte.
 
-### B. Los métodos comparados
+### B. Métodos comparados
 
-Se comparan cuatro. Una red recurrente con memoria de largo y corto plazo
+Se comparan cuatro métodos. Una red recurrente con memoria de largo y corto plazo
 (**LSTM**), que recibe el vector de headways reciente junto a variables de
 calendario y emite el vector completo para el horizonte pedido. Un conjunto de
-árboles con refuerzo de gradiente (**XGBoost**), que recibe la misma información en
-forma de rezagos y variables de calendario. La **persistencia**, que repite el
+árboles con refuerzo de gradiente (**XGBoost**), que recibe la misma información
+en forma de rezagos y variables de calendario. La **persistencia**, que repite el
 último valor observado y es la línea base obligada de todo pronóstico de series de
-tiempo. Y el **promedio histórico por franja horaria**, que responde con lo que
-suele pasar a esa hora del día.
+tiempo. Y el **promedio histórico por franja horaria**, que responde con el valor
+típico de esa hora del día. En lo que sigue, *aprendiz* designa indistintamente al
+LSTM y al XGBoost, los dos métodos ajustados sobre los datos.
 
-Los dos últimos no son adorno. Repetir el último valor es una vara exigente a
-horizonte corto y se vuelve débil al alargarlo, de modo que por sí sola dejaría al
-LSTM compitiendo contra nadie a diez minutos. El promedio histórico cubre
-justamente ese flanco: como no depende del horizonte, su error es plano, y a diez
-minutos se convierte en el competidor real.
+Las dos últimas líneas base cumplen una función específica. Repetir el último
+valor es una referencia exigente a horizonte corto y se debilita al alargarlo, de
+modo que por sí sola dejaría la comparación sin rival serio a diez minutos. El
+promedio histórico cubre justamente ese flanco: como no depende del horizonte, su
+error es plano, y a diez minutos se convierte en el competidor real.
 
 La configuración completa del LSTM es la siguiente.
 
@@ -315,39 +358,40 @@ La configuración completa del LSTM es la siguiente.
 | Objetivo | el error cuadrático de la Ecuación (5), calculado solo sobre las posiciones donde hay bus |
 
 Las cuatro variables de contexto son de calendario y nada más: en el momento de
-predecir, ninguna depende de lo que va a pasar.
+predecir, ninguna depende de lo que va a ocurrir. Corresponde declarar además una
+asimetría del procedimiento. El XGBoost se seleccionó sobre veinticuatro
+configuraciones por celda; el LSTM heredó una única configuración en dos de los
+tres corredores y eligió entre tres en el restante. **Donde el LSTM pierde contra
+el XGBoost, ese resultado no es atribuible a la clase de modelo**, y el trabajo no
+lo usa como si lo fuera.
 
-Corresponde declarar una asimetría del procedimiento. El XGBoost se seleccionó
-sobre veinticuatro configuraciones por celda; el LSTM heredó una única
-configuración en dos de los tres corredores. **Donde el LSTM pierde contra el
-XGBoost, ese resultado no es atribuible a la clase de modelo**, y el trabajo no lo
-usa como si lo fuera.
+El trabajo probó más métodos de los que compara, y ninguno mejoró al LSTM. Del
+lado estadístico quedaron afuera tres familias: la media del período de
+entrenamiento, una media móvil causal en ventanas de cinco, diez y quince minutos,
+y un suavizado exponencial simple con factor 0,3. El LSTM le gana a las tres en
+las doce combinaciones de corredor y horizonte.
 
-El trabajo probó más métodos de los que compara, y ninguno mejoró al LSTM. Del lado
-estadístico quedaron afuera la media del período de entrenamiento, una media móvil
-causal en ventanas de cinco, diez y quince minutos, y un suavizado exponencial
-simple con factor 0,3: el LSTM le gana a las tres en las doce combinaciones de
-corredor y horizonte.
+Del lado del aprendizaje profundo se probaron dos arquitecturas que modelan de
+forma explícita la relación entre buses vecinos: una convolución a lo largo del
+eje de los buses (**SpatialConvLSTM**) y atención entre las posiciones del vector
+(**SpatialTransformer**). Ninguna de las dos supera al LSTM plano en ninguna
+celda. Las comparaciones son veinticuatro: dos arquitecturas, tres corredores y
+cuatro horizontes. En las cinco celdas donde una variante espacial queda
+nominalmente por debajo del LSTM, el margen es inferior a 0,005 minutos. El
+semiancho del intervalo por semilla llega a 0,009 minutos sobre cinco semillas, de
+modo que esos cinco márgenes no se distinguen del ruido de inicialización. El
+vecino inmediato en el vector no aporta información que la red plana no tenga ya.
 
-Del lado del aprendizaje profundo se probaron dos arquitecturas que modelan
-explícitamente la relación entre buses vecinos: una convolución a lo largo del eje
-de los buses (**SpatialConvLSTM**) y atención entre las posiciones del vector
-(**SpatialTransformer**). Ninguna de las dos supera al LSTM plano en ninguna celda.
-Sobre las veinticuatro comparaciones —dos arquitecturas, tres corredores, cuatro
-horizontes— **no hay una sola victoria espacial**, y las cuatro celdas donde la
-convolución sale nominalmente mejor lo hacen por menos de 0,005 minutos, frente a
-un ruido de semilla de ±0,009 medido sobre cinco semillas. El vecino inmediato en
-el vector no aporta información que la red plana no tenga ya.
-
-### C. Cómo se evalúa
+### C. Protocolo de evaluación
 
 La partición es **por fecha y nunca al azar**, porque un operador solo dispone del
-pasado: 107 días de entrenamiento, 23 de validación y 22 de prueba. Para comprobar
-que el resultado no depende del mes elegido, todo se repite sobre tres orígenes que
-arrancan el mismo día y alargan el entrenamiento —61, 83 y 107 días—, con períodos
-de prueba que no se solapan entre sí. Como los entrenamientos están anidados, esto
-establece estabilidad frente a la elección del período de prueba, y no réplica
-independiente; se declara así.
+pasado: 107 días de entrenamiento, 23 de validación y 22 de prueba. Para
+comprobar que el resultado no depende del mes elegido, todo se repite sobre tres
+orígenes que arrancan el mismo día y alargan el entrenamiento —61, 83 y 107
+días—, con períodos de prueba que no se solapan entre sí. Como los entrenamientos
+están anidados, esto establece estabilidad frente a la elección del período de
+prueba, y no réplica independiente; se declara así. La Figura 4 muestra el
+esquema.
 
 ![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.es.png)
 
@@ -358,11 +402,11 @@ solapan.
 Cuatro reglas más gobiernan la comparación, y las cuatro existen para cerrar un
 camino por el que un número podría entrar sin merecerlo.
 
-**Continuidad estricta.** Una muestra solo es válida si los minutos que la componen
-son consecutivos de verdad. Sin esa exigencia, una ventana puede saltar un hueco de
-señal y un «horizonte de diez minutos» aterrizar horas después. Cumplirla cuesta
-datos —sobrevive entre el 81 % y el 91 % de las fotos— y ese es el precio de que el
-horizonte signifique lo que dice.
+**Continuidad estricta.** Una muestra solo es válida si los minutos que la
+componen son consecutivos de verdad. Sin esa exigencia, una ventana puede saltar
+un hueco de señal y un «horizonte de diez minutos» aterrizar horas después.
+Cumplirla cuesta datos —sobrevive entre el 81,9 % y el 90,2 % de las
+instantáneas— y ese es el precio de que el horizonte signifique lo que dice.
 
 **Población compartida.** Los métodos se puntúan sobre exactamente las mismas
 filas. No se declara: se verifica. El trabajo de entrenamiento recalcula la lista
@@ -370,10 +414,10 @@ de muestras, compara su huella criptográfica contra la registrada y **aborta an
 de tocar la GPU** si no coincide. Cuando dos métodos se puntúan sobre conjuntos de
 filas distintos, la comparación no queda sesgada sino indefinida.
 
-**Tope al 1 % más alto.** El umbral se calcula **solo sobre el entrenamiento** y se
-aplica a las tres particiones por igual. Calcularlo sobre cada partición dejaría
-entrar información del período de prueba. Afecta entre el 0,78 % y el 1,11 % de los
-objetivos.
+**Tope al 1 % más alto.** El umbral se calcula **solo sobre el entrenamiento** y
+se aplica a las tres particiones por igual. Calcularlo sobre cada partición
+dejaría entrar información del período de prueba. Afecta entre el 0,78 % y el
+1,11 % de los objetivos.
 
 **Varianza agrupada por día de servicio.** Dos minutos del mismo día no son
 observaciones independientes. Agrupar por día lleva el tamaño efectivo de muestra
@@ -381,142 +425,138 @@ de decenas de miles de filas a 22 días, que es la cifra honesta. Tres veredicto
 que parecían significativos no sobreviven a ese cambio, y se reportan como no
 significativos.
 
-
 ---
 
 ## V. Resultados y discusión
 
-### A. El resultado escalar y su frontera
+### A. Error escalar y su frontera de régimen
 
-A diez minutos de anticipación, el modelo aprendido predice el headway entre
-buses mejor que repetir el último valor observado. El error absoluto medio baja
-1,47 minutos en E2, 1,38 en E4 y 1,17 en E59: entre 21 % y 22 % en los tres
-corredores. A un minuto la relación se invierte y repetir el último valor gana,
-por 0,46 minutos en E4 y 0,33 en E59; en E2 la diferencia es de 0,07 minutos y no
-resiste la prueba estadística una vez que se agrupan las observaciones por día de
-servicio.
+A diez minutos de anticipación, el modelo aprendido predice el headway entre buses
+mejor que la persistencia. El error absoluto medio baja 1,47 minutos en E2, 1,38
+en E4 y 1,17 en E59: entre 21 % y 22 % en los tres corredores. A un minuto la
+relación se invierte y la persistencia gana, por 0,46 minutos en E4 y 0,33 en E59;
+en E2 la diferencia es de 0,07 minutos y no resiste la prueba estadística una vez
+que se agrupan las observaciones por día de servicio.
 
 Tres precisiones acotan ese resultado. La primera es que el cruce no es una
 propiedad del aprendizaje profundo: el modelo de árboles lo reproduce entero, y a
-diez minutos aventaja a la repetición por 1,59 minutos en E2, 1,09 en E4 y 0,79
-en E59. La segunda es que la frontera real no es el horizonte sino qué tan movida
-viene la ventana de entrada. Separando cada celda en tercios según la dispersión
-de los headways que el modelo recibe —y fijando los cortes sobre los datos de
-entrenamiento, nunca sobre los de prueba—, la ventaja del aprendiz crece de forma
-ordenada del tercio calmo al volátil en 11 de las 12 celdas. Alargar el horizonte
-no cambia quién gana: mueve la ventaja hacia tercios cada vez más tranquilos.
+diez minutos aventaja a la persistencia por 1,59 minutos en E2, 1,09 en E4 y 0,79
+en E59. La segunda es que la frontera real no es el horizonte sino la dispersión
+de la ventana de entrada. Cada celda se separó en tercios según la dispersión de
+los headways que el modelo recibe, con los cortes fijados sobre los datos de
+entrenamiento y nunca sobre los de prueba. Así medida, la ventaja del aprendiz
+crece de forma ordenada del tercio calmo al volátil en 11 de las 12 celdas.
+Alargar el horizonte no cambia quién gana: mueve la ventaja hacia tercios cada vez
+más tranquilos.
 
 La tercera es que el promedio histórico por franja horaria cumple el papel que la
-Sección IV-B le asignaba. Su error no se mueve con el horizonte —se queda entre 4,7
-y 5,7 minutos en los tres corredores—, así que la ventaja del aprendiz sobre él se
-estrecha a medida que el horizonte crece: en E2 el aprendiz le gana por 0,99
-minutos a un horizonte de un minuto y le pierde por 0,07 a diez. Esa es la única
+Sección IV-B le asignaba. Su error no se mueve con el horizonte: se queda entre
+4,7 y 5,7 minutos en los tres corredores. La ventaja del aprendiz sobre él se
+estrecha entonces a medida que el horizonte crece. En E2 el aprendiz le gana por
+0,99 minutos a un horizonte de un minuto y le pierde por 0,07 a diez. Esa es la
+única
 de las doce celdas donde el promedio histórico gana, y es la razón de que a
-horizonte largo el competidor exigente sea él y no la repetición.
+horizonte largo el competidor exigente sea él y no la persistencia. Este eje se
+reporta como contexto y no como contribución, porque el cruce entre persistencia y
+modelo aprendido al alargar el horizonte ya se reporta en pronóstico de tráfico
+[CITA_REQUERIDA].
 
-Este eje se reporta como contexto y no como contribución. El cruce entre
-persistencia y modelo aprendido al alargar el horizonte es conocido en pronóstico
-de tráfico. Lo que sigue es el objeto del trabajo.
+### B. Compresión de la dispersión transversal
 
-### B. El pronóstico sale más parejo que la realidad
+Un corredor de buses puede describirse, en cada instante, por la irregularidad de
+sus headways: la desviación estándar del vector dividida por su promedio. Cero
+significa buses perfectamente espaciados; valores altos significan grupos y
+huecos. Medida sobre lo observado, esa cifra vale 0,79 en E2. Medida sobre lo que
+el modelo predice para el mismo instante y el mismo corredor a diez minutos, vale
+0,16. El pronóstico describe un corredor casi cinco veces más regular que el real.
 
-Un corredor de buses puede describirse, en cada instante, por lo disparejos que
-están sus headways: la desviación de los headways dividida por su promedio.
-Cero significa buses perfectamente espaciados; valores altos significan pelotones
-y huecos.
-
-Medida sobre lo observado, esa cifra vale 0,79 en E2. Medida sobre lo que el
-modelo predice para el mismo instante y el mismo corredor a diez minutos, vale
-0,16. El pronóstico describe un corredor casi cinco veces más ordenado que el
-real.
-
-No es un caso aislado. El sesgo es negativo —el pronóstico siempre más parejo que
-la realidad— en **las 36 celdas** que resultan de cruzar tres corredores, cuatro
-horizontes y tres ventanas de prueba, y se profundiza de forma estrictamente
+No es un caso aislado. El sesgo, definido como la dispersión predicha menos la
+observada, es negativo —el pronóstico siempre más regular que la realidad— en
+**las 36 celdas** que resultan de cruzar tres corredores, cuatro horizontes y tres
+ventanas de prueba. Y se profundiza de forma estrictamente
 ordenada a medida que se alarga el horizonte: en E2 pasa de −0,42 a un minuto a
-−0,63 a diez, sin una sola excepción en las seis series de corredor y modelo.
+−0,63 a diez. No hay una sola excepción en las seis series de corredor y modelo.
 
 Dos comparaciones acotan de qué depende el efecto. La primera identifica la causa
-por descarte: repetir el último valor observado no aplana nada. Su sesgo se queda
-dentro de ±0,02 en las 36 celdas, porque propaga el vector observado y hereda su
-dispersión tal cual. Es el control del experimento, y sitúa el efecto en el acto
-de **emitir un número por celda**, no en los datos ni en el corredor. La segunda
-descarta la arquitectura: el modelo de árboles aplana igual que la red en E2
-—las dos curvas se superponen— y **más** que ella en los otros dos corredores, con
-un sesgo de −0,46 contra −0,35 en E59 a diez minutos. Un fenómeno que aparece
+por descarte: la persistencia no comprime nada. Su sesgo se mantiene dentro de
+±0,022 en las 36 celdas, porque propaga el vector observado y hereda su dispersión
+sin traducción. Es el control del experimento, y sitúa el efecto en el acto de
+**emitir un número por celda**, no en los datos ni en el corredor. La segunda
+descarta la arquitectura: el modelo de árboles comprime igual que la red en E2, y
+las dos curvas se superponen. En los otros dos corredores comprime **más** que
+ella, con un sesgo de −0,46 contra −0,35 en E59 a diez minutos. Un fenómeno que
+aparece
 igual en una red recurrente y en un conjunto de árboles no es una propiedad de
 ninguna de las dos.
 
-La consecuencia práctica se ve mejor traduciendo esas cifras a la escala de
-calidad de servicio que usa el manual del oficio. El mismo corredor, en el mismo
-instante, califica como *servicio de reloj* según el pronóstico y como *casi todos
-los buses apelotonados* según lo observado.
-
-Conviene ser preciso sobre qué es nuevo acá. El teorema que la Sección II-D
-reconoce como previo cubre la variabilidad de una serie a lo largo del tiempo. Lo
-que estas 36 celdas miden es otra cosa: cuán disparejos están los buses **entre sí
-en un mismo instante**. Son por lo tanto un resultado empírico y no un corolario.
+La consecuencia práctica se aprecia al traducir esas cifras a la escala de nivel
+de servicio del TCQSM. El mismo corredor, en el mismo instante, califica como
+nivel A —«service provided like clockwork»— según el pronóstico y como nivel F
+—«most vehicles bunched»— según lo observado. Conviene ser preciso sobre qué es
+nuevo. El teorema que la Sección II-D reconoce como previo cubre la variabilidad
+de una serie a lo largo del tiempo. Lo que estas 36 celdas miden es otra cantidad:
+cuán desparejos están los buses **entre sí en un mismo instante**. Son por lo
+tanto un resultado empírico y no un corolario. Las Figuras 5 y 6 muestran el
+efecto y su dependencia del horizonte.
 
 ![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
 
 **Fig. 5.** Dispersión observada frente a dispersión predicha, horizonte de diez
 minutos. La barra de la persistencia iguala a la observada: hereda el vector real
-y sirve de control. Los dos aprendices lo aplanan.
+y sirve de control. Los dos aprendices la comprimen.
 
 ![Sesgo de dispersión contra horizonte](figuras/compresion-vs-horizonte.es.png)
 
 **Fig. 6.** El mismo sesgo contra el horizonte. La persistencia no se despega de
-cero; los dos aprendices se hunden de forma monótona. La compresión escala con la
+cero; los dos aprendices descienden de forma monótona. La compresión escala con la
 distancia que se pide anticipar.
 
-### C. La alarma no suena
+### C. Colapso de la detección al trasladar el umbral
 
-La regla de la Sección III-C, aplicada a lo observado, marca 15 245 eventos en E2 a
-diez minutos. Aplicada al pronóstico del modelo aprendido, con el mismo corte, se
-dispara **catorce veces**.
-
-Repetir el último valor observado dispara 15 083 veces. Puntuada con la medida
-habitual de detección, la repetición aparece 253 veces mejor que el modelo. En las
-otras celdas el factor va de 1,5 a 36. En los tres casos donde el modelo de árboles
-se evalúa así, su puntaje es exactamente cero: no dispara nunca.
+La regla de la Sección III-C, aplicada a lo observado, marca 15 245 eventos en E2
+a diez minutos. Aplicada al pronóstico del modelo aprendido, con el mismo corte,
+se dispara **catorce veces**. La persistencia dispara 15 083 veces. Puntuada con
+la medida habitual de detección —F1, la media armónica entre precisión y
+cobertura—, la persistencia aparece 253 veces mejor que el modelo aprendido. En
+las otras celdas el factor va de 1,5 a 36. El modelo de árboles obtiene un F1
+exactamente cero en tres de las doce celdas: ahí no dispara nunca. La Tabla 1
+recoge las doce celdas.
 
 Leído sin más contexto, ese resultado dice que el aprendiz es incapaz de ver el
 fenómeno que se le pidió anticipar. Hay tres motivos para desconfiar de esa
-lectura.
+lectura. El primero es que el ganador declarado tampoco detecta bien. Una regla
+sin ningún contenido —marcar todas las celdas como bunching— supera a la
+persistencia en 5 de las 12 celdas, y en 15 de las 36 al considerar las tres
+ventanas. Un procedimiento de evaluación en el que una regla vacía vence al
+ganador declarado no ordena modelos.
 
-El primero es que el ganador declarado tampoco es bueno. Una regla sin ningún
-contenido —marcar todas las celdas como bunching— supera a la repetición en
-5 de las 12 celdas, y en 15 de las 36 al considerar las tres ventanas. Un
-procedimiento de evaluación en el que una regla vacía vence al ganador no está
-ordenando modelos.
+El segundo es el mecanismo de la Sección V-B. El corte se mide contra el promedio
+del propio vector evaluado. Si el pronóstico es más regular que la realidad, sus
+headways se apartan menos de su propio promedio, y el corte deja de alcanzarse
+casi siempre. Lo que la regla registra no es que el modelo no vea el evento: es
+que el modelo no produce la dispersión necesaria para cruzar un umbral calibrado
+sobre otra distribución.
 
-El segundo es el mecanismo de la sección anterior. El corte se mide contra el
-promedio del propio vector evaluado. Si el pronóstico es más parejo que la realidad,
-sus headways se apartan menos de su propio promedio, y el corte deja de alcanzarse
-casi siempre. Lo que la regla registra no es que el modelo no vea el evento: es que
-el modelo no produce la dispersión necesaria para cruzar un umbral calibrado sobre
-otra distribución.
-
-El tercero es que, en esas pocas ocasiones en que sí dispara, el modelo acierta.
-De los catorce disparos de E2, diez corresponden a eventos de bunching reales: 71 %
+El tercero es que, en las pocas ocasiones en que dispara, el modelo acierta. De
+los catorce disparos de E2, diez corresponden a eventos de bunching reales: 71 %
 de precisión contra una tasa base de 30 %. La muestra es pequeña y el intervalo de
 confianza va aproximadamente de 42 % a 92 %, de modo que la cifra señala un
 régimen y no un valor. Las celdas con más disparos lo confirman con menos
 incertidumbre: en E59 a diez minutos, 776 aciertos en 1 572 disparos contra una
-tasa base de 21 %; en E4, 75 en 150 contra 18 %. El modelo no se equivoca: está
-callado. Su cobertura colapsa; su precisión, no. Una medida que castiga por igual
-al que calla y al que se equivoca no distingue esos dos casos.
+tasa base de 21 %; en E4, 75 en 150 contra 18 %. La cobertura del modelo colapsa;
+su precisión, no. Una medida que castiga por igual al que no marca y al que marca
+mal no distingue esos dos casos.
 
 ![Tasa de disparo contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 7.** Fracción de celdas que cada método marca como bunching, contra
-la tasa real del evento (punteada). La persistencia propaga el vector observado,
-hereda su dispersión y el corte cae donde fue diseñado: marca casi tan seguido
-como el evento ocurre. El pronóstico puntual emite un vector comprimido, y el
-mismo corte relativo le queda en la cola.
+**Fig. 7.** Fracción de celdas que cada método marca como bunching, contra la tasa
+real del evento (punteada). La persistencia propaga el vector observado, hereda su
+dispersión y el corte cae donde fue diseñado: marca casi tan seguido como el
+evento ocurre. El pronóstico puntual emite un vector comprimido, y el mismo corte
+relativo le queda en la cola.
 
-**Tabla 1.** Detección con el corte trasplantado, con el piso del detector trivial
-al lado.
+**Tabla 1.** Detección con el corte del evento observado aplicado sin cambios al
+pronóstico, con el piso del detector trivial al lado.
 
 | Corredor | h | Tasa base | Piso trivial | F1 persistencia | F1 aprendiz | Factor |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -535,15 +575,14 @@ al lado.
 
 † La regla vacía —marcar todas las celdas— supera al ganador declarado en estas celdas.
 
-### D. Ese factor no mide al modelo
+### D. Inestabilidad del factor de degradación entre ventanas
 
-Si el factor de 253 de la sección anterior midiera una capacidad del modelo,
-debería ser aproximadamente estable al cambiar la ventana de prueba. No lo es.
-
-En la misma celda —E2, diez minutos, el mismo modelo, la misma regla— el factor
-vale **2 299** en la primera ventana, **817** en la segunda y **253** en la tercera.
-En E2 a cinco minutos va de 126 a 58 a 36. La magnitud del supuesto fracaso cambia
-un orden de magnitud según en qué mes se lo mida.
+Si el factor de 253 de la Sección V-C midiera una capacidad del modelo, debería
+ser aproximadamente estable al cambiar la ventana de prueba. No lo es. En la misma
+celda —E2, diez minutos, el mismo modelo, la misma regla— el factor vale **2 299**
+en la primera ventana, **817** en la segunda y **253** en la tercera. En E2 a cinco
+minutos va de 126 a 58 a 36. La magnitud del supuesto fracaso cambia un orden de
+magnitud según en qué mes se lo mida.
 
 Ninguna propiedad de un modelo se comporta así. Un número que se mueve un orden de
 magnitud entre ventanas contiguas está midiendo la interacción entre el corte y la
@@ -552,42 +591,42 @@ observación central del trabajo, y no depende de qué modelo se use ni de qué 
 depende de que el corte se haya trasladado entre dos distribuciones con dispersión
 distinta.
 
-### E. La reparación: mover la regla, no el modelo
+### E. Recalibración del punto de operación
 
-Si el problema es el punto de operación, entonces debería bastar con recalibrarlo.
-
-El corte se ajusta sobre una ventana temporal y se aplica a la siguiente, sin mirar
-nunca los datos con los que se lo puntúa y sin tocar el modelo. Se fija maximizando
-la correlación de Matthews. La alternativa habitual —maximizar la
-medida de detección usual— tiene un modo de falla que la descarta: sobre la
-repetición en E2, de tres minutos en adelante, el corte que la optimiza dispara
-entre el 99,9 % y el 100 % de las veces. Es decir, reencuentra la regla vacía.
+Si el problema es el punto de operación, recalibrarlo debería bastar. El corte se
+ajusta sobre una ventana temporal y se aplica a la siguiente, sin mirar nunca los
+datos con los que se lo puntúa y sin tocar el modelo. Se fija maximizando la
+correlación de Matthews (MCC). La alternativa habitual, maximizar el F1, tiene un
+modo de falla que la descarta. Sobre la persistencia en E2, de tres minutos en
+adelante, el corte que optimiza el F1 dispara entre el 99,9 % y el 100 % de las
+veces. Es decir, reencuentra la regla vacía.
 
 Con el corte recalibrado, el veredicto se invierte. Puntuado sin umbral, mediante
-el área bajo la curva, **el modelo aprendido gana en las nueve combinaciones de
-corredor y ventana a diez minutos**, y en 6 de 12 celdas en la ventana principal.
-La repetición conserva la ventaja en el horizonte de un minuto, donde también
-ganaba el error escalar.
+el área bajo la curva ROC (AUC), **el modelo aprendido gana en las nueve
+combinaciones de corredor y ventana a diez minutos**, y en 6 de 12 celdas en la
+ventana principal. La persistencia conserva la ventaja en el horizonte de un
+minuto, donde también ganaba el error escalar. La Tabla 2 reúne los dos
+instrumentos.
 
 Esa coincidencia es el resultado, y merece decirse aparte. Puestos en el mismo
 eje, el cruce del error escalar y el cruce de la detección van en el mismo sentido
 y ocurren en la misma zona de horizontes. Las dos métricas —una continua, la otra
-categórica— coinciden en quién gana y desde dónde. La disociación que las Secciones
-V-A y V-C parecían mostrar —el aprendiz ganando en error y perdiendo en detección—
-no existía. La fabricaba el umbral.
+categórica— coinciden en quién gana y desde dónde. La disociación que las
+Secciones V-A y V-C parecían mostrar, con el aprendiz ganando en error y perdiendo
+en detección, no existía: la producía el umbral.
 
-Frente a una falla de detección, el campo cambia de modelo: otra arquitectura,
-más capas, más datos. Acá no hizo falta ninguna de esas cosas. Las predicciones
-que puntúa la Fig. 8 son, una por una, las mismas que puntúa la Fig. 7.
-No se reentrenó, no se agregó información y no se tocó una línea del modelo. Se
-movió un número —dónde se traza la raya entre alarma y silencio— y el ganador
-cambió de bando.
+Frente a una falla de detección, la respuesta habitual del campo es cambiar de
+modelo: otra arquitectura, más capas, más datos. Ninguna de esas cosas hizo falta.
+Las predicciones que puntúa la Figura 8 son, una por una, las mismas que puntúa la
+Figura 7. No se reentrenó, no se agregó información y no se modificó el modelo. Se
+movió un solo número —dónde se traza el límite entre alarma y silencio— y el
+ganador cambió de lado.
 
 De ahí salen las dos consecuencias del trabajo. Para quien evalúa: como ninguna
 otra cosa varió, ninguna otra cosa puede explicar la inversión, y el corte queda
 identificado como la variable que producía el veredicto. Para quien opera:
-reparar esto no cuesta una GPU ni un rediseño. Cuesta recalibrar un umbral con
-datos que ya se tienen.
+reparar esto no cuesta una GPU ni un rediseño, sino recalibrar un umbral con datos
+que ya se tienen.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
@@ -614,25 +653,24 @@ misma zona, y ninguna serie se acerca al azar.
 | E59 | 5 | **0,665** | 0,648 | 0,205 | **0,249** | aprendiz |
 | E59 | 10 | **0,632** | 0,571 | **0,161** | 0,119 | aprendiz |
 
-### F. Robustez, incluido el ataque más duro encontrado
+### F. Robustez frente a la ventana y a la definición del evento
 
 El hallazgo no depende del mes: las tres ventanas temporales coinciden en el
 veredicto sin umbral en 11 de 12 celdas, y a diez minutos coinciden en las nueve.
+Tampoco depende de la definición del evento adoptada aquí, y la objeción conviene
+enfrentarla de frente. El corte relativo a la media del propio vector es una
+elección de este trabajo. Un corte absoluto en minutos, como el que usa la mayor
+parte de la literatura, podría disolver el efecto. Se probó. **No se atenúa:
+empeora.** Bajo la convención dominante del campo, la fracción de eventos que el
+modelo efectivamente marca es unas 115 veces menor que bajo la regla relativa. La
+elección adoptada resultó ser la conservadora.
 
-Tampoco depende de la definición del evento adoptada acá, y conviene enfrentar la
-objeción de frente: el corte relativo —media del propio vector— es una elección de
-este trabajo, y un corte absoluto en minutos, como el que usa la mayor parte de la
-literatura, podría disolver el efecto. Se probó. **No se atenúa: empeora.** Bajo la
-convención dominante del campo, la fracción de eventos que el modelo efectivamente
-marca es unas 115 veces menor que bajo la regla relativa. La elección adoptada
-resultó ser la conservadora.
-
-Ese mismo ensayo impone un límite que corresponde declarar. Bajo esa convención más
-exigente, la capacidad de discriminación del modelo cae: la mediana del área bajo la
-curva baja a 0,60, y en E2 a diez minutos llega a 0,49, indistinguible del azar. La
-afirmación *el aprendiz no es ciego* se sostiene para el evento definido en términos
-relativos y falla para el evento absoluto en esa celda. El alcance se enuncia
-completo o no se enuncia.
+Ese mismo ensayo impone un límite que corresponde declarar. Bajo esa convención
+más exigente, la capacidad de discriminación del modelo cae: la mediana del área
+bajo la curva baja a 0,60, y en E2 a diez minutos llega a 0,49, indistinguible del
+azar. La afirmación de que el aprendiz no es ciego se sostiene para el evento
+definido en términos relativos y falla para el evento absoluto en esa celda. La
+Tabla 3 recoge las tres ventanas y el ensayo con el umbral absoluto.
 
 **Tabla 3.** Robustez: las tres ventanas temporales y el ensayo con el umbral
 absoluto de la convención dominante.
@@ -654,75 +692,74 @@ absoluto de la convención dominante.
 
 ‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y se declara como tal.
 
-### G. Qué significa para quien opera un corredor
+### G. Implicaciones operativas
 
-El resultado operativo no es que el modelo detecte mejor. Es que **el modelo calla
-mucho y acierta cuando habla**, y esas son dos cosas distintas que la métrica
-habitual suma en un solo número.
+El resultado operativo no es que el modelo detecte mejor. Es que **el modelo marca
+poco y acierta cuando marca**, y esas son dos propiedades distintas que la métrica
+habitual suma en un solo número. Con el corte trasladado, el aprendiz marca 14 de
+las 50 353 celdas de E2 a diez minutos y acierta el 71 % de las veces que marca,
+contra una tasa base del 30 %. En E59 marca más y acierta la mitad, contra un
+21 % de base. En los tres corredores la señal, cuando aparece, es entre dos y tres
+veces más informativa que el azar.
 
-Con el corte trasladado, el aprendiz marca el 0,1 % de las celdas en E2 a diez
-minutos y acierta el 71 % de las veces que marca, contra una tasa base del 30 %.
-En E59 marca más y acierta la mitad, contra un 21 % de base. En los tres corredores
-la señal, cuando aparece, es entre dos y tres veces más informativa que el azar.
-
-Eso no es una alarma y no conviene venderlo como tal. Una alarma tiene que sonar
-cuando ocurre el evento, y ésta se queda callada la mayoría de las veces. Lo que sí
-es, es un **filtro de prioridad**: un despachador que vigila tres corredores no
-puede mirar todo a la vez, y un aviso que acierta la mitad de las veces que habla
-merece que se lo mire, siempre que se acepte de antemano que no va a hablar en la
-mayoría de los casos.
-
-Y hay una consecuencia inmediata para cualquiera que hoy esté evaluando un
-pronóstico de este tipo: **el punto de operación se recalibra contra la
-distribución del propio pronóstico, no se hereda de las observaciones.** Es una
-línea de código y no requiere reentrenar nada.
+Eso no es una alarma y no conviene presentarlo como tal. Una alarma tiene que
+sonar cuando ocurre el evento, y ésta se queda callada la mayoría de las veces. Lo
+que sí constituye es un **filtro de prioridad**: un aviso poco frecuente pero más
+informativo que el azar, útil para ordenar la atención de un despachador que
+vigila tres corredores y no puede mirar todo a la vez. Y hay una consecuencia
+inmediata para cualquiera que hoy esté evaluando un pronóstico de este tipo: **el
+punto de operación se recalibra contra la distribución del propio pronóstico, no
+se hereda de las observaciones.** Requiere recalcular un escalar y no reentrenar
+nada.
 
 ---
 
 ## VI. Amenazas a la validez
 
-El alcance de cada afirmación se enuncia completo.
+Esta sección enuncia el alcance de cada afirmación y los puntos donde no se
+sostiene.
 
 **El hallazgo del umbral vale para el evento relativo.** Bajo un corte absoluto en
 minutos —la convención dominante— el efecto se agrava, pero la capacidad de
 discriminación del aprendiz cae, y en E2 a diez minutos llega a 0,49: azar. Ahí la
-afirmación *el aprendiz no es ciego* no se sostiene.
+afirmación de que el aprendiz no es ciego no se sostiene.
 
 **Las dos formas de puntuar la detección coinciden en once de doce celdas.** La
 excepción es E59 a cinco minutos, donde el aprendiz gana el área bajo la curva y
 pierde la correlación recalibrada. Ordenar bien y operar bien en un punto fijo son
 capacidades distintas, y esa celda las separa.
 
-**El eje escalar tiene un competidor que le gana en una celda.** Frente al promedio
-histórico por franja horaria, el aprendiz gana en once de doce; pierde en E2 a diez
-minutos por 0,07 minutos. Es cuatro segundos y está en el eje que este trabajo
-reporta como contexto, pero el número existe y se declara.
+**El eje escalar tiene un competidor que le gana en una celda.** Frente al
+promedio histórico por franja horaria, el aprendiz gana en once de doce; pierde en
+E2 a diez minutos por 0,07 minutos. Es cuatro segundos y está en el eje que este
+trabajo reporta como contexto, pero el número existe y se declara.
 
 **La comparación entre los dos aprendices no está nivelada.** Como se dijo en la
-Sección IV, el conjunto de árboles recibió veinticuatro configuraciones por celda
-y la red una sola en dos corredores. Donde la red pierde, la causa no es
+Sección IV-B, el conjunto de árboles recibió veinticuatro configuraciones por
+celda y la red una sola en dos corredores. Donde la red pierde, la causa no es
 atribuible a la clase de modelo.
 
-**El umbral del evento no está calibrado contra incidentes registrados.** Se eligió
-por analogía con la convención del campo, no contra un registro operativo de
-eventos de bunching. Validarlo así exige un dato que estos corredores no producen.
+**El umbral del evento no está calibrado contra incidentes registrados.** Se
+eligió por analogía con la convención del campo, no contra un registro operativo
+de eventos de bunching. Validarlo así exige un dato que estos corredores no
+producen.
 
 **La dispersión se mide sobre vectores cortos.** Un corredor queda descrito por
-entre 3,2 y 6,3 headways por minuto según el corredor, así que la dispersión
-transversal es un estadístico de pocas observaciones, y el corte del evento se
-compara contra un promedio que incluye al propio elemento evaluado. El efecto es el
-mismo en los tres corredores y en las tres ventanas, lo que hace poco probable que
-lo produzca la longitud del vector; pero la precisión de cada cifra individual es
-menor en E4 y E2, donde el vector es más corto, que en E59.
+entre 3,8 y 5,9 headways por minuto, así que la dispersión transversal es un
+estadístico de pocas observaciones. El corte del evento se compara además contra
+un promedio que incluye al propio elemento evaluado. El efecto es el mismo en los
+tres corredores y en las tres ventanas, lo que hace poco probable que lo produzca
+la longitud del vector; pero la precisión de cada cifra individual es menor en E4
+y E2, donde el vector es más corto, que en E59.
 
 **La evidencia es de tres corredores de una ciudad y cinco meses**, y el período de
 prueba contiene los días de Carnaval, cuya composición no se caracterizó. Los tres
 orígenes comparten día de inicio, de modo que establecen estabilidad frente a la
 elección del período de prueba y no réplica independiente.
 
-**Y lo que este trabajo no afirma:** que estos modelos estén listos para operar una
-alarma de bunching. Un área bajo la curva de 0,60 es información real y está
-muy lejos de un sistema de despacho. Ninguna función de costo liga aquí un error de
+**Lo que este trabajo no afirma** es que estos modelos estén listos para operar una
+alarma de bunching. Un área bajo la curva de 0,60 es información real y está muy
+lejos de un sistema de despacho. Ninguna función de costo liga aquí un error de
 1,47 minutos, ni un área de 0,60, a una decisión de intervención concreta. Cerrar
 esa distancia es trabajo por hacer, no resultado logrado.
 
