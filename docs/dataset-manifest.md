@@ -112,6 +112,13 @@ Todos los artefactos derivados producidos por Fase 2 viven como outputs del Kagg
 > Recordatorio de lectura: la columna cuenta **filas válidas** (`delta_t_min` no
 > nulo), no filas totales — los totales son 1,590,659 (E2), 2,684,878 (E59) y
 > 1,326,201 (E4).
+>
+> **Cobertura (agregado 2026-08-28).** Estos conteos dejaron de vivir solo aquí.
+> `src/build_headway_coverage.py` los mide desde los parquets y emite
+> `docs/resultados/csv-multihorizon/headway_coverage.csv`, con el desglose por
+> `(corredor, sentido)` que esta tabla nunca registró para E4. Los valores
+> medidos reproducen exactamente los de arriba. La Sección IV-A del paper cita
+> ese CSV, no este documento.
 
 ### Outputs del kernel — Fase 2 sidecar: diagnostics de NULL
 

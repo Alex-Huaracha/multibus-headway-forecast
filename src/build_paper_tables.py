@@ -14,9 +14,15 @@ figure it sits next to, and no number in the paper is ever typed by hand.
     tabla-3-robustez.md                       Does it survive the month, and does
                                               it survive the field's own event
                                               rule instead of ours.
+    tabla-4-cobertura-headway.md              How much of the corpus the headway
+                                              construction answered, per
+                                              corridor.
 
-The output is pasted into ``docs/paper/paper.md``. Re-run this and re-paste when
-an upstream CSV changes; do not edit a number in the manuscript directly.
+Tables 1 to 3 are pasted into ``docs/paper/paper.md`` as numbered tables. Table 4
+is not: Section IV-A quotes its three percentages in prose, and the file exists
+so those figures have a regenerable source instead of living only in the
+manuscript. Re-run this and re-paste when an upstream CSV changes; do not edit a
+number in the manuscript directly.
 
 Usage
 -----
@@ -32,6 +38,8 @@ os.environ.setdefault("POLARS_MAX_THREADS", "1")
 from pathlib import Path  # noqa: E402
 
 import polars as pl  # noqa: E402
+
+from src.build_headway_coverage import aggregate_coverage  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CSV_DIR = REPO_ROOT / "docs" / "resultados" / "csv-multihorizon"
@@ -76,6 +84,11 @@ def _factor(ratio: float | None) -> str:
     if ratio < 10:
         return _num(ratio, 1) + "×"
     return f"{ratio:.0f}×"
+
+
+def _int(value: int) -> str:
+    """Thousands grouped the Spanish way, with a space that cannot wrap."""
+    return f"{int(value):,}".replace(",", "&nbsp;")
 
 
 def _render(headers: list[str], rows: list[list[str]], *, aligns: str) -> str:
@@ -222,10 +235,37 @@ def tabla_3() -> str:
     return table + note
 
 
+def tabla_4() -> str:
+    """How much of the corpus the headway construction actually answered.
+
+    Section IV-A quotes the percentages; the counts are here so the reader can
+    see the denominator. Both directions are summed because the paper compares
+    corridors, not directions — the directional split stays in the CSV.
+    """
+    counts = _load("headway_coverage.csv")
+    aggregate = aggregate_coverage(counts)
+
+    rows = [
+        [
+            row["corridor"],
+            _int(row["valid_pairs"]),
+            _int(row["total_pairs"]),
+            _num(row["coverage_pct"], 1) + " %",
+        ]
+        for row in aggregate.to_dicts()
+    ]
+    return _render(
+        ["Corredor", "Pares con headway", "Pares evaluados", "Cobertura"],
+        rows,
+        aligns="lrrr",
+    )
+
+
 TABLES = {
     "tabla-1-deteccion-corte-trasplantado.md": tabla_1,
     "tabla-2-veredicto-sin-umbral.md": tabla_2,
     "tabla-3-robustez.md": tabla_3,
+    "tabla-4-cobertura-headway.md": tabla_4,
 }
 
 
