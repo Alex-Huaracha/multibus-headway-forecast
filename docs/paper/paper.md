@@ -328,71 +328,44 @@ lo tanto, de bases igual de completas.
 
 ### B. Métodos comparados
 
-Se comparan cuatro métodos, evaluados todos sobre las mismas muestras. Dos ajustan
-parámetros al entrenamiento: una red recurrente con memoria de largo y corto plazo
-(**LSTM**) y un conjunto de árboles con refuerzo de gradiente (**XGBoost**). Los
-otros dos no ajustan ninguno y sirven de **método de referencia**: fijan el error
-que un método de predicción debe bajar para ser útil.
+Se comparan cuatro métodos sobre las mismas muestras, y cada uno cumple un papel
+distinto. El método bajo estudio es una red recurrente con memoria de largo y corto
+plazo (**LSTM**). Un conjunto de árboles con refuerzo de gradiente (**XGBoost**)
+actúa como **control de arquitectura**: si reproduce lo que hace la red, el
+comportamiento observado no proviene del aprendizaje profundo sino del objetivo de
+la Ecuación (5). Los otros dos no ajustan parámetros y fijan el error que un método
+de predicción debe bajar para ser útil. La **persistencia** repite el último vector
+observado, así que su error crece con el horizonte. El **promedio histórico por
+franja horaria** responde con el valor típico de esa hora del día, calculado sobre
+entrenamiento por corredor y sentido; no lee la ventana de entrada, de modo que su
+error no depende del horizonte. La persistencia es entonces la referencia exigente a
+horizonte corto, y el promedio histórico lo es a horizonte largo.
 
-La **persistencia** repite el último vector observado, así que su error crece con
-el horizonte: cuanto más lejos se pregunta, más envejecida está la copia. El
-**promedio histórico por franja horaria** responde con el valor típico de esa hora
-del día, calculado sobre entrenamiento por corredor y sentido. No lee la ventana de
-entrada, de modo que su error no depende del horizonte. La persistencia es entonces
-el rival a batir a horizonte corto, y el promedio histórico lo es a horizonte
-largo. Con los dos dentro, ningún horizonte queda sin rival: un método de
-predicción que solo superara a la persistencia a diez minutos podría estar
-perdiendo contra una tabla de promedios. La Sección V-A compara el desempeño de los cuatro.
+Otros cinco métodos se evaluaron y quedaron fuera del conjunto. Ninguno de los tres
+estadísticos —la media del período de entrenamiento, la media móvil causal en tres
+ventanas y el suavizado exponencial simple de factor 0,3— combina las dos fuentes de
+la Ecuación (4), el historial reciente y el calendario. Todos ocupan un eje que la
+persistencia o el promedio histórico ya cubren. Los otros dos modelan la relación
+entre posiciones vecinas del vector, con una convolución sobre el eje de los buses
+(**SpatialConvLSTM**) y con atención entre posiciones (**SpatialTransformer**). La
+búsqueda de hiperparámetros dejó su componente espacial en el mínimo de la grilla en
+tres de las cuatro combinaciones de arquitectura y corredor. El vecino inmediato no
+aporta información que la red plana no tenga ya. Los cinco descartes se decidieron
+sobre una evaluación preliminar y no se rehicieron sobre las muestras definitivas.
 
-Esos cuatro métodos no se eligieron de una vez. La comparación corrió en dos fases.
-La primera evaluó nueve métodos y descartó cinco: tres estadísticos y dos
-arquitecturas de aprendizaje profundo. Los cuatro que quedaron son los que esta
-sección compara, y la segunda fase los midió bajo los contratos de la Sección
-IV-C. El margen de un método es su error absoluto medio menos el del otro con que
-se compara, mediano sobre las doce celdas que resultan de cruzar tres corredores y
-cuatro horizontes.
-
-Ninguno de los tres estadísticos combina las dos fuentes de la Ecuación (4) —el
-historial reciente y el calendario—, y ahí está su límite. La media del período de
-entrenamiento no usa ninguna de las dos, y el LSTM le gana en las doce celdas por
-una mediana de 0,791 minutos. La media móvil causal en tres ventanas y el suavizado
-exponencial simple de factor 0,3 promedian el historial, lo que descarta el valor
-más fresco, y no leen el calendario. Quedan apretados por los dos métodos de
-referencia: a diez minutos el promedio histórico les gana por 0,597 y 0,658
-minutos, y a un minuto la persistencia le gana a la media móvil por 0,962.
-
-Las otras dos descartadas modelan la relación entre posiciones vecinas del vector,
-con una convolución sobre el eje de los buses (**SpatialConvLSTM**) y con atención
-entre posiciones (**SpatialTransformer**). Sus márgenes contra el LSTM tienen
-medianas de 0,004 y 0,027 minutos. Eso queda por debajo de los 0,44 que el error de
-un mismo modelo podía moverse en esa fase según cuáles filas le tocara puntuar, así
-que el margen no decide. Lo decide que la búsqueda de hiperparámetros, pudiendo
-dimensionar el componente espacial, lo dejó en el mínimo de la grilla en tres de las
-cuatro combinaciones de arquitectura y corredor: el vecino inmediato no aporta
-información que la red plana no tenga ya. Los dos descartes quedaron establecidos
-en la primera fase y no se rehicieron en la segunda.
-
-En la segunda fase, el LSTM se ajusta por corredor y por horizonte, lo que da doce
-ajustes. Los dos sentidos comparten el modelo de su corredor y entran juntos al
-entrenamiento. Lo que se separa por sentido son los estadísticos de
-estandarización, de modo que lo predicho se devuelve a minutos con los del
-sentido que le corresponde. El XGBoost lee los mismos doce valores,
-sobre exactamente las mismas muestras.
-
-| | LSTM | XGBoost |
-| :--- | :--- | :--- |
-| Entrada | vector de headways de los últimos 12 minutos, rellenado hasta una longitud fija —el percentil 99 de la cantidad de pares de buses en entrenamiento— y estandarizado con estadísticos calculados solo sobre entrenamiento | los mismos 12 valores, como rezagos del headway de la posición evaluada, leídos sobre la rejilla de minutos de la Sección III-A: sin relleno hacia adelante y sin desplazamiento por posición de fila |
-| Contexto | seno y coseno de la hora del día y del día de la semana; las cuatro son de calendario, así que en el momento de predecir ninguna depende de lo que va a ocurrir | hora del día, día de la semana, sentido e índice de la posición dentro del vector |
-| Capacidad | 32 unidades ocultas; una capa en E2, dos capas con 20 % de apagado aleatorio de unidades en E59 | hasta 400 rondas de refuerzo, con corte tras 30 sin mejora |
-| Ajuste | Adam con paso 5 × 10⁻⁴, lotes de 128, hasta 50 pasadas por los datos, corte temprano tras 10 sin mejora, semilla fija en 42 | árboles por histograma, semilla fija en 42 |
-| Búsqueda | una configuración heredada en E2 y E59, ganadora de la búsqueda de la primera fase a un minuto de horizonte; tres en E4, elegidas sobre validación | veinticuatro por celda, sorteadas con semilla fija de un espacio de 22 500 combinaciones y elegidas solo con el error de validación |
-| Objetivo | el error cuadrático de la Ecuación (5), calculado solo sobre las posiciones donde hay bus | el error cuadrático sobre el headway de la posición evaluada |
-
-El presupuesto de búsqueda no quedó nivelado entre los dos, y la diferencia corre
-en contra de la red: su configuración se heredó de la primera fase, mientras que la
-del XGBoost se eligió en la segunda. Nivelarlo exigía repetir la
-búsqueda completa de la red, y no se hizo. La Sección VI acota qué afirmaciones
-sobreviven a esa diferencia y cuáles no.
+El LSTM se ajusta por corredor y por horizonte, lo que da doce ajustes. Los dos
+sentidos comparten el modelo de su corredor y entran juntos al entrenamiento. Lo que
+se separa por sentido son los estadísticos de estandarización, de modo que lo
+predicho se devuelve a minutos con los del sentido que le corresponde. El XGBoost lee
+los mismos doce valores sobre las mismas muestras. La red usa 32 unidades ocultas,
+una o dos capas según el corredor y el horizonte, paso 5 × 10⁻⁴, lotes de 128 y
+semilla fija en 42. El XGBoost usa hasta 400 rondas con corte tras 30 y la misma
+semilla. Los presupuestos de búsqueda no son iguales: el XGBoost eligió veinticuatro
+configuraciones por celda sobre las muestras definitivas, mientras que la red heredó
+la suya de la evaluación preliminar en dos de los tres corredores. El control recibió
+entonces más búsqueda que el método bajo estudio, lo que vuelve más exigente que
+ambos coincidan. La Sección VI acota qué afirmaciones no se sostienen con esa
+diferencia.
 
 ### C. Protocolo de evaluación
 
