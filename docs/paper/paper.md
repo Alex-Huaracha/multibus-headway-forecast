@@ -10,12 +10,53 @@ _(pendiente — se escribe al final)_
 
 _(pendiente)_
 
+> **AQUÍ VA ESTA CITA — Sun, Schmöcker y Nakamura (2021).** Diagnosticaron que el
+> paradigma de predecir y umbralizar falla y que el veredicto se revierte al
+> puntuar sin punto de operación. Van en las dos primeras oraciones del
+> planteo del problema, para no escribir «nadie se dio cuenta»
+> (`esqueleto.md:110`). Hoy esa atribución vive en el primer párrafo de la II-D,
+> que se borra cuando esta sección se escriba.
+
 ---
 
 ## II. Trabajos relacionados
 
-_(A–C pendientes: la receta estándar, por qué el umbral se mueve,
-y el precedente de recalibración fuera del transporte.)_
+_(A–C pendientes. Cada una carga las atribuciones que hoy están apiladas en el
+primer párrafo de la II-D: cuando las tres se escriban, ese párrafo se borra y la
+II-D queda solo con la brecha y las tres contribuciones.)_
+
+### A. La receta estándar
+
+_(pendiente — predecir el headway y umbralizarlo contra la referencia.)_
+
+> **AQUÍ VA ESTA CITA — Yu et al. (2016).** La formulación canónica del paradigma
+> que este trabajo examina.
+>
+> **Y AQUÍ VA UNA CITA QUE FALTA — `[CITA_REQUERIDA]`.** El cruce entre la
+> persistencia y un método entrenado al alargar el horizonte, ya reportado en
+> predicción de tráfico. No está en `fuentes-verificadas.md`: hay que encontrarla
+> o retirar la afirmación.
+
+### B. Por qué el umbral se mueve
+
+_(pendiente — la compresión de dispersión y su efecto sobre un corte relativo.)_
+
+> **AQUÍ VAN ESTAS TRES CITAS.**
+>
+> - **Mayer y Yang (2022)** enuncian la sub-dispersión de la predicción puntual.
+> - **Patton y Timmermann (2012)** la demuestran como teorema, y su Corolario 2 da
+>   la monotonía en el horizonte. Es la atribución que la Sección III-B ya nombra
+>   en prosa y que espera su número.
+> - **Petetin et al. (2022)** ataron esa compresión a una métrica categórica y
+>   observaron que empeora con el horizonte.
+
+### C. Recalibrar el corte: precedente fuera del transporte
+
+_(pendiente — recalcular el umbral contra la distribución de cada modelo.)_
+
+> **AQUÍ VA ESTA CITA — Hoffmann, Menz y Spekat (2018).** El procedimiento en
+> reducción de escala climática, ocho años antes. `esqueleto.md:130` la marca como
+> obligatoria.
 
 ### D. Delimitación de lo previo y de la contribución
 
@@ -98,7 +139,7 @@ la posición de todos sus buses en ese momento.
 mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
-\qquad h = T - t_{c} \tag{1}$$
+\qquad h = T - t_{c}, \tag{1}$$
 
 donde $T$ es el instante evaluado, y $s_{L}$ y $s_{F}$ son las coordenadas de arco
 del bus de adelante y del de atrás. El instante $t_{c}$ es el último en que el de
@@ -137,33 +178,37 @@ los últimos $T$ minutos y un contexto de calendario, se busca el vector del
 corredor $H$ minutos más adelante:
 
 $$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\; c(t)\big),
-\qquad T = 12 \tag{2}$$
+\qquad T = 12, \tag{2}$$
 
 donde $\mathbf{h}(t)$ es el vector de headways del corredor en el minuto $t$ y
 $\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante.
-El término $c(t)$ reúne las variables de calendario disponibles en $t$, $f$ es el
+El término $c(t)$ reúne cuatro variables de calendario disponibles en $t$ —el seno
+y el coseno de la hora, y el seno y el coseno del día de la semana—, $f$ es el
 modelo ajustado y $T$ es la cantidad de minutos de historia que recibe.
 
 Se predice a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
 ajustado por separado para cada uno: no hay recursión, cada horizonte se predice
-de forma directa. El vector no tiene longitud fija, porque cuántos headways hay en
-un minuto depende de cuántos buses estén circulando. El modelo emite entonces una
+de forma directa. El vector no tiene longitud fija, porque $N$ varía minuto a
+minuto. El modelo emite entonces una
 salida de longitud fija y el error se computa solo sobre las posiciones donde hay
 bus. **El objetivo que se minimiza es el error cuadrático**, promediado sobre esas
 posiciones válidas:
 
 $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
-\big(\hat{h}_i - h_i\big)^{2} \tag{3}$$
+\big(\hat{h}_i - h_i\big)^{2}, \tag{3}$$
 
-donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en el
-instante objetivo, $|\mathcal{V}|$ es su cardinal, y $\hat{h}_i$ y $h_i$ son el
-valor predicho y el observado en la posición $i$.
+donde $\mathcal{L}$ es la pérdida que el ajuste minimiza, $\mathcal{V}$ es el
+conjunto de posiciones del vector con bus asignado en el instante objetivo,
+$|\mathcal{V}|$ es su cardinal, y $\hat{h}_i$ y $h_i$ son el valor predicho y el
+observado en la posición $i$.
 
 Esa elección gobierna el resto del trabajo. Una predicción que minimiza error
-cuadrático tiende a la media condicional, que es menos dispersa que la realidad.
-La compresión de dispersión que documenta la Sección V-B no es entonces una falla
-del ajuste: es lo que este objetivo pide. El efecto de esa compresión sobre la
-regla del evento es el asunto de la Sección III-C.
+cuadrático tiende a la media condicional, y esa media es menos dispersa que la
+realidad. Patton y Timmermann lo demuestran como teorema
+[AQUÍ VA EL NÚMERO DE CITA DE PATTON Y TIMMERMANN]. La compresión de
+dispersión que documenta la Sección V-B no es entonces una falla del ajuste. El
+efecto de esa compresión sobre la regla del evento es el asunto de la
+Sección III-C.
 
 ### C. Definición del evento de bunching
 
@@ -185,22 +230,26 @@ la Sección III-A, de modo que un mismo instante puede llevar varias posiciones
 afectadas a la vez.
 
 Resta decidir cuándo un headway cuenta como bunching. La convención del campo es
-una fracción del headway programado, normalmente un cuarto, pero en estos
-corredores no hay programación contra la cual comparar. Se sustituye por el
-análogo directo: **un headway cuenta como bunching si cae por debajo de la mitad
-del promedio de su propio vector en ese instante.** El promedio del propio vector
-cumple así la función que cumplía la programación: fijar cuál es la separación
+una fracción del headway programado: un cuarto en las formulaciones más citadas, y
+la mitad en el *Transit Capacity and Quality of Service Manual* (TCQSM)
+[AQUÍ VA EL NÚMERO DEL TCQSM]. Estos corredores no tienen programación contra la
+cual comparar, así que el denominador se sustituye por el promedio del propio
+vector en ese instante. **Un headway cuenta como bunching si cae por debajo de la
+mitad de ese promedio.** La sustitución del denominador es nuestra y no una
+herencia: la fracción de la media observada no aparece como definición de evento
+en la literatura consultada. La fracción sí es heredada, y es la del TCQSM. El
+promedio del vector cumple la función de la programación: fijar la separación
 normal en ese corredor en ese instante. Un corte fijo en minutos no la cumple,
 porque no es comparable entre corredores que operan a frecuencias distintas. La
-elección del valor tampoco es neutral, y conviene declararlo: los umbrales
-publicados van desde veinte segundos hasta el cuarto ya mencionado, y no existe un
-único valor aceptado.
+elección del valor tampoco es neutral: los umbrales publicados van desde veinte
+segundos hasta un cuarto del headway programado
+[AQUÍ VA EL NÚMERO DE REZAZADA], y no existe un único valor aceptado.
 
-En notación, sea $\mathbf{h}(t) = (h_1, \dots, h_m)$ el vector de headways del
-corredor en el instante $t$. Su promedio y el corte del evento son
+El vector de la Sección III-B se escribe por componentes como
+$\mathbf{h}(t) = (h_1, \dots, h_m)$. Su promedio y el corte del evento son
 
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
-\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2} \tag{4}$$
+\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}, \tag{4}$$
 
 donde $m = N - 1$ es la cantidad de posiciones del vector, $N$ es la cantidad de
 buses en circulación y $h_j(t)$ es el headway de la posición $j$. El promedio del
@@ -213,24 +262,21 @@ $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
 
 donde $b_i(t)$ vale 1 si la posición $i$ cuenta como bunching y 0 si no, y
 $\mathbb{1}[\cdot]$ es la función indicadora. La condición $m \ge 3$ descarta los
-vectores más cortos y exige al menos cuatro buses en circulación. Su razón es que
-por debajo de tres posiciones no hay forma que describir: con dos headways hay un
-solo intervalo intermedio, así que cualquier medida de irregularidad se reduce a
-esa única diferencia. Con tres ya hay patrón —uno colapsado, uno estirado, uno
-normal—, y por eso el mínimo se fija ahí y no en dos.
+vectores más cortos y exige al menos cuatro buses en circulación. Por debajo de
+tres posiciones no hay patrón que describir. Con dos headways hay un solo
+intervalo intermedio, así que cualquier medida de irregularidad se reduce a esa
+única diferencia. Con tres ya hay patrón: uno colapsado, uno estirado, uno normal.
 
 El detector que este trabajo evalúa es esa misma regla aplicada al vector predicho
 de la Ecuación (2), con el promedio de ese mismo vector fijando el corte:
 
 $$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
-\,\right] \tag{6}$$
+\,\right], \tag{6}$$
 
 donde $\hat{b}_i(t)$ es la detección emitida sobre la posición $i$ del vector
-predicho y $\bar{\hat{h}}(t)$ es el promedio de ese mismo vector predicho. Que el
-corte salga del vector predicho y no del observado no es un detalle de
-implementación: quien opera un corredor no dispone del observado. Al momento de
-decidir solo cuenta con lo predicho, así que puntuar contra el promedio real
-mediría algo que nadie puede desplegar.
+predicho y $\bar{\hat{h}}(t)$ es el promedio de ese mismo vector predicho. El
+corte sale del vector predicho y no del observado porque quien opera un corredor
+no dispone del observado al momento de decidir.
 
 Como $\tau$ es función del propio vector que se evalúa, y no un número fijo de
 minutos, las Ecuaciones (5) y (6) no comparan contra el mismo corte:
@@ -240,26 +286,24 @@ $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 \qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{7}$$
 
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los cortes que resultan de
-aplicar $\rho$ al vector observado y al vector predicho. Escribir «la mitad del
-promedio» en los dos casos no los vuelve el mismo corte. Las Figuras 2 y 3 lo
+aplicar $\rho$ al vector observado y al vector predicho. Las Figuras 2 y 3 lo
 muestran con el mismo headway de dos minutos.
 
 ![Corredor disparejo](figuras/bunching/with_bunching.png)
 
 **Fig. 2.** Corredor disparejo. El vector es [9,5 · 1,2 · 11,0 · 2,0], su promedio
 5,9 min y el corte 3,0 min. Los headways de 2,0 y 1,2 quedan debajo del corte:
-**los dos son bunching.**
+**los dos son bunching.** Esquema ilustrativo, no datos reales.
 
 ![Corredor parejo](figuras/bunching/without_bunching.png)
 
 **Fig. 3.** Corredor parejo. El vector es [3,5 · 2,0 · 4,0 · 3,0], su promedio
 3,1 min y el corte 1,6 min. El mismo headway de 2,0 min queda ahora encima del
-corte: **no es bunching.**
+corte: **no es bunching.** Esquema ilustrativo, no datos reales.
 
 Dos minutos entre buses es el mismo hecho físico en las dos figuras, y la regla lo
-clasifica al revés. No cambió el corredor ni cambió la medición: cambió el corte,
-porque bajó de 3,0 a 1,6 minutos cuando el vector se volvió más regular. La
-Sección V mide qué ocurre cuando esa diferencia se ignora sobre datos reales.
+clasifica al revés porque el corte se movió con el vector. La Sección V mide qué
+ocurre cuando esa diferencia se ignora sobre datos reales.
 
 ---
 
@@ -381,7 +425,7 @@ El error del vector es el error absoluto medio (MAE), calculado sobre las
 posiciones válidas que define la Ecuación (3):
 
 $$\mathrm{MAE} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
-\big|\hat{h}_i - h_i\big| \tag{8}$$
+\big|\hat{h}_i - h_i\big|, \tag{8}$$
 
 donde $\mathcal{V}$, $|\mathcal{V}|$, $\hat{h}_i$ y $h_i$ conservan el
 significado de la Ecuación (3). Se reporta el MAE y no el error cuadrático porque
