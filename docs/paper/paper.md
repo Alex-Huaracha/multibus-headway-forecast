@@ -290,93 +290,86 @@ Sección V mide qué ocurre cuando esa diferencia se ignora sobre datos reales.
 
 ## IV. Diseño experimental
 
+Esta sección describe los datos, los métodos comparados, el protocolo de
+partición, las métricas y las pruebas estadísticas con los que se evalúa la
+predicción del vector de headways.
+
 ### A. Datos
 
 El trabajo usa los registros de posición de la flota del Sistema Integrado de
 Transporte de Arequipa. Cada unidad emite su coordenada **cada 20 segundos**, y la
 cadencia es regular: la mediana y el percentil 95 del tiempo entre emisiones
-coinciden, de modo que el dato no llega a ráfagas. Esa regularidad es la que
-sostiene la rejilla de sesenta segundos de la Sección III-A, porque cada minuto
-reúne unas tres emisiones por bus.
+coinciden, de modo que el dato no llega a ráfagas. Esa regularidad sostiene la
+rejilla de sesenta segundos de la Sección III-A, porque cada minuto reúne tres
+emisiones por bus.
 
 Se cubren tres corredores —identificados aquí como E2, E4 y E59, uno por empresa
 operadora— durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de
-2024, sin huecos de calendario. Son 90 unidades en total. Importa tanto lo que el
-dato tiene como lo que no: **no hay horario publicado, no hay archivo GTFS y no
-hay tabla de paradas.** Eso obliga a construir todo desde la posición cruda, que
-es trabajo extra, pero también es lo que vuelve el método aplicable. La mayoría de
-las ciudades donde el bunching es un problema cotidiano son exactamente las que no
-tienen ese dato ordenado. Un método que exija GTFS no se puede desplegar donde el
-problema es más frecuente.
+2024, sin huecos de calendario. Son 90 unidades en total. El registro no incluye
+horario publicado, archivo GTFS ni tabla de paradas, de modo que el corredor, el
+sentido y el headway se construyen desde la posición cruda, como describe la
+Sección III-A.
 
-Construir el headway desde la posición cruda no siempre resulta. Un par de buses
-queda sin valor cuando la Ecuación (3) no encuentra el cruce, o cuando el headway
-supera los treinta minutos. Medido sobre todos los pares evaluados, dieron headway
-válido el 63,5 % en E2, el 64,8 % en E4 y el 77,1 % en E59: casi cuatro millones en
-total. El resto quedó **sin dato**. Una posición del vector sin headway válido no 
-se rellena con un valor estimado ni con un cero: se enmascara, y el error se computa 
-solo sobre las posiciones observadas del vector.
+La construcción del headway desde la posición cruda no siempre produce un valor.
+Dos condiciones dejan un par de buses sin headway: que la Ecuación (3) no
+encuentre el cruce, o que el headway supere los treinta minutos. La cobertura —la
+fracción de pares evaluados con headway válido— es del 63,5 % en E2, del 64,8 % en
+E4 y del 77,1 % en E59: 3 938 174 pares en total. Una posición del vector sin
+headway válido se enmascara.
 
-Los huecos que deja ese enmascaramiento no se distribuyen al azar: ninguna de las
-dos condiciones es neutral, y ambas recortan por el extremo alto de la
-distribución. Los descartados son entonces **los intervalos más largos**, de modo 
-que el corredor evaluado excluye parte de su peor servicio. Las cifras de la 
-Sección V describen esa población recortada y no la operación completa. La 
-cobertura tampoco es pareja: entre el corredor mejor y el peor medido hay casi 
-catorce puntos porcentuales. Las comparaciones **entre** corredores no parten, por 
-lo tanto, de bases igual de completas.
+Los huecos que deja ese enmascaramiento no se distribuyen al azar. Ninguna de las
+dos condiciones es neutral: ambas recortan por el extremo alto de la distribución,
+de modo que los descartados son los intervalos más largos. La cobertura tampoco es
+pareja entre corredores: entre el mejor y el peor medido hay 13,6 puntos
+porcentuales.
 
 ### B. Métodos comparados
 
 Se comparan cuatro métodos sobre las mismas muestras, y cada uno cumple un papel
 distinto. El método bajo estudio es una red recurrente con memoria de largo y corto
 plazo (**LSTM**). Un conjunto de árboles con refuerzo de gradiente (**XGBoost**)
-actúa como **control de arquitectura**: si reproduce lo que hace la red, el
-comportamiento observado no proviene del aprendizaje profundo sino del objetivo de
-la Ecuación (5). Los otros dos no ajustan parámetros y fijan el error que un método
-de predicción debe bajar para ser útil. La **persistencia** repite el último vector
-observado, así que su error crece con el horizonte. El **promedio histórico por
-franja horaria** responde con el valor típico de esa hora del día, calculado sobre
-entrenamiento por corredor y sentido; no lee la ventana de entrada, de modo que su
-error no depende del horizonte. La persistencia es entonces la referencia exigente a
-horizonte corto, y el promedio histórico lo es a horizonte largo.
+actúa como **control de arquitectura**: si reproduce el patrón del LSTM, ese patrón
+no proviene del aprendizaje profundo sino del objetivo de la Ecuación (5). Los dos
+restantes no ajustan parámetros y fijan el error de referencia. La **persistencia**
+repite el último vector observado, así que su error crece con el horizonte. El
+**promedio histórico por franja horaria** responde con el valor típico de esa hora
+del día, calculado sobre entrenamiento por corredor y sentido; no lee la ventana de
+entrada, de modo que su error no depende del horizonte.
 
-Otros cinco métodos se evaluaron y quedaron fuera del conjunto. Ninguno de los tres
+Otros cinco métodos se evaluaron y quedaron fuera. Ninguno de los tres
 estadísticos —la media del período de entrenamiento, la media móvil causal en tres
-ventanas y el suavizado exponencial simple de factor 0,3— combina las dos fuentes de
-la Ecuación (4), el historial reciente y el calendario. Todos ocupan un eje que la
-persistencia o el promedio histórico ya cubren. Los otros dos modelan la relación
-entre posiciones vecinas del vector, con una convolución sobre el eje de los buses
-(**SpatialConvLSTM**) y con atención entre posiciones (**SpatialTransformer**). La
-búsqueda de hiperparámetros dejó su componente espacial en el mínimo de la grilla en
-tres de las cuatro combinaciones de arquitectura y corredor. El vecino inmediato no
-aporta información que la red plana no tenga ya. Los cinco descartes se decidieron
-sobre una evaluación preliminar y no se rehicieron sobre las muestras definitivas.
+ventanas y el suavizado exponencial simple de factor 0,3— combina las dos entradas
+de la Ecuación (4), el historial reciente y el calendario. Los tres repiten
+información que la persistencia o el promedio histórico ya aportan. Los otros dos
+modelan la relación entre posiciones vecinas del vector, con una convolución sobre
+el eje de los buses (**SpatialConvLSTM**) y con atención entre posiciones
+(**SpatialTransformer**). Una evaluación preliminar no encontró ganancia en su
+componente espacial. Los cinco descartes se decidieron sobre esa evaluación y no se
+rehicieron sobre las muestras definitivas.
 
-El LSTM se ajusta por corredor y por horizonte, lo que da doce ajustes. Los dos
-sentidos comparten el modelo de su corredor y entran juntos al entrenamiento. Lo que
-se separa por sentido son los estadísticos de estandarización, de modo que lo
-predicho se devuelve a minutos con los del sentido que le corresponde. El XGBoost lee
-los mismos doce valores sobre las mismas muestras. La red usa 32 unidades ocultas,
-una o dos capas según el corredor y el horizonte, paso 5 × 10⁻⁴, lotes de 128 y
-semilla fija en 42. El XGBoost usa hasta 400 rondas con corte tras 30 y la misma
-semilla. Los presupuestos de búsqueda no son iguales: el XGBoost eligió veinticuatro
-configuraciones por celda sobre las muestras definitivas, mientras que la red heredó
-la suya de la evaluación preliminar en dos de los tres corredores. El control recibió
-entonces más búsqueda que el método bajo estudio, lo que vuelve más exigente que
-ambos coincidan. La Sección VI acota qué afirmaciones no se sostienen con esa
-diferencia.
+De los cuatro métodos retenidos, solo el LSTM y el XGBoost ajustan parámetros.
+Ambos se ajustan por corredor y por horizonte, y cada par de corredor y horizonte
+se denomina aquí **celda**: hay doce. Los dos sentidos comparten el modelo de su
+corredor y entran juntos al entrenamiento. Lo que se separa por sentido son los
+estadísticos de estandarización, de modo que lo predicho se devuelve a minutos con
+los del sentido que le corresponde. El LSTM usa 32 unidades ocultas, una o dos
+capas según la celda, paso 5 × 10⁻⁴, lotes de 128 y semilla fija en 42. El XGBoost
+usa hasta 400 rondas con corte tras 30 y la misma semilla. Los presupuestos de
+búsqueda no son iguales: el XGBoost eligió veinticuatro configuraciones por celda
+sobre las muestras definitivas, mientras que el LSTM heredó la suya de la
+evaluación preliminar en dos de los tres corredores. La Sección VI acota qué
+afirmaciones no se sostienen con esa diferencia.
 
 ### C. Protocolo de evaluación
 
 La partición es **por fecha y nunca al azar**, porque un operador solo dispone del
-pasado: 107 días de entrenamiento, 23 de validación y 22 de prueba. Para
-comprobar que el resultado no depende del mes elegido, todo se repite sobre tres
-orígenes que arrancan el mismo día y alargan el entrenamiento —61, 83 y 107
-días—, con períodos de prueba que no se solapan entre sí. Como los entrenamientos
-están anidados, esto establece estabilidad frente a la elección del período de
-prueba, y no réplica independiente; se declara así. La Figura 4 muestra el
-esquema.
+pasado. El período se divide en 107 días de entrenamiento, 23 de validación y 22
+de prueba. Todo el protocolo se repite después sobre tres orígenes de evaluación,
+identificados aquí como ventanas 1, 2 y 3. Los tres arrancan el mismo día y
+alargan el entrenamiento a 61, 83 y 107 días. Sus períodos de prueba no se solapan
+entre sí, y el de la ventana 3 es el que se publica. Como los entrenamientos están
+anidados, esto establece estabilidad frente a la elección del período de prueba y
+no réplica independiente. La Figura 4 muestra el esquema.
 
 ![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.es.png)
 
@@ -384,32 +377,63 @@ esquema.
 arrancan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
 solapan.
 
-Cuatro reglas más gobiernan la comparación. Cada una descarta un mecanismo
-concreto por el cual una ventaja aparente podría no corresponder al modelo que la
-reclama.
+La comparación exige además tres condiciones, cada una sobre una fuente distinta
+de fuga: el tiempo, la población evaluada y los valores extremos.
 
-**Continuidad estricta.** Una muestra solo es válida si los minutos que la
-componen son consecutivos de verdad. Sin esa exigencia, una ventana puede saltar
-un hueco de señal y un «horizonte de diez minutos» aterrizar horas después.
-Cumplirla cuesta datos —sobrevive entre el 81,9 % y el 90,2 % de las
-instantáneas— y ese es el precio de que el horizonte signifique lo que dice.
+- **Continuidad estricta.** Una muestra es válida solo si sus minutos son
+  consecutivos. La regla evita que la ventana atraviese un hueco de señal. Sin
+  ella, el horizonte mediría un intervalo mayor que el declarado. Retiene entre el
+  81,9 % y el 90,2 % de las instantáneas.
+- **Población compartida.** Los cuatro métodos se puntúan sobre exactamente las
+  mismas filas. El trabajo de entrenamiento recalcula la lista de muestras, compara
+  su resumen SHA-256 contra el registrado y aborta antes de usar la GPU si no
+  coincide. La verificación evita comparar métodos puntuados sobre poblaciones
+  distintas.
+- **Tope al percentil 99.** El umbral es el percentil 99 del headway de
+  entrenamiento y se aplica como techo a las tres particiones. Calcularlo por
+  partición dejaría entrar información del período de prueba. Las posiciones sin
+  headway válido siguen enmascaradas. El techo afecta entre el 0,78 % y el 1,11 %
+  de los objetivos.
 
-**Población compartida.** Los métodos se puntúan sobre exactamente las mismas
-filas. No se declara: se verifica. El trabajo de entrenamiento recalcula la lista
-de muestras, compara su huella criptográfica contra la registrada y **aborta antes
-de tocar la GPU** si no coincide. Cuando dos métodos se puntúan sobre conjuntos de
-filas distintos, la comparación no queda sesgada sino indefinida.
+### D. Métricas
 
-**Tope al 1 % más alto.** El umbral se calcula **solo sobre el entrenamiento** y
-se aplica a las tres particiones por igual. Calcularlo sobre cada partición
-dejaría entrar información del período de prueba. Afecta entre el 0,78 % y el
-1,11 % de los objetivos.
+El modelo entrega un vector de headways. La regla de la Sección III-C convierte
+ese vector en un indicador binario de bunching. La evaluación mide por lo tanto
+dos objetos en cadena: primero el vector predicho, y después el indicador que se
+deriva de él.
 
-**Varianza agrupada por día de servicio.** Dos minutos del mismo día no son
-observaciones independientes. Agrupar por día lleva el tamaño efectivo de muestra
-de decenas de miles de filas a 22 días, que es la cifra honesta. Tres veredictos
-que parecían significativos no sobreviven a ese cambio, y se reportan como no
-significativos.
+El error del vector es el error absoluto medio (MAE), calculado sobre las
+posiciones válidas que define la Ecuación (5):
+
+$$\mathrm{MAE} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
+\big|\hat{h}_i - h_i\big| \tag{10}$$
+
+donde $\mathcal{V}$, $|\mathcal{V}|$, $\hat{h}_i$ y $h_i$ conservan el
+significado de la Ecuación (5). Se reporta el MAE y no el error cuadrático porque
+expresa el resultado en minutos de headway.
+
+El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto
+dependen del umbral. El F1 lo fija en un solo punto de operación, y se acompaña
+del F1 de un detector que marca toda posición como evento. El coeficiente de
+correlación de Matthews (MCC) fija el mismo punto, pero vale cero para ese
+detector trivial. El área bajo la curva ROC (AUC) prescinde del umbral y puntúa el
+ordenamiento del pronóstico, de modo que un reescalado monótono del puntaje no lo
+altera.
+
+El umbral no se hereda de lo observado. Se ajusta maximizando el MCC sobre el
+período de prueba de la ventana 2 y se aplica sin cambios al de la ventana 3. Los
+dos períodos son disjuntos y provienen de modelos entrenados por separado, de modo
+que el período publicado no informa su propio umbral.
+
+### E. Pruebas estadísticas
+
+Una diferencia de MAE entre dos métodos puede ser ruido del período de prueba. Se
+contrasta con la prueba de Diebold–Mariano sobre el diferencial de pérdida por
+muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold
+[CITA_REQUERIDA]. La varianza se estima agrupando por día de servicio, porque las
+muestras de un mismo día comparten clima, incidentes y demanda. El agrupamiento
+lleva el tamaño efectivo de muestra de decenas de miles de filas a los 22 días del
+período de prueba.
 
 ---
 
@@ -458,16 +482,16 @@ el modelo predice para el mismo instante y el mismo corredor a diez minutos, val
 
 No es un caso aislado. El sesgo, definido como la dispersión predicha menos la
 observada, es negativo —lo predicho siempre más regular que la realidad— en
-**las 36 celdas** que resultan de cruzar tres corredores, cuatro horizontes y tres
-ventanas de prueba. Y se profundiza de forma estrictamente
+**las doce celdas y las tres ventanas de prueba**. Y se profundiza de forma estrictamente
 ordenada a medida que se alarga el horizonte: en E2 pasa de −0,42 a un minuto a
 −0,63 a diez. No hay una sola excepción en las seis series de corredor y modelo.
 
 Dos comparaciones acotan de qué depende el efecto. La primera identifica la causa
 por descarte: la persistencia no comprime nada. Su sesgo se mantiene dentro de
-±0,022 en las 36 celdas, porque propaga el vector observado y hereda su dispersión
-sin traducción. Es el control del experimento, y sitúa el efecto en el acto de
-**emitir un número por celda**, no en los datos ni en el corredor. La segunda
+±0,022 en las doce celdas y las tres ventanas, porque propaga el vector observado y
+hereda su dispersión sin traducción. Es el control del experimento, y sitúa el
+efecto en el acto de **emitir una predicción puntual**, no en los datos ni en el
+corredor. La segunda
 descarta la arquitectura: el XGBoost comprime igual que la red en E2, y
 las dos curvas se superponen. En los otros dos corredores comprime **más** que
 ella, con un sesgo de −0,46 contra −0,35 en E59 a diez minutos. Un fenómeno que
@@ -480,7 +504,7 @@ de servicio del TCQSM. El mismo corredor, en el mismo instante, califica como
 nivel A —«service provided like clockwork»— según lo predicho y como nivel F
 —«most vehicles bunched»— según lo observado. Conviene ser preciso sobre qué es
 nuevo. El teorema que la Sección II-D reconoce como previo cubre la variabilidad
-de una serie a lo largo del tiempo. Lo que estas 36 celdas miden es otra cantidad:
+de una serie a lo largo del tiempo. Lo que estas medidas capturan es otra cantidad:
 cuán desparejos están los buses **entre sí en un mismo instante**. Son por lo
 tanto un resultado empírico y no un corolario. Las Figuras 5 y 6 muestran el
 efecto y su dependencia del horizonte.
@@ -502,18 +526,17 @@ distancia que se pide anticipar.
 La regla de la Sección III-C, aplicada a lo observado, marca 15 245 eventos en E2
 a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo corte,
 se dispara **catorce veces**. La persistencia dispara 15 083 veces. Puntuada con
-la medida habitual de detección —F1, la media armónica entre precisión y
-cobertura—, la persistencia aparece 253 veces mejor que el LSTM. En
+el F1 de la Sección IV-D, la persistencia aparece 253 veces mejor que el LSTM. En
 las otras celdas el factor va de 1,5 a 36. El XGBoost obtiene un F1
 exactamente cero en tres de las doce celdas: ahí no dispara nunca. La Tabla 1
 recoge las doce celdas.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
 fenómeno que se le pidió anticipar. Hay tres motivos para desconfiar de esa
-lectura. El primero es que el ganador declarado tampoco detecta bien. Una regla
-sin ningún contenido —marcar todas las celdas como bunching— supera a la
-persistencia en 5 de las 12 celdas, y en 15 de las 36 al considerar las tres
-ventanas. Un procedimiento de evaluación en el que una regla vacía vence al
+lectura. El primero es que el ganador declarado tampoco detecta bien. El detector
+trivial de la Sección IV-D supera a la
+persistencia en 5 de las doce celdas, y en 15 de las 36 combinaciones de celda y
+ventana. Un procedimiento de evaluación en el que una regla vacía vence al
 ganador declarado no ordena modelos.
 
 El segundo es el mecanismo de la Sección V-B. El corte se mide contra el promedio
@@ -535,7 +558,7 @@ mal no distingue esos dos casos.
 
 ![Tasa de disparo contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 7.** Fracción de celdas que cada método marca como bunching, contra la tasa
+**Fig. 7.** Fracción de posiciones que cada método marca como bunching, contra la tasa
 real del evento (punteada). La persistencia propaga el vector observado, hereda su
 dispersión y el corte cae donde fue diseñado: marca casi tan seguido como el
 evento ocurre. La predicción puntual es un vector comprimido, y el mismo corte
@@ -558,7 +581,7 @@ relativo le queda en la cola.
 | E59 | 5 | 0,208 | 0,344 | 0,405 | 0,083 | 4,9× |
 | E59 | 10 | 0,208 | 0,344 | 0,303&nbsp;† | 0,034 | 8,8× |
 
-† La regla vacía —marcar todas las celdas— supera al ganador declarado en estas celdas.
+† La regla vacía —marcar toda posición— supera al ganador declarado en estas celdas.
 
 ### D. Inestabilidad del factor de degradación entre ventanas
 
@@ -578,18 +601,17 @@ distinta.
 
 ### E. Recalibración del punto de operación
 
-Si el problema es el punto de operación, recalibrarlo debería bastar. El corte se
-ajusta sobre una ventana temporal y se aplica a la siguiente, sin mirar nunca los
-datos con los que se lo puntúa y sin tocar el modelo. Se fija maximizando la
-correlación de Matthews (MCC). La alternativa habitual, maximizar el F1, tiene un
-modo de falla que la descarta. Sobre la persistencia en E2, de tres minutos en
-adelante, el corte que optimiza el F1 dispara entre el 99,9 % y el 100 % de las
-veces. Es decir, reencuentra la regla vacía.
+Si el problema es el punto de operación, recalibrarlo debería bastar. Se aplicó
+entonces la recalibración de la Sección IV-D, sin tocar el modelo. Elegir el MCC y
+no el F1 como objetivo no es una preferencia: en este corpus el F1 degenera. Sobre
+la persistencia en E2, de tres minutos en adelante, el corte que optimiza el F1
+dispara entre el 99,9 % y el 100 % de las veces. Es decir, reencuentra la regla
+vacía.
 
 Con el corte recalibrado, el veredicto se invierte. Puntuado sin umbral, mediante
-el área bajo la curva ROC (AUC), **el LSTM gana en las nueve
+el AUC, **el LSTM gana en las nueve
 combinaciones de corredor y ventana a diez minutos**, y en 6 de 12 celdas en la
-ventana principal. La persistencia conserva la ventaja en el horizonte de un
+ventana 3. La persistencia conserva la ventaja en el horizonte de un
 minuto, donde también ganaba el error escalar. La Tabla 2 reúne los dos
 instrumentos.
 
@@ -682,7 +704,7 @@ absoluto de la convención dominante.
 El resultado operativo no es que el modelo detecte mejor. Es que **el modelo marca
 poco y acierta cuando marca**, y esas son dos propiedades distintas que la métrica
 habitual suma en un solo número. Con el corte trasladado, el LSTM marca 14 de
-las 50 353 celdas de E2 a diez minutos y acierta el 71 % de las veces que marca,
+las 50 353 posiciones de E2 a diez minutos y acierta el 71 % de las veces que marca,
 contra una tasa base del 30 %. En E59 marca más y acierta la mitad, contra un
 21 % de base. En los tres corredores la señal, cuando aparece, es entre dos y tres
 veces más informativa que el azar.

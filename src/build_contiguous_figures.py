@@ -96,7 +96,7 @@ LANG = {
         "base_rate": "Tasa real de bunching (lo que habría que detectar)",
         "persistence_fires": "Persistencia — dispara a la tasa base",
         "lstm_silenced": "LSTM — el corte fijo lo silencia",
-        "fire_rate_axis": "Fracción de celdas marcadas como bunching",
+        "fire_rate_axis": "Fracción de posiciones marcadas como bunching",
         "scalar_advantage": "Ventaja escalar del LSTM (MAE)",
         "auc_persistence": "AUC de bunching — persistencia",
         "auc_lstm": "AUC de bunching — LSTM",
@@ -124,7 +124,7 @@ LANG = {
         "base_rate": "Observed bunching rate (what should be detected)",
         "persistence_fires": "Persistence — fires at the base rate",
         "lstm_silenced": "LSTM — the fixed cut silences it",
-        "fire_rate_axis": "Fraction of cells flagged as bunching",
+        "fire_rate_axis": "Fraction of positions flagged as bunching",
         "scalar_advantage": "LSTM scalar advantage (MAE)",
         "auc_persistence": "Bunching AUC — persistence",
         "auc_lstm": "Bunching AUC — LSTM",
@@ -420,7 +420,7 @@ def threshold_artifact(*, lang: str = "es", chrome: bool = True) -> Path:
     )
     if chrome:
         _caption(fig, [
-            "La regla marca toda celda por debajo de 0.5x la media de su vector. La persistencia propaga el vector observado, así que",
+            "La regla marca toda posición por debajo de 0.5x la media de su vector. La persistencia propaga el vector observado, así que",
             "hereda su dispersión y el corte cae donde fue diseñado: dispara casi exactamente tan seguido como ocurre el evento. El",
             "pronóstico puntual emite un vector comprimido (CV 0.16 contra 0.79), así que el mismo corte relativo le queda en la cola.",
         ])
