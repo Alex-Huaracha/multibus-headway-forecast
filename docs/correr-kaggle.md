@@ -127,6 +127,23 @@ fd "lstm_contig_residuals" $D | wc -l          # 4 — E2+E59, corte publicado
 fd "lstm_contig_E4_residuals" $D | wc -l       # 4 — E4,     corte publicado
 ```
 
+### El probe de viabilidad (una sola vez)
+
+`headway_formulations.csv` no lo produce ninguna corrida del corpus publicado:
+sale del probe que eligió la formulación del headway, `03-headway-viability`
+versión 5. Sus outputs siguen en Kaggle, así que no hay que relanzarlo para
+recuperar la tabla — solo bajarlos y quedarse con el CSV. El resto de lo que trae
+son parquets por formulación que el repo no necesita.
+
+```bash
+uv run kaggle kernels output alexhuaracha/03-headway-viability -p /tmp/k03
+cp /tmp/k03/viability_matrix.csv \
+  docs/resultados/csv-multihorizon/headway_formulations.csv
+```
+
+Alimenta `tabla-5-formulaciones-headway.md`, que es la fuente de las cifras que
+la Sección III-A cita en prosa.
+
 ## 5. Problemas conocidos
 
 | Síntoma | Causa y qué hacer |

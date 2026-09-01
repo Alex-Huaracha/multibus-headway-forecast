@@ -17,12 +17,16 @@ figure it sits next to, and no number in the paper is ever typed by hand.
     tabla-4-cobertura-headway.md              How much of the corpus the headway
                                               construction answered, per
                                               corridor.
+    tabla-5-formulaciones-headway.md          The four candidate headway
+                                              definitions the viability probe
+                                              compared, on the two dimensions
+                                              that decided the discards.
 
-Tables 1 to 3 are pasted into ``docs/paper/paper.md`` as numbered tables. Table 4
-is not: Section IV-A quotes its three percentages in prose, and the file exists
-so those figures have a regenerable source instead of living only in the
-manuscript. Re-run this and re-paste when an upstream CSV changes; do not edit a
-number in the manuscript directly.
+Tables 1 to 3 are pasted into ``docs/paper/paper.md`` as numbered tables. Tables
+4 and 5 are not: Sections IV-A and III-A quote their figures in prose, and the
+files exist so those figures have a regenerable source instead of living only in
+the manuscript. Re-run this and re-paste when an upstream CSV changes; do not
+edit a number in the manuscript directly.
 
 Usage
 -----
@@ -261,11 +265,108 @@ def tabla_4() -> str:
     )
 
 
+class FormulationError(ValueError):
+    """The probe matrix cannot answer for the candidates being compared."""
+
+
+# The probe's ids, in the order the table lists them, with the names Section
+# III-A uses. The adopted one is marked here and not in the prose, so the table
+# cannot disagree with the manuscript about which definition won.
+FORMULATIONS = (
+    ("A", "Puntos virtuales del eje"),
+    ("B", "Distancia en metros"),
+    ("C1", "Proyectado hacia adelante"),
+    ("C2", "Cruce hacia atrás (adoptada)"),
+)
+
+# The probe reports one row per corridor; the paper compares definitions, so the
+# two corridors are pivoted onto one row each.
+PROBE_CORRIDORS = (2, 59)
+
+PROBE_COLUMNS = ("autocorr_5min", "mi_bits", "pass_count_total")
+
+
+def formulation_rows(
+    frame: pl.DataFrame, formulations: tuple[str, ...]
+) -> list[dict]:
+    """Pivot the probe matrix to one row per candidate definition.
+
+    Fails closed on an absent candidate, an absent corridor or a pass count the
+    two corridors disagree on. Any of the three would let the table report a
+    comparison the probe never made.
+    """
+    for column in ("formulation", "empresa", *PROBE_COLUMNS):
+        if column not in frame.columns:
+            raise FormulationError(f"probe matrix has no {column} column")
+
+    rows: list[dict] = []
+    for formulation in formulations:
+        sub = frame.filter(pl.col("formulation") == formulation)
+        if sub.is_empty():
+            raise FormulationError(f"probe matrix has no rows for {formulation}")
+
+        cells: dict[int, dict] = {}
+        for corridor in PROBE_CORRIDORS:
+            match = sub.filter(pl.col("empresa") == corridor)
+            if match.height != 1:
+                raise FormulationError(
+                    f"{formulation} needs exactly one row for corridor {corridor}"
+                )
+            cells[corridor] = match.to_dicts()[0]
+
+        passed = {cells[c]["pass_count_total"] for c in PROBE_CORRIDORS}
+        if len(passed) != 1:
+            raise FormulationError(
+                f"{formulation} has pass_count_total disagreeing across corridors"
+            )
+
+        rows.append({
+            "formulation": formulation,
+            "autocorr_e2": cells[2]["autocorr_5min"],
+            "autocorr_e59": cells[59]["autocorr_5min"],
+            "mi_e2": cells[2]["mi_bits"],
+            "mi_e59": cells[59]["mi_bits"],
+            "passed": int(passed.pop()),
+        })
+    return rows
+
+
+def tabla_5() -> str:
+    """The four candidate headway definitions, and what separated them.
+
+    The probe scored seven dimensions; two decided the discards and are the two
+    Section III-A quotes. The rest stay in the CSV. The last column is the
+    probe's own verdict count, kept so the reader can see that the metric
+    definition and the adopted one were adjudicated as equals.
+    """
+    probe = _load("headway_formulations.csv")
+    rows = formulation_rows(probe, tuple(key for key, _ in FORMULATIONS))
+    labels = dict(FORMULATIONS)
+
+    return _render(
+        ["Formulación", "Autocorr. 5 min E2", "Autocorr. 5 min E59",
+         "Info. mutua E2", "Info. mutua E59", "Dimensiones pasadas"],
+        [
+            [
+                labels[row["formulation"]],
+                _num(row["autocorr_e2"]),
+                _num(row["autocorr_e59"]),
+                _num(row["mi_e2"]),
+                _num(row["mi_e59"]),
+                f"{row['passed']} de 7",
+            ]
+            for row in rows
+        ],
+        aligns="lrrrrr",
+    )
+
+
 TABLES = {
     "tabla-1-deteccion-corte-trasplantado.md": tabla_1,
     "tabla-2-veredicto-sin-umbral.md": tabla_2,
     "tabla-3-robustez.md": tabla_3,
     "tabla-4-cobertura-headway.md": tabla_4,
+    "tabla-5-formulaciones-headway.md": tabla_5,
 }
 
 
