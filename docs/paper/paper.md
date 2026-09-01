@@ -428,9 +428,9 @@ que el período publicado no informa su propio umbral.
 ### E. Pruebas estadísticas
 
 Una diferencia de MAE entre dos métodos puede ser ruido del período de prueba. Se
-contrasta con la prueba de Diebold–Mariano sobre el diferencial de pérdida por
-muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold
-[CITA_REQUERIDA]. La varianza se estima agrupando por día de servicio, porque las
+contrasta con la prueba de Diebold–Mariano [1] sobre el diferencial de pérdida por
+muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold [2]. La
+varianza se estima agrupando por día de servicio, porque las
 muestras de un mismo día comparten clima, incidentes y demanda. El agrupamiento
 lleva el tamaño efectivo de muestra de decenas de miles de filas a los 22 días del
 período de prueba.
@@ -786,4 +786,16 @@ _(pendiente — disponibilidad de datos y código)_
 
 ## Referencias
 
-_(pendiente)_
+_(lista en construcción: solo las fuentes ya verificadas en
+`fuentes-verificadas.md` y ya llamadas desde el texto. La numeración es por orden
+de primera aparición, así que incorporar las fuentes que las Secciones II-D y V
+nombran en prosa —todas anteriores a la IV-E— renumerará estas dos y obligará a
+corregir sus llamadas.)_
+
+[1] F. X. Diebold and R. S. Mariano, "Comparing Predictive Accuracy,"
+*Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995,
+doi: 10.1080/07350015.1995.10524599.
+
+[2] D. Harvey, S. Leybourne, and P. Newbold, "Testing the equality of prediction
+mean squared errors," *International Journal of Forecasting*, vol. 13, no. 2,
+pp. 281–291, 1997, doi: 10.1016/S0169-2070(96)00719-4.
