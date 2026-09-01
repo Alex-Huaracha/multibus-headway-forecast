@@ -414,6 +414,13 @@ de fuga: el tiempo, la población evaluada y los valores extremos.
   headway válido siguen enmascaradas. El techo afecta entre el 0,78 % y el 1,11 %
   de los objetivos.
 
+Sobre esa misma población, los resultados se desglosan además por régimen de
+dispersión. La dispersión de una muestra es la desviación estándar de los headways
+observados en su ventana de entrada, en minutos. Cada combinación de corredor y
+horizonte se parte en tercios con los percentiles 33 y 66 de esa cantidad, fijados
+sobre entrenamiento y validación y aplicados sin cambios a prueba. Calibrarlos
+sobre prueba dejaría que la estratificación conociera el período que evalúa.
+
 ### D. Métricas
 
 El modelo entrega un vector de headways. La regla de la Sección III-C convierte
@@ -458,68 +465,70 @@ período de prueba.
 
 ## V. Resultados y discusión
 
+Esta sección reporta el error escalar del vector y la frontera de régimen que lo
+acota. Mide después la dispersión transversal de lo predicho, la detección con el
+corte del evento observado y el factor de degradación entre las tres ventanas.
+Cierra con el punto de operación recalibrado, los ensayos de robustez frente a la
+ventana y a la definición del evento, y las implicaciones operativas.
+
 ### A. Error escalar y su frontera de régimen
 
-A diez minutos de anticipación, el LSTM predice el headway entre buses
-mejor que la persistencia. El error absoluto medio baja 1,47 minutos en E2, 1,38
+A diez minutos de anticipación, el LSTM predijo el headway entre buses
+mejor que la persistencia. El error absoluto medio bajó 1,47 minutos en E2, 1,38
 en E4 y 1,17 en E59: entre 21 % y 22 % en los tres corredores. A un minuto la
-relación se invierte y la persistencia gana, por 0,46 minutos en E4 y 0,33 en E59;
-en E2 la diferencia es de 0,07 minutos y no resiste la prueba estadística una vez
-que se agrupan las observaciones por día de servicio.
+relación se invirtió y la persistencia ganó, por 0,46 minutos en E4 y 0,33 en E59.
+En E2 la diferencia fue de 0,07 minutos y no resistió la prueba estadística al
+agrupar las observaciones por día de servicio.
 
 Tres precisiones acotan ese resultado. La primera es que el cruce no es una
-propiedad del aprendizaje profundo: el XGBoost lo reproduce entero, y a
-diez minutos aventaja a la persistencia por 1,59 minutos en E2, 1,09 en E4 y 0,79
+propiedad del aprendizaje profundo: el XGBoost lo reprodujo entero, y a
+diez minutos aventajó a la persistencia por 1,59 minutos en E2, 1,09 en E4 y 0,79
 en E59. La segunda es que la frontera real no es el horizonte sino la dispersión
-de la ventana de entrada. Cada celda se separó en tercios según la dispersión de
-los headways que el modelo recibe, con los cortes fijados sobre los datos de
-entrenamiento y nunca sobre los de prueba. Así medida, la ventaja del LSTM
-crece de forma ordenada del tercio calmo al volátil en 11 de las 12 celdas.
-Alargar el horizonte no cambia quién gana: mueve la ventaja hacia tercios cada vez
-más tranquilos.
+de la ventana de entrada. Medida con los tercios de dispersión de la
+Sección IV-C, la ventaja del LSTM creció de forma ordenada del tercio calmo al
+volátil en 11 de las 12 celdas.
+Alargar el horizonte no cambió quién ganaba: movió la ventaja hacia tercios cada
+vez más tranquilos.
 
-La tercera es que el promedio histórico por franja horaria cumple el papel que la
-Sección IV-B le asignaba. Su error no se mueve con el horizonte: se queda entre
+La tercera es que el promedio histórico por franja horaria cumplió el papel que la
+Sección IV-B le asignaba. Su error no se movió con el horizonte: se quedó entre
 4,7 y 5,7 minutos en los tres corredores. La ventaja del LSTM sobre él se
-estrecha entonces a medida que el horizonte crece. En E2 el LSTM le gana por
-0,99 minutos a un horizonte de un minuto y le pierde por 0,07 a diez. Esa es la
+estrechó entonces a medida que el horizonte crecía. En E2 el LSTM le ganó por
+0,99 minutos a un horizonte de un minuto y le perdió por 0,07 a diez. Esa fue la
 única
-de las doce celdas donde el promedio histórico gana, y es la razón de que a
-horizonte largo el competidor exigente sea él y no la persistencia. Este eje se
-reporta como contexto y no como contribución, porque el cruce entre la persistencia
-y un método entrenado al alargar el horizonte ya se reporta en predicción de
-tráfico [CITA_REQUERIDA].
+de las doce celdas donde el promedio histórico ganó, y es la razón de que a
+horizonte largo el competidor exigente sea él y no la persistencia.
 
 ### B. Compresión de la dispersión transversal
 
 Un corredor de buses puede describirse, en cada instante, por la irregularidad de
 sus headways: la desviación estándar del vector dividida por su promedio. Cero
 significa buses perfectamente espaciados; valores altos significan grupos y
-huecos. Medida sobre lo observado, esa cifra vale 0,79 en E2. Medida sobre lo que
-el modelo predice para el mismo instante y el mismo corredor a diez minutos, vale
-0,16. El vector predicho describe un corredor casi cinco veces más regular que el real.
+huecos. Medida sobre lo observado, esa cifra fue de 0,79 en E2. Medida sobre lo que
+el modelo predijo para el mismo instante y el mismo corredor a diez minutos, fue de
+0,16. El vector predicho describió un corredor casi cinco veces más regular que el real.
 
-No es un caso aislado. El sesgo, definido como la dispersión predicha menos la
-observada, es negativo —lo predicho siempre más regular que la realidad— en
-**las doce celdas y las tres ventanas de prueba**. Y se profundiza de forma estrictamente
-ordenada a medida que se alarga el horizonte: en E2 pasa de −0,42 a un minuto a
-−0,63 a diez. No hay una sola excepción en las seis series de corredor y modelo.
+No fue un caso aislado. El sesgo, definido como la dispersión predicha menos la
+observada, resultó negativo —lo predicho siempre más regular que la realidad— en
+**las doce celdas y las tres ventanas de prueba**. Y se profundizó de forma estrictamente
+ordenada a medida que se alarga el horizonte: en E2 pasó de −0,42 a un minuto a
+−0,63 a diez. No hubo una sola excepción en las seis series de corredor y modelo.
 
 Dos comparaciones acotan de qué depende el efecto. La primera identifica la causa
-por descarte: la persistencia no comprime nada. Su sesgo se mantiene dentro de
+por descarte: la persistencia no comprimió nada. Su sesgo se mantuvo dentro de
 ±0,022 en las doce celdas y las tres ventanas, porque propaga el vector observado y
 hereda su dispersión sin traducción. Es el control del experimento, y sitúa el
 efecto en el acto de **emitir una predicción puntual**, no en los datos ni en el
 corredor. La segunda
-descarta la arquitectura: el XGBoost comprime igual que la red en E2, y
-las dos curvas se superponen. En los otros dos corredores comprime **más** que
+descarta la arquitectura: el XGBoost comprimió igual que la red en E2, y
+las dos curvas se superponen. En los otros dos corredores comprimió **más** que
 ella, con un sesgo de −0,46 contra −0,35 en E59 a diez minutos. Un fenómeno que
 aparece
 igual en una red recurrente y en un conjunto de árboles no es una propiedad de
 ninguna de las dos.
 
 La consecuencia práctica se aprecia al traducir esas cifras a la escala de nivel
-de servicio del TCQSM. El mismo corredor, en el mismo instante, califica como
+de servicio del TCQSM. El mismo corredor, en el mismo instante, calificó como
 nivel A —«service provided like clockwork»— según lo predicho y como nivel F
 —«most vehicles bunched»— según lo observado. Conviene ser preciso sobre qué es
 nuevo. El teorema que la Sección II-D reconoce como previo cubre la variabilidad
@@ -542,18 +551,18 @@ distancia que se pide anticipar.
 
 ### C. Colapso de la detección al trasladar el umbral
 
-La regla de la Sección III-C, aplicada a lo observado, marca 15 245 eventos en E2
+La regla de la Sección III-C, aplicada a lo observado, marcó 15 245 eventos en E2
 a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo corte,
-se dispara **catorce veces**. La persistencia dispara 15 083 veces. Puntuada con
-el F1 de la Sección IV-D, la persistencia aparece 253 veces mejor que el LSTM. En
-las otras celdas el factor va de 1,5 a 36. El XGBoost obtiene un F1
-exactamente cero en tres de las doce celdas: ahí no dispara nunca. La Tabla 1
+se disparó **catorce veces**. La persistencia disparó 15 083 veces. Puntuada con
+el F1 de la Sección IV-D, la persistencia apareció 253 veces mejor que el LSTM. En
+las otras celdas el factor va de 1,5 a 36. El XGBoost obtuvo un F1
+exactamente cero en tres de las doce celdas: ahí no disparó nunca. La Tabla 1
 recoge las doce celdas.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
 fenómeno que se le pidió anticipar. Hay tres motivos para desconfiar de esa
-lectura. El primero es que el ganador declarado tampoco detecta bien. El detector
-trivial de la Sección IV-D supera a la
+lectura. El primero es que el ganador declarado tampoco detectó bien. El detector
+trivial de la Sección IV-D superó a la
 persistencia en 5 de las doce celdas, y en 15 de las 36 combinaciones de celda y
 ventana. Un procedimiento de evaluación en el que una regla vacía vence al
 ganador declarado no ordena modelos.
@@ -565,13 +574,13 @@ casi siempre. Lo que la regla registra no es que el modelo no vea el evento: es
 que el modelo no produce la dispersión necesaria para cruzar un umbral calibrado
 sobre otra distribución.
 
-El tercero es que, en las pocas ocasiones en que dispara, el modelo acierta. De
-los catorce disparos de E2, diez corresponden a eventos de bunching reales: 71 %
+El tercero es que, en las pocas ocasiones en que disparó, el modelo acertó. De
+los catorce disparos de E2, diez correspondieron a eventos de bunching reales: 71 %
 de precisión contra una tasa base de 30 %. La muestra es pequeña y el intervalo de
 confianza va aproximadamente de 42 % a 92 %, de modo que la cifra señala un
 régimen y no un valor. Las celdas con más disparos lo confirman con menos
 incertidumbre: en E59 a diez minutos, 776 aciertos en 1 572 disparos contra una
-tasa base de 21 %; en E4, 75 en 150 contra 18 %. La cobertura del modelo colapsa;
+tasa base de 21 %; en E4, 75 en 150 contra 18 %. La cobertura del modelo colapsó;
 su precisión, no. Una medida que castiga por igual al que no marca y al que marca
 mal no distingue esos dos casos.
 
@@ -606,7 +615,7 @@ relativo le queda en la cola.
 
 Si el factor de 253 de la Sección V-C midiera una capacidad del modelo, debería
 ser aproximadamente estable al cambiar la ventana de prueba. No lo es. En la misma
-celda —E2, diez minutos, el mismo modelo, la misma regla— el factor vale **2 299**
+celda —E2, diez minutos, el mismo modelo, la misma regla— el factor valió **2 299**
 en la primera ventana, **817** en la segunda y **253** en la tercera. En E2 a cinco
 minutos va de 126 a 58 a 36. La magnitud del supuesto fracaso cambia un orden de
 magnitud según en qué mes se lo mida.
@@ -624,13 +633,13 @@ Si el problema es el punto de operación, recalibrarlo debería bastar. Se aplic
 entonces la recalibración de la Sección IV-D, sin tocar el modelo. Elegir el MCC y
 no el F1 como objetivo no es una preferencia: en este corpus el F1 degenera. Sobre
 la persistencia en E2, de tres minutos en adelante, el corte que optimiza el F1
-dispara entre el 99,9 % y el 100 % de las veces. Es decir, reencuentra la regla
+disparó entre el 99,9 % y el 100 % de las veces. Es decir, reencuentra la regla
 vacía.
 
-Con el corte recalibrado, el veredicto se invierte. Puntuado sin umbral, mediante
-el AUC, **el LSTM gana en las nueve
+Con el corte recalibrado, el veredicto se invirtió. Puntuado sin umbral, mediante
+el AUC, **el LSTM ganó en las nueve
 combinaciones de corredor y ventana a diez minutos**, y en 6 de 12 celdas en la
-ventana 3. La persistencia conserva la ventaja en el horizonte de un
+ventana 3. La persistencia conservó la ventaja en el horizonte de un
 minuto, donde también ganaba el error escalar. La Tabla 2 reúne los dos
 instrumentos.
 
@@ -681,19 +690,19 @@ misma zona, y ninguna serie se acerca al azar.
 
 ### F. Robustez frente a la ventana y a la definición del evento
 
-El hallazgo no depende del mes: las tres ventanas temporales coinciden en el
-veredicto sin umbral en 11 de 12 celdas, y a diez minutos coinciden en las nueve.
+El hallazgo no depende del mes: las tres ventanas temporales coincidieron en el
+veredicto sin umbral en 11 de 12 celdas, y a diez minutos coincidieron en las nueve.
 Tampoco depende de la definición del evento adoptada aquí, y la objeción conviene
 enfrentarla de frente. El corte relativo a la media del propio vector es una
 elección de este trabajo. Un corte absoluto en minutos, como el que usa la mayor
-parte de la literatura, podría disolver el efecto. Se probó. **No se atenúa:
-empeora.** Bajo la convención dominante del campo, la fracción de eventos que el
-modelo efectivamente marca es unas 115 veces menor que bajo la regla relativa. La
+parte de la literatura, podría disolver el efecto. Se probó. **No se atenuó:
+empeoró.** Bajo la convención dominante del campo, la fracción de eventos que el
+modelo efectivamente marcó fue unas 115 veces menor que bajo la regla relativa. La
 elección adoptada resultó ser la conservadora.
 
 Ese mismo ensayo impone un límite que corresponde declarar. Bajo esa convención
-más exigente, la capacidad de discriminación del modelo cae: la mediana del área
-bajo la curva baja a 0,60, y en E2 a diez minutos llega a 0,49, indistinguible del
+más exigente, la capacidad de discriminación del modelo cayó: la mediana del área
+bajo la curva bajó a 0,60, y en E2 a diez minutos llegó a 0,49, indistinguible del
 azar. La afirmación de que el LSTM no es ciego se sostiene para el evento
 definido en términos relativos y falla para el evento absoluto en esa celda. La
 Tabla 3 recoge las tres ventanas y el ensayo con el umbral absoluto.
@@ -722,18 +731,18 @@ absoluto de la convención dominante.
 
 El resultado operativo no es que el modelo detecte mejor. Es que **el modelo marca
 poco y acierta cuando marca**, y esas son dos propiedades distintas que la métrica
-habitual suma en un solo número. Con el corte trasladado, el LSTM marca 14 de
-las 50 353 posiciones de E2 a diez minutos y acierta el 71 % de las veces que marca,
-contra una tasa base del 30 %. En E59 marca más y acierta la mitad, contra un
-21 % de base. En los tres corredores la señal, cuando aparece, es entre dos y tres
-veces más informativa que el azar.
+habitual suma en un solo número. Con el corte trasladado, el LSTM marcó 14 de
+las 50 353 posiciones de E2 a diez minutos y acertó el 71 % de las veces que marcó,
+contra una tasa base del 30 %. En E59 marcó más y acertó la mitad, contra un
+21 % de base. En los tres corredores la señal, cuando apareció, fue entre dos y
+tres veces más informativa que el azar.
 
 Eso no es una alarma y no conviene presentarlo como tal. Una alarma tiene que
 sonar cuando ocurre el evento, y ésta se queda callada la mayoría de las veces. Lo
 que sí constituye es un **filtro de prioridad**: un aviso poco frecuente pero más
 informativo que el azar, útil para ordenar la atención de un despachador que
 vigila tres corredores y no puede mirar todo a la vez. Y hay una consecuencia
-inmediata para cualquiera que hoy esté evaluando una predicción de este tipo: **el
+inmediata para cualquiera que hoy esté evaluando una predicción de este tipo. **El
 punto de operación se recalibra contra la distribución de lo predicho, no
 se hereda de las observaciones.** Requiere recalcular un escalar y no reentrenar
 nada.
