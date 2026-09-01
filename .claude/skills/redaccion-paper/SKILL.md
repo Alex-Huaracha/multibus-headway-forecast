@@ -37,14 +37,14 @@ No activar para figuras, tablas, código de `src/`, ni documentos de `docs/` que
 2. Identificar la sección del manuscrito, su tiempo verbal (Sección 3) y su flujo obligatorio (Sección 4).
 3. Reunir cifras y citas desde sus fuentes ANTES de redactar.
 4. Redactar.
-5. Ejecutar los siete puntos de verificación de la Sección 8, abriendo el archivo en los puntos 1 y 2.
+5. Ejecutar los puntos de verificación de la Sección 8, abriendo el archivo en los puntos 1 y 2.
 6. Corregir lo que falle y volver al paso 5.
 
 ## Output Contract
 
 Devolver, en este orden:
 - El texto redactado, sin el chequeo embebido.
-- El informe de los siete puntos de verificación, cada uno como cumplido o incumplido.
+- El informe de los puntos de verificación, cada uno como cumplido o incumplido.
 - La lista de marcadores insertados y qué falta para resolverlos.
 
 ## References

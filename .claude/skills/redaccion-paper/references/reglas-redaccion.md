@@ -23,13 +23,18 @@
 *   **Método Propuesto:** 
     *   *Presente:* Para definiciones formales, formulación matemática y diseño del algoritmo (ej. "El headway se define como...").
     *   *Pasado:* Para acciones únicas ejecutadas durante la construcción (ej. "Se proyectó la posición...").
-*   **Diseño Experimental y Resultados:** Pasado para los procedimientos y rendimientos ya observados del modelo; Presente para lo que muestran las tablas/gráficas estáticas (ej. "Como muestra la Tabla 2...").
+*   **Diseño Experimental:**
+    *   *Presente:* Para el protocolo permanente: qué datos entran, qué se mide, con qué se contrasta (ej. "La partición es por fecha...", "El error del vector es el MAE...").
+    *   *Pasado:* Solo para el acto único de ejecución (ej. "Los experimentos se ejecutaron sobre GPU...").
+*   **Resultados:** Pasado para los rendimientos ya observados del modelo; Presente para lo que muestran las tablas/gráficas estáticas (ej. "Como muestra la Tabla 2...").
 *   **Amenazas a la Validez:** Presente y Condicional (ej. "Esto podría afectar...").
 *   **Conclusiones y Declaraciones:** Presente.
 
 ## 4. Estructura Lógica y Títulos
 *   **Títulos:** Exclusivamente lenguaje técnico e ingenieril. NUNCA usar metáforas ni títulos coloquiales.
 *   **Glosario y Conceptos Nuevos:** Todo término de dominio (*headway*, *bunching*), sustantivo no estándar o metáfora técnica debe definirse **conceptualmente** en su primera aparición, y **además matemáticamente** cuando el término tenga forma cerrada en este documento. Prohibido usar un término o una metáfora que el lector no haya visto definida antes en el propio texto.
+*   **Hoja de ruta de sección:** Toda sección con subsecciones abre con un párrafo que enumera, en orden, lo que la sección contiene. Sin ese párrafo la primera subsección se lee como un salto. Ese párrafo enumera y no argumenta: no adelanta hallazgos ni justifica decisiones.
+*   **Encadenamiento de bloques:** Cada párrafo o subsección abre nombrando el objeto que recibe del bloque anterior, o la afirmación a la que sirve. Prohibido abrir declarando un instrumento sin antecedente. Prohibidas también las etiquetas paralelas inventadas que no establecen orden entre sí. *Incorrecto:* "El error se mide sobre las posiciones válidas...". *Correcto:* "El modelo entrega un vector de headways. La regla de la Sección III-C lo convierte en un indicador binario. La evaluación mide entonces dos objetos en cadena...".
 *   **Flujo de la Introducción (Modelo SCQA adaptado):**
     1. *Situación:* Contexto operativo y estado actual del dominio.
     2. *Complicación:* Brecha empírica, limitación del estado del arte o problema no resuelto.
@@ -40,11 +45,17 @@
     *   Toda revisión debe terminar obligatoriamente con un contraste explícito que demuestre por qué la literatura actual es insuficiente y cómo el método propuesto llena esa brecha.
 *   **Flujo del Método (Top-Down):** Iniciar con el pipeline completo y la formulación matemática explícita (variables, entradas, salidas) en Presente, antes de narrar detalles específicos.
 *   **Causalidad de Resultados:** Toda métrica, número o gráfica reportada debe acompañarse de un análisis técnico que explique *por qué* se obtuvo ese resultado (basado en la sección del Método), apoyándose estrictamente en los datos provistos.
+*   **Frontera entre Diseño Experimental y Resultados:** El Diseño Experimental admite cifras que describen el montaje —cantidad de días, cobertura, fracción de muestras que sobrevive una regla— y ninguna cifra de rendimiento. Todo valor de una métrica, todo *p* y todo veredicto pertenecen a Resultados. Un instrumento se define en el Diseño y se cita desde Resultados; nunca se define en los dos lugares.
 
 ## 5. Restricciones Léxicas (Filtro Anti-IA)
 *   **Métricas exactas:** Prohibidos los cuantificadores vagos ("buen rendimiento", "mejora significativa") a menos que haya prueba estadística. Referir siempre a los valores absolutos o porcentajes del texto origen.
 *   **Lista negra de clichés:** Prohibido usar: *crucial, holístico, revolucionario, panorama, es imperativo, cabe destacar, en este sentido, por su parte, juega un papel fundamental, en la actualidad, no solo... sino también, adentrarse*.
 *   **Redundancias:** Prohibido iniciar párrafos con frases vacías de transición o resumir al final de un bloque lo que se acaba de explicar.
+*   **Patrón de dos movimientos:** Cada decisión se escribe en dos movimientos y se detiene: se declara la decisión, y se justifica en una sola oración que diga **qué compra** esa decisión. Prohibido el tercer movimiento —el remate—, sea aforismo, sentencia, metáfora o ilustración vívida.
+    *   La prueba no es si el remate es verdadero, sino si borrarlo cambia lo que el lector puede hacer con el texto. Si no lo cambia, sobra.
+    *   La justificación es operativa y no interpretativa: dice qué evita o qué garantiza la decisión, no qué significa.
+    *   *Ejemplos de remate, prohibidos:* "Ese es el precio de que el horizonte signifique lo que dice", "No se declara: se verifica", "la comparación no queda sesgada sino indefinida".
+    *   El patrón acota el adorno, no el volumen: una subsección con cuatro decisiones son ocho oraciones legítimas.
 
 ## 6. Formulación Matemática y Ecuaciones
 *   **Integración gramatical:** Toda ecuación matemática es parte de la oración y debe puntuarse como tal. Si la ecuación termina la idea, lleva punto final; si la idea continúa (por ejemplo, para definir variables), lleva coma.
@@ -59,12 +70,12 @@
 Cuando dos reglas de este documento no puedan cumplirse a la vez, aplicar este orden. Gana siempre la de número menor.
 
 1.  **Prioridad Cero.** No inventar. Ante la duda, el marcador y no la frase.
-2.  **Exactitud técnica.** Que la afirmación sea correcta y trazable a su fuente. Incluye la exigencia de métricas exactas y la prohibición de redundancias (Sección 5).
+2.  **Exactitud técnica.** Que la afirmación sea correcta y trazable a su fuente. Incluye la exigencia de métricas exactas y la prohibición de redundancias y de remates (Sección 5).
 3.  **Reglas de estructura y flujo** (Secciones 4 y 6).
 4.  **Reglas de tiempo verbal y voz** (Secciones 1 y 3).
 5.  **Reglas de forma** (Sección 2: longitud de párrafo y de oración) y lista negra de clichés (Sección 5).
 
-Consecuencia obligatoria: si un párrafo no llega a 50 palabras sin agregar relleno, o si pasa de 200 sin poder partirse, se deja fuera de rango y se anota. Prohibido escribir oraciones vacías para alcanzar el mínimo: eso incumple la prohibición de redundancias, que es prioridad 2 y vence a la longitud de párrafo, que es prioridad 5.
+Consecuencia obligatoria: si un párrafo no llega a 50 palabras sin agregar relleno, o si pasa de 200 sin poder partirse, se deja fuera de rango y se anota. Prohibido escribir oraciones vacías para alcanzar el mínimo, y prohibido conservar un remate por la misma razón: eso incumple la prohibición de redundancias y de remates, que es prioridad 2 y vence a la longitud de párrafo, que es prioridad 5.
 
 ## 8. Verificación Antes de Entregar
 
@@ -77,3 +88,5 @@ Ninguna redacción se da por terminada sin recorrer esta lista. El chequeo no se
 5.  **Referencias cruzadas.** Ninguna es posicional. Todo número de ecuación, figura o tabla citado existe.
 6.  **Forma.** Ninguna oración pasa de 40 palabras. Todo párrafo continuo cae entre 50 y 200, o está anotado como excepción justificada.
 7.  **Ecuaciones.** Cada una lleva `\tag{n}` en secuencia, va introducida en prosa y define sus símbolos nuevos inmediatamente después con "donde…".
+8.  **Concisión.** Ningún párrafo cierra con un remate. Cada decisión llega a dos movimientos y se detiene.
+9.  **Flujo.** Toda sección con subsecciones tiene su hoja de ruta. Ningún bloque abre con un instrumento sin antecedente. Ninguna cifra de rendimiento aparece antes de Resultados, y ningún instrumento se define dos veces.
