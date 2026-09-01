@@ -438,6 +438,22 @@ donde $\mathcal{V}$, $|\mathcal{V}|$, $\hat{h}_i$ y $h_i$ conservan el
 significado de la Ecuación (3). Se reporta el MAE y no el error cuadrático porque
 expresa el resultado en minutos de headway.
 
+El MAE no dice nada sobre la forma del vector, y esa forma se mide con una segunda
+cantidad. El coeficiente de variación de un vector de headways es su desviación
+estándar dividida por su promedio:
+
+$$\mathrm{CV}(\mathbf{h}) \;=\; \frac{1}{\bar{h}}
+\sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\big(h_j - \bar{h}\big)^{2}}, \tag{9}$$
+
+donde $m$, $h_j$ y $\bar{h}$ conservan el significado de la Ecuación (4), y la
+desviación estándar es la muestral. Vale cero cuando los buses están perfectamente
+espaciados y crece con la irregularidad del corredor. Se calcula sobre los mismos
+vectores de tres posiciones o más que exige la Ecuación (5). Se reporta porque es
+adimensional, de modo que corredores que operan a frecuencias distintas quedan
+sobre la misma escala. Su sesgo es el coeficiente de variación de lo predicho menos
+el de lo observado, de modo que un valor negativo dice que lo predicho es más
+regular que la realidad.
+
 El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto
 dependen del umbral. El F1 lo fija en un solo punto de operación, y se acompaña
 del F1 de un detector que marca toda posición como evento. El coeficiente de
@@ -501,18 +517,17 @@ horizonte largo el competidor exigente sea él y no la persistencia.
 
 ### B. Compresión de la dispersión transversal
 
-Un corredor de buses puede describirse, en cada instante, por la irregularidad de
-sus headways: la desviación estándar del vector dividida por su promedio. Cero
-significa buses perfectamente espaciados; valores altos significan grupos y
-huecos. Medida sobre lo observado, esa cifra fue de 0,79 en E2. Medida sobre lo que
-el modelo predijo para el mismo instante y el mismo corredor a diez minutos, fue de
+El error escalar de la Sección V-A no dice nada sobre la forma del vector. El
+coeficiente de variación de la Ecuación (9) sí. Medido sobre lo observado, fue de
+0,79 en E2. Medido sobre lo que el modelo predijo para el mismo instante y el mismo
+corredor a diez minutos, fue de
 0,16. El vector predicho describió un corredor casi cinco veces más regular que el real.
 
-No fue un caso aislado. El sesgo, definido como la dispersión predicha menos la
-observada, resultó negativo —lo predicho siempre más regular que la realidad— en
+Esa brecha no fue un caso aislado. El sesgo del coeficiente de variación resultó
+negativo —lo predicho siempre más regular que la realidad— en
 **las doce celdas y las tres ventanas de prueba**. Y se profundizó de forma estrictamente
 ordenada a medida que se alarga el horizonte: en E2 pasó de −0,42 a un minuto a
-−0,63 a diez. No hubo una sola excepción en las seis series de corredor y modelo.
+−0,63 a diez. No hubo una sola excepción en los tres corredores.
 
 Dos comparaciones acotan de qué depende el efecto. La primera identifica la causa
 por descarte: la persistencia no comprimió nada. Su sesgo se mantuvo dentro de
@@ -527,15 +542,16 @@ aparece
 igual en una red recurrente y en un conjunto de árboles no es una propiedad de
 ninguna de las dos.
 
-La consecuencia práctica se aprecia al traducir esas cifras a la escala de nivel
-de servicio del TCQSM. El mismo corredor, en el mismo instante, calificó como
-nivel A —«service provided like clockwork»— según lo predicho y como nivel F
-—«most vehicles bunched»— según lo observado. Conviene ser preciso sobre qué es
-nuevo. El teorema que la Sección II-D reconoce como previo cubre la variabilidad
-de una serie a lo largo del tiempo. Lo que estas medidas capturan es otra cantidad:
-cuán desparejos están los buses **entre sí en un mismo instante**. Son por lo
-tanto un resultado empírico y no un corolario. Las Figuras 5 y 6 muestran el
-efecto y su dependencia del horizonte.
+La consecuencia práctica se aprecia al leer esas cifras contra la escala de nivel
+de servicio del TCQSM [AQUÍ VA EL NÚMERO DEL TCQSM]. El manual indexa sus bandas
+por la dispersión del headway respecto del programado. Estos corredores no tienen
+programación, así que la escala se lee con el coeficiente de variación de la
+Ecuación (9). Con esa sustitución, el mismo corredor en el mismo instante calificó
+como nivel A —«service provided like clockwork»— según lo predicho y como nivel F
+—«most vehicles bunched»— según lo observado. La cantidad que estas medidas
+capturan es la dispersión **entre buses en un mismo instante**, y no la
+variabilidad de una serie a lo largo del tiempo que la Sección II-D delimita como
+previa. Las Figuras 5 y 6 muestran el efecto y su dependencia del horizonte.
 
 ![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
 
