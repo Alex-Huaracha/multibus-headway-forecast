@@ -51,19 +51,22 @@ recalibración.
 
 ## III. Método propuesto
 
+Esta sección construye el headway a partir de posiciones GPS, formula la tarea de
+predicción sobre el vector de headways y define la regla que convierte ese vector
+en un evento de bunching.
+
 ### A. Construcción del headway a partir de posiciones GPS
 
 El headway es el tiempo que separa el paso de dos buses consecutivos por un mismo
-punto: si uno pasa por una esquina y el siguiente llega cinco minutos después, el
-headway en esa esquina es de cinco minutos. Es la cantidad que revela si un
-corredor mantiene sus buses espaciados o si circulan apelotonados, el fenómeno que
-la Sección III-C define como **bunching**. El headway es la variable que
-predecimos.
+punto, y la Figura 1 lo ilustra. Es la cantidad que revela si un corredor mantiene
+sus buses espaciados o si dos de ellos terminan viajando casi juntos y dejan un
+intervalo largo detrás. Ese segundo caso es el evento que define la Sección III-C.
+El headway es la variable que predecimos.
 
 La forma habitual de medir el headway es en una parada, con la lista de paradas de
 la ruta y los horarios de paso. Ninguna de las dos existe en este caso: el dato
 disponible son coordenadas GPS crudas. Para llegar al headway desde esas
-coordenadas se aplicó la secuencia de seis pasos que sigue.
+coordenadas se aplica la secuencia de seis pasos que sigue.
 
 **1) El eje.** El trazado del corredor se estima de los propios buses: se ajusta
 una línea central a las posiciones de las unidades en movimiento y después se
@@ -71,28 +74,16 @@ suaviza, lo que entrega una curva principal a lo largo del recorrido.
 
 **2) La proyección a una dimensión.** Con el eje ya trazado, cada posición se
 reduce a dos números: cuánto ha avanzado el bus a lo largo del corredor y a qué
-distancia quedó del eje. Es la operación estándar de referenciación lineal,
-proyectar un punto sobre una polilínea:
-
-$$s(p) = \text{arco del punto del eje } C \text{ más cercano a } p,
-\qquad \ell(p) = \lVert\, p - C(s(p)) \,\rVert \tag{1}$$
-
-donde $C$ es el eje del corredor parametrizado por su longitud de arco y $p$ es la
-posición reportada por el bus. La coordenada $s(p)$ es el arco del punto de $C$
-más cercano a $p$, y $\ell(p)$ es la distancia de $p$ a ese punto. La posición se
-conserva solo si $\ell(p) \le 300$ m; lo que cae más lejos no pertenece al
-corredor.
+distancia quedó del eje. Es la operación que la norma ISO 19148 [1] especifica
+para referenciar posiciones contra un objeto unidimensional. La posición se
+conserva solo si su desvío lateral no pasa de 300 m; lo que cae más lejos no
+pertenece al corredor.
 
 **3) El sentido de marcha.** Sobre ese mismo eje circulan los buses de ida y los
-de vuelta, y el dato no distingue unos de otros. El sentido se define como el
-signo del desplazamiento promediado sobre cinco posiciones, de modo que un error
-aislado no invierta la dirección:
-
-$$d = \operatorname{sign}\!\big(\overline{\Delta s}_{5}\big) \tag{2}$$
-
-donde $\overline{\Delta s}_{5}$ es el promedio del avance sobre el eje en las
-últimas cinco posiciones y $d \in \{-1, 0, +1\}$ es el sentido asignado. La
-derivación es forzosa: uno de los corredores no reporta rumbo en absoluto.
+de vuelta, y el dato no distingue unos de otros. El sentido se asigna como el
+signo del avance sobre el eje promediado en las últimas cinco posiciones, de modo
+que un error aislado no invierta la dirección. La derivación es forzosa: uno de
+los corredores no reporta rumbo en absoluto.
 
 **4) Los viajes.** Ya con sentido, el recorrido de cada bus se corta en viajes: un
 salto de más de treinta minutos sin señal, una inversión de sentido o una espera
@@ -104,65 +95,49 @@ segundos, y así cada minuto queda descrito por una **instantánea** del corredo
 la posición de todos sus buses en ese momento.
 
 **6) El headway.** Sobre esa instantánea, para un par de buses consecutivos en el
-mismo sentido —el de adelante *L*, el de atrás *F*— en el instante *T*:
+mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
-\qquad h = T - t_{c} \tag{3}$$
+\qquad h = T - t_{c} \tag{1}$$
 
 donde $T$ es el instante evaluado, y $s_{L}$ y $s_{F}$ son las coordenadas de arco
 del bus de adelante y del de atrás. El instante $t_{c}$ es el último en que el de
 adelante ocupó la posición que el de atrás ocupa en $T$, y $h$ es el headway
-resultante. La Ecuación (3) mide **hace cuánto tiempo el bus de adelante pasó por
-el punto donde el de atrás está ahora.** Es un cruce por posición y no por parada,
-y eso es exactamente lo que permite prescindir de la tabla de paradas. Si no
-existe tal $t_{c}$, o si $h$ supera los treinta minutos, se emite «sin dato» en
-lugar de arrastrar un paso de horas antes. Con $N$ buses circulando, el corredor
-queda descrito en cada minuto por un vector de $N-1$ números, y la Figura 1
-ilustra la medición sobre un punto fijo.
+resultante. Es un cruce por posición y no por parada, lo que permite prescindir de
+la tabla de paradas. Si no existe tal $t_{c}$, o si $h$ supera los treinta
+minutos, se emite «sin dato» en lugar de arrastrar un paso de horas antes.
 
 ![Definición del headway](figuras/headway/headway.png)
 
-**Fig. 1.** El headway, medido en un punto fijo del corredor. El bus de adelante
-—Bus 1, el *L* de la Ecuación (3)— pasó por el punto p₂ a las 12:30; el de atrás
-—Bus 2, el *F*— llega a ese mismo punto a las 12:35. El headway en p₂ es la
-diferencia entre esas dos horas: cinco minutos. La separación espacial entre los
-dos buses no interviene. Esquema ilustrativo, no datos reales.
+**Fig. 1.** El headway en un punto fijo del corredor: el bus de adelante —el $L$ de
+la Ecuación (1)— pasa por p₂ a las 12:30 y el de atrás —el $F$— a las 12:35, de
+modo que el headway en p₂ es de cinco minutos. La separación espacial entre los dos
+buses no interviene. Esquema ilustrativo, no datos reales.
 
-Esta forma de medir el headway no se eligió por comodidad. Se compararon las
-cuatro formulaciones siguientes, sobre criterios de cobertura, variabilidad,
-autocorrelación, información compartida entre buses vecinos y estabilidad de la
-distribución.
-
-**1) Tiempo entre pasadas por puntos virtuales del eje** — sembrar puntos
-artificiales a lo largo del corredor y medir el tiempo entre buses sucesivos por
-cada uno. Quedó afuera por autocorrelación demasiado baja: el valor de ahora casi
-no informaba sobre el de cinco minutos más tarde, que es uno de los horizontes que
-hay que predecir.
-
-**2) Tiempo proyectado hacia adelante** — la separación entre los dos buses
-dividida por la velocidad del de atrás. Quedó afuera por lo mismo, y arrastra
-además una debilidad de forma: dividir por la velocidad actual supone que esa
-velocidad se mantiene, de modo que introduce una estimación dentro de la cantidad
-que después se quiere estimar.
-
-**3) Distancia en metros entre buses consecutivos** — iguala a la adoptada en
-calidad de señal, y se descartó por el objeto de estudio y no por su desempeño.
-Mide separación espacial y no tiempo entre pasadas, que es la cantidad que el
-operador necesita y la que define el bunching.
-
-**4) Tiempo desde el cruce hacia atrás** — la definición de la Ecuación (3), y la
-adoptada.
+La Ecuación (1) se adoptó tras comparar cuatro formulaciones candidatas sobre
+siete dimensiones de calidad de señal, y dos decidieron los descartes. El tiempo
+entre pasadas por puntos artificiales sembrados a lo largo del eje quedó afuera
+por autocorrelación a cinco minutos: 0,167 en E2 y -0,005 en E59, contra 0,313 y
+0,603 de la formulación adoptada. El tiempo proyectado hacia adelante —la
+separación entre los dos buses dividida por la velocidad del de atrás— quedó
+afuera por información mutua entre buses vecinos, 0,226 y 0,326 bits contra 0,358
+y 1,256. Arrastra además una debilidad de forma. Dividir por la velocidad actual
+supone que esa velocidad se mantiene. Introduce así una estimación dentro de la
+cantidad que se busca estimar. La distancia en metros entre buses consecutivos
+pasa seis de las siete dimensiones, igual que la adoptada, y quedó afuera por
+medir separación espacial y no tiempo entre pasadas.
 
 ### B. Formulación de la tarea de predicción
 
 La Sección III-A deja el corredor descrito, minuto a minuto, por un vector de
-headways. Lo que predecimos es ese vector completo: no un headway suelto ni un
+headways de $N-1$ posiciones, con $N$ el número de buses circulando en ese minuto.
+Lo que predecimos es ese vector completo: no un headway suelto ni un
 promedio del corredor, sino todas sus posiciones a la vez. Dado el historial de
 los últimos $T$ minutos y un contexto de calendario, se busca el vector del
 corredor $H$ minutos más adelante:
 
 $$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\; c(t)\big),
-\qquad T = 12 \tag{4}$$
+\qquad T = 12 \tag{2}$$
 
 donde $\mathbf{h}(t)$ es el vector de headways del corredor en el minuto $t$ y
 $\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante.
@@ -178,7 +153,7 @@ bus. **El objetivo que se minimiza es el error cuadrático**, promediado sobre e
 posiciones válidas:
 
 $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
-\big(\hat{h}_i - h_i\big)^{2} \tag{5}$$
+\big(\hat{h}_i - h_i\big)^{2} \tag{3}$$
 
 donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en el
 instante objetivo, $|\mathcal{V}|$ es su cardinal, y $\hat{h}_i$ y $h_i$ son el
@@ -225,7 +200,7 @@ En notación, sea $\mathbf{h}(t) = (h_1, \dots, h_m)$ el vector de headways del
 corredor en el instante $t$. Su promedio y el corte del evento son
 
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
-\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2} \tag{6}$$
+\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2} \tag{4}$$
 
 donde $m = N - 1$ es la cantidad de posiciones del vector, $N$ es la cantidad de
 buses en circulación y $h_j(t)$ es el headway de la posición $j$. El promedio del
@@ -234,7 +209,7 @@ que lo fija. La posición $i$ cuenta como bunching cuando cae por debajo de ese
 corte:
 
 $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
-\qquad \text{definido solo si } m \ge 3, \tag{7}$$
+\qquad \text{definido solo si } m \ge 3, \tag{5}$$
 
 donde $b_i(t)$ vale 1 si la posición $i$ cuenta como bunching y 0 si no, y
 $\mathbb{1}[\cdot]$ es la función indicadora. La condición $m \ge 3$ descarta los
@@ -245,10 +220,10 @@ esa única diferencia. Con tres ya hay patrón —uno colapsado, uno estirado, u
 normal—, y por eso el mínimo se fija ahí y no en dos.
 
 El detector que este trabajo evalúa es esa misma regla aplicada al vector predicho
-de la Ecuación (4), con el promedio de ese mismo vector fijando el corte:
+de la Ecuación (2), con el promedio de ese mismo vector fijando el corte:
 
 $$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
-\,\right] \tag{8}$$
+\,\right] \tag{6}$$
 
 donde $\hat{b}_i(t)$ es la detección emitida sobre la posición $i$ del vector
 predicho y $\bar{\hat{h}}(t)$ es el promedio de ese mismo vector predicho. Que el
@@ -258,11 +233,11 @@ decidir solo cuenta con lo predicho, así que puntuar contra el promedio real
 mediría algo que nadie puede desplegar.
 
 Como $\tau$ es función del propio vector que se evalúa, y no un número fijo de
-minutos, las Ecuaciones (7) y (8) no comparan contra el mismo corte:
+minutos, las Ecuaciones (5) y (6) no comparan contra el mismo corte:
 
 $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 \;\neq\; \rho\,\bar{h} \;=\; \tau(\mathbf{h})
-\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{9}$$
+\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{7}$$
 
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los cortes que resultan de
 aplicar $\rho$ al vector observado y al vector predicho. Escribir «la mitad del
@@ -311,7 +286,7 @@ sentido y el headway se construyen desde la posición cruda, como describe la
 Sección III-A.
 
 La construcción del headway desde la posición cruda no siempre produce un valor.
-Dos condiciones dejan un par de buses sin headway: que la Ecuación (3) no
+Dos condiciones dejan un par de buses sin headway: que la Ecuación (1) no
 encuentre el cruce, o que el headway supere los treinta minutos. La cobertura —la
 fracción de pares evaluados con headway válido— es del 63,5 % en E2, del 64,8 % en
 E4 y del 77,1 % en E59: 3 938 174 pares en total. Una posición del vector sin
@@ -329,7 +304,7 @@ Se comparan cuatro métodos sobre las mismas muestras, y cada uno cumple un pape
 distinto. El método bajo estudio es una red recurrente con memoria de largo y corto
 plazo (**LSTM**). Un conjunto de árboles con refuerzo de gradiente (**XGBoost**)
 actúa como **control de arquitectura**: si reproduce el patrón del LSTM, ese patrón
-no proviene del aprendizaje profundo sino del objetivo de la Ecuación (5). Los dos
+no proviene del aprendizaje profundo sino del objetivo de la Ecuación (3). Los dos
 restantes no ajustan parámetros y fijan el error de referencia. La **persistencia**
 repite el último vector observado, así que su error crece con el horizonte. El
 **promedio histórico por franja horaria** responde con el valor típico de esa hora
@@ -339,7 +314,7 @@ entrada, de modo que su error no depende del horizonte.
 Otros cinco métodos se evaluaron y quedaron fuera. Ninguno de los tres
 estadísticos —la media del período de entrenamiento, la media móvil causal en tres
 ventanas y el suavizado exponencial simple de factor 0,3— combina las dos entradas
-de la Ecuación (4), el historial reciente y el calendario. Los tres repiten
+de la Ecuación (2), el historial reciente y el calendario. Los tres repiten
 información que la persistencia o el promedio histórico ya aportan. Los otros dos
 modelan la relación entre posiciones vecinas del vector, con una convolución sobre
 el eje de los buses (**SpatialConvLSTM**) y con atención entre posiciones
@@ -403,13 +378,13 @@ dos objetos en cadena: primero el vector predicho, y después el indicador que s
 deriva de él.
 
 El error del vector es el error absoluto medio (MAE), calculado sobre las
-posiciones válidas que define la Ecuación (5):
+posiciones válidas que define la Ecuación (3):
 
 $$\mathrm{MAE} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
-\big|\hat{h}_i - h_i\big| \tag{10}$$
+\big|\hat{h}_i - h_i\big| \tag{8}$$
 
 donde $\mathcal{V}$, $|\mathcal{V}|$, $\hat{h}_i$ y $h_i$ conservan el
-significado de la Ecuación (5). Se reporta el MAE y no el error cuadrático porque
+significado de la Ecuación (3). Se reporta el MAE y no el error cuadrático porque
 expresa el resultado en minutos de headway.
 
 El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto
@@ -428,8 +403,8 @@ que el período publicado no informa su propio umbral.
 ### E. Pruebas estadísticas
 
 Una diferencia de MAE entre dos métodos puede ser ruido del período de prueba. Se
-contrasta con la prueba de Diebold–Mariano [1] sobre el diferencial de pérdida por
-muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold [2]. La
+contrasta con la prueba de Diebold–Mariano [2] sobre el diferencial de pérdida por
+muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold [3]. La
 varianza se estima agrupando por día de servicio, porque las
 muestras de un mismo día comparten clima, incidentes y demanda. El agrupamiento
 lleva el tamaño efectivo de muestra de decenas de miles de filas a los 22 días del
@@ -789,13 +764,16 @@ _(pendiente — disponibilidad de datos y código)_
 _(lista en construcción: solo las fuentes ya verificadas en
 `fuentes-verificadas.md` y ya llamadas desde el texto. La numeración es por orden
 de primera aparición, así que incorporar las fuentes que las Secciones II-D y V
-nombran en prosa —todas anteriores a la IV-E— renumerará estas dos y obligará a
+nombran en prosa —todas anteriores a la III-A— renumerará estas tres y obligará a
 corregir sus llamadas.)_
 
-[1] F. X. Diebold and R. S. Mariano, "Comparing Predictive Accuracy,"
+[1] Geographic information — Linear referencing, ISO 19148:2021, 2nd ed.,
+International Organization for Standardization, Geneva, Switzerland, 2021.
+
+[2] F. X. Diebold and R. S. Mariano, "Comparing Predictive Accuracy,"
 *Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995,
 doi: 10.1080/07350015.1995.10524599.
 
-[2] D. Harvey, S. Leybourne, and P. Newbold, "Testing the equality of prediction
+[3] D. Harvey, S. Leybourne, and P. Newbold, "Testing the equality of prediction
 mean squared errors," *International Journal of Forecasting*, vol. 13, no. 2,
 pp. 281–291, 1997, doi: 10.1016/S0169-2070(96)00719-4.

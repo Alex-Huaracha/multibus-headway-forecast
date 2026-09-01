@@ -398,6 +398,19 @@ de Crossref**, no de memoria.
 | **Diebold, F. X., & Mariano, R. S. (1995)**, «Comparing Predictive Accuracy», *Journal of Business & Economic Statistics* 13(3):253–263 | doi:`10.1080/07350015.1995.10524599` | `[CROSSREF]` — título y byline confirmados contra Crossref | El test pareado de §I-D y §III-E. Existe un reimpreso de 2002 (doi:`10.1198/073500102753410444`, *JBES* 20(1):134–144); **citar el original de 1995** |
 | **Harvey, D., Leybourne, S., & Newbold, P. (1997)**, «Testing the equality of prediction mean squared errors», *International Journal of Forecasting* 13(2):281–291 | doi:`10.1016/S0169-2070(96)00719-4` | `[CROSSREF]` — DOI, título, byline, volumen, número y páginas confirmados contra el registro de Crossref y contra la documentación de `forecast::dm.test` | La corrección de muestra pequeña del test DM, en la Sección IV-E del manuscrito. La fórmula que el repo ejecuta —`DM* = DM · sqrt([n + 1 − 2h + h(h−1)/n] / n)`, contra `t_{n−1}` (`src/evaluation/significance_clustered.py:89-97`)— **coincide con la que fuentes secundarias atribuyen a este paper, pero no se verificó contra su texto completo**. Se cita por el método, no por texto ni cifras |
 
+### La referenciación lineal es una norma ISO — verificado 2026-09-01
+
+La Sección III-A afirmaba que proyectar un punto sobre una polilínea para obtener
+avance sobre el eje y desvío lateral «es la operación estándar de referenciación
+lineal», **sin citar nada**. La afirmación es correcta y hay norma que la
+respalda. El código del repo no la implementa con una librería geoespacial —es
+numpy a mano en `src/preprocessing/projection.py`—, así que el respaldo viene de
+la norma y no de la dependencia.
+
+| Fuente | ID | Estado | Por qué está citada |
+|---|---|---|---|
+| **ISO 19148:2021**, *Geographic information — Linear referencing*, 2.ª ed., ISO/TC 211 | — | `[ISO]` — designación, título, edición y alcance copiados de la ficha de ISO (`iso.org/standard/75150.html`, consultada 2026-09-01). Reemplaza a ISO 19148:2012 | La Sección III-A remplazó su ecuación de proyección por prosa más esta cita. El alcance de la norma —«locations relative to a one-dimensional object as measurement along (and optionally offset from) that object»— es literalmente el par que el pipeline computa: avance sobre el eje y desvío lateral. **No se le atribuye texto ni cifras**: no leímos las 99 páginas, se cita por la operación |
+
 ### Doble penalización (meteorología)
 
 | Fuente | ID | Estado |
