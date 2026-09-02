@@ -72,8 +72,7 @@ puntuar sin punto de operación, lo diagnosticaron Sun, Schmöcker y Nakamura.
 Recalcular un umbral contra la distribución de cada modelo es el procedimiento de
 Hoffmann, Menz y Spekat en reducción de escala climática, ocho años antes. El
 cruce entre la persistencia y un método entrenado al alargar el horizonte ya se
-reporta en predicción de tráfico [CITA_REQUERIDA]. Y el resultado nulo de las
-variantes espaciales coincide con trabajo previo [CITA_REQUERIDA]. Llegar segundo a una
+reporta en predicción de tráfico [CITA_REQUERIDA]. Llegar segundo a una
 conclusión no la vuelve propia.
 
 Reclamamos tres contribuciones más angostas. **Primera**, medimos la compresión
@@ -506,7 +505,7 @@ donde el detector nunca marca no recibe intervalo: no hay precisión que acotar.
 
 Esta sección reporta el error escalar del vector y la frontera de régimen que lo
 acota. Mide después la dispersión transversal de lo predicho, la detección con el
-corte del evento observado y el factor de degradación entre las tres ventanas.
+corte del evento observado y el comportamiento del factor entre las tres ventanas.
 Cierra con el punto de operación recalibrado, los ensayos de robustez frente a la
 ventana y a la definición del evento, y las implicaciones operativas.
 
@@ -650,21 +649,21 @@ relativo le queda en la cola.
 
 † La regla vacía —marcar toda posición— supera al ganador declarado en estas celdas.
 
-### D. Inestabilidad del factor de degradación entre ventanas
+### D. Estabilidad del factor entre ventanas y sus dos excepciones
 
 Si el factor de 253 de la Sección V-C midiera una capacidad del modelo, debería
-ser aproximadamente estable al cambiar la ventana de prueba. No lo es. En la misma
-celda —E2, diez minutos, el mismo modelo, la misma regla— el factor valió **2 299**
-en la primera ventana, **817** en la segunda y **253** en la tercera. En E2 a cinco
-minutos va de 126 a 58 a 36. La magnitud del supuesto fracaso cambia un orden de
-magnitud según en qué mes se lo mida.
+ser aproximadamente estable al cambiar la ventana de prueba. En diez de las doce
+celdas lo es: entre la primera ventana y la tercera varía entre 0,90 y 1,58. Las
+dos excepciones están en E2. A cinco minutos el factor valió **126** en la primera
+ventana, **58** en la segunda y **36** en la tercera. A diez minutos valió
+**2 299**, **817** y **253**.
 
-Ninguna propiedad de un modelo se comporta así. Un número que se mueve un orden de
-magnitud entre ventanas contiguas está midiendo la interacción entre el corte y la
-distribución sobre la que cayó, no una capacidad del sistema evaluado. Esta es la
-observación central del trabajo, y no depende de qué modelo se use ni de qué datos:
-depende de que el corte se haya trasladado entre dos distribuciones con dispersión
-distinta.
+Esas dos son las celdas donde el corte trasplantado dejó al detector casi sin
+disparos: su F1 cayó a 0,011 y 0,001 en la Tabla 1. Un cociente cuyo denominador
+se acerca a cero no mide una capacidad del sistema evaluado, sino la interacción
+entre el corte y la distribución sobre la que cayó. La observación no depende de
+qué modelo se use ni de cuál de las tres ventanas se mida. Depende de que el corte
+se haya trasladado entre dos distribuciones con dispersión distinta.
 
 ### E. Recalibración del punto de operación
 
