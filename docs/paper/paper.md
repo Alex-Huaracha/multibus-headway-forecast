@@ -423,13 +423,10 @@ sobre prueba dejaría que la estratificación conociera el período que evalúa.
 
 ### D. Métricas
 
-El modelo entrega un vector de headways. La regla de la Sección III-C convierte
-ese vector en un indicador binario de bunching. La evaluación mide por lo tanto
-dos objetos en cadena: primero el vector predicho, y después el indicador que se
-deriva de él.
-
-El error del vector es el error absoluto medio (MAE), calculado sobre las
-posiciones válidas que define la Ecuación (3):
+El modelo entrega un vector de headways que la regla de la Sección III-C convierte
+en un indicador binario de bunching, y la evaluación mide esos dos objetos en
+cadena. El error del vector es el error absoluto medio (MAE) sobre las posiciones
+válidas que define la Ecuación (3):
 
 $$\mathrm{MAE} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 \big|\hat{h}_i - h_i\big|, \tag{8}$$
@@ -438,59 +435,47 @@ donde $\mathcal{V}$, $|\mathcal{V}|$, $\hat{h}_i$ y $h_i$ conservan el
 significado de la Ecuación (3). Se reporta el MAE y no el error cuadrático porque
 expresa el resultado en minutos de headway.
 
-El MAE no dice nada sobre la forma del vector, y esa forma se mide con una segunda
-cantidad. El coeficiente de variación de un vector de headways es su desviación
-estándar dividida por su promedio:
+El MAE no describe la forma del vector. El coeficiente de variación (CV) es su
+desviación estándar muestral dividida por su promedio:
 
 $$\mathrm{CV}(\mathbf{h}) \;=\; \frac{1}{\bar{h}}
 \sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\big(h_j - \bar{h}\big)^{2}}, \tag{9}$$
 
-donde $m$, $h_j$ y $\bar{h}$ conservan el significado de la Ecuación (4), y la
-desviación estándar es la muestral. Vale cero cuando los buses están perfectamente
-espaciados y crece con la irregularidad del corredor. Se calcula sobre los mismos
-vectores de tres posiciones o más que exige la Ecuación (5). Se reporta porque es
-adimensional, de modo que corredores que operan a frecuencias distintas quedan
-sobre la misma escala. Su sesgo es el coeficiente de variación de lo predicho menos
-el de lo observado, de modo que un valor negativo dice que lo predicho es más
-regular que la realidad.
+donde $m$, $h_j$ y $\bar{h}$ conservan el significado de la Ecuación (4). Se
+calcula sobre los vectores de tres posiciones o más que exige la Ecuación (5). Se
+reporta porque es adimensional, de modo que corredores de frecuencias distintas
+quedan sobre la misma escala. Su sesgo es el CV de lo predicho menos el de lo
+observado, y un valor negativo dice que lo predicho es más regular que la realidad.
 
-El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto
-dependen del umbral. Las tres se construyen sobre el cruce entre el indicador
-observado de la Ecuación (5) y el detector de la Ecuación (6). La precisión es la
-fracción de posiciones marcadas que eran bunching. El recall es la fracción de
-posiciones de bunching que quedaron marcadas. El F1 es su media armónica:
+El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto dependen
+del umbral, sobre el cruce entre el indicador observado de la Ecuación (5) y el
+detector de la Ecuación (6). Sean TP las posiciones con $b_i = \hat{b}_i = 1$, FP
+las que tienen $\hat{b}_i = 1$ y $b_i = 0$, FN las que tienen $b_i = 1$ y
+$\hat{b}_i = 0$, y TN las restantes. La precisión, el recall y el F1 son entonces
 
 $$\mathrm{F}_1 \;=\; \frac{2PR}{P+R}, \qquad
 P \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}, \qquad
 R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{10}$$
 
-donde $P$ es la precisión y $R$ el recall. TP cuenta las posiciones con
-$b_i = \hat{b}_i = 1$, FP las que tienen $\hat{b}_i = 1$ y $b_i = 0$, y FN las que
-tienen $b_i = 1$ y $\hat{b}_i = 0$. La media armónica exige las dos a la vez:
-basta que una sea baja para que el F1 lo sea.
+donde $P$ es la precisión y $R$ el recall.
 
-Ese F1 necesita una referencia, porque su escala depende de cuán frecuente sea el
-evento. La tasa base de una celda es la fracción de sus posiciones donde el
-indicador observado vale 1. Un detector que marca toda posición como evento
-alcanza recall 1 y precisión igual a esa tasa, de modo que su F1 queda fijado por
-ella. Ese piso acompaña a todo F1 reportado.
+El F1 no usa TN, y premia por eso al detector que marca toda posición como evento.
+La tasa base de una celda es la fracción de sus posiciones donde el indicador
+observado vale 1. Ese detector alcanza recall 1 y precisión igual a la tasa base,
+así que su F1 queda fijado por ella y acompaña como piso a todo F1 reportado. El
+coeficiente de correlación de Matthews (MCC) usa los cuatro conteos. Para ese
+detector su cociente queda indeterminado, porque numerador y denominador se anulan
+a la vez, y se le asigna cero por extensión por continuidad. El área bajo la curva
+ROC (AUC) prescinde del punto de operación y puntúa el ordenamiento del puntaje
+continuo $-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (6) es el corte en
+$-\rho$. Es la probabilidad de que una posición de bunching reciba un puntaje
+mayor que una sin bunching, y vale 0,5 cuando el pronóstico no ordena.
 
-El F1 no cuenta las posiciones que ninguna de las dos reglas marca, y premia por
-eso al detector trivial. El coeficiente de correlación de Matthews (MCC) usa las
-cuatro celdas de la tabla de contingencia, de modo que los verdaderos negativos
-entran en el cálculo. Para el detector que marca toda posición su cociente queda
-indeterminado: el numerador y el denominador se anulan a la vez. Se le asigna
-cero, que es la extensión por continuidad y coincide con el valor esperado de un
-clasificador al azar.
-
-El F1 y el MCC se calculan con el umbral fijado en un solo punto de operación. El
-área bajo la curva ROC (AUC) prescinde de él y puntúa solo el ordenamiento. Se
-calcula sobre el puntaje continuo $-\hat{h}_i/\bar{\hat{h}}$, que crece a medida
-que la posición se hunde por debajo del promedio de su vector. La Ecuación (6) es
-ese mismo puntaje con el corte fijado en $-\rho$. El AUC es la probabilidad de que
-una posición de bunching reciba un puntaje mayor que una posición sin bunching.
-Vale 0,5 cuando el pronóstico no ordena, y un reescalado monótono del puntaje no
-lo altera.
+Sobre esas cantidades se construyen tres cocientes. La tasa de disparo de un
+método es la fracción de posiciones que marca como evento. El factor entre dos
+métodos es el cociente de sus F1, y mide cuántas veces mejor aparece uno de ellos
+bajo el mismo corte. El lift es la precisión dividida por la tasa base, de modo
+que expresa cuántas veces más informativa que el azar resulta una marca.
 
 El umbral no se hereda de lo observado. Se ajusta maximizando el MCC sobre el
 período de prueba de la ventana 2 y se aplica sin cambios al de la ventana 3. Los
@@ -749,10 +734,13 @@ veredicto sin umbral en 11 de 12 celdas, y a diez minutos coincidieron en las nu
 Tampoco depende de la definición del evento adoptada aquí, y la objeción conviene
 enfrentarla de frente. El corte relativo a la media del propio vector es una
 elección de este trabajo. Un corte absoluto en minutos, como el que usa la mayor
-parte de la literatura, podría disolver el efecto. Se probó. **No se atenuó:
-empeoró.** Bajo la convención dominante del campo, la fracción de eventos que el
-modelo efectivamente marcó fue unas 115 veces menor que bajo la regla relativa. La
-elección adoptada resultó ser la conservadora.
+parte de la literatura, podría disolver el efecto. Se probó con la convención
+dominante del campo: un corte fijo en la cuarta parte del headway mediano
+observado de cada corredor y dirección. Queda entre 1,4 y 2,4 minutos, se calibró
+sobre la ventana 2 y se aplicó sin cambios a la ventana 3. **No se atenuó:
+empeoró.** La tasa de disparo del modelo cayó por un factor de mediana 138 en diez
+de las doce celdas, y en las otras dos no marcó ninguna posición. La elección
+adoptada resultó ser la conservadora.
 
 Ese mismo ensayo impone un límite que corresponde declarar. Bajo esa convención
 más exigente, la capacidad de discriminación del modelo cayó: la mediana del área
