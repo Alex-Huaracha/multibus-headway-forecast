@@ -37,6 +37,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import polars as pl
+from scipy.stats import beta
 
 # Columns identifying one predicted vector: a corridor/direction snapshot at one
 # horizon. ``pair_rank`` indexes position WITHIN it.
@@ -363,3 +364,46 @@ def detection_scores(truth: np.ndarray, predicted: np.ndarray) -> DetectionScore
         recall=recall,
         f1=f1,
     )
+
+
+def precision_interval(
+    hits: int, fires: int, level: float = 0.95
+) -> tuple[float, float]:
+    """Clopper-Pearson interval for precision, given ``hits`` of ``fires``.
+
+    A precision computed off fourteen fires is a regime, not a value, and the
+    tables report the point estimate alone. This bounds it.
+
+    Clopper-Pearson rather than Wald or Wilson because the counts that need
+    bounding here are the small ones: at fourteen trials Wald's normal
+    approximation puts part of its interval outside [0, 1], and both
+    approximations undercover. The exact interval is conservative instead, which
+    is the direction an interval quoted in a paper should err.
+
+    ``fires == 0`` raises rather than returning [0, 1]: a detector that never
+    fired has no precision to bound, and the wide interval would read as a
+    measurement.
+    """
+    if not 0.0 < level < 1.0:
+        raise ValueError(f"precision_interval: level must be in (0, 1), got {level}")
+    if fires < 0 or hits < 0:
+        raise ValueError(
+            f"precision_interval: counts must be non-negative, got {hits}/{fires}"
+        )
+    if fires == 0:
+        raise ValueError(
+            "precision_interval: a detector that never fired has undefined precision"
+        )
+    if hits > fires:
+        raise ValueError(
+            f"precision_interval: {hits} hits cannot exceed {fires} fires"
+        )
+
+    alpha = 1.0 - level
+    low = 0.0 if hits == 0 else float(beta.ppf(alpha / 2, hits, fires - hits + 1))
+    high = (
+        1.0
+        if hits == fires
+        else float(beta.ppf(1 - alpha / 2, hits + 1, fires - hits))
+    )
+    return low, high

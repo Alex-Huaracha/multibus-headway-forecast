@@ -1,4 +1,4 @@
-| Corredor | h | Tasa base | Piso trivial | F1 persistencia | F1 aprendiz | Factor |
+| Corredor | h | Tasa base | Piso trivial | F1 persistencia | F1 LSTM | Factor |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
 | E2 | 1 | 0,299 | 0,460 | 0,581 | 0,207 | 2,8× |
 | E2 | 3 | 0,301 | 0,462 | 0,414&nbsp;† | 0,038 | 11× |
@@ -13,4 +13,4 @@
 | E59 | 5 | 0,208 | 0,344 | 0,405 | 0,083 | 4,9× |
 | E59 | 10 | 0,208 | 0,344 | 0,303&nbsp;† | 0,034 | 8,8× |
 
-† La regla vacía —marcar todas las celdas— supera al ganador declarado en estas celdas.
+† La regla vacía —marcar toda posición— supera al ganador declarado en estas celdas.

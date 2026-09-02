@@ -121,8 +121,13 @@ def tabla_1() -> str:
     """Detection under the transplanted cut, against the trivial floor.
 
     The dagger is the point of the table: it marks the cells where marking
-    *every* cell — a rule with no content — beats the declared winner. A ranking
-    that an empty rule can win is not ranking anything.
+    *every position* — a rule with no content — beats the declared winner. A
+    ranking that an empty rule can win is not ranking anything.
+
+    "Position", not "cell": a cell of this table is one corridor x horizon, and
+    the trivial detector flags every position of every vector inside it. The
+    manuscript uses "celda" for the former throughout, so the footnote has to
+    name the latter.
     """
     det = _load("contiguous_detection_calibrated.csv")
 
@@ -145,12 +150,12 @@ def tabla_1() -> str:
 
     table = _render(
         ["Corredor", "h", "Tasa base", "Piso trivial", "F1 persistencia",
-         "F1 aprendiz", "Factor"],
+         f"F1 {LEARNER}", "Factor"],
         rows,
         aligns="lrrrrrr",
     )
     note = (
-        "\n\n† La regla vacía —marcar todas las celdas— supera al ganador "
+        "\n\n† La regla vacía —marcar toda posición— supera al ganador "
         "declarado en estas celdas."
     )
     return table + note

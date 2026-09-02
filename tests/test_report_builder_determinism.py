@@ -17,6 +17,7 @@ from src.build_paired_audit import build
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORT_BUILDERS = (
     "src.build_centerline_sweep",
+    "src.build_detection_precision_ci",
     "src.build_gps_cadence",
     "src.build_headway_coverage",
     "src.build_mi_recheck",

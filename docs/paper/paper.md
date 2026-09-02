@@ -455,12 +455,42 @@ el de lo observado, de modo que un valor negativo dice que lo predicho es más
 regular que la realidad.
 
 El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto
-dependen del umbral. El F1 lo fija en un solo punto de operación, y se acompaña
-del F1 de un detector que marca toda posición como evento. El coeficiente de
-correlación de Matthews (MCC) fija el mismo punto, pero vale cero para ese
-detector trivial. El área bajo la curva ROC (AUC) prescinde del umbral y puntúa el
-ordenamiento del pronóstico, de modo que un reescalado monótono del puntaje no lo
-altera.
+dependen del umbral. Las tres se construyen sobre el cruce entre el indicador
+observado de la Ecuación (5) y el detector de la Ecuación (6). La precisión es la
+fracción de posiciones marcadas que eran bunching. El recall es la fracción de
+posiciones de bunching que quedaron marcadas. El F1 es su media armónica:
+
+$$\mathrm{F}_1 \;=\; \frac{2PR}{P+R}, \qquad
+P \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}, \qquad
+R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{10}$$
+
+donde $P$ es la precisión y $R$ el recall. TP cuenta las posiciones con
+$b_i = \hat{b}_i = 1$, FP las que tienen $\hat{b}_i = 1$ y $b_i = 0$, y FN las que
+tienen $b_i = 1$ y $\hat{b}_i = 0$. La media armónica exige las dos a la vez:
+basta que una sea baja para que el F1 lo sea.
+
+Ese F1 necesita una referencia, porque su escala depende de cuán frecuente sea el
+evento. La tasa base de una celda es la fracción de sus posiciones donde el
+indicador observado vale 1. Un detector que marca toda posición como evento
+alcanza recall 1 y precisión igual a esa tasa, de modo que su F1 queda fijado por
+ella. Ese piso acompaña a todo F1 reportado.
+
+El F1 no cuenta las posiciones que ninguna de las dos reglas marca, y premia por
+eso al detector trivial. El coeficiente de correlación de Matthews (MCC) usa las
+cuatro celdas de la tabla de contingencia, de modo que los verdaderos negativos
+entran en el cálculo. Para el detector que marca toda posición su cociente queda
+indeterminado: el numerador y el denominador se anulan a la vez. Se le asigna
+cero, que es la extensión por continuidad y coincide con el valor esperado de un
+clasificador al azar.
+
+El F1 y el MCC se calculan con el umbral fijado en un solo punto de operación. El
+área bajo la curva ROC (AUC) prescinde de él y puntúa solo el ordenamiento. Se
+calcula sobre el puntaje continuo $-\hat{h}_i/\bar{\hat{h}}$, que crece a medida
+que la posición se hunde por debajo del promedio de su vector. La Ecuación (6) es
+ese mismo puntaje con el corte fijado en $-\rho$. El AUC es la probabilidad de que
+una posición de bunching reciba un puntaje mayor que una posición sin bunching.
+Vale 0,5 cuando el pronóstico no ordena, y un reescalado monótono del puntaje no
+lo altera.
 
 El umbral no se hereda de lo observado. Se ajusta maximizando el MCC sobre el
 período de prueba de la ventana 2 y se aplica sin cambios al de la ventana 3. Los
@@ -476,6 +506,14 @@ varianza se estima agrupando por día de servicio, porque las
 muestras de un mismo día comparten clima, incidentes y demanda. El agrupamiento
 lleva el tamaño efectivo de muestra de decenas de miles de filas a los 22 días del
 período de prueba.
+
+La precisión de la Ecuación (10) admite su propia acotación, porque puede
+descansar sobre muy pocas posiciones marcadas. Se acota con el intervalo exacto de
+Clopper–Pearson [CITA_REQUERIDA] al 95 %, calculado sobre los conteos de TP y de
+FP de cada celda. Se prefiere el intervalo exacto a la aproximación normal. Los
+conteos que necesitan acotarse aquí son los pequeños, y en ellos la aproximación
+deja parte de su intervalo fuera del rango válido de una proporción. Una celda
+donde el detector nunca marca no recibe intervalo: no hay precisión que acotar.
 
 ---
 
@@ -590,15 +628,15 @@ casi siempre. Lo que la regla registra no es que el modelo no vea el evento: es
 que el modelo no produce la dispersión necesaria para cruzar un umbral calibrado
 sobre otra distribución.
 
-El tercero es que, en las pocas ocasiones en que disparó, el modelo acertó. De
+El tercero es el acierto del modelo en las pocas ocasiones en que disparó. De
 los catorce disparos de E2, diez correspondieron a eventos de bunching reales: 71 %
-de precisión contra una tasa base de 30 %. La muestra es pequeña y el intervalo de
-confianza va aproximadamente de 42 % a 92 %, de modo que la cifra señala un
-régimen y no un valor. Las celdas con más disparos lo confirman con menos
-incertidumbre: en E59 a diez minutos, 776 aciertos en 1 572 disparos contra una
-tasa base de 21 %; en E4, 75 en 150 contra 18 %. La cobertura del modelo colapsó;
-su precisión, no. Una medida que castiga por igual al que no marca y al que marca
-mal no distingue esos dos casos.
+de precisión contra una tasa base de 30 %. El intervalo de la Sección IV-E va de
+42 % a 92 % sobre esos catorce disparos, de modo que la cifra señala un régimen y
+no un valor. Las celdas con más disparos lo estrechan. A diez minutos el modelo
+acertó 776 de 1 572 disparos en E59, con precisión entre 47 % y 52 % contra una
+tasa base de 21 %. En E4 acertó 75 de 150, entre 42 % y 58 % contra 18 %. Una
+medida que castiga por igual al que no marca y al que marca mal no distingue esos
+dos casos.
 
 ![Tasa de disparo contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
@@ -800,8 +838,8 @@ entre 3,8 y 5,9 headways por minuto, así que la dispersión transversal es un
 estadístico de pocas observaciones. El corte del evento se compara además contra
 un promedio que incluye al propio elemento evaluado. El efecto es el mismo en los
 tres corredores y en las tres ventanas, lo que hace poco probable que lo produzca
-la longitud del vector; pero la precisión de cada cifra individual es menor en E4
-y E2, donde el vector es más corto, que en E59.
+la longitud del vector. Cada cifra individual es menos estable en E4 y en E2, que
+tienen el vector más corto, que en E59.
 
 **La evidencia es de tres corredores de una ciudad y cinco meses**, y el período de
 prueba contiene los días de Carnaval, cuya composición no se caracterizó. Los tres
