@@ -366,12 +366,110 @@ def tabla_5() -> str:
     )
 
 
+#: (display name, filename stem) of the three architectures the frozen
+#: generation ran over one corpus. The order is the one the table prints.
+ARCHITECTURES: tuple[tuple[str, str], ...] = (
+    ("LSTM", "lstm"),
+    ("SpatialConvLSTM", "spatial_conv_lstm"),
+    ("SpatialTransformer", "spatial_transformer"),
+)
+
+
+class AblationError(RuntimeError):
+    """The frozen results do not support the architecture comparison."""
+
+
+def _frozen_name(stem: str, corridor: str, horizon: int) -> str:
+    """E4 trained on its own kernels, so its results carry the corridor tag."""
+    tag = "_E4" if corridor == "E4" else ""
+    return f"{stem}{tag}_results_h{horizon}.csv"
+
+
+def load_frozen_results(
+    corridors: tuple[str, ...] = CORRIDORS,
+    horizons: tuple[int, ...] = HORIZONS,
+) -> pl.DataFrame:
+    """Every frozen architecture result, in one long frame.
+
+    E2 and E59 share a results file per horizon, so the same file is read for
+    both and filtered by corridor afterwards.
+    """
+    seen: set[str] = set()
+    frames: list[pl.DataFrame] = []
+    for _, stem in ARCHITECTURES:
+        for corridor in corridors:
+            for horizon in horizons:
+                name = _frozen_name(stem, corridor, horizon)
+                if name in seen:
+                    continue
+                seen.add(name)
+                frames.append(_load(name))
+    return pl.concat(frames)
+
+
+def ablation_rows(
+    results: pl.DataFrame,
+    corridors: tuple[str, ...] = CORRIDORS,
+    horizons: tuple[int, ...] = HORIZONS,
+) -> list[list[str]]:
+    """One row per corridor and horizon, one column per architecture.
+
+    Reads the ``aggregate`` row and not the per-direction ones. A results file
+    carries both, and averaging all three counts the corridor twice; falling
+    back to a single direction would change the unit without saying so. Either
+    absence raises instead.
+    """
+    pooled = results.filter(
+        (pl.col("direction") == "aggregate") & (pl.col("metric") == "MAE")
+    )
+
+    rows: list[list[str]] = []
+    for corridor in corridors:
+        for horizon in horizons:
+            maes: list[float] = []
+            for name, _ in ARCHITECTURES:
+                match = pooled.filter(
+                    (pl.col("corridor") == corridor)
+                    & (pl.col("horizon") == horizon)
+                    & (pl.col("baseline") == name)
+                )
+                if match.height != 1:
+                    raise AblationError(
+                        f"{corridor} h{horizon} needs exactly one aggregate MAE "
+                        f"for {name}, found {match.height}"
+                    )
+                maes.append(float(match["value"][0]))
+            rows.append(
+                [corridor, str(horizon)]
+                + [_num(mae) for mae in maes]
+                + [_num(max(maes) - min(maes))]
+            )
+    return rows
+
+
+def tabla_6() -> str:
+    """Does modelling the relation between neighbouring positions pay?
+
+    The three architectures ran over one frozen corpus, so they are comparable
+    to each other and to nothing else in this paper. The last column is the
+    widest gap of the row, which is what carries the answer: the spatial
+    component moves the scalar error by less than the rounding of a second.
+    """
+    rows = ablation_rows(load_frozen_results())
+    return _render(
+        ["Corredor", "h", *(name for name, _ in ARCHITECTURES), "Rango"],
+        rows,
+        aligns="lr" + "r" * (len(ARCHITECTURES) + 1),
+    )
+
+
 TABLES = {
     "tabla-1-deteccion-corte-trasplantado.md": tabla_1,
     "tabla-2-veredicto-sin-umbral.md": tabla_2,
     "tabla-3-robustez.md": tabla_3,
     "tabla-4-cobertura-headway.md": tabla_4,
     "tabla-5-formulaciones-headway.md": tabla_5,
+    "tabla-6-ablacion-arquitectura.md": tabla_6,
 }
 
 

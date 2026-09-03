@@ -134,8 +134,8 @@ disponible son coordenadas GPS crudas. Para llegar al headway desde esas
 coordenadas se aplica la secuencia de seis pasos que sigue.
 
 **1) El eje.** El trazado del corredor se estima de los propios buses: se ajusta
-una línea central a las posiciones de las unidades en movimiento y después se
-suaviza, lo que entrega una curva principal a lo largo del recorrido.
+una línea central a las posiciones de las unidades que superan los 10 km/h y
+después se suaviza, lo que entrega una curva principal a lo largo del recorrido.
 
 **2) La proyección a una dimensión.** Con el eje ya trazado, cada posición se
 reduce a dos números: cuánto ha avanzado el bus a lo largo del corredor y a qué
@@ -152,7 +152,7 @@ los corredores no reporta rumbo en absoluto.
 
 **4) Los viajes.** Ya con sentido, el recorrido de cada bus se corta en viajes: un
 salto de más de treinta minutos sin señal, una inversión de sentido o una espera
-prolongada en terminal cierran el viaje en curso.
+de más de cinco minutos en terminal cierran el viaje en curso.
 
 **5) La rejilla común.** Los buses no emiten sincronizados entre sí, de modo que
 hace falta un instante compartido. Todo se lleva a una rejilla de sesenta
@@ -179,18 +179,12 @@ la Ecuación (1)— pasa por p₂ a las 12:30 y el de atrás —el $F$— a las 
 modo que el headway en p₂ es de cinco minutos. La separación espacial entre los dos
 buses no interviene. Esquema ilustrativo, no datos reales.
 
-La Ecuación (1) se adoptó tras comparar cuatro formulaciones candidatas sobre
-siete dimensiones de calidad de señal, y dos decidieron los descartes. El tiempo
-entre pasadas por puntos artificiales sembrados a lo largo del eje quedó afuera
-por autocorrelación a cinco minutos: 0,167 en E2 y -0,005 en E59, contra 0,313 y
-0,603 de la formulación adoptada. El tiempo proyectado hacia adelante —la
-separación entre los dos buses dividida por la velocidad del de atrás— quedó
-afuera por información mutua entre buses vecinos, 0,226 y 0,326 bits contra 0,358
-y 1,256. Arrastra además una debilidad de forma. Dividir por la velocidad actual
-supone que esa velocidad se mantiene. Introduce así una estimación dentro de la
-cantidad que se busca estimar. La distancia en metros entre buses consecutivos
-pasa seis de las siete dimensiones, igual que la adoptada, y quedó afuera por
-medir separación espacial y no tiempo entre pasadas.
+La Ecuación (1) entrega tiempo entre pasadas. La distancia en metros entre dos
+buses consecutivos es la alternativa inmediata, y queda fuera porque mide
+separación espacial. Tampoco se proyecta ese tiempo hacia adelante dividiendo la
+separación por la velocidad del bus de atrás: esa división supone que la
+velocidad actual se mantiene, e introduce una estimación dentro de la cantidad
+que se busca estimar.
 
 ### B. Formulación de la tarea de predicción
 
@@ -377,7 +371,9 @@ porcentuales.
 
 Se comparan cuatro métodos sobre las mismas muestras, y cada uno cumple un papel
 distinto. El método bajo estudio es una red recurrente con memoria de largo y corto
-plazo (**LSTM**). Un conjunto de árboles con refuerzo de gradiente (**XGBoost**)
+plazo (**LSTM**); la Sección V-G contrasta esa elección contra dos arquitecturas
+que modelan la relación entre posiciones vecinas del vector. Un conjunto de
+árboles con refuerzo de gradiente (**XGBoost**)
 actúa como **control de arquitectura**: si reproduce el patrón del LSTM, ese patrón
 no proviene del aprendizaje profundo sino del objetivo de la Ecuación (3). Los dos
 restantes no ajustan parámetros y fijan el error de referencia. La **persistencia**
@@ -386,16 +382,11 @@ repite el último vector observado, así que su error crece con el horizonte. El
 del día, calculado sobre entrenamiento por corredor y sentido; no lee la ventana de
 entrada, de modo que su error no depende del horizonte.
 
-Otros cinco métodos se evaluaron y quedaron fuera. Ninguno de los tres
-estadísticos —la media del período de entrenamiento, la media móvil causal en tres
-ventanas y el suavizado exponencial simple de factor 0,3— combina las dos entradas
-de la Ecuación (2), el historial reciente y el calendario. Los tres repiten
-información que la persistencia o el promedio histórico ya aportan. Los otros dos
-modelan la relación entre posiciones vecinas del vector, con una convolución sobre
-el eje de los buses (**SpatialConvLSTM**) y con atención entre posiciones
-(**SpatialTransformer**). Una evaluación preliminar no encontró ganancia en su
-componente espacial. Los cinco descartes se decidieron sobre esa evaluación y no se
-rehicieron sobre las muestras definitivas.
+El conjunto excluye tres métodos estadísticos. La media del período de
+entrenamiento, la media móvil causal en tres ventanas y el suavizado exponencial
+simple de factor 0,3 no combinan las dos entradas de la Ecuación (2), el historial
+reciente y el calendario. Los tres repiten información que la persistencia o el
+promedio histórico ya aportan.
 
 De los cuatro métodos retenidos, solo el LSTM y el XGBoost ajustan parámetros.
 Ambos se ajustan por corredor y por horizonte, y cada par de corredor y horizonte
@@ -406,9 +397,10 @@ los del sentido que le corresponde. El LSTM usa 32 unidades ocultas, una o dos
 capas según la celda, paso 5 × 10⁻⁴, lotes de 128 y semilla fija en 42. El XGBoost
 usa hasta 400 rondas con parada temprana tras 30 sin mejora, y la misma semilla. Los presupuestos de
 búsqueda no son iguales: el XGBoost eligió veinticuatro configuraciones por celda
-sobre las muestras definitivas, mientras que el LSTM heredó la suya de la
-evaluación preliminar en dos de los tres corredores. La Sección VI acota qué
-afirmaciones no se sostienen con esa diferencia.
+sobre las muestras definitivas, mientras que el LSTM heredó la suya de una
+búsqueda previa que no se rehízo sobre esas muestras, en dos de los tres
+corredores. La Sección VI acota qué afirmaciones no se sostienen con esa
+diferencia.
 
 ### C. Protocolo de evaluación
 
@@ -554,8 +546,8 @@ Esta sección reporta el error escalar del vector y la frontera de régimen que 
 acota. Mide después la dispersión transversal de lo predicho, la detección con el
 umbral del evento observado y el comportamiento del factor entre las tres ventanas.
 Cierra con la detección puntuada sin umbral y con el umbral recalibrado, los
-ensayos de robustez frente a la ventana y a la definición del evento, y las
-implicaciones operativas.
+ensayos de robustez frente a la ventana y a la definición del evento, el
+contraste entre arquitecturas y las implicaciones operativas.
 
 ### A. Error escalar y su frontera de régimen
 
@@ -756,7 +748,7 @@ arquitectura. Entre las dos figuras cambió el umbral de la Ecuación (6). La
 Figura 7 lo hereda de lo observado y la Figura 8 lo elimina; la columna del MCC
 recalibrado de la Tabla 2 lo reajusta contra lo predicho. Como ninguna otra cosa
 varió, ninguna otra cosa explica el cambio de conteo, y el umbral queda
-identificado como la variable que producía el veredicto. La Sección V-G recoge lo
+identificado como la variable que producía el veredicto. La Sección V-H recoge lo
 que sigue de esto para quien opera.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
@@ -828,7 +820,41 @@ absoluto en minutos.
 
 ‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y se declara como tal.
 
-### G. Implicaciones operativas
+### G. Selección de la arquitectura
+
+Antes de fijar el protocolo de la Sección IV, tres arquitecturas se contrastaron
+entre sí sobre los mismos datos. Por eso sus cifras se leen unas contra otras y no
+contra las del resto de la Sección V. La primera es el LSTM que este trabajo
+lleva, que recibe el vector aplanado. Las otras dos modelan la relación entre
+posiciones vecinas: una convolución sobre el eje de los buses y atención entre las
+posiciones del vector. Esa relación es la estructura que un pronóstico vectorial
+podría aprovechar.
+
+Las tres quedaron dentro de un rango de 0,017 a 0,074 minutos en las doce celdas,
+y ninguna quedó primera en las doce. La Tabla 4 las recoge. Modelar la relación
+entre posiciones vecinas no movió el error escalar, de modo que el trabajo
+continuó con la más simple de las tres.
+
+**Tabla 4.** Error absoluto medio de las tres arquitecturas contrastadas antes de
+fijar el protocolo de la Sección IV. La última columna es la diferencia entre la
+mayor y la menor de cada fila.
+
+| Corredor | h | LSTM | SpatialConvLSTM | SpatialTransformer | Rango |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| E2 | 1 | 4,464 | 4,464 | 4,482 | 0,018 |
+| E2 | 3 | 4,916 | 4,916 | 4,936 | 0,020 |
+| E2 | 5 | 5,040 | 5,037 | 5,075 | 0,038 |
+| E2 | 10 | 5,128 | 5,123 | 5,142 | 0,019 |
+| E4 | 1 | 3,774 | 3,811 | 3,833 | 0,059 |
+| E4 | 3 | 4,679 | 4,698 | 4,754 | 0,074 |
+| E4 | 5 | 5,014 | 5,054 | 5,086 | 0,072 |
+| E4 | 10 | 5,348 | 5,367 | 5,380 | 0,032 |
+| E59 | 1 | 3,334 | 3,329 | 3,350 | 0,021 |
+| E59 | 3 | 3,847 | 3,847 | 3,883 | 0,036 |
+| E59 | 5 | 4,029 | 4,037 | 4,051 | 0,022 |
+| E59 | 10 | 4,224 | 4,239 | 4,222 | 0,017 |
+
+### H. Implicaciones operativas
 
 El resultado operativo no es que el modelo detecte mejor. Es que **marcó poco y
 acertó cuando marcó**, y el F1 de la Ecuación (10) combina esas dos propiedades en
@@ -873,7 +899,9 @@ configuraciones por celda sobre las muestras definitivas, mientras que el LSTM
 hereda la suya en dos de los tres corredores. Eso acota una comparación y solo
 una: donde el LSTM queda por detrás del XGBoost, la diferencia no es atribuible a
 la clase de modelo. Los otros dos métodos no ajustan nada, de modo que el error de
-referencia que fijan no depende de esa asimetría.
+referencia que fijan no depende de esa asimetría. El contraste de arquitecturas
+de la Sección V-G tampoco está nivelado con el resto, porque precede al protocolo
+de la Sección IV y no se rehízo después.
 
 Las métricas de la Sección IV-D son genéricas y comparables entre corredores, y
 ninguna liga un error de predicción a una decisión de intervención. Un despacho
