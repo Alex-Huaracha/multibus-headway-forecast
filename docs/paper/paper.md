@@ -506,8 +506,12 @@ pronóstico no ordena.
 Sobre esas cantidades se construyen tres cocientes. La tasa de disparo de un
 método es la fracción de posiciones que marca como evento. El factor entre dos
 métodos es el cociente de sus F1, y mide cuántas veces mejor aparece uno de ellos
-bajo el mismo umbral. El lift es la precisión dividida por la tasa base, de modo
-que expresa cuántas veces más informativa que el azar resulta una marca.
+bajo el mismo umbral. El tercero exige una cantidad más. La precisión promedio
+también prescinde del umbral: recorre el ordenamiento que el AUC puntúa, de mayor
+a menor, y promedia la precisión de la Ecuación (10) sobre las posiciones de
+bunching. Un pronóstico que no ordena alcanza una precisión promedio igual a la
+tasa base. El lift es entonces la precisión promedio dividida por la tasa base, y
+vale 1 cuando el pronóstico no ordena mejor que el azar.
 
 El umbral no se hereda de lo observado. Se ajusta maximizando el MCC sobre el
 período de prueba de la ventana 2 y se aplica sin cambios al de la ventana 3. Los
@@ -727,6 +731,13 @@ MCC recalibrado el LSTM ganó en 5 de las 12 celdas, entre ellas las tres de die
 minutos. La persistencia conservó la ventaja en el horizonte de un minuto, donde
 el error escalar también la favorecía en E4 y E59.
 
+El AUC no es la única forma de puntuar sin umbral. El lift de la Sección IV-D
+recorre el mismo ordenamiento, pero pesa más su cabeza, donde caen las posiciones
+que un detector marcaría primero. Los dos coincidieron en las doce celdas: en cada
+una ganó el mismo método. A diez minutos el lift del LSTM valió 1,19 en E2, 1,45
+en E4 y 1,48 en E59, contra 1,08, 1,24 y 1,26 de la persistencia. El veredicto sin
+umbral no depende entonces de cuál de los dos puntajes se use.
+
 Los dos cruces van en el mismo sentido. Medido por el signo de la diferencia, el
 error escalar pasó a favor del LSTM entre uno y tres minutos en los tres
 corredores. El AUC pasó a su favor entre uno y tres minutos en E2, entre tres y
@@ -817,23 +828,23 @@ absoluto en minutos.
 
 ### G. Implicaciones operativas
 
-El resultado operativo no es que el modelo detecte mejor. Es que **el modelo marca
-poco y acierta cuando marca**, y esas son dos propiedades distintas que la métrica
-habitual suma en un solo número. Con el umbral trasladado, el LSTM marcó 14 de
-las 50 356 posiciones de E2 a diez minutos y acertó el 71 % de las veces que marcó,
-contra una tasa base del 30 %. En E59 marcó más y acertó la mitad, contra un
-21 % de base. En los tres corredores la señal, cuando apareció, fue entre dos y
-tres veces más informativa que el azar.
+El resultado operativo no es que el modelo detecte mejor. Es que **marcó poco y
+acertó cuando marcó**, y el F1 de la Ecuación (10) combina esas dos propiedades en
+un solo número. La Sección V-C reporta los conteos: catorce disparos en E2 a diez
+minutos, y en ese horizonte la precisión quedó por encima de la tasa base en los
+tres corredores, con su intervalo al lado. Esa lectura describe el umbral
+trasplantado, y recalibrarlo deshace su primera mitad: el detector recalibrado
+marcó el 26,98 % de las posiciones de E2 a diez minutos, contra el 0,03 % del
+trasplantado.
 
-Eso no es una alarma y no conviene presentarlo como tal. Una alarma tiene que
-sonar cuando ocurre el evento, y ésta se queda callada la mayoría de las veces. Lo
-que sí constituye es un **filtro de prioridad**: un aviso poco frecuente pero más
-informativo que el azar, útil para ordenar la atención de un despachador que
-vigila tres corredores y no puede mirar todo a la vez. Y hay una consecuencia
-inmediata para cualquiera que hoy esté evaluando una predicción de este tipo. **El
-punto de operación se recalibra contra la distribución de lo predicho, no
-se hereda de las observaciones.** Requiere recalcular un escalar y no reentrenar
-nada.
+Eso no es una alarma. Una alarma tiene que sonar cuando ocurre el evento, y con el
+umbral trasplantado el detector se queda callado la mayoría de las veces. Lo que
+queda es un **filtro de prioridad**: un aviso poco frecuente y más informativo que
+el azar, que sirve para ordenar la atención de un despachador y no para
+dispararla. La consecuencia para quien evalúa un pronóstico de este tipo es
+distinta. **El punto de operación se recalibra contra la distribución de lo
+predicho, no se hereda de las observaciones.** Requiere recalcular un escalar y no
+reentrenar nada.
 
 ---
 
