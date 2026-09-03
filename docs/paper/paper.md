@@ -101,14 +101,14 @@ sin métricas de detección y sin transporte.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura
 [@sun2021]. Diagnostican que el paradigma de predecir y umbralizar falla, y que el veredicto
-se revierte al puntuar sin punto de operación. Su etiqueta es un corte absoluto de
+se revierte al puntuar sin punto de operación. Su etiqueta es un umbral absoluto de
 un minuto y no una regla relativa al propio vector, y su remedio es cambiar de
 clase de modelo, no recalibrar el umbral. Manibardo, Laña y Del Ser reportan que
 la persistencia es competitiva a horizonte corto y que ahí el margen de mejora es
 angosto [@manibardo2022]; no reportan que la relación se invierta al alargarlo.
 
 Ninguno de los seis mide un umbral relativo y auto-referencial, donde la
-compresión de lo predicho mueve el corte y el valor comparado a la vez. Ese es el
+compresión de lo predicho mueve el umbral y el valor comparado a la vez. Ese es el
 caso que la Ecuación (7) hace explícito, y es donde este documento interviene:
 recalibra ese umbral sobre una ventana anterior disjunta, sin tocar el modelo.
 
@@ -736,7 +736,9 @@ recorre el mismo ordenamiento, pero pesa más su cabeza, donde caen las posicion
 que un detector marcaría primero. Los dos coincidieron en las doce celdas: en cada
 una ganó el mismo método. A diez minutos el lift del LSTM valió 1,19 en E2, 1,45
 en E4 y 1,48 en E59, contra 1,08, 1,24 y 1,26 de la persistencia. El veredicto sin
-umbral no depende entonces de cuál de los dos puntajes se use.
+umbral no depende entonces de cuál de los dos puntajes se use. Con el MCC
+recalibrado el acuerdo baja a once de doce. La excepción es E59 a cinco minutos,
+donde el LSTM gana el AUC y pierde la correlación recalibrada.
 
 Los dos cruces van en el mismo sentido. Medido por el signo de la diferencia, el
 error escalar pasó a favor del LSTM entre uno y tres minutos en los tres
@@ -850,52 +852,34 @@ reentrenar nada.
 
 ## VI. Amenazas a la validez
 
-Esta sección enuncia el alcance de cada afirmación y los puntos donde no se
-sostiene.
+El umbral del evento es la fracción del promedio que usa la convención del campo,
+y no proviene de un registro de eventos observados. Esa elección lo hace
+comparable con los trabajos que la Sección III-C cita, y deja sin verificar que la
+fracción marque lo que un operador llamaría bunching. Validarla exigiría un
+registro de incidentes que estos corredores no producen. El alcance de todo
+reclamo de detección es entonces el evento así definido.
 
-**El hallazgo del umbral vale para el evento relativo.** Bajo un umbral absoluto en
-minutos el efecto se agrava, pero la capacidad de
-discriminación del LSTM cae, y en E2 a diez minutos llega a 0,49: azar. Ahí la
-afirmación de que el LSTM no es ciego no se sostiene.
+El corpus acota dos cosas más. Un vector reúne entre 3,8 y 5,9 headways en
+promedio, de modo que la dispersión transversal reposa sobre pocas observaciones.
+Que el efecto se repita en los tres corredores y en las tres ventanas lo hace poco
+atribuible a esa longitud. Cada cifra individual es menos estable en E2 y en E4,
+que tienen el vector más corto, que en E59. El período de prueba contiene además
+los días de Carnaval, cuya composición no se caracterizó, de modo que la
+comparación incluye días atípicos sin identificarlos.
 
-**Las dos formas de puntuar la detección coinciden en once de doce celdas.** La
-excepción es E59 a cinco minutos, donde el LSTM gana el área bajo la curva y
-pierde la correlación recalibrada. Ordenar bien y operar bien en un punto fijo son
-capacidades distintas, y esa celda las separa.
+Los dos métodos que ajustan parámetros no reciben el mismo presupuesto de
+búsqueda. Como declara la Sección IV-B, el XGBoost elige veinticuatro
+configuraciones por celda sobre las muestras definitivas, mientras que el LSTM
+hereda la suya en dos de los tres corredores. Eso acota una comparación y solo
+una: donde el LSTM queda por detrás del XGBoost, la diferencia no es atribuible a
+la clase de modelo. Los otros dos métodos no ajustan nada, de modo que el error de
+referencia que fijan no depende de esa asimetría.
 
-**El eje escalar tiene un competidor que le gana en una celda.** Frente al
-promedio histórico por franja horaria, el LSTM gana en once de doce; pierde en
-E2 a diez minutos por 0,07 minutos. Es cuatro segundos y está en el eje que este
-trabajo reporta como contexto, pero el número existe y se declara.
-
-**La comparación entre los dos modelos ajustados no está nivelada.** Como se dijo
-en la Sección IV-B, el XGBoost recibió veinticuatro configuraciones por celda y el
-LSTM una sola en dos corredores. Donde el LSTM pierde, la causa no es atribuible a
-la clase de modelo.
-
-**El umbral del evento no está calibrado contra incidentes registrados.** Se
-eligió por analogía con la convención del campo, no contra un registro operativo
-de eventos de bunching. Validarlo así exige un dato que estos corredores no
-producen.
-
-**La dispersión se mide sobre vectores cortos.** Un corredor queda descrito por
-entre 3,8 y 5,9 headways por minuto, así que la dispersión transversal es un
-estadístico de pocas observaciones. El umbral del evento se compara además contra
-un promedio que incluye al propio elemento evaluado. El efecto es el mismo en los
-tres corredores y en las tres ventanas, lo que hace poco probable que lo produzca
-la longitud del vector. Cada cifra individual es menos estable en E4 y en E2, que
-tienen el vector más corto, que en E59.
-
-**La evidencia es de tres corredores de una ciudad y cinco meses**, y el período de
-prueba contiene los días de Carnaval, cuya composición no se caracterizó. Los tres
-orígenes comparten día de inicio, de modo que establecen estabilidad frente a la
-elección del período de prueba y no réplica independiente.
-
-**Lo que este trabajo no afirma** es que estos modelos estén listos para operar una
-alarma de bunching. Un área bajo la curva de 0,60 es información real y está muy
-lejos de un sistema de despacho. Ninguna función de costo liga aquí un error de
-1,47 minutos, ni un área de 0,60, a una decisión de intervención concreta. Cerrar
-esa distancia es trabajo por hacer, no resultado logrado.
+Las métricas de la Sección IV-D son genéricas y comparables entre corredores, y
+ninguna liga un error de predicción a una decisión de intervención. Un despacho
+necesitaría una función de costo que pondere el aviso perdido contra el aviso
+falso, y esa función depende de la operación de cada empresa. Construirla y
+evaluar el modelo contra ella queda para trabajo futuro.
 
 ---
 

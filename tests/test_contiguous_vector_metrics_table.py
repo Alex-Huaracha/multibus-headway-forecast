@@ -33,6 +33,7 @@ from src.build_contiguous_vector_metrics import (  # noqa: E402
     profile_shape,
     vector_verdict,
 )
+from src.evaluation.vector_metrics import MIN_VECTOR_LEN  # noqa: E402
 
 pytestmark = pytest.mark.skipif(
     not (VECTOR_CSV.exists() and PROFILE_CSV.exists()),
@@ -91,6 +92,40 @@ class TestCoverage:
         assert per_cell.get_column("distinct_n").to_list() == [1] * per_cell.height
         assert per_cell.get_column("distinct_v").to_list() == [1] * per_cell.height
         assert per_cell.get_column("distinct_truth").to_list() == [1] * per_cell.height
+
+
+class TestVectorLength:
+    """How many headways describe a corridor at once.
+
+    Section VI reads the transversal dispersion off vectors of this length, so
+    the length has to be published rather than divided out of two other columns
+    by whoever reads the paper.
+    """
+
+    def test_the_mean_length_is_the_cells_per_vector(self, vector):
+        derived = vector.get_column("n_cells") / vector.get_column("n_vectors")
+        published = vector.get_column("mean_vector_len")
+        assert np.allclose(published.to_numpy(), derived.to_numpy(), atol=1e-9)
+
+    def test_no_cell_falls_below_the_minimum_vector(self, vector):
+        """A mean under the filter would mean the length filter leaked."""
+        assert vector.get_column("mean_vector_len").min() >= MIN_VECTOR_LEN
+
+    def test_e59_carries_the_longest_vector(self, lstm):
+        """The corridor ordering Section VI reports, pinned against the data."""
+        per_corridor = (
+            lstm.group_by("corridor")
+            .agg(pl.col("mean_vector_len").max().alias("longest"))
+            .sort("corridor")
+        )
+        by_name = dict(
+            zip(
+                per_corridor.get_column("corridor"),
+                per_corridor.get_column("longest"),
+            )
+        )
+        assert by_name["E59"] > by_name["E2"]
+        assert by_name["E59"] > by_name["E4"]
 
 
 class TestPositionMatters:

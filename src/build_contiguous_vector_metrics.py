@@ -29,6 +29,10 @@ import os
 
 # Byte-identical output across runs (CLAUDE.md determinism contract).
 os.environ.setdefault("POLARS_MAX_THREADS", "1")
+# The console this project runs from is cp1252, which cannot encode the box
+# drawing of the default polars repr. Without this the tables are written to
+# disk and the process still exits non-zero on the summary print.
+os.environ.setdefault("POLARS_FMT_TABLE_FORMATTING", "ASCII_FULL")
 
 from pathlib import Path  # noqa: E402
 
@@ -107,6 +111,10 @@ def build_vector_metrics(paired: pl.DataFrame) -> pl.DataFrame:
     flagged = flagged.join(
         lengths, on=["corridor", "direction", "horizon", "start_ts"], how="inner"
     ).filter(pl.col("vector_len") >= MIN_VECTOR_LEN)
+    # Published rather than left as n_cells / n_vectors: the paper reads the
+    # transversal dispersion off vectors of this length, and a figure the reader
+    # has to derive is a figure the reader can derive wrong.
+    surviving_lengths = lengths.filter(pl.col("vector_len") >= MIN_VECTOR_LEN)
 
     vectors = vector_frame(paired, value_cols)
 
@@ -118,6 +126,9 @@ def build_vector_metrics(paired: pl.DataFrame) -> pl.DataFrame:
             cell_cells = flagged.filter(where)
             if cell_vectors.height == 0:
                 continue
+            mean_vector_len = (
+                surviving_lengths.filter(where).get_column("vector_len").mean()
+            )
 
             truth = cell_cells.get_column("_bunch_y_true").to_numpy()
             for name, column in MODELS:
@@ -131,6 +142,7 @@ def build_vector_metrics(paired: pl.DataFrame) -> pl.DataFrame:
                         "corridor": corridor,
                         "horizon": horizon,
                         **regularity,
+                        "mean_vector_len": mean_vector_len,
                         "n_cells": scores.n,
                         "bunching_rate_true": scores.true_rate,
                         "bunching_rate_pred": scores.pred_rate,
@@ -220,7 +232,7 @@ def main() -> None:
     vector.write_csv(VECTOR_CSV)
 
     with pl.Config(tbl_rows=60, tbl_cols=14, tbl_width_chars=200):
-        print("Positional error profile — is it flat?")
+        print("Positional error profile - is it flat?")
         print(
             profile_shape(profile)
             .filter(pl.col("model") == "LSTM")
