@@ -8,7 +8,9 @@ _(pendiente — se escribe al final)_
 
 ## I. Introducción
 
-_(pendiente)_
+_(Situación, complicación y pregunta pendientes. La lista de contribuciones —el
+cuarto elemento del flujo que exige la Sección 4 de `reglas-redaccion.md`— ya está
+escrita y cierra la sección.)_
 
 > **AQUÍ VA ESTA CITA — Sun, Schmöcker y Nakamura (2021).** Diagnosticaron que el
 > paradigma de predecir y umbralizar falla y que el veredicto se revierte al
@@ -16,14 +18,39 @@ _(pendiente)_
 > planteo del problema, para no escribir «nadie se dio cuenta»
 > (`esqueleto.md:110`). Hoy esa atribución vive en el primer párrafo de la II-D,
 > que se borra cuando esta sección se escriba.
+>
+> **Y OJO AL ESCRIBIRLA:** la primera aparición del TCQSM es ahora la tercera
+> viñeta de esta sección, y ahí va desarrollada la sigla. La Sección III-C la usa
+> ya abreviada. Si el planteo del problema nombra el manual antes, el desarrollo
+> se mueve allí y la viñeta pasa a usar la sigla.
+
+Reclamamos tres contribuciones. Este trabajo predice el vector completo de
+headways de un corredor con un LSTM. La regla de la Sección III-C convierte lo
+predicho en un indicador de bunching, y la evaluación puntúa esa detección con y
+sin umbral. La Sección II-D delimita cuánto del mecanismo que este trabajo mide ya
+estaba publicado.
+
+- **Primera.** Medimos la compresión sobre el vector de headways, como dispersión
+  entre buses en un mismo instante. Los precedentes trabajan sobre la variabilidad
+  temporal de una serie escalar, que no es la misma cantidad.
+- **Segunda.** Invertimos la fórmula de calidad de servicio del *Transit Capacity
+  and Quality of Service Manual* (TCQSM) y la aplicamos a lo predicho en lugar de
+  a lo observado.
+- **Tercera.** La atamos a una regla de evento **relativa y auto-referencial**,
+  donde la compresión mueve el numerador y el denominador a la vez. Es la que no
+  encontramos con precedente dentro ni fuera del transporte: en Petetin y
+  colaboradores esa pieza no falta por descuido sino por construcción, porque sus
+  umbrales son regulatorios y no admiten recalibración.
 
 ---
 
 ## II. Trabajos relacionados
 
-_(A–C pendientes. Cada una carga las atribuciones que hoy están apiladas en el
-primer párrafo de la II-D: cuando las tres se escriban, ese párrafo se borra y la
-II-D queda solo con la brecha y las tres contribuciones.)_
+_(A–C pendientes. Cada una carga las atribuciones que hoy están apiladas en la
+II-D: cuando las tres se escriban, esas atribuciones se mudan allí y la II-D queda
+solo con el contraste explícito que la Sección 4 de `reglas-redaccion.md` exige al
+cierre de toda revisión. Las tres contribuciones ya no están aquí: viven en la
+Sección I, que es donde ese mismo flujo las pone.)_
 
 ### A. La receta estándar
 
@@ -32,10 +59,11 @@ _(pendiente — predecir el headway y umbralizarlo contra la referencia.)_
 > **AQUÍ VA ESTA CITA — Yu et al. (2016).** La formulación canónica del paradigma
 > que este trabajo examina.
 >
-> **Y AQUÍ VA UNA CITA QUE FALTA — `[CITA_REQUERIDA]`.** El cruce entre la
-> persistencia y un método entrenado al alargar el horizonte, ya reportado en
-> predicción de tráfico. No está en `fuentes-verificadas.md`: hay que encontrarla
-> o retirar la afirmación.
+> **AQUÍ VA ESTA CITA — Manibardo, Laña y Del Ser (2022).** Reportan que la
+> persistencia es competitiva a horizonte corto y que ahí el margen de mejora es
+> angosto. **No reportan el cruce:** que un método entrenado la supere al alargar
+> el horizonte no aparece en la fuente, así que no se concede. La II-D ya quedó
+> acotada a la mitad verificada.
 
 ### B. Por qué el umbral se mueve
 
@@ -58,34 +86,31 @@ _(pendiente — recalcular el umbral contra la distribución de cada modelo.)_
 > reducción de escala climática, ocho años antes. `esqueleto.md:130` la marca como
 > obligatoria.
 
-### D. Delimitación de lo previo y de la contribución
+### D. Delimitación de lo previo
 
-Buena parte del mecanismo que este trabajo mide ya está publicada, y delimitar
-qué es previo deja a la vista una contribución más angosta que ese mecanismo
-completo. Que una predicción optimizada en error cuadrático resulte menos dispersa
-que la realidad está enunciado por Mayer y Yang y demostrado como teorema por
-Patton y Timmermann. Nada de eso lo reclamamos. Tampoco reclamamos haber sido los
-primeros en atar esa compresión a una métrica categórica ni en observar que
-empeora con el horizonte: las dos cosas están en Petetin y colaboradores. Que el
-paradigma de predecir y umbralizar falle, y que el veredicto se revierta al
-puntuar sin punto de operación, lo diagnosticaron Sun, Schmöcker y Nakamura.
-Recalcular un umbral contra la distribución de cada modelo es el procedimiento de
-Hoffmann, Menz y Spekat en reducción de escala climática, ocho años antes. El
-cruce entre la persistencia y un método entrenado al alargar el horizonte ya se
-reporta en predicción de tráfico [CITA_REQUERIDA]. Llegar segundo a una
-conclusión no la vuelve propia.
+Seis trabajos llegan cerca del mecanismo que este documento mide, y ninguno cubre
+el caso que lo define. Que una predicción optimizada en error cuadrático resulte
+menos dispersa que la realidad está enunciado por Mayer y Yang y demostrado como
+teorema por Patton y Timmermann. Ese teorema recae sobre la varianza temporal de
+una serie escalar, no sobre la dispersión entre buses de un mismo instante.
+Petetin y colaboradores atan esa compresión a una métrica categórica y observan
+que empeora con el horizonte; sus umbrales son regulatorios y no admiten
+recalibración. Hoffmann, Menz y Spekat recalculan el umbral contra la distribución
+de cada modelo ocho años antes, en reducción de escala climática, sin horizonte,
+sin métricas de detección y sin transporte.
 
-Reclamamos tres contribuciones más angostas. **Primera**, medimos la compresión
-sobre el vector de headways, como dispersión entre buses en un mismo instante;
-los precedentes trabajan sobre la variabilidad temporal de una serie escalar, que
-no es la misma cantidad. **Segunda**, invertimos la fórmula de calidad de
-servicio del *Transit Capacity and Quality of Service Manual* (TCQSM) y la
-aplicamos a lo predicho en lugar de a lo observado. **Tercera**, y es la que no
-encontramos con precedente dentro ni fuera del transporte, la atamos a una regla
-de evento **relativa y auto-referencial**, donde la compresión mueve el numerador
-y el denominador a la vez. En Petetin y colaboradores esa pieza no falta por
-descuido sino por construcción: sus umbrales son regulatorios y no admiten
-recalibración.
+Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura.
+Diagnostican que el paradigma de predecir y umbralizar falla, y que el veredicto
+se revierte al puntuar sin punto de operación. Su etiqueta es un corte absoluto de
+un minuto y no una regla relativa al propio vector, y su remedio es cambiar de
+clase de modelo, no recalibrar el umbral. Manibardo, Laña y Del Ser reportan que
+la persistencia es competitiva a horizonte corto y que ahí el margen de mejora es
+angosto [@manibardo2022]; no reportan que la relación se invierta al alargarlo.
+
+Ninguno de los seis mide un umbral relativo y auto-referencial, donde la
+compresión de lo predicho mueve el corte y el valor comparado a la vez. Ese es el
+caso que la Ecuación (7) hace explícito, y es donde este documento interviene:
+recalibra ese umbral sobre una ventana anterior disjunta, sin tocar el modelo.
 
 ---
 
@@ -114,7 +139,7 @@ suaviza, lo que entrega una curva principal a lo largo del recorrido.
 
 **2) La proyección a una dimensión.** Con el eje ya trazado, cada posición se
 reduce a dos números: cuánto ha avanzado el bus a lo largo del corredor y a qué
-distancia quedó del eje. Es la operación que la norma ISO 19148 [1] especifica
+distancia quedó del eje. Es la operación que la norma ISO 19148 [@iso19148] especifica
 para referenciar posiciones contra un objeto unidimensional. La posición se
 conserva solo si su desvío lateral no pasa de 300 m; lo que cae más lejos no
 pertenece al corredor.
@@ -204,7 +229,7 @@ observado en la posición $i$.
 Esa elección gobierna el resto del trabajo. Una predicción que minimiza error
 cuadrático tiende a la media condicional, y esa media es menos dispersa que la
 realidad. Patton y Timmermann lo demuestran como teorema
-[AQUÍ VA EL NÚMERO DE CITA DE PATTON Y TIMMERMANN]. La compresión de
+[@patton2012]. La compresión de
 dispersión que documenta la Sección V-B no es entonces una falla del ajuste. El
 efecto de esa compresión sobre la regla del evento es el asunto de la
 Sección III-C.
@@ -216,8 +241,8 @@ terminan viajando casi juntos y dejan un intervalo largo detrás de ellos. Su co
 recae sobre quien espera en ese intervalo: la espera que enfrenta es la que el
 intervalo mide, y no el headway promedio del corredor. Sus causas son
 heterogéneas, entre ellas la congestión, un día de demanda atípica, la acumulación
-de pasajeros en el bus adelantado o las restricciones horarias del conductor
-[CITA_REQUERIDA]. Este trabajo no observa ninguna de ellas: el registro disponible
+de pasajeros en el bus adelantado o el comportamiento del conductor
+[@rezazada2024]. Este trabajo no observa ninguna de ellas: el registro disponible
 trae identificador, instante y coordenada, y no pasajeros, ocupación ni estado del
 tránsito. Por eso el evento se define sobre la geometría del vector de headways,
 que sí es observable, y no sobre lo que la produjo.
@@ -230,8 +255,7 @@ afectadas a la vez.
 
 Resta decidir cuándo un headway cuenta como bunching. La convención del campo es
 una fracción del headway programado: un cuarto en las formulaciones más citadas, y
-la mitad en el *Transit Capacity and Quality of Service Manual* (TCQSM)
-[AQUÍ VA EL NÚMERO DEL TCQSM]. Estos corredores no tienen programación contra la
+la mitad en el TCQSM [@tcqsm2003]. Estos corredores no tienen programación contra la
 cual comparar, así que el denominador se sustituye por el promedio del propio
 vector en ese instante. **Un headway cuenta como bunching si cae por debajo de la
 mitad de ese promedio.** Ese valor es el umbral relativo del evento: se lo llama
@@ -246,7 +270,7 @@ la separación normal en ese corredor en ese instante. Un umbral absoluto, fijo 
 minutos, no la cumple, porque no es comparable entre corredores que operan a
 frecuencias distintas. La elección del valor tampoco es neutral: los umbrales
 publicados van desde veinte segundos hasta un cuarto del headway programado
-[AQUÍ VA EL NÚMERO DE REZAZADA], y no existe un único valor aceptado.
+[@rezazada2024], y no existe un único valor aceptado.
 
 El vector de la Sección III-B se escribe por componentes como
 $\mathbf{h}(t) = (h_1, \dots, h_m)$. Su promedio y el umbral del evento son
@@ -488,9 +512,19 @@ que el período publicado no informa su propio umbral.
 
 ### E. Pruebas estadísticas
 
+La Sección IV-D define las métricas, y compararlas entre dos métodos exige
+declarar qué cuenta como resultado de esa comparación. Un veredicto es la
+comparación de dos métodos sobre las mismas muestras bajo una métrica declarada,
+y consta de tres partes: cuál de los dos gana, por cuánto y si la diferencia
+sobrevive su prueba. Exigir muestras idénticas es lo que lo distingue de la resta
+de dos métricas agregadas, que pueden haberse calculado sobre poblaciones
+distintas. Este trabajo emite veredictos sobre el MAE de la Ecuación (8) y sobre
+las cantidades de detección de la Ecuación (10), el MCC y el AUC. Un veredicto
+sin umbral es el que usa el AUC, que no depende del punto de operación.
+
 Una diferencia de MAE entre dos métodos puede ser ruido del período de prueba. Se
-contrasta con la prueba de Diebold–Mariano [2] sobre el diferencial de pérdida por
-muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold [3]. La
+contrasta con la prueba de Diebold–Mariano [@diebold1995] sobre el diferencial de pérdida por
+muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold [@harvey1997]. La
 varianza se estima agrupando por día de servicio, porque las
 muestras de un mismo día comparten clima, incidentes y demanda. El agrupamiento
 lleva el tamaño efectivo de muestra de decenas de miles de filas a los 22 días del
@@ -498,7 +532,7 @@ período de prueba.
 
 La precisión de la Ecuación (10) admite su propia acotación, porque puede
 descansar sobre muy pocas posiciones marcadas. Se acota con el intervalo exacto de
-Clopper–Pearson [CITA_REQUERIDA] al 95 %, calculado sobre los conteos de TP y de
+Clopper–Pearson [@clopper1934] al 95 %, calculado sobre los conteos de TP y de
 FP de cada celda. Se prefiere el intervalo exacto a la aproximación normal. Los
 conteos que necesitan acotarse aquí son los pequeños, y en ellos la aproximación
 deja parte de su intervalo fuera del rango válido de una proporción. Una celda
@@ -571,7 +605,7 @@ igual en una red recurrente y en un conjunto de árboles no es una propiedad de
 ninguna de las dos.
 
 La consecuencia práctica se aprecia al leer esas cifras contra la escala de nivel
-de servicio del TCQSM [AQUÍ VA EL NÚMERO DEL TCQSM]. El manual indexa sus bandas
+de servicio del TCQSM [@tcqsm2003]. El manual indexa sus bandas
 por la dispersión del headway respecto del programado. Estos corredores no tienen
 programación, así que la escala se lee con el coeficiente de variación de la
 Ecuación (9). Con esa sustitución, el mismo corredor en el mismo instante calificó
@@ -863,18 +897,41 @@ _(pendiente — disponibilidad de datos y código)_
 ## Referencias
 
 _(lista en construcción: solo las fuentes ya verificadas en
-`fuentes-verificadas.md` y ya llamadas desde el texto. La numeración es por orden
-de primera aparición, así que incorporar las fuentes que las Secciones II-D y V
-nombran en prosa —todas anteriores a la III-A— renumerará estas tres y obligará a
-corregir sus llamadas.)_
+`fuentes-verificadas.md` y ya llamadas desde el texto. Las llamadas usan claves
+con arroba y no números, de modo que insertar una fuente no obliga a renumerar ni
+a corregir llamadas. La numeración por orden de primera aparición se resuelve al
+convertir al formato IJACSA, sustituyendo cada clave por su número; el orden de
+esta lista no es todavía el definitivo.)_
 
-[1] Geographic information — Linear referencing, ISO 19148:2021, 2nd ed.,
-International Organization for Standardization, Geneva, Switzerland, 2021.
+`[@clopper1934]` C. J. Clopper and E. S. Pearson, "The use of confidence or
+fiducial limits illustrated in the case of the binomial," *Biometrika*, vol. 26,
+no. 4, pp. 404–413, 1934, doi: 10.1093/biomet/26.4.404.
 
-[2] F. X. Diebold and R. S. Mariano, "Comparing Predictive Accuracy,"
+`[@diebold1995]` F. X. Diebold and R. S. Mariano, "Comparing Predictive Accuracy,"
 *Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995,
 doi: 10.1080/07350015.1995.10524599.
 
-[3] D. Harvey, S. Leybourne, and P. Newbold, "Testing the equality of prediction
-mean squared errors," *International Journal of Forecasting*, vol. 13, no. 2,
-pp. 281–291, 1997, doi: 10.1016/S0169-2070(96)00719-4.
+`[@harvey1997]` D. Harvey, S. Leybourne, and P. Newbold, "Testing the equality of
+prediction mean squared errors," *International Journal of Forecasting*, vol. 13,
+no. 2, pp. 281–291, 1997, doi: 10.1016/S0169-2070(96)00719-4.
+
+`[@iso19148]` Geographic information — Linear referencing, ISO 19148:2021, 2nd ed.,
+International Organization for Standardization, Geneva, Switzerland, 2021.
+
+`[@manibardo2022]` E. L. Manibardo, I. Laña, and J. Del Ser, "Deep Learning for
+Road Traffic Forecasting: Does it Make a Difference?," *IEEE Transactions on
+Intelligent Transportation Systems*, vol. 23, no. 7, pp. 6164–6188, 2022,
+doi: 10.1109/TITS.2021.3083957.
+
+`[@patton2012]` A. J. Patton and A. Timmermann, "Forecast Rationality Tests Based
+on Multi-Horizon Bounds," *Journal of Business & Economic Statistics*, vol. 30,
+no. 1, pp. 1–17, 2012, doi: 10.1080/07350015.2012.634337.
+
+`[@rezazada2024]` M. Rezazada, N. Nassir, E. Tanin, and A. Ceder, "Bus bunching: a
+comprehensive review from demand, supply, and decision-making perspectives,"
+*Transport Reviews*, vol. 44, no. 4, pp. 766–790, 2024,
+doi: 10.1080/01441647.2024.2313969.
+
+`[@tcqsm2003]` *Transit Capacity and Quality of Service Manual*, 2nd ed., TCRP
+Report 100, Transportation Research Board, 2003, Part 3, ch. 3, p. 3-48,
+Exhibit 3-30.
