@@ -4,6 +4,7 @@
 *   **Ausencia de Datos:** NUNCA inventar métricas, cifras, citas o resultados para cumplir una regla de estilo. Si el dato necesario para sostener una afirmación no existe en las fuentes de verdad, omitir la afirmación y colocar el marcador `[INSERTAR DATO/MÉTRICA]`.
 *   **Fuentes de verdad:** Toda cifra se copia de una de estas y de ninguna otra: las tablas generadas en `docs/paper/tablas/`, las figuras generadas en `docs/paper/figuras/`, `docs/resultados/documento-resultados.md` o los CSV de `docs/resultados/`. Ninguna cifra se teclea de memoria ni se recalcula mentalmente. Antes de declarar que falta un dato, verificar que no esté ya en esas rutas.
 *   **Referencias:** Prohibido inventar literatura. Las citas no se escriben de memoria; si se necesitan, usar `[CITA_REQUERIDA]`. Autores, título, año y venue se copian literalmente de `docs/paper/fuentes-verificadas.md`, y solo si la entrada está marcada como verificada.
+*   **Definiciones:** Todo instrumento, métrica o umbral que el documento define debe coincidir con su implementación en `src/`. Ante una diferencia gana el código y se corrige el documento. Prohibido escribir código para que el documento tenga razón. Si el instrumento no existe en `src/`, se saca del documento o se le da uso con lo que el proyecto ya calcula.
 
 ## 1. Voz, Persona y Tono
 *   **Contribuciones propias:** Usar siempre la primera persona del plural ("nosotros"). *Ejemplo: Proponemos, analizamos.*
@@ -45,7 +46,9 @@
     *   Toda revisión debe terminar obligatoriamente con un contraste explícito que demuestre por qué la literatura actual es insuficiente y cómo el método propuesto llena esa brecha.
 *   **Flujo del Método (Top-Down):** Iniciar con el pipeline completo y la formulación matemática explícita (variables, entradas, salidas) en Presente, antes de narrar detalles específicos.
 *   **Causalidad de Resultados:** Toda métrica, número o gráfica reportada debe acompañarse de un análisis técnico que explique *por qué* se obtuvo ese resultado (basado en la sección del Método), apoyándose estrictamente en los datos provistos.
-*   **Frontera entre Diseño Experimental y Resultados:** El Diseño Experimental admite cifras que describen el montaje —cantidad de días, cobertura, fracción de muestras que sobrevive una regla— y ninguna cifra de rendimiento. Todo valor de una métrica, todo *p* y todo veredicto pertenecen a Resultados. Un instrumento se define en el Diseño y se cita desde Resultados; nunca se define en los dos lugares.
+*   **Frontera entre Diseño Experimental y Resultados:** El Diseño Experimental admite cifras que describen el montaje —cantidad de días, cobertura, fracción de muestras que sobrevive una regla— y ninguna cifra de rendimiento. Todo valor de una métrica, todo *p* y todo veredicto pertenecen a Resultados. Un instrumento se define en el Diseño y se cita desde Resultados; nunca se define en los dos lugares. El Método propuesto se rige por la misma frontera.
+*   **El Método no narra la exploración:** El Método declara qué se adopta y lo justifica contra la alternativa que el lector esperaría, en una cláusula. Prohibido enumerar las candidatas evaluadas, sus mediciones o el criterio numérico que decidió entre ellas: eso es un resultado. Un descarte se justifica por lo que la alternativa mide o supone, no por lo que puntuó. Si un descarte solo se sostiene con una medición, o esa medición se reporta en Resultados o el descarte no se menciona.
+*   **Prueba de tachado:** Antes de dar por buena una afirmación, tacharla y preguntar si el documento pierde algo que no diga en ninguna otra parte. Repetir un hecho, comprimido a una cláusula, para acotar su alcance es legítimo; repetir la conclusión no lo es. Una afirmación que sostiene el resultado en vez de acotarlo es un resultado y va en Resultados, aunque tenga forma de salvedad.
 
 ## 5. Restricciones Léxicas (Filtro Anti-IA)
 *   **Métricas exactas:** Prohibidos los cuantificadores vagos ("buen rendimiento", "mejora significativa") a menos que haya prueba estadística. Referir siempre a los valores absolutos o porcentajes del texto origen.
@@ -79,7 +82,7 @@ Consecuencia obligatoria: si un párrafo no llega a 50 palabras sin agregar rell
 
 ## 8. Verificación Antes de Entregar
 
-Ninguna redacción se da por terminada sin recorrer esta lista. El chequeo no se escribe dentro del manuscrito: el informe va en la respuesta, fuera del texto del paper. Los puntos 1 y 2 no son razonamiento: exigen abrir la fuente y comparar. Prohibido declarar cumplido un punto sin haberlo comprobado contra el archivo. Si algún punto falla, corregir antes de entregar y reportar qué se corrigió.
+Ninguna redacción se da por terminada sin recorrer esta lista. El chequeo no se escribe dentro del manuscrito: el informe va en la respuesta, fuera del texto del paper. Los puntos 1, 2 y 10 no son razonamiento: exigen abrir la fuente y comparar. Prohibido declarar cumplido un punto sin haberlo comprobado contra el archivo. Si algún punto falla, corregir antes de entregar y reportar qué se corrigió.
 
 1.  **Cifras.** Cada número del texto aparece idéntico en su fuente de verdad. Los que no, quedan como `[INSERTAR DATO/MÉTRICA]`.
 2.  **Citas.** Cada cita existe en `fuentes-verificadas.md` y está marcada como verificada. Las demás quedan como `[CITA_REQUERIDA]`.
@@ -90,3 +93,6 @@ Ninguna redacción se da por terminada sin recorrer esta lista. El chequeo no se
 7.  **Ecuaciones.** Cada una lleva `\tag{n}` en secuencia, va introducida en prosa y define sus símbolos nuevos inmediatamente después con "donde…".
 8.  **Concisión.** Ningún párrafo cierra con un remate. Cada decisión llega a dos movimientos y se detiene.
 9.  **Flujo.** Toda sección con subsecciones tiene su hoja de ruta. Ningún bloque abre con un instrumento sin antecedente. Ninguna cifra de rendimiento aparece antes de Resultados, y ningún instrumento se define dos veces.
+10. **Código.** Cada instrumento que el documento define coincide con su implementación en `src/`, comprobada abriéndola.
+11. **Tachado.** Ninguna afirmación repite una conclusión que el documento ya emite en otro lugar. Lo que sostiene el resultado está en Resultados y no entre las salvedades.
+12. **Método.** Ninguna sección de Método enumera candidatas evaluadas, sus mediciones o el criterio numérico que decidió entre ellas.
