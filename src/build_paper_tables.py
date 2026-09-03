@@ -179,7 +179,7 @@ def tabla_2() -> str:
             auc_r = _cell(det, "auc", model=RIVAL, **keys)
             mcc_l = _cell(det, "mcc_calibrated", model=LEARNER, **keys)
             mcc_r = _cell(det, "mcc_calibrated", model=RIVAL, **keys)
-            winner = "aprendiz" if auc_l > auc_r else "persistencia"
+            winner = LEARNER if auc_l > auc_r else "persistencia"
             rows.append([
                 corridor, str(horizon),
                 f"**{_num(auc_l)}**" if auc_l > auc_r else _num(auc_l),
@@ -190,8 +190,8 @@ def tabla_2() -> str:
             ])
 
     return _render(
-        ["Corredor", "h", "AUC aprendiz", "AUC persist.",
-         "MCC recal. aprendiz", "MCC recal. persist.", "Gana AUC"],
+        ["Corredor", "h", f"AUC {LEARNER}", "AUC persist.",
+         f"MCC recal. {LEARNER}", "MCC recal. persist.", "Gana AUC"],
         rows,
         aligns="lrrrrrl",
     )
@@ -211,7 +211,7 @@ def tabla_3() -> str:
         (pl.col("model") == LEARNER) & (pl.col("absolute_ratio") == 0.25)
     )
 
-    label = {"lstm": "aprendiz", "persist": "persist.", "persistence": "persist."}
+    label = {"lstm": LEARNER, "persist": "persist.", "persistence": "persist."}
 
     rows: list[list[str]] = []
     for corridor in CORRIDORS:
