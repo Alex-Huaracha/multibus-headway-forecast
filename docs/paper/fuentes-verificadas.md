@@ -245,7 +245,7 @@ La forma relativa que domina la literatura es una fracción del *headway*
 | Regla | Fuente | Forma |
 |---|---|---|
 | ¼ del *headway* programado | Yu et al. 2016, doi:`10.1016/j.trc.2016.09.007` | relativa al horario |
-| ¼ del *headway* programado | Moreira-Matias et al. 2016, doi:`10.1016/j.asoc.2016.06.031` | relativa al horario |
+| ¼ del *headway* programado | Moreira-Matias et al. 2016, doi:`10.1016/j.asoc.2016.06.031` — `[TEXTO COMPLETO]`, ver §C1-bis | relativa al horario |
 | **1 minuto absoluto** | Sun et al. 2021, doi:`10.1080/15472450.2020.1725887` | absoluta, justificada empíricamente |
 | ½ del *headway* programado | TCQSM 2ª ed., Exhibit 3-30 | relativa al horario |
 | Parada servida antes que su líder (rebase) | Diab, Bertini & El-Geneidy 2016, TRB 95th | topológica |
@@ -359,9 +359,13 @@ exactamente donde está — la inversión, no la fórmula. Es más fuerte
 retóricamente que un argumento ad hoc, porque usa la fuente de la regla contra
 el mal uso de la regla.
 
-**Resuelto de paso:** la procedencia del 0.5× es el TCQSM. La variante 0.25×
-**no tiene origen académico** — solo literatura gris (NYC Comptroller, *Behind
-Schedule*, 2025-04-10, sin cita). Cita limpia del 0.5× en uso:
+**Resuelto de paso:** la procedencia del 0.5× es el TCQSM. El 0.25× **no está
+derivado en ninguna parte**: se propaga por citación. Moreira-Matias et al. 2016
+lo fijan «following previous studies of this particular case study» y no lo
+justifican, y Yu et al. 2016 tampoco lo argumentan. Eso **no** significa que
+carezca de origen académico —lo usan dos papers arbitrados, ver §C1-bis—, sino que
+nadie publicó la derivación. La única justificación localizada es literatura gris
+(NYC Comptroller, *Behind Schedule*, 2025-04-10, sin cita). Cita limpia del 0.5× en uso:
 Zhang, Xu, Lu & Fan, *Sustainability* 14(23):15583 (2022),
 doi:`10.3390/su142315583` `[TEXTO COMPLETO]`.
 
@@ -397,6 +401,43 @@ de Crossref**, no de memoria.
 | **Vannitsem & Hagedorn (2011)**, *Meteorological Applications* 18(1):94–104 | doi:`10.1002/met.217` | `[CROSSREF]` — título, byline, volumen y páginas confirmados | Mayer y Yang le acreditan el agravamiento de la sub-dispersión con el *lead time*. **Citada de segunda mano**: no leímos el cuerpo, así que en §II-B se la nombra como atribución de Mayer y Yang y **no se le atribuye texto ni cifras** |
 | **Diebold, F. X., & Mariano, R. S. (1995)**, «Comparing Predictive Accuracy», *Journal of Business & Economic Statistics* 13(3):253–263 | doi:`10.1080/07350015.1995.10524599` | `[CROSSREF]` — título y byline confirmados contra Crossref | El test pareado de §I-D y §III-E. Existe un reimpreso de 2002 (doi:`10.1198/073500102753410444`, *JBES* 20(1):134–144); **citar el original de 1995** |
 | **Harvey, D., Leybourne, S., & Newbold, P. (1997)**, «Testing the equality of prediction mean squared errors», *International Journal of Forecasting* 13(2):281–291 | doi:`10.1016/S0169-2070(96)00719-4` | `[CROSSREF]` — DOI, título, byline, volumen, número y páginas confirmados contra el registro de Crossref y contra la documentación de `forecast::dm.test` | La corrección de muestra pequeña del test DM, en la Sección IV-E del manuscrito. La fórmula que el repo ejecuta —`DM* = DM · sqrt([n + 1 − 2h + h(h−1)/n] / n)`, contra `t_{n−1}` (`src/evaluation/significance_clustered.py:89-97`)— **coincide con la que fuentes secundarias atribuyen a este paper, pero no se verificó contra su texto completo**. Se cita por el método, no por texto ni cifras |
+
+### Sun et al., campos para la lista — verificados 2026-09-03
+
+Ya estaba leída a texto completo en §2.1 pero sin entrada bibliográfica formateada.
+Campos confirmados **contra la API de Crossref por DOI**.
+
+| Fuente | ID | Estado | Nota |
+|---|---|---|---|
+| **Sun, W., Schmöcker, J.-D., & Nakamura, T. (2021)**, «On the tradeoff between sensitivity and specificity in bus bunching prediction», *Journal of Intelligent Transportation Systems* 25(4):384–400 | doi:`10.1080/15472450.2020.1725887` | `[TEXTO COMPLETO]` (§2.1) + `[CROSSREF]` para los campos | Crossref fecha el registro en 2020-02-13, que es el *online first*; el número 25(4) es de 2021 y esa es la fecha que se cita. Se llama desde la II-D como precedente más cercano y desde la V-F por su corte **absoluto de un minuto**, que es el único absoluto de la tabla de §C1 |
+
+### C1-bis. Moreira-Matias et al. 2016 — el ¼ se VERIFICA, y §2.2 estaba mal
+`[TEXTO COMPLETO]` — PDF leído 2026-09-03, doi:`10.1016/j.asoc.2016.06.031`,
+*Applied Soft Computing* 47:460–482.
+
+§C1 le atribuía el ¼ sin haber abierto el paper, y §2.2 afirmaba que el 0.25×
+«no tiene origen académico». Se abrió y **§C1 tenía razón**. Tres pasajes:
+
+- **Tabla 1, notación (p. 463):** *"`f_{i,j}` **Planned Headway** established for a
+  given pair of trips, (i, j)"*.
+- **§5.1, montaje experimental:** *"Throughout this work, the value τ was set to
+  **τ = f_{k,k+1}/4** following previous studies of this particular case study
+  [43,45]."*
+- **Tabla 4, estadística descriptiva:** *"total number of trips with a headway
+  shorter than **25% of the planned headway** at least once along their trip"*.
+
+En la discusión llaman a τ *"minimum headway threshold for BB"*. Es un cuarto del
+*headway* **programado**, sin ambigüedad. Porto sí tiene horario, a diferencia de
+Pekín en Yu et al. y de estos corredores.
+
+**Lo que queda de §2.2.** Que nadie **derivó** el ¼: Moreira-Matias lo toman
+«following previous studies» y no lo justifican. Eso se corrigió en §2.2; la
+afirmación de que no tiene origen académico se retiró.
+
+**Consecuencia para el manuscrito.** La III-C conserva el plural «las
+formulaciones más citadas» con dos fuentes a texto completo detrás, y ahora cita
+[@moreiramatias2016] por el ¼ del programado y [@yu2016] por la sustitución
+cuando no hay horario.
 
 ### Las tres que cerraban los `[CITA_REQUERIDA]` — verificadas 2026-09-03
 

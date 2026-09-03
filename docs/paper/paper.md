@@ -99,8 +99,8 @@ recalibración. Hoffmann, Menz y Spekat recalculan el umbral contra la distribuc
 de cada modelo ocho años antes, en reducción de escala climática, sin horizonte,
 sin métricas de detección y sin transporte.
 
-Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura.
-Diagnostican que el paradigma de predecir y umbralizar falla, y que el veredicto
+Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura
+[@sun2021]. Diagnostican que el paradigma de predecir y umbralizar falla, y que el veredicto
 se revierte al puntuar sin punto de operación. Su etiqueta es un corte absoluto de
 un minuto y no una regla relativa al propio vector, y su remedio es cambiar de
 clase de modelo, no recalibrar el umbral. Manibardo, Laña y Del Ser reportan que
@@ -254,10 +254,13 @@ la Sección III-A, de modo que un mismo instante puede llevar varias posiciones
 afectadas a la vez.
 
 Resta decidir cuándo un headway cuenta como bunching. La convención del campo es
-una fracción del headway programado: un cuarto en las formulaciones más citadas, y
-la mitad en el TCQSM [@tcqsm2003]. Estos corredores no tienen programación contra la
-cual comparar, así que el denominador se sustituye por el promedio del propio
-vector en ese instante. **Un headway cuenta como bunching si cae por debajo de la
+una fracción del headway programado: un cuarto en las formulaciones más citadas
+[@moreiramatias2016], y la mitad en el TCQSM [@tcqsm2003]. Estos corredores no
+tienen programación contra la cual comparar. Sustituir esa referencia por una
+observada del propio dato es práctica establecida: Yu y colaboradores reemplazan
+el horario ausente de su corredor por el headway observado en la primera parada de
+la misma corrida [@yu2016]. Aquí el denominador se sustituye por el promedio del
+propio vector en ese instante. **Un headway cuenta como bunching si cae por debajo de la
 mitad de ese promedio.** Ese valor es el umbral relativo del evento: se lo llama
 relativo porque es una fracción del promedio vigente y no un número fijo de
 minutos, de modo que se mueve con cada vector.
@@ -313,8 +316,9 @@ $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 \qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{7}$$
 
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los umbrales que resultan
-de aplicar $\rho$ al vector observado y al vector predicho. Las Figuras 2 y 3 lo
-muestran con el mismo headway de dos minutos.
+de aplicar $\rho$ al vector observado y al vector predicho. La referencia de Yu y
+colaboradores no tiene esa propiedad: es observada, de modo que no se mueve con el
+pronóstico. Las Figuras 2 y 3 lo muestran con el mismo headway de dos minutos.
 
 ![Corredor disparejo](figuras/bunching/with_bunching.png)
 
@@ -769,28 +773,30 @@ ninguna serie se acerca al azar.
 
 ### F. Robustez frente a la ventana y a la definición del evento
 
-El hallazgo no depende del mes: las tres ventanas temporales coincidieron en el
-veredicto sin umbral en 11 de 12 celdas, y a diez minutos coincidieron en las nueve.
-Tampoco depende de la definición del evento adoptada aquí, y la objeción conviene
-enfrentarla de frente. El umbral relativo a la media del propio vector es una
-elección de este trabajo. Un umbral absoluto en minutos, como el que usa la mayor
-parte de la literatura, podría disolver el efecto. Se probó con la convención
-dominante del campo: un umbral fijo en la cuarta parte del headway mediano
+El veredicto sin umbral de la Sección V-E no depende de la ventana calendaria. Las
+tres ventanas coincidieron en 11 de las 12 celdas, y a diez minutos coincidieron
+en las nueve combinaciones de corredor y ventana. La primera de las tres cubre del
+23 de diciembre al 13 de enero. Ese acuerdo incluye entonces el período de
+fiestas, cuando la frecuencia del servicio y la demanda no se parecen a las de un
+mes ordinario.
+
+Tampoco depende de la definición del evento. El umbral relativo de la Sección
+III-C podría estar produciendo el efecto por sí solo, y un umbral absoluto en
+minutos —como el de un minuto de Sun, Schmöcker y Nakamura [@sun2021]— podría
+disolverlo. Se probó con uno fijo en la cuarta parte del headway mediano
 observado de cada corredor y dirección. Queda entre 1,4 y 2,4 minutos, se calibró
 sobre la ventana 2 y se aplicó sin cambios a la ventana 3. **No se atenuó:
 empeoró.** La tasa de disparo del modelo cayó por un factor de mediana 138 en diez
-de las doce celdas, y en las otras dos no marcó ninguna posición. La elección
-adoptada resultó ser la conservadora.
+de las doce celdas, y en las otras dos no marcó ninguna posición.
 
-Ese mismo ensayo impone un límite que corresponde declarar. Bajo esa convención
-más exigente, la capacidad de discriminación del modelo cayó: la mediana del área
-bajo la curva bajó a 0,60, y en E2 a diez minutos llegó a 0,49, indistinguible del
-azar. La afirmación de que el LSTM no es ciego se sostiene para el evento
-definido en términos relativos y falla para el evento absoluto en esa celda. La
-Tabla 3 recoge las tres ventanas y el ensayo con el umbral absoluto.
+El mismo ensayo acota una afirmación anterior. Bajo el umbral absoluto la
+capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0,60, y en
+E2 a diez minutos llegó a 0,49, indistinguible del azar. La afirmación de que el
+LSTM no es ciego se sostiene para el evento relativo y falla para el evento
+absoluto en esa celda. La Tabla 3 recoge las tres ventanas y ese ensayo.
 
-**Tabla 3.** Robustez: las tres ventanas temporales y el ensayo con el umbral
-absoluto de la convención dominante.
+**Tabla 3.** Robustez: las tres ventanas temporales y el ensayo con un umbral
+absoluto en minutos.
 
 | Corredor | h | Ventana 1 | Ventana 2 | Ventana 3 | Coinciden | AUC, umbral absoluto |
 | :--- | ---: | :--- | :--- | :--- | :---: | ---: |
@@ -837,7 +843,7 @@ Esta sección enuncia el alcance de cada afirmación y los puntos donde no se
 sostiene.
 
 **El hallazgo del umbral vale para el evento relativo.** Bajo un umbral absoluto en
-minutos —la convención dominante— el efecto se agrava, pero la capacidad de
+minutos el efecto se agrava, pero la capacidad de
 discriminación del LSTM cae, y en E2 a diez minutos llega a 0,49: azar. Ahí la
 afirmación de que el LSTM no es ciego no se sostiene.
 
@@ -923,6 +929,11 @@ Road Traffic Forecasting: Does it Make a Difference?," *IEEE Transactions on
 Intelligent Transportation Systems*, vol. 23, no. 7, pp. 6164–6188, 2022,
 doi: 10.1109/TITS.2021.3083957.
 
+`[@moreiramatias2016]` L. Moreira-Matias, O. Cats, J. Gama, J. Mendes-Moreira, and
+J. Freire de Sousa, "An online learning approach to eliminate Bus Bunching in
+real-time," *Applied Soft Computing*, vol. 47, pp. 460–482, 2016,
+doi: 10.1016/j.asoc.2016.06.031.
+
 `[@patton2012]` A. J. Patton and A. Timmermann, "Forecast Rationality Tests Based
 on Multi-Horizon Bounds," *Journal of Business & Economic Statistics*, vol. 30,
 no. 1, pp. 1–17, 2012, doi: 10.1080/07350015.2012.634337.
@@ -932,6 +943,16 @@ comprehensive review from demand, supply, and decision-making perspectives,"
 *Transport Reviews*, vol. 44, no. 4, pp. 766–790, 2024,
 doi: 10.1080/01441647.2024.2313969.
 
+`[@sun2021]` W. Sun, J.-D. Schmöcker, and T. Nakamura, "On the tradeoff between
+sensitivity and specificity in bus bunching prediction," *Journal of Intelligent
+Transportation Systems*, vol. 25, no. 4, pp. 384–400, 2021,
+doi: 10.1080/15472450.2020.1725887.
+
 `[@tcqsm2003]` *Transit Capacity and Quality of Service Manual*, 2nd ed., TCRP
 Report 100, Transportation Research Board, 2003, Part 3, ch. 3, p. 3-48,
 Exhibit 3-30.
+
+`[@yu2016]` H. Yu, D. Chen, Z. Wu, X. Ma, and Y. Wang, "Headway-based bus bunching
+prediction using transit smart card data," *Transportation Research Part C:
+Emerging Technologies*, vol. 72, pp. 45–59, 2016,
+doi: 10.1016/j.trc.2016.09.007.
