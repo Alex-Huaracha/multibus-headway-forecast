@@ -110,8 +110,20 @@ umbral.
 > Prohibido: decir «nadie se dio cuenta». Sun et al. (2021) diagnosticaron el
 > síntoma y se citan en las dos primeras oraciones.
 
-**C. Contribuciones** — **Cuatro viñetas, una oración cada una.** La
-delimitación bibliográfica NO se hace aquí: vive en II-D.
+> **La cita de Sun, Schmöcker y Nakamura (2021) va acá.** Diagnosticaron que el
+> paradigma de predecir y umbralizar falla y que el veredicto se revierte al
+> puntuar sin punto de operación. Van en las dos primeras oraciones del planteo
+> del problema. Hoy esa atribución vive en el primer párrafo de la II-D, que se
+> borra cuando esta sección se escriba.
+>
+> **Y ojo al escribirla:** la primera aparición del TCQSM es hoy la tercera viñeta
+> de las contribuciones, y ahí va desarrollada la sigla. La Sección III-C la usa
+> ya abreviada. Si el planteo del problema nombra el manual antes, el desarrollo
+> se mueve allí y la viñeta pasa a usar la sigla.
+
+**C. Contribuciones** — ✅ **ESCRITA.** Cierra la sección, como exige el cuarto
+elemento del flujo de la Sección 4 de `reglas-redaccion.md`. Situación,
+complicación y pregunta siguen pendientes.
 
 **D. Estructura** — Un párrafo, no una lista.
 
@@ -119,20 +131,52 @@ delimitación bibliográfica NO se hace aquí: vive en II-D.
 
 ### II. Trabajos relacionados
 
-**A. La receta estándar** — Predecir el headway y umbralizarlo contra la
-referencia. Yu et al. (2016) es la formulación canónica.
+**A. Predicción del headway y detección por umbral** — ✅ **ESCRITA.** Yu et al.
+(2016) da la formulación canónica; la Tabla 1 de Santos et al. (2022) muestra que
+ninguno de los ocho trabajos que resume puntúa el ordenamiento sin umbral;
+Manibardo et al. (2022) acota lo que vale la primera etapa. Título anterior, «La
+receta estándar», retirado por metáfora (Sección 4 de `reglas-redaccion.md`).
 
-**B. Por qué el umbral se mueve** — Mayer y Yang (2022) lo enuncian; Patton
-y Timmermann (2012) lo prueban como teorema; Petetin et al. (2022) ya ataron la
-compresión a una métrica categórica.
+**B. Compresión de la dispersión del pronóstico** — ✅ **ESCRITA.** Mayer y Yang
+la enuncian y la cuantifican; el Corolario 2 de Patton y Timmermann la ordena por
+horizonte; Petetin et al. documentan su daño sobre una métrica categórica.
 
-**C. Recalibrar el corte: precedente fuera del transporte** — Hoffmann, Menz
-y Spekat (2018), en clima, ocho años antes. **Obligatoria.**
+> **El solapamiento con la III-B se resolvió así.** La III-B citaba a Patton y
+> Timmermann por el teorema y ahora remite a la II-B, que es donde vive la
+> atribución. Lo que la II-B aporta y la III-B no tenía es el **Corolario 2**: la
+> compresión crece al alargar el horizonte, y eso es teorema, no hallazgo nuestro.
+>
+> Título anterior, «Por qué el umbral se mueve», retirado por coloquial. El
+> término elegido es el que ya usan la V-B y la III-B: compresión de la
+> dispersión. «Sub-dispersión» viene de `fuentes-verificadas.md` y el manuscrito
+> no la usa en ninguna parte.
+>
+> **Ojo con el año de Mayer y Yang.** El PDF y Crossref dicen *39(2):981–991,
+> abril de 2023*; el DOI lleva `2022` porque es el año del registro. Todo el
+> repositorio lo llamaba «Mayer & Yang (2022)». La clave es `mayer2023` y el
+> archivo se renombró a `mayer2023.pdf`.
 
-**D. Qué es previo y qué no** — ✅ **ESCRITA.** Se movió aquí desde la
-antigua V-B, donde duplicaba lo que esta sección hace por definición.
+**C. Recalibrar el umbral: precedente fuera del transporte** — ✅ **ESCRITA.** Dos
+familias de remedio agrupadas por qué objeto tocan: Hoffmann et al. (2018) mueve
+el umbral, Petetin et al. (2022) mueve el pronóstico con mapeo de cuantiles.
+
+> **Contra-argumento que hay que sostener.** Hoffmann dice que un indicador
+> definido sobre un cuantil de la distribución de referencia queda libre de sesgo
+> por construcción. Un revisor puede preguntar por qué el nuestro, siendo también
+> relativo, sí se rompe. La respuesta está en el tercer párrafo de la II-C: el
+> suyo es un cuantil de lo observado, el nuestro una fracción del promedio de lo
+> predicho.
+
+**D. Delimitación de lo previo** — ✅ **ESCRITA.** Se movió aquí desde la
+antigua V-B, donde duplicaba lo que esta sección hace por definición. Ya cedió a
+la II-A la atribución de Manibardo y a la II-C la de Hoffmann. Cuando se escriba
+la II-B cede también las de Mayer y Yang, y Patton y Timmermann, y queda solo con
+el contraste.
 
 > Prohibido: ensanchar el reclamo más allá del caso relativo y auto-referencial.
+
+> **La hoja de ruta de la Sección II** se escribe cuando existan las cuatro
+> subsecciones, no antes.
 
 ---
 

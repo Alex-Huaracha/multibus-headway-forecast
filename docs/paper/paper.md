@@ -8,21 +8,7 @@ _(pendiente — se escribe al final)_
 
 ## I. Introducción
 
-_(Situación, complicación y pregunta pendientes. La lista de contribuciones —el
-cuarto elemento del flujo que exige la Sección 4 de `reglas-redaccion.md`— ya está
-escrita y cierra la sección.)_
-
-> **AQUÍ VA ESTA CITA — Sun, Schmöcker y Nakamura (2021).** Diagnosticaron que el
-> paradigma de predecir y umbralizar falla y que el veredicto se revierte al
-> puntuar sin punto de operación. Van en las dos primeras oraciones del
-> planteo del problema, para no escribir «nadie se dio cuenta»
-> (`esqueleto.md:110`). Hoy esa atribución vive en el primer párrafo de la II-D,
-> que se borra cuando esta sección se escriba.
->
-> **Y OJO AL ESCRIBIRLA:** la primera aparición del TCQSM es ahora la tercera
-> viñeta de esta sección, y ahí va desarrollada la sigla. La Sección III-C la usa
-> ya abreviada. Si el planteo del problema nombra el manual antes, el desarrollo
-> se mueve allí y la viñeta pasa a usar la sigla.
+_(pendiente)_
 
 Reclamamos tres contribuciones. Este trabajo predice el vector completo de
 headways de un corredor con un LSTM. La regla de la Sección III-C convierte lo
@@ -46,68 +32,107 @@ estaba publicado.
 
 ## II. Trabajos relacionados
 
-_(A–C pendientes. Cada una carga las atribuciones que hoy están apiladas en la
-II-D: cuando las tres se escriban, esas atribuciones se mudan allí y la II-D queda
-solo con el contraste explícito que la Sección 4 de `reglas-redaccion.md` exige al
-cierre de toda revisión. Las tres contribuciones ya no están aquí: viven en la
-Sección I, que es donde ese mismo flujo las pone.)_
+Esta sección recorre la literatura en cuatro pasos. El primero describe el método
+con que el campo predice el bunching y las medidas con que lo evalúa. El segundo
+reúne lo que ya se estableció sobre la compresión de la dispersión de un
+pronóstico. El tercero recoge los dos remedios publicados para esa compresión,
+ambos fuera del transporte. El cuarto delimita cuánto del mecanismo que este
+documento mide ya estaba publicado.
 
-### A. La receta estándar
+### A. Predicción del headway y detección por umbral
 
-_(pendiente — predecir el headway y umbralizarlo contra la referencia.)_
+El bunching se predice en dos etapas. La primera estima el headway que separará a
+dos buses en un instante futuro. La segunda compara ese valor contra una
+referencia y emite un indicador binario del evento. Yu y colaboradores dan la
+formulación canónica de esa secuencia sobre datos de tarjeta inteligente de dos
+rutas de Pekín: la ocurrencia del bunching se detecta umbralizando el headway
+predicho contra el horario programado [@yu2016]. Las dos etapas optimizan
+objetivos distintos, porque la primera minimiza un error en minutos y la segunda
+decide una clase.
 
-> **AQUÍ VA ESTA CITA — Yu et al. (2016).** La formulación canónica del paradigma
-> que este trabajo examina.
->
-> **AQUÍ VA ESTA CITA — Manibardo, Laña y Del Ser (2022).** Reportan que la
-> persistencia es competitiva a horizonte corto y que ahí el margen de mejora es
-> angosto. **No reportan el cruce:** que un método entrenado la supere al alargar
-> el horizonte no aparece en la fuente, así que no se concede. La II-D ya quedó
-> acotada a la mitad verificada.
+La segunda etapa se evalúa en un punto de operación único. Yu y colaboradores
+reportan exactitud, sensibilidad y especificidad [@yu2016]. Santos y colaboradores
+resumen siete trabajos previos del subcampo en una tabla y agregan el suyo
+[@santos2022]. Las medidas que esa tabla registra son de dos clases: errores
+continuos, como el error cuadrático medio, y conteos sobre la clasificación, como
+la exactitud, la precisión y el recall. Ninguna de sus ocho filas registra una
+medida que puntúe el ordenamiento del pronóstico sin fijar antes un umbral.
 
-### B. Por qué el umbral se mueve
+La primera etapa tiene además un margen angosto donde más importa. Manibardo, Laña
+y Del Ser equiparan la persistencia con repetir el último valor observado, y
+reportan que su desempeño a horizontes cortos deja poco espacio de mejora a los
+modelos entrenados [@manibardo2022]. Su afirmación sobre el horizonte es que todos
+los modelos se degradan al alargarlo, y no que la relación entre ellos se
+invierta.
 
-_(pendiente — la compresión de dispersión y su efecto sobre un umbral relativo.)_
+### B. Compresión de la dispersión del pronóstico
 
-> **AQUÍ VAN ESTAS TRES CITAS.**
->
-> - **Mayer y Yang (2022)** enuncian la sub-dispersión de la predicción puntual.
-> - **Patton y Timmermann (2012)** la demuestran como teorema, y su Corolario 2 da
->   la monotonía en el horizonte. Es la atribución que la Sección III-B ya nombra
->   en prosa y que espera su número.
-> - **Petetin et al. (2022)** ataron esa compresión a una métrica categórica y
->   observaron que empeora con el horizonte.
+La primera etapa de esa receta arrastra una propiedad conocida. Un pronóstico
+ajustado para minimizar el error cuadrático sale menos disperso que la cantidad
+que predice. Mayer y Yang lo miden sobre irradiancia solar: sus pronósticos
+optimizados de ese modo capturan menos del 75 % de la varianza observada
+[@mayer2023]. Y señalan la consecuencia sobre la comparación entre métodos: como
+la raíz del error cuadrático medio premia justamente al pronóstico de menor
+dispersión, evaluar con ella sobrevalora al más comprimido.
+
+La propiedad es un teorema y no una regularidad empírica. Patton y Timmermann
+descomponen la varianza del objetivo en la del pronóstico óptimo más el error
+cuadrático esperado, y su Corolario 2 ordena esas varianzas por horizonte: la del
+pronóstico a horizonte corto es mayor o igual que la del pronóstico a horizonte
+largo [@patton2012]. La compresión crece entonces al alargar el horizonte, por
+construcción y no por una falla del ajuste. Ese resultado recae sobre la varianza
+temporal de una serie escalar, y no sobre la dispersión entre unidades medidas en
+un mismo instante.
+
+El daño de esa compresión sobre una regla de umbral ya se documentó fuera del
+transporte. Petetin y colaboradores corrigen pronósticos de ozono y encuentran
+que el método con mejor error cuadrático y mejor correlación es el que peor
+detecta los episodios altos, porque subestima la variabilidad [@petetin2022].
+Todas sus métricas categóricas se degradan además al alargar el horizonte, de
+modo que el efecto sobre la decisión sigue al efecto sobre la dispersión.
 
 ### C. Recalibrar el umbral: precedente fuera del transporte
 
-_(pendiente — recalcular el umbral contra la distribución de cada modelo.)_
+El efecto de la compresión sobre una regla de umbral tiene dos remedios
+publicados fuera del transporte, y se distinguen por qué objeto tocan. El primero
+mueve el umbral. Hoffmann, Menz y Spekat trabajan con indicadores climáticos
+definidos por un valor fijo, como los días con temperatura máxima sobre 30 °C.
+Cada modelo climático reproduce ese indicador con un sesgo propio. Su
+procedimiento localiza el percentil que ese valor ocupa
+en los datos de referencia, calcula el valor de ese mismo percentil en cada
+simulación y recalcula el indicador con el umbral así ajustado, sin tocar los
+datos del modelo [@hoffmann2018].
 
-> **AQUÍ VA ESTA CITA — Hoffmann, Menz y Spekat (2018).** El procedimiento en
-> reducción de escala climática, ocho años antes. `esqueleto.md:130` la marca como
-> obligatoria.
+El segundo mueve el pronóstico. Petetin y colaboradores corrigen pronósticos de
+ozono cuyos umbrales están fijados por normativa y no admiten ajuste. Su mapeo de
+cuantiles lleva la distribución de lo predicho a la de lo observado
+[@petetin2022]. Los dos remedios piden insumos distintos. El mapeo de cuantiles
+necesita una distribución de observaciones de referencia. Recalibrar el umbral
+necesita solo una ventana anterior del propio pronóstico.
+
+Ninguno de los dos se enfrenta a un umbral que se mueva con lo que evalúa. El de
+Hoffmann y colaboradores es un valor fijo, y el de Petetin y colaboradores es
+regulatorio. Ellos mismos observan que un indicador definido sobre un cuantil de
+la distribución de referencia queda libre de sesgo por construcción
+[@hoffmann2018]. Un umbral que es una fracción del promedio de lo predicho no
+tiene esa propiedad, porque la compresión mueve el promedio y la separación entre
+posiciones a la vez.
 
 ### D. Delimitación de lo previo
 
-Seis trabajos llegan cerca del mecanismo que este documento mide, y ninguno cubre
-el caso que lo define. Que una predicción optimizada en error cuadrático resulte
-menos dispersa que la realidad está enunciado por Mayer y Yang y demostrado como
-teorema por Patton y Timmermann. Ese teorema recae sobre la varianza temporal de
-una serie escalar, no sobre la dispersión entre buses de un mismo instante.
-Petetin y colaboradores atan esa compresión a una métrica categórica y observan
-que empeora con el horizonte; sus umbrales son regulatorios y no admiten
-recalibración. Hoffmann, Menz y Spekat recalculan el umbral contra la distribución
-de cada modelo ocho años antes, en reducción de escala climática, sin horizonte,
-sin métricas de detección y sin transporte.
+Cinco trabajos llegan cerca del mecanismo que este documento mide, y ninguno cubre
+el caso que lo define. Los tres de la Sección II-B establecen la compresión y su
+daño sobre una regla de umbral, pero ninguno la mide entre unidades de un mismo
+instante. Los dos remedios de la Sección II-C llegan ocho años antes que este
+trabajo, y ninguno se aplica sobre un umbral que se mueva con lo que evalúa.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura
 [@sun2021]. Diagnostican que el paradigma de predecir y umbralizar falla, y que el veredicto
 se revierte al puntuar sin punto de operación. Su etiqueta es un umbral absoluto de
 un minuto y no una regla relativa al propio vector, y su remedio es cambiar de
-clase de modelo, no recalibrar el umbral. Manibardo, Laña y Del Ser reportan que
-la persistencia es competitiva a horizonte corto y que ahí el margen de mejora es
-angosto [@manibardo2022]; no reportan que la relación se invierta al alargarlo.
+clase de modelo, no recalibrar el umbral.
 
-Ninguno de los seis mide un umbral relativo y auto-referencial, donde la
+Ninguno de los cinco mide un umbral relativo y auto-referencial, donde la
 compresión de lo predicho mueve el umbral y el valor comparado a la vez. Ese es el
 caso que la Ecuación (7) hace explícito, y es donde este documento interviene:
 recalibra ese umbral sobre una ventana anterior disjunta, sin tocar el modelo.
@@ -221,9 +246,8 @@ $|\mathcal{V}|$ es su cardinal, y $\hat{h}_i$ y $h_i$ son el valor predicho y el
 observado en la posición $i$.
 
 Esa elección gobierna el resto del trabajo. Una predicción que minimiza error
-cuadrático tiende a la media condicional, y esa media es menos dispersa que la
-realidad. Patton y Timmermann lo demuestran como teorema
-[@patton2012]. La compresión de
+cuadrático tiende a la media condicional, y la Sección II-B recoge por qué esa
+media es menos dispersa que la realidad. La compresión de
 dispersión que documenta la Sección V-B no es entonces una falla del ajuste. El
 efecto de esa compresión sobre la regla del evento es el asunto de la
 Sección III-C.
@@ -955,6 +979,10 @@ Analysis Done Right," in *Advances in Neural Information Processing Systems 28*,
 Under the ROC Curve for Multiple Class Classification Problems," *Machine
 Learning*, vol. 45, no. 2, pp. 171–186, 2001, doi: 10.1023/A:1010920819831.
 
+`[@hoffmann2018]` P. Hoffmann, C. Menz, and A. Spekat, "Bias adjustment for
+threshold-based climate indicators," *Advances in Science and Research*, vol. 15,
+pp. 107–116, 2018, doi: 10.5194/asr-15-107-2018.
+
 `[@harvey1997]` D. Harvey, S. Leybourne, and P. Newbold, "Testing the equality of
 prediction mean squared errors," *International Journal of Forecasting*, vol. 13,
 no. 2, pp. 281–291, 1997, doi: 10.1016/S0169-2070(96)00719-4.
@@ -972,10 +1000,22 @@ Road Traffic Forecasting: Does it Make a Difference?," *IEEE Transactions on
 Intelligent Transportation Systems*, vol. 23, no. 7, pp. 6164–6188, 2022,
 doi: 10.1109/TITS.2021.3083957.
 
+`[@mayer2023]` M. J. Mayer and D. Yang, "Calibration of deterministic NWP
+forecasts and its impact on verification," *International Journal of
+Forecasting*, vol. 39, no. 2, pp. 981–991, 2023,
+doi: 10.1016/j.ijforecast.2022.03.008.
+
 `[@moreiramatias2016]` L. Moreira-Matias, O. Cats, J. Gama, J. Mendes-Moreira, and
 J. Freire de Sousa, "An online learning approach to eliminate Bus Bunching in
 real-time," *Applied Soft Computing*, vol. 47, pp. 460–482, 2016,
 doi: 10.1016/j.asoc.2016.06.031.
+
+`[@petetin2022]` H. Petetin, D. Bowdalo, P.-A. Bretonnière, M. Guevara, O. Jorba,
+J. Mateu Armengol, M. Samso Cabre, K. Serradell, A. Soret, and C. Pérez
+Garcia-Pando, "Model output statistics (MOS) applied to Copernicus Atmospheric
+Monitoring Service (CAMS) O₃ forecasts: trade-offs between continuous and
+categorical skill scores," *Atmospheric Chemistry and Physics*, vol. 22,
+pp. 11603–11630, 2022, doi: 10.5194/acp-22-11603-2022.
 
 `[@patton2012]` A. J. Patton and A. Timmermann, "Forecast Rationality Tests Based
 on Multi-Horizon Bounds," *Journal of Business & Economic Statistics*, vol. 30,
@@ -985,6 +1025,11 @@ no. 1, pp. 1–17, 2012, doi: 10.1080/07350015.2012.634337.
 comprehensive review from demand, supply, and decision-making perspectives,"
 *Transport Reviews*, vol. 44, no. 4, pp. 766–790, 2024,
 doi: 10.1080/01441647.2024.2313969.
+
+`[@santos2022]` V. B. Santos, C. E. S. Pires, D. C. Nascimento, and A. R. M. de
+Queiroz, "A Decision Tree Ensemble Model for Predicting Bus Bunching," *The
+Computer Journal*, vol. 65, no. 8, pp. 2044–2062, 2022,
+doi: 10.1093/comjnl/bxab045.
 
 `[@sun2021]` W. Sun, J.-D. Schmöcker, and T. Nakamura, "On the tradeoff between
 sensitivity and specificity in bus bunching prediction," *Journal of Intelligent
