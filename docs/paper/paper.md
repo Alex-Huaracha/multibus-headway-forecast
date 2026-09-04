@@ -50,6 +50,14 @@ predicho contra el horario programado [@yu2016]. Las dos etapas optimizan
 objetivos distintos, porque la primera minimiza un error en minutos y la segunda
 decide una clase.
 
+Jiao, Shen y Zhang repiten esa secuencia sobre una ruta de Xiangyang y fijan el
+umbral en un cuarto del headway observado en la primera parada [@jiao2023]. Su
+modelo no minimiza solo el error en minutos: la pérdida suma al error cuadrático
+un término de clasificación, y el entrenamiento sobremuestrea la clase del
+evento, que reúne el 6,1 % de las muestras. Justifican ese diseño advirtiendo que
+una pérdida atenta solo al error de regresión lleva al modelo a tratar como ruido
+los casos que la regla marca como evento.
+
 La segunda etapa se evalúa en un punto de operación único. Yu y colaboradores
 reportan exactitud, sensibilidad y especificidad [@yu2016]. Santos y colaboradores
 resumen siete trabajos previos del subcampo en una tabla y agregan el suyo
@@ -133,9 +141,13 @@ un minuto y no una regla relativa al propio vector, y su remedio es cambiar de
 clase de modelo, no recalibrar el umbral.
 
 Ninguno de los cinco mide un umbral relativo y auto-referencial, donde la
-compresión de lo predicho mueve el umbral y el valor comparado a la vez. Ese es el
-caso que la Ecuación (7) hace explícito, y es donde este documento interviene:
-recalibra ese umbral sobre una ventana anterior disjunta, sin tocar el modelo.
+compresión de lo predicho mueve el umbral y el valor comparado a la vez. El
+umbral de Jiao y colaboradores es relativo pero no auto-referencial, porque se
+ancla en una observación fija y la compresión alcanza solo al valor comparado; y
+su reparación agrega un término de clasificación a la pérdida, es decir, cambia
+el objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la Ecuación
+(7) hace explícito, y es donde este documento interviene: recalibra ese umbral
+sobre una ventana anterior disjunta, sin reentrenar ni cambiar el objetivo.
 
 ---
 
@@ -277,7 +289,8 @@ una fracción del headway programado: un cuarto en las formulaciones más citada
 tienen programación contra la cual comparar. Sustituir esa referencia por una
 observada del propio dato es práctica establecida: Yu y colaboradores reemplazan
 el horario ausente de su corredor por el headway observado en la primera parada de
-la misma corrida [@yu2016]. Aquí el denominador se sustituye por el promedio del
+la misma corrida [@yu2016], y Jiao y colaboradores fijan su umbral en un cuarto de
+ese mismo headway de la primera parada [@jiao2023]. Aquí el denominador se sustituye por el promedio del
 propio vector en ese instante. **Un headway cuenta como bunching si cae por debajo de la
 mitad de ese promedio.** Ese valor es el umbral relativo del evento: se lo llama
 relativo porque es una fracción del promedio vigente y no un número fijo de
@@ -394,11 +407,10 @@ porcentuales.
 ### B. Métodos comparados
 
 Se comparan cuatro métodos sobre las mismas muestras, y cada uno cumple un papel
-distinto. El método bajo estudio es una red recurrente con memoria de largo y corto
-plazo (**LSTM**); la Sección V-G contrasta esa elección contra dos arquitecturas
-que modelan la relación entre posiciones vecinas del vector. Un conjunto de
-árboles con refuerzo de gradiente (**XGBoost**)
-actúa como **control de arquitectura**: si reproduce el patrón del LSTM, ese patrón
+distinto. El método bajo estudio es una red recurrente (**LSTM**); la Sección V-G
+contrasta esa elección contra dos arquitecturas que modelan la relación entre
+posiciones vecinas del vector. Un conjunto de árboles con refuerzo de gradiente
+(**XGBoost**) [@chen2016] actúa como **control de arquitectura**: si reproduce el patrón del LSTM, ese patrón
 no proviene del aprendizaje profundo sino del objetivo de la Ecuación (3). Los dos
 restantes no ajustan parámetros y fijan el error de referencia. La **persistencia**
 repite el último vector observado, así que su error crece con el horizonte. El
@@ -958,6 +970,11 @@ a corregir llamadas. La numeración por orden de primera aparición se resuelve 
 convertir al formato IJACSA, sustituyendo cada clave por su número; el orden de
 esta lista no es todavía el definitivo.)_
 
+`[@chen2016]` T. Chen and C. Guestrin, "XGBoost: A Scalable Tree Boosting System,"
+in *Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
+Discovery and Data Mining*, San Francisco, CA, USA, 2016, pp. 785–794,
+doi: 10.1145/2939672.2939785.
+
 `[@chicco2020]` D. Chicco and G. Jurman, "The advantages of the Matthews
 correlation coefficient (MCC) over F1 score and accuracy in binary classification
 evaluation," *BMC Genomics*, vol. 21, no. 1, art. 6, 2020,
@@ -989,6 +1006,11 @@ no. 2, pp. 281–291, 1997, doi: 10.1016/S0169-2070(96)00719-4.
 
 `[@iso19148]` Geographic information — Linear referencing, ISO 19148:2021, 2nd ed.,
 International Organization for Standardization, Geneva, Switzerland, 2021.
+
+`[@jiao2023]` J. Jiao, P. Shen, and Y. Zhang, "Headway-based Bus Bunching
+Prediction Using LSTM with Attention," in *2023 IEEE 8th International Conference
+on Intelligent Transportation Engineering (ICITE)*, 2023, pp. 451–458,
+doi: 10.1109/ICITE59717.2023.10733869.
 
 `[@lipton2014]` Z. C. Lipton, C. Elkan, and B. Naryanaswamy, "Optimal
 Thresholding of Classifiers to Maximize F1 Measure," in *ECML PKDD 2014*, Lecture

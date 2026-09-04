@@ -27,7 +27,7 @@ insumo de P3 (referencias) y la evidencia de P2 (reencuadre de contribuciones).
 | La sub-dispersión rompe umbrales de evento | **No** | Ravuri et al. 2021 (*Nature*); Hoffmann et al. 2018; **Petetin et al. 2022** (§0.5 — el más cercano) |
 | Aparear error continuo con métrica categórica, y que nombren ganadores distintos | **No** | **Petetin et al. 2022**, como titular. Ver §0.5 — por esto se retiró nuestro titular viejo |
 | Reportar AUC junto a métricas de umbral | **No** | Petetin et al. 2022 (fuera de transporte); Sun et al. 2021 (dentro) |
-| El paradigma "predecir headway → umbral → bunching" falla | **No** | **Sun, Schmöcker & Nakamura 2021** — en transporte |
+| El paradigma "predecir headway → umbral → bunching" falla | **No** | **Sun, Schmöcker & Nakamura 2021** — en transporte. Y **Jiao et al. 2023** enuncian la causa en prosa para justificar su pérdida híbrida, pero no la miden |
 | Disociación RMSE/recall en detección de bunching | **No** | **Sun et al. 2021** |
 | Crítica del punto de operación único | **No** | **Sun et al. 2021** |
 | Reversión al puntuar sin umbral (ROC) | **No** | **Sun et al. 2021** |
@@ -247,6 +247,7 @@ La forma relativa que domina la literatura es una fracción del *headway*
 | ¼ del *headway* programado | Yu et al. 2016, doi:`10.1016/j.trc.2016.09.007` | relativa al horario |
 | ¼ del *headway* programado | Moreira-Matias et al. 2016, doi:`10.1016/j.asoc.2016.06.031` — `[TEXTO COMPLETO]`, ver §C1-bis | relativa al horario |
 | **1 minuto absoluto** | Sun et al. 2021, doi:`10.1080/15472450.2020.1725887` | absoluta, justificada empíricamente |
+| ¼ del *headway* **observado en la primera parada** | Jiao, Shen & Zhang 2023, doi:`10.1109/icite59717.2023.10733869` — `[TEXTO COMPLETO]`, Ec. (7) | relativa a una observación fija, **no** auto-referencial |
 | ½ del *headway* programado | TCQSM 2ª ed., Exhibit 3-30 | relativa al horario |
 | Parada servida antes que su líder (rebase) | Diab, Bertini & El-Geneidy 2016, TRB 95th | topológica |
 | Clustering no supervisado, sin umbral | Degeler et al. 2020, doi:`10.1007/s12469-020-00251-z` | ninguna |
@@ -615,7 +616,7 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 | Fuente | ID | Estado | Rol |
 |---|---|---|---|
 | **Usama & Koutsopoulos (2025)** | arXiv:`2510.03121` | `[TEXTO COMPLETO]` | **Nuestra mejor cita motivadora.** ConvLSTM sobre el vector de headways de una línea de metro. Grepeado: **cero** ocurrencias de "bunch", "threshold", "classif", "F1", "recall", "smooth", "underestimat", "variance". Solo RMSE/MAE. Grupo de primera línea. Su lista de ausencias es nuestra lista de contribuciones |
-| **Jiao, Shen & Zhang (2023)**, IEEE ICITE | doi:`10.1109/icite59717.2023.10733869` | `[ABSTRACT]` | **LIABILIDAD.** LSTM → umbral, reclama *"accurately identify 89% of bus bunching events"*. **Su umbral es NO VERIFICADO.** Reconciliar antes de someter |
+| **Jiao, J., Shen, P. & Zhang, Y. (2023)**, «Headway-based Bus Bunching Prediction Using LSTM with Attention», *2023 IEEE 8th International Conference on Intelligent Transportation Engineering (ICITE)*:451–458 | doi:`10.1109/icite59717.2023.10733869` | `[TEXTO COMPLETO]` — **PDF leído 2026-09-04** | ✅ **Reconciliado — ya no es liabilidad; ver V3.** **Umbral verificado**, Ec. (7): `B_b = 1 si h_n ≤ h_{n,0}/4`, donde `h_{n,0}` es *"the headway of the bus run n at the first stop"* — relativo a una **observación**, no al horario, misma sustitución que la Ec. 13 de Yu. **Y su modelo no minimiza solo el MSE**: Ec. (14) `Loss = w_l·MSE + (1−w_l)·focal_loss` (α = 0,25, γ = 2), más **SMOTE** sobre el entrenamiento; tasa base 6,1 %. Su justificación enuncia la causa: *"If the loss function cares only about minimizing the overall regression errors, the training model tend to classify some non-zero elements as noise."* El 89 % es **BB-Recall** (precisión y F1 también 0,89) en la ruta 9 de Xiangyang, con salto **espacial** (paradas 0–7 → parada 8 y siguientes), no horizonte temporal. ⚠️ Medido sobre 5 días de **validación**; no describen conjunto de prueba aparte. ⚠️ Su línea base «LSTM» aparece con F1 0,75 (Tabla II) y 0,85 (Tabla III): **no apoyar nada en ella** |
 | **Yu et al. (2016)**, *TR-C* | doi:`10.1016/j.trc.2016.09.007` | `[TEXTO COMPLETO]` | ✅ **Reconciliado — ver §0.4.** El titular es a **2 paradas**; su propia sensibilidad cae a **73 % a 5 paradas** (vía Sun et al. 2021). Y su Ec. 13 usa el *headway* **observado** de la primera parada como sustituto del horario ausente: precedente directo de nuestra sustitución. Citado en §II-A |
 | Li, Yang & Wang (2025) | arXiv:`2509.06979` | `[TEXTO COMPLETO]` | Zirui Li, Bin Yang, Meng Wang. 31 ago 2025. **Preprint sin venue.** Grepeado: "headway", "bunching", "dispersion", "coefficient of variation" **no aparecen**. Su villano es la **normalización** (curable por arquitectura); el nuestro es la **pérdida** (estructural). Afirmaciones opuestas sobre tratabilidad = nuestra novedad. Su borde expuesto: *"overly stable and indistinguishable outputs"* — citar y neutralizar |
 | Liu, Wu, Wang & Long (2022) | arXiv:`2205.14415` | `[ABSTRACT]` | Origen del término *over-stationarization*. **Venue NeurIPS 2022 NO VERIFICADO** — el registro de arXiv no tiene journal-ref |
@@ -625,6 +626,9 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 | Yu, Wu, Chen & Ma (2016), *IEEE T-ITS* | doi:`10.1109/tits.2016.2620483` | `[ABSTRACT]` | Predicción **probabilística** de headway con RVM |
 | Zhang, Xu, Lu & Fan (2022), *Sustainability* 14(23):15583 | doi:`10.3390/su142315583` | `[TEXTO COMPLETO]` | Cita limpia del 0.5× en uso |
 | Manibardo, Laña & Del Ser (2021), *IEEE T-ITS* | arXiv:`2012.02260` | `[ABSTRACT]` | ⚠️ **El cruce por horizonte NO está confirmado en su abstract.** Podría ser arXiv:`2004.08170`. **No citar el cruce a este paper sin leerlo completo** |
+| **Chen, T. & Guestrin, C. (2016)**, «XGBoost: A Scalable Tree Boosting System», *Proc. 22nd ACM SIGKDD Int. Conf. on Knowledge Discovery and Data Mining*:785–794 | doi:`10.1145/2939672.2939785` | `[CROSSREF]` — byline, actas, páginas, editorial y sede confirmados 2026-09-04. Crossref devuelve el título recortado a «XGBoost»; el completo se toma de la lista de referencias de Santos et al. [30] y del preprint arXiv:`1603.02754` | **Se cita en la §IV-B por la descripción del método**, no por el software: la frase «conjunto de árboles con refuerzo de gradiente» sostiene el argumento del control de arquitectura, y ese es el predicado. Mismo uso que le da Santos et al., que lo llama en la oración donde describe qué es el XGBoost. **No se le atribuye texto ni cifras**: no leímos el cuerpo |
+
+**Nota de norma — frameworks no se citan.** Grepeados los ocho PDF del repo (Jiao, Santos, Yu, Mayer, Moreira-Matias, Patton, Fawcett y el del venue): **cero** citan PyTorch, TensorFlow o Keras. Santos es el único que menciona `scikit-learn`, y en una **nota al pie con URLs**, fuera de su bibliografía. Por eso no se cita `torch` pese a que `src/models/lstm.py:58` usa `nn.LSTM`. Y por la misma regla —se cita al describir, no al nombrar— **Hochreiter y Schmidhuber quedan fuera**: la §IV-B dejó de expandir la sigla. Jiao usa «LSTM» 74 veces sin citar a ninguno de los dos.
 
 ---
 
@@ -634,7 +638,7 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 |---|---|---|
 | ~~V1~~ | ✅ **Cerrado 2026-07-29.** Mayer & Yang leído — §0.1 | La afirmación era literal. C1 reformulado, §II-B escrita sobre esa base |
 | ~~V2~~ | ✅ **Cerrado 2026-07-29.** Rezazada et al. leído — §0.3 | Rango "20 s a ¼" verificado. Citado en §II-A |
-| V3 | **Reconciliar Jiao et al. (89 %)** con el colapso de nuestro LSTM | La mitad de Yu et al. ya está cerrada (§0.4: su titular es a 2 paradas y cae a 73 % a 5). Falta Jiao, doi:`10.1109/icite59717.2023.10733869`, todavía `[ABSTRACT]` con umbral no verificado. **No se cita en §II-A hasta leerlo** |
+| ~~V3~~ | ✅ **Cerrado 2026-09-04.** Jiao et al. leído a texto completo — ver §5 | El 89 % no contradice nuestro colapso: su umbral es ¼ del *headway* observado en la primera parada, su pérdida suma un término de clasificación al MSE, sobremuestrean con SMOTE, y su salto es espacial y no temporal. Deja de ser liabilidad: pasa a sostener la §II-A como segundo caso de la receta, y la §II-D como ruta de reparación distinta de la nuestra |
 | V4 | Confirmar el venue de arXiv:`2205.14415` en los proceedings de NeurIPS 2022 | El registro de arXiv no lo trae |
 | ~~V5~~ | ✅ **Cerrado 2026-07-30.** Byline de Boyd et al. fijado desde arXiv: **K. Boyd, V. Santos Costa, J. Davis, D. Page** | El orden discrepaba entre dblp y otras fuentes; la página de arXiv lo resuelve |
 | V6 | Verificar la redacción textual de Wernli et al. (2009) | La definición que tenemos viene de snippet |
