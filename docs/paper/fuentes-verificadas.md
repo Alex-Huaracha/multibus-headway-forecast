@@ -460,6 +460,36 @@ estaba.
 | **Patton, A. J., & Timmermann, A. (2012)**, «Forecast Rationality Tests Based on Multi-Horizon Bounds», *Journal of Business & Economic Statistics* 30(1):1–17 | doi:`10.1080/07350015.2012.634337` | `[TEXTO COMPLETO]` para el contenido (§3) + `[CROSSREF]` para los campos bibliográficos | Título y nombres de pila. El contenido ya estaba verificado: `V[Y] = V[Ŷ*] + E[e*²]` y el Corolario 2 |
 | **Rezazada, M., Nassir, N., Tanin, E., & Ceder, A. (2024)**, «Bus bunching: a comprehensive review from demand, supply, and decision-making perspectives», *Transport Reviews* 44(4):766–790 | doi:`10.1080/01441647.2024.2313969` | `[TEXTO COMPLETO]` para el contenido (§0.3) + `[CROSSREF]` para los campos bibliográficos | Título, los cuatro autores y las páginas. El pasaje del rango «20 s a ¼» ya estaba verificado literal |
 
+### Las cuatro citas de la Sección IV-D — leídas de primera mano 2026-09-04
+
+IV-D definía nueve instrumentos y **no citaba ninguna fuente**. Las entradas de
+§4.1 a §4.4 tenían el contenido pero **sin título ni nombres de pila**, así que la
+lista de Referencias no podía escribirse sin inventarlos. Esta vez no se completó
+solo el campo: **se abrieron los papers**. Los estados y literales corregidos
+quedan en sus propias entradas de §4.1, §4.2, §4.3 y §4.4, no repetidos acá.
+
+| Afirmación de IV-D | Cita | Cómo se leyó |
+|---|---|---|
+| «premia al detector que marca toda posición como evento» | Lipton et al. (2014) | PDF de arXiv |
+| «recall 1 y precisión igual a la tasa base» | Flach y Kull (2015) | PDF de las actas de NIPS |
+| «el F1 no usa TN» y «se le asigna cero por extensión por continuidad» | Chicco y Jurman (2020) | HTML de BMC |
+| «la probabilidad de que una posición de bunching reciba un puntaje mayor» | Hand y Till (2001) | PDF del editor, vía Unpaywall |
+
+**Cuatro candidatas descartadas.** Chicco, Tötsch y Jurman (2021) estaba anotada
+como «la cita para nuestro MCC = 0» y **no lo es**: remite a otra referencia sin
+dar el valor. Fawcett (2006) y Hanley y McNeil (1982) **no tienen copia legal**
+—Unpaywall responde `is_oa: false` para ambos— y no se pudieron leer; la lectura
+probabilística la sostiene Hand y Till, que sí es abierta y es a quien Flach y
+Kull la acreditan. Boyd et al. (2012) acota el mínimo de la curva **PR**, y IV-D
+no discute la curva PR: su piso es el del F1.
+
+**Lo que esto enseña sobre este archivo.** Dos de sus entradas estaban mal —una
+cita transcrita con palabras que no están en el paper, y una atribución al paper
+equivocado— y ninguna se habría detectado sin abrir la fuente. Un estado
+`[TEXTO COMPLETO]` registra que alguien leyó, no que la transcripción sea fiel.
+Los PDF de §0 ya no están en el repo, así que esas cuatro entradas **no son
+reverificables** por esta vía.
+
 ### La referenciación lineal es una norma ISO — verificado 2026-09-01
 
 La Sección III-A afirmaba que proyectar un punto sobre una polilínea para obtener
@@ -499,10 +529,12 @@ la norma y no de la dependencia.
 ## 4. Métricas de detección con desbalance moderado (nuestra tasa base: 17–30 %)
 
 ### 4.1 La cita que convierte nuestra degeneración en teorema
-**Lipton, Elkan & Naryanaswamy (2014)**, *ECML PKDD*, LNCS 8725:225–239.
-doi:`10.1007/978-3-662-44851-9_15`, arXiv:`1402.1892` `[TEXTO COMPLETO]`
+**Lipton, Z. C., Elkan, C., & Naryanaswamy, B. (2014)**, «Optimal Thresholding of
+Classifiers to Maximize F1 Measure», *ECML PKDD 2014*, LNCS 8725:225–239.
+doi:`10.1007/978-3-662-44851-9_15`, arXiv:`1402.1892` `[TEXTO COMPLETO]` —
+**PDF de arXiv leído 2026-09-04**; campos contra Crossref.
 
-Literal:
+Literal, reverificado 2026-09-04:
 > *"we demonstrate that given an uninformative classifier, optimal thresholding
 > to maximize F1 predicts all instances positive regardless of the base rate."*
 
@@ -517,10 +549,19 @@ thresholds converge to their true error rates while others have higher variance
 and may be set erroneously."*
 
 ### 4.2 El piso trivial
-**Flach & Kull (2015)**, *NIPS 28*:838–846. Sin DOI; ACM DL `10.5555/2969239.2969333` `[TEXTO COMPLETO]`
+**Flach, P. A., & Kull, M. (2015)**, «Precision-Recall-Gain Curves: PR Analysis
+Done Right», *Advances in Neural Information Processing Systems 28*:838–846.
+Sin DOI; DBLP `conf/nips/FlachK15` `[TEXTO COMPLETO]` — **PDF de las actas leído
+2026-09-04**; campos y título de las actas contra DBLP, porque NIPS 2015 no tiene
+DOI en Crossref.
 
 > *"the baseline to beat is the always-positive classifier rather than any random
 > classifier. This baseline has prec = π and rec = 1"*
+
+Reverificado literal 2026-09-04. **Y trae un segundo hallazgo**: enuncian la
+lectura probabilística del AUC —*"probability that a randomly chosen positive is
+ranked higher by the model than a randomly chosen negative [7]"*— y la acreditan
+a su referencia **[7], que es Hand y Till (2001)**, no a Fawcett. Ver §4.4.
 
 **La fórmula 2b/(1+b) no está impresa literal en ninguna fuente.** Se deriva en
 un paso de ahí. Y Lipton et al. la instancian numéricamente: 0.67 con b=0.5,
@@ -543,8 +584,8 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 
 | Fuente | ID | Estado | Qué aporta |
 |---|---|---|---|
-| Chicco & Jurman (2020), *BMC Genomics* 21(1):6 | doi:`10.1186/s12864-019-6413-7` | `[CROSSREF]` + render | *"F1 score is independent from TN"*; F1 no es simétrico al intercambiar clases, MCC sí. MCC = 0 es el valor esperado de un clasificador al azar |
-| **Chicco, Tötsch & Jurman (2021)**, *BioData Mining* 14(1):13 | doi:`10.1186/s13040-021-00244-z` | `[CROSSREF]` + render | **La cita para nuestro MCC = 0:** el MCC *"is undefined whenever the confusion matrix has a whole row or a whole column filled with zeros"*, pero *"by simple mathematical considerations it is possible to cover such cases"* |
+| **Chicco, D., & Jurman, G. (2020)**, «The advantages of the Matthews correlation coefficient (MCC) over F1 score and accuracy in binary classification evaluation», *BMC Genomics* 21(1), art. 6 | doi:`10.1186/s12864-019-6413-7` | `[TEXTO COMPLETO]` — **HTML leído 2026-09-04**, acceso abierto | **La cita para nuestro MCC = 0, y también para el F1.** Corregido 2026-09-04: la entrada anterior citaba *"F1 score is independent from TN"* y esa cadena **no está en el paper**. Sus dos literales son *"F 1 is independent from TN, and it is not symmetric for class swapping"* y *"F 1 score is independent from the number of samples correctly classified as negative"*. Y el MCC = 0 se deriva acá, no en el de 2021: *"MCC is undefined when a whole row or column of M is zero, as it happens in the previously cited case of **the trivial majority classifier**"*, *"MCC takes the indefinite form 0/0"*, y tras el límite con ε: *"With these positions MCC is now defined for all confusion matrices M. As a consequences, **MCC=0 for the trivial majority classifier**"* |
+| **Chicco, D., Tötsch, N., & Jurman, G. (2021)**, «The Matthews correlation coefficient (MCC) is more reliable than balanced accuracy, bookmaker informedness, and markedness in two-class confusion matrix evaluation», *BioData Mining* 14(1), art. 13 | doi:`10.1186/s13040-021-00244-z` | `[TEXTO COMPLETO]` — **HTML leído 2026-09-04**, acceso abierto | ⚠️ **Corregido 2026-09-04: NO es «la cita para nuestro MCC = 0».** Su pasaje —*"Although Eq. 5 is undefined whenever the confusion matrix has a whole row or a whole column filled with zeros, by simple mathematical considerations it is possible to cover such cases"*— **remite a otra referencia y nunca da el valor**. La derivación está en Chicco y Jurman (2020). No se cita en el manuscrito |
 | Powers (2011/2020), *JMLT* 2(1):37–63 | arXiv:`2010.16061` | `[TEXTO COMPLETO]` | *"they ignore performance in correctly handling negative examples… and… fail to take account the chance level performance."* Y: *"a system that performs worse in the objective sense of Informedness, can appear to perform better under any of these commonly used measures"* |
 | Boughorbel, Jarray & El-Anbari (2017), *PLOS ONE* 12(6):e0177678 | doi:`10.1371/journal.pone.0177678` | `[CROSSREF]` | **Clasificador de Bayes óptimo para MCC**, con prueba de consistencia. La cita de que calibrar por MCC es principiado y no ad hoc. **Leer el cuerpo antes de citar** |
 | Koyejo et al. (2014), *NIPS 27*:2744–2752 | dblp `conf/nips/KoyejoNRD14` | `[ABSTRACT]` | Para métricas que son razones de combinaciones lineales de la matriz de confusión, el clasificador óptimo es un **umbral dependiente de la métrica**. Legitima "ajustar un umbral maximizando una métrica" |
@@ -563,8 +604,9 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 | Saito & Rehmsmeier (2015), *PLOS ONE* 10(3):e0118432 | doi:`10.1371/journal.pone.0118432` | render | **Su brazo "desbalanceado" es 1:10 (π ≈ 0.09)** — más extremo que nuestro 17–30 %. No transfiere hacia abajo |
 | **McDermott et al. (2024)**, NeurIPS 2024 | arXiv:`2401.06091` | `[ABSTRACT]` | *"AUPRC is not generally superior in cases of class imbalance"*; la creencia *"is often made without citation, misattributed to papers that do not argue this point."* **El escudo principal.** DOI de proceedings NO verificado |
 | Li (2024), *PLOS ONE* 19(12):e0316019 | doi:`10.1371/journal.pone.0316019`, arXiv:`2408.10193` | render | 156 escenarios, prevalencia 0.08–0.83: el AUC tiene la menor varianza; el F1 tiene relación **monótona creciente con la prevalencia**. Y un caso publicado con **F1 = 0.475 contra MCC = 0.042 y AUC = 0.524** para un modelo al azar — nuestro argumento, en otra revista |
-| Fawcett (2006), *PRL* 27(8):861–874 | doi:`10.1016/j.patrec.2005.10.010` | `[TEXTO COMPLETO]` | AUC = P(positivo al azar rankeado sobre negativo al azar) = Wilcoxon. Y: *"Comparing model performance at a common threshold will be meaningless"* entre escalas distintas. **La invariancia monótona NO figura como teorema etiquetado en ninguna fuente: derivarla en una línea del rank identity, no atribuirla** |
-| Hanley & McNeil (1982), *Radiology* 143(1):29–36 | doi:`10.1148/radiology.143.1.7063747` | `[CROSSREF]` | Fuente original de AUC = Wilcoxon/Mann-Whitney |
+| Fawcett (2006), *PRL* 27(8):861–874 | doi:`10.1016/j.patrec.2005.10.010` | ⚠️ `[SIN COPIA LEGAL]` — Unpaywall responde `is_oa: false` (consultado 2026-09-04) | La entrada registraba «AUC = P(positivo al azar rankeado sobre negativo al azar) = Wilcoxon» como paráfrasis, no como literal, sobre una lectura de julio cuyo PDF **ya no está en el repo**. No se pudo reverificar. **No se cita**: la lectura probabilística la sostiene Hand y Till, ver abajo. Sigue sirviendo *"Comparing model performance at a common threshold will be meaningless"*, pero tampoco reverificado. **La invariancia monótona NO figura como teorema etiquetado en ninguna fuente: derivarla en una línea del rank identity, no atribuirla** |
+| Hanley & McNeil (1982), *Radiology* 143(1):29–36 | doi:`10.1148/radiology.143.1.7063747` | ⚠️ `[SIN COPIA LEGAL]` — Unpaywall responde `is_oa: false` (consultado 2026-09-04) | Se registraba como fuente original de AUC = Wilcoxon/Mann-Whitney. No leída, y la Sección IV-D no enuncia esa equivalencia, así que no tendría afirmación que sostener. **No se cita** |
+| **Hand, D. J., & Till, R. J. (2001)**, «A Simple Generalisation of the Area Under the ROC Curve for Multiple Class Classification Problems», *Machine Learning* 45(2):171–186 | doi:`10.1023/A:1010920819831` | `[TEXTO COMPLETO]` — **PDF leído 2026-09-04**, acceso abierto en el editor (vía Unpaywall) | **La cita de la lectura probabilística del AUC en la Sección IV-D.** Literal: *"AUC is equivalent to the probability that a randomly chosen member of class 1 will have a smaller estimated probability of belonging to class 0 than a randomly chosen member of class 0"*. Es además la fuente que **Flach y Kull acreditan** para ese enunciado, en su referencia [7] — verificado abriendo su lista de referencias, no de segunda mano |
 
 ---
 

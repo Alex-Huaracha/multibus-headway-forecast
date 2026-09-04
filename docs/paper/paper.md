@@ -420,29 +420,29 @@ arrancan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
 solapan.
 
 La comparación exige además tres condiciones, cada una sobre una fuente distinta
-de fuga: el tiempo, la población evaluada y los valores extremos.
+de fuga: el tiempo, la población evaluada y los valores extremos. La primera es la
+continuidad estricta: una muestra es válida solo si sus minutos son consecutivos.
+Sin ella la ventana puede atravesar un hueco de señal, y el horizonte mediría un
+intervalo mayor que el declarado. La regla retiene entre el 81,9 % y el 90,2 % de
+las instantáneas del período de prueba.
 
-- **Continuidad estricta.** Una muestra es válida solo si sus minutos son
-  consecutivos. La regla evita que la ventana atraviese un hueco de señal. Sin
-  ella, el horizonte mediría un intervalo mayor que el declarado. Retiene entre el
-  81,9 % y el 90,2 % de las instantáneas.
-- **Población compartida.** Los cuatro métodos se puntúan sobre exactamente las
-  mismas filas. El trabajo de entrenamiento recalcula la lista de muestras, compara
-  su resumen SHA-256 contra el registrado y aborta antes de usar la GPU si no
-  coincide. La verificación evita comparar métodos puntuados sobre poblaciones
-  distintas.
-- **Tope al percentil 99.** El tope es el percentil 99 del headway de
-  entrenamiento y se aplica como techo a las tres particiones. Calcularlo por
-  partición dejaría entrar información del período de prueba. Las posiciones sin
-  headway válido siguen enmascaradas. El techo afecta entre el 0,78 % y el 1,11 %
-  de los objetivos.
+La segunda es la población compartida: los cuatro métodos se puntúan sobre
+exactamente las mismas filas. El trabajo de entrenamiento recalcula la lista de
+muestras, compara su resumen SHA-256 contra el registrado y aborta antes de usar
+la GPU si no coincide. La verificación evita comparar métodos puntuados sobre
+poblaciones distintas. La tercera es el tope al percentil 99 del headway de
+entrenamiento, aplicado como techo a las tres particiones. Calcularlo por
+partición dejaría entrar información del período de prueba. El techo afecta entre
+el 0,78 % y el 1,11 % de los objetivos, y las posiciones sin headway válido siguen
+enmascaradas.
 
 Sobre esa misma población, los resultados se desglosan además por régimen de
-dispersión. La dispersión de una muestra es la desviación estándar de los headways
-observados en su ventana de entrada, en minutos. Cada combinación de corredor y
-horizonte se parte en tercios con los percentiles 33 y 66 de esa cantidad, fijados
-sobre entrenamiento y validación y aplicados sin cambios a prueba. Calibrarlos
-sobre prueba dejaría que la estratificación conociera el período que evalúa.
+dispersión. La dispersión se mide sobre cada posición del vector por separado: es
+la desviación estándar muestral de los headways que esa posición registró a lo
+largo de la ventana de entrada, en minutos. Cada combinación de corredor y
+horizonte se parte en tercios por esa cantidad, con los dos umbrales fijados sobre
+entrenamiento y validación y aplicados sin cambios a prueba. Calibrarlos sobre
+prueba dejaría que la estratificación conociera el período que evalúa.
 
 ### D. Métricas
 
@@ -482,18 +482,20 @@ R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{10}$$
 
 donde $P$ es la precisión y $R$ el recall.
 
-El F1 no usa TN, y premia por eso al detector que marca toda posición como evento.
-La tasa base de una celda es la fracción de sus posiciones donde el indicador
-observado vale 1. Ese detector alcanza recall 1 y precisión igual a la tasa base,
-así que su F1 queda fijado por ella y acompaña como piso a todo F1 reportado. El
+El F1 no usa TN [@chicco2020], y premia por eso al detector que marca toda
+posición como evento: maximizar el F1 sobre un pronóstico sin información conduce
+a ese detector con independencia de la tasa base [@lipton2014]. La tasa base de
+una celda es la fracción de sus posiciones donde el indicador observado vale 1.
+Ese detector alcanza recall 1 y precisión igual a la tasa base [@flach2015], así
+que su F1 queda fijado por ella y acompaña como piso a todo F1 reportado. El
 coeficiente de correlación de Matthews (MCC) usa los cuatro conteos. Para ese
-detector su cociente queda indeterminado, porque numerador y denominador se anulan
-a la vez, y se le asigna cero por extensión por continuidad. El área bajo la curva
-ROC (AUC) prescinde del umbral —el punto de operación del detector— y puntúa el
-ordenamiento del puntaje continuo $-\hat{h}_i/\bar{\hat{h}}$, del cual la
-Ecuación (6) es el umbral en $-\rho$. Es la probabilidad de que una posición de
-bunching reciba un puntaje mayor que una sin bunching, y vale 0,5 cuando el
-pronóstico no ordena.
+detector su cociente queda indeterminado, porque numerador y denominador se
+anulan a la vez, y se le asigna cero por extensión por continuidad [@chicco2020].
+El área bajo la curva ROC (AUC) prescinde del umbral —el punto de operación del
+detector— y puntúa el ordenamiento del puntaje continuo
+$-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (6) es el umbral en $-\rho$. Es
+la probabilidad de que una posición de bunching reciba un puntaje mayor que una
+sin bunching [@handtill2001], y vale 0,5 cuando el pronóstico no ordena.
 
 Sobre esas cantidades se construyen tres cocientes. La tasa de disparo de un
 método es la fracción de posiciones que marca como evento. El factor entre dos
@@ -932,6 +934,11 @@ a corregir llamadas. La numeración por orden de primera aparición se resuelve 
 convertir al formato IJACSA, sustituyendo cada clave por su número; el orden de
 esta lista no es todavía el definitivo.)_
 
+`[@chicco2020]` D. Chicco and G. Jurman, "The advantages of the Matthews
+correlation coefficient (MCC) over F1 score and accuracy in binary classification
+evaluation," *BMC Genomics*, vol. 21, no. 1, art. 6, 2020,
+doi: 10.1186/s12864-019-6413-7.
+
 `[@clopper1934]` C. J. Clopper and E. S. Pearson, "The use of confidence or
 fiducial limits illustrated in the case of the binomial," *Biometrika*, vol. 26,
 no. 4, pp. 404–413, 1934, doi: 10.1093/biomet/26.4.404.
@@ -940,12 +947,25 @@ no. 4, pp. 404–413, 1934, doi: 10.1093/biomet/26.4.404.
 *Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995,
 doi: 10.1080/07350015.1995.10524599.
 
+`[@flach2015]` P. A. Flach and M. Kull, "Precision-Recall-Gain Curves: PR
+Analysis Done Right," in *Advances in Neural Information Processing Systems 28*,
+2015, pp. 838–846.
+
+`[@handtill2001]` D. J. Hand and R. J. Till, "A Simple Generalisation of the Area
+Under the ROC Curve for Multiple Class Classification Problems," *Machine
+Learning*, vol. 45, no. 2, pp. 171–186, 2001, doi: 10.1023/A:1010920819831.
+
 `[@harvey1997]` D. Harvey, S. Leybourne, and P. Newbold, "Testing the equality of
 prediction mean squared errors," *International Journal of Forecasting*, vol. 13,
 no. 2, pp. 281–291, 1997, doi: 10.1016/S0169-2070(96)00719-4.
 
 `[@iso19148]` Geographic information — Linear referencing, ISO 19148:2021, 2nd ed.,
 International Organization for Standardization, Geneva, Switzerland, 2021.
+
+`[@lipton2014]` Z. C. Lipton, C. Elkan, and B. Naryanaswamy, "Optimal
+Thresholding of Classifiers to Maximize F1 Measure," in *ECML PKDD 2014*, Lecture
+Notes in Computer Science, vol. 8725, 2014, pp. 225–239,
+doi: 10.1007/978-3-662-44851-9_15.
 
 `[@manibardo2022]` E. L. Manibardo, I. Laña, and J. Del Ser, "Deep Learning for
 Road Traffic Forecasting: Does it Make a Difference?," *IEEE Transactions on
