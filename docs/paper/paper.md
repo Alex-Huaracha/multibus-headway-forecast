@@ -1000,13 +1000,48 @@ evaluar el modelo contra ella queda para trabajo futuro.
 
 ## VII. Conclusión
 
-_(pendiente)_
+Este trabajo predice el vector de headways de tres corredores de Arequipa con un
+LSTM, y convierte lo predicho en un indicador de bunching mediante una regla
+relativa al promedio del propio vector. La dispersión transversal de lo predicho
+queda por debajo de la observada en las doce celdas y las tres ventanas de prueba,
+y la brecha se profundiza al alargar el horizonte. Con el umbral del evento
+observado trasladado sin cambios, el detector se dispara catorce veces sobre los
+15 245 eventos que la regla marca en E2 a diez minutos. La persistencia lo supera
+ahí por un factor de 253 en el F1.
+
+Ese colapso no mide la capacidad del modelo sino el punto de operación en el que
+se lo evalúa. Puntuada sin fijar un umbral, mediante el AUC, la predicción del
+LSTM ordena mejor que la persistencia en las nueve combinaciones de corredor y
+ventana a diez minutos. Recalibrar el umbral sobre una ventana anterior disjunta
+recupera parte de esa ventaja sin reentrenar. El punto de operación se calcula
+entonces contra la distribución de lo predicho, y no se hereda de las
+observaciones.
+
+Tres extensiones quedan abiertas. La primera liga la detección a una función de
+costo que pondere el aviso perdido contra el aviso falso, que la Sección VI
+declara ausente. La segunda emite una predicción probabilística en lugar de
+puntual, de modo que la dispersión no se pierda en el acto de predecir. La tercera
+valida la regla del evento contra un registro de incidentes, que estos corredores
+todavía no producen.
 
 ---
 
 ## VIII. Declaraciones
 
-_(pendiente — disponibilidad de datos y código)_
+Los datos de origen son registros GPS del Sistema Integrado de Transporte de
+Arequipa, cuya fuente es la Municipalidad Provincial de Arequipa. El conjunto
+crudo y el procesado están disponibles en Kaggle, en
+`kaggle.com/datasets/alexhuaracha/multibus-headway-forecast-raw` y
+`kaggle.com/datasets/alexhuaracha/multibus-headway-forecast-clean`. El código de
+preprocesamiento, entrenamiento y análisis, junto con los guiones que generan
+cada tabla y cada figura de este documento, está disponible en
+`github.com/Alex-Huaracha/multibus-headway-forecast`.
+
+Se usaron herramientas asistidas por inteligencia artificial generativa para la
+redacción del texto y para la verificación de las citas contra sus fuentes. El
+diseño experimental, la implementación, las cifras reportadas y su interpretación
+fueron revisados y verificados por los autores, que asumen la responsabilidad del
+contenido final.
 
 ---
 
