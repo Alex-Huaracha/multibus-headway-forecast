@@ -873,6 +873,16 @@ y ninguna quedó primera en las doce. La Tabla 4 las recoge. Modelar la relació
 entre posiciones vecinas no movió el error escalar, de modo que el trabajo
 continuó con la más simple de las tres.
 
+Ese resultado nulo tiene compañía, aunque ninguna sobre el mismo eje. Rodrigues
+reporta que una línea base de patrón semanal con regresión lineal iguala a métodos
+de aprendizaje profundo espacio-temporales y supera a varios basados en redes de
+grafos, y advierte a la vez que la correlación espacial no debe descartarse, sobre
+todo a horizontes cortos [@rodrigues2022]. Boudabbous y colaboradores encuentran
+que una red recurrente supera a dos transformadores entre 18 y 52 % con 275 veces
+menos parámetros, sobre la red de Montreal y contra arquitecturas que operan sobre
+el tiempo [@boudabbous2026]. Ninguno de los dos releva a la Tabla 4 de su propia
+limitación, que la Sección VI declara.
+
 **Tabla 4.** Error absoluto medio de las tres arquitecturas contrastadas antes de
 fijar el protocolo de la Sección IV. La última columna es la diferencia entre la
 mayor y la menor de cada fila.
@@ -941,6 +951,14 @@ referencia que fijan no depende de esa asimetría. El contraste de arquitecturas
 de la Sección V-G tampoco está nivelado con el resto, porque precede al protocolo
 de la Sección IV y no se rehízo después.
 
+La elección de métricas tiene además una disputa abierta. Chicco y Jurman
+sostienen que el MCC debe reemplazar al AUC como medida estándar de clasificación
+binaria, porque el AUC no informa sobre la precisión ni sobre el valor predictivo
+negativo [@chicco2023]. Ese reclamo alcanza a quien reporta solo el AUC. La
+Sección IV-D reporta los tres: el AUC y la precisión promedio miden el
+ordenamiento sin fijar umbral, y el MCC resume el punto de operación ya elegido,
+de modo que responden preguntas distintas y ninguno sustituye al otro.
+
 Las métricas de la Sección IV-D son genéricas y comparables entre corredores, y
 ninguna liga un error de predicción a una decisión de intervención. Un despacho
 necesitaría una función de costo que pondere el aviso perdido contra el aviso
@@ -970,6 +988,10 @@ a corregir llamadas. La numeración por orden de primera aparición se resuelve 
 convertir al formato IJACSA, sustituyendo cada clave por su número; el orden de
 esta lista no es todavía el definitivo.)_
 
+`[@boudabbous2026]` E. Boudabbous, M. Karaa, L. Sboui, J. Montecinos, and O. Alam,
+"Scalable Transit Delay Prediction at City Scale: A Systematic Approach with
+Multi-Resolution Feature Engineering and Deep Learning," arXiv:2601.18521, 2026.
+
 `[@chen2016]` T. Chen and C. Guestrin, "XGBoost: A Scalable Tree Boosting System,"
 in *Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
 Discovery and Data Mining*, San Francisco, CA, USA, 2016, pp. 785–794,
@@ -979,6 +1001,11 @@ doi: 10.1145/2939672.2939785.
 correlation coefficient (MCC) over F1 score and accuracy in binary classification
 evaluation," *BMC Genomics*, vol. 21, no. 1, art. 6, 2020,
 doi: 10.1186/s12864-019-6413-7.
+
+`[@chicco2023]` D. Chicco and G. Jurman, "The Matthews correlation coefficient
+(MCC) should replace the ROC AUC as the standard metric for assessing binary
+classification," *BioData Mining*, vol. 16, art. 4, 2023,
+doi: 10.1186/s13040-023-00322-4.
 
 `[@clopper1934]` C. J. Clopper and E. S. Pearson, "The use of confidence or
 fiducial limits illustrated in the case of the binomial," *Biometrika*, vol. 26,
@@ -1042,6 +1069,9 @@ pp. 11603–11630, 2022, doi: 10.5194/acp-22-11603-2022.
 `[@patton2012]` A. J. Patton and A. Timmermann, "Forecast Rationality Tests Based
 on Multi-Horizon Bounds," *Journal of Business & Economic Statistics*, vol. 30,
 no. 1, pp. 1–17, 2012, doi: 10.1080/07350015.2012.634337.
+
+`[@rodrigues2022]` F. Rodrigues, "On the importance of stationarity, strong
+baselines and benchmarks in transport prediction problems," arXiv:2203.02954, 2022.
 
 `[@rezazada2024]` M. Rezazada, N. Nassir, E. Tanin, and A. Ceder, "Bus bunching: a
 comprehensive review from demand, supply, and decision-making perspectives,"
