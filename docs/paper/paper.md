@@ -254,23 +254,33 @@ separación por la velocidad del bus de atrás: esa división supone que la
 velocidad actual se mantiene, e introduce una estimación dentro de la cantidad
 que se busca estimar.
 
+Ese headway describe un solo par. En cada minuto de la
+rejilla, los buses de un mismo sentido se ordenan por su coordenada de arco, y
+cada bus con uno delante forma un par con él. Con $N$ buses circulando quedan
+$N-1$ pares, de modo que el corredor queda descrito por un vector de $N-1$
+headways ordenados desde el frente. Ese orden numera las posiciones del vector:
+la primera es la del par que va más adelante. Un par sin headway válido conserva
+su posición y se emite «sin dato», para que el orden no dependa de cuántos pares
+resolvieron.
+
 ### B. Formulación de la tarea de predicción
 
-La Sección III-A deja el corredor descrito, minuto a minuto, por un vector de
-headways de $N-1$ posiciones, con $N$ el número de buses circulando en ese minuto.
-Lo que predecimos es ese vector completo: no un headway suelto ni un
+La Sección III-A deja el corredor descrito, minuto a minuto, por ese vector de
+headways. Lo que predecimos es el vector completo: no un headway suelto ni un
 promedio del corredor, sino todas sus posiciones a la vez. Dado el historial de
 los últimos $T$ minutos y un contexto de calendario, se busca el vector del
 corredor $H$ minutos más adelante:
 
-$$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\; c(t)\big),
-\qquad T = 12, \tag{2}$$
+$$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\;
+c(t-T+1), \dots, c(t)\big), \qquad T = 12, \tag{2}$$
 
 donde $\mathbf{h}(t)$ es el vector de headways del corredor en el minuto $t$ y
 $\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante.
-El término $c(t)$ reúne cuatro variables de calendario disponibles en $t$ —el seno
-y el coseno de la hora, y el seno y el coseno del día de la semana—, $f$ es el
-modelo ajustado y $T$ es la cantidad de minutos de historia que recibe.
+El término $c(t)$ reúne cuatro variables de calendario del minuto $t$: el seno y
+el coseno de la hora, y el seno y el coseno del día de la semana. El modelo
+recibe ese conjunto en cada uno de los $T$ minutos de la ventana, y no solo en el
+último. Aquí $f$ es el modelo ajustado y $T$ es la cantidad de minutos de
+historia que recibe.
 
 Se predice a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
 ajustado por separado para cada uno: no hay recursión, cada horizonte se predice
@@ -284,16 +294,15 @@ $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 \big(\hat{h}_i - h_i\big)^{2}, \tag{3}$$
 
 donde $\mathcal{L}$ es la pérdida que el ajuste minimiza, $\mathcal{V}$ es el
-conjunto de posiciones del vector con bus asignado en el instante objetivo,
-$|\mathcal{V}|$ es su cardinal, y $\hat{h}_i$ y $h_i$ son el valor predicho y el
-observado en la posición $i$.
+conjunto de posiciones del vector con bus asignado en el instante objetivo, y
+$|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$ y $h_i$ son el valor
+predicho y el observado en la posición $i$, expresados en la escala tipificada
+por sentido que fija la Sección IV-B y no en minutos.
 
-Esa elección gobierna el resto del trabajo. Una predicción que minimiza error
-cuadrático tiende a la media condicional, y la Sección II-B recoge por qué esa
-media es menos dispersa que la realidad. La compresión de
-dispersión que documenta la Sección V-B no es entonces una falla del ajuste. El
-efecto de esa compresión sobre la regla del evento es el asunto de la
-Sección III-C.
+La Ecuación (3) fija entonces qué puede emitir el modelo. Una predicción que
+minimiza error cuadrático tiende a la media condicional, y la Sección II-B
+recoge por qué esa media es menos dispersa que la realidad. El efecto de esa
+compresión sobre la regla del evento es el asunto de la Sección III-C.
 
 ### C. Definición del evento de bunching
 
@@ -318,12 +327,12 @@ Resta decidir cuándo un headway cuenta como bunching. La convención del campo 
 una fracción del headway programado: un cuarto en las formulaciones más citadas
 [@moreiramatias2016], y la mitad en el TCQSM [@tcqsm2003]. Estos corredores no
 tienen programación contra la cual comparar. Sustituir esa referencia por una
-observada del propio dato es práctica establecida: Yu y colaboradores reemplazan
+observada del propio dato es práctica establecida. Yu y colaboradores reemplazan
 el horario ausente de su corredor por el headway observado en la primera parada de
-la misma corrida [@yu2016], y Jiao y colaboradores fijan su umbral en un cuarto de
-ese mismo headway de la primera parada [@jiao2023]. Aquí el denominador se sustituye por el promedio del
-propio vector en ese instante. **Un headway cuenta como bunching si cae por debajo de la
-mitad de ese promedio.** Ese valor es el umbral relativo del evento: se lo llama
+la misma corrida [@yu2016]. Jiao y colaboradores fijan su umbral en un cuarto de
+ese mismo headway [@jiao2023]. Aquí el denominador se sustituye por el promedio
+del propio vector en ese instante. **Un headway cuenta como bunching si cae por
+debajo de la mitad de ese promedio.** Ese valor es el umbral relativo del evento: se lo llama
 relativo porque es una fracción del promedio vigente y no un número fijo de
 minutos, de modo que se mueve con cada vector.
 
@@ -333,9 +342,8 @@ definición de evento en la literatura consultada. La fracción sí es heredada,
 la del TCQSM. El promedio del vector cumple la función de la programación: fijar
 la separación normal en ese corredor en ese instante. Un umbral absoluto, fijo en
 minutos, no la cumple, porque no es comparable entre corredores que operan a
-frecuencias distintas. La elección del valor tampoco es neutral: los umbrales
-publicados van desde veinte segundos hasta un cuarto del headway programado
-[@rezazada2024], y no existe un único valor aceptado.
+frecuencias distintas. La elección de $\rho$ tampoco es neutral: el rango de
+umbrales publicados no señala un único valor aceptado [@rezazada2024].
 
 El vector de la Sección III-B se escribe por componentes como
 $\mathbf{h}(t) = (h_1, \dots, h_m)$. Su promedio y el umbral del evento son
@@ -354,10 +362,9 @@ $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
 
 donde $b_i(t)$ vale 1 si la posición $i$ cuenta como bunching y 0 si no, y
 $\mathbb{1}[\cdot]$ es la función indicadora. La condición $m \ge 3$ descarta los
-vectores más cortos y exige al menos cuatro buses en circulación. Por debajo de
-tres posiciones no hay patrón que describir. Con dos headways hay un solo
-intervalo intermedio, así que cualquier medida de irregularidad se reduce a esa
-única diferencia. Con tres ya hay patrón: uno colapsado, uno estirado, uno normal.
+vectores más cortos y exige al menos cuatro buses en circulación. Con dos
+headways cualquier medida de irregularidad se reduce a la diferencia entre ellos,
+y no describe un patrón.
 
 El detector que este trabajo evalúa es esa misma regla aplicada al vector predicho
 de la Ecuación (2), con el promedio de ese mismo vector fijando el umbral:
@@ -426,12 +433,14 @@ La construcción del headway desde la posición cruda no siempre produce un valo
 Dos condiciones dejan un par de buses sin headway: que la Ecuación (1) no
 encuentre el cruce, o que el headway supere los treinta minutos. La cobertura —la
 fracción de pares evaluados con headway válido— es del 63,5 % en E2, del 64,8 % en
-E4 y del 77,1 % en E59: 3 938 174 pares en total. Una posición del vector sin
-headway válido se enmascara.
+E4 y del 77,1 % en E59: 3 938 174 pares con headway válido sobre 5 601 738
+evaluados. Una posición del vector sin headway válido se enmascara.
 
-Los huecos que deja ese enmascaramiento no se distribuyen al azar. Ninguna de las
-dos condiciones es neutral: ambas recortan por el extremo alto de la distribución,
-de modo que los descartados son los intervalos más largos. La cobertura tampoco es
+Los huecos que deja ese enmascaramiento no se distribuyen al azar. Casi todo el
+faltante viene de una sola de las dos condiciones: el cruce existe, pero es
+anterior al tope de treinta minutos. Esa condición recorta por el extremo alto, de
+modo que los descartados son los intervalos más largos. La que no encuentra cruce
+explica menos de un punto porcentual en cada corredor. La cobertura tampoco es
 pareja entre corredores: entre el mejor y el peor medido hay 13,6 puntos
 porcentuales.
 
@@ -596,15 +605,15 @@ contrasta con la prueba de Diebold–Mariano [@diebold1995] sobre el diferencial
 muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold [@harvey1997]. La
 varianza se estima agrupando por día de servicio, porque las
 muestras de un mismo día comparten clima, incidentes y demanda. El agrupamiento
-lleva el tamaño efectivo de muestra de decenas de miles de filas a los 22 días del
-período de prueba.
+lleva el tamaño efectivo de muestra de entre 75 747 y 240 907 filas, según la
+celda, a los 22 días del período de prueba.
 
 La precisión de la Ecuación (10) admite su propia acotación, porque puede
 descansar sobre muy pocas posiciones marcadas. Se acota con el intervalo exacto de
 Clopper–Pearson [@clopper1934] al 95 %, calculado sobre los conteos de TP y de
-FP de cada celda. Se prefiere el intervalo exacto a la aproximación normal. Los
-conteos que necesitan acotarse aquí son los pequeños, y en ellos la aproximación
-deja parte de su intervalo fuera del rango válido de una proporción. Una celda
+FP de cada celda. Los conteos que necesitan acotarse aquí son los pequeños, y en
+ellos la aproximación normal deja parte de su intervalo fuera del rango válido de
+una proporción. Una celda
 donde el detector nunca marca no recibe intervalo: no hay precisión que acotar.
 
 ---
