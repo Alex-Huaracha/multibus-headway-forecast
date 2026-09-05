@@ -17,16 +17,47 @@ Insumos vinculantes:
 ## 1. La afirmación central
 
 > Cuando un modelo parece incapaz de detectar el bunching de buses, muchas
-> veces no falla el modelo: falla la regla con la que se lo mide. Un pronóstico
+> veces no falla el modelo: falla la regla con la que se lo mide. Una predicción
 > siempre sale más parejo que la realidad, así que una alarma calibrada sobre la
-> realidad casi nunca se dispara sobre el pronóstico. El modelo parece ciego sin
+> realidad casi nunca se dispara sobre la predicción. El modelo parece ciego sin
 > serlo. **Se arregla moviendo la regla, no cambiando el modelo.**
 
 Todo lo que entra al paper sostiene esta frase o la acota. Lo que no hace ninguna
 de las dos cosas, sale.
 
-**Título de trabajo:** *El umbral, no el modelo: por qué un pronóstico de
+**Título de trabajo:** *El umbral, no el modelo: por qué una predicción de
 headways parece ciego al bunching, y cómo se repara.*
+
+---
+
+## 1-bis. Léxico fijado
+
+**El sustantivo es «predicción». «Pronóstico» no se usa.** Fijado 2026-09-05 tras
+medirlo, porque no eran dos conceptos: el paper decía «Una **predicción** que
+minimiza error cuadrático tiende…» en III-B y «Un **pronóstico** ajustado para
+minimizar el error cuadrático medio…» en II-B — la misma afirmación con dos
+sustantivos. La distinción fina la cargan los adjetivos que ya existen:
+**puntual** contra **vectorial**.
+
+La evidencia, en títulos indexados por OpenAlex:
+
+| Dominio | forecast* | predict* |
+|---|---:|---:|
+| Global | 334 929 | **998 043** |
+| Flujo de tránsito | 1 624 | **3 677** |
+| Llegada de bus | 7 | **239** |
+| Headway | 6 | **33** |
+| **Bus bunching** | **0** | **12** |
+| Títulos en español + transporte | 7 | **29** |
+
+En «bus bunching» *forecast* no aparece en ningún título. Y de los once PDF del
+repo, ocho usan `predict`; los tres que prefieren `forecast` son econometría de
+pronóstico, no transporte. El título del paper ya usaba «predicción».
+
+⚠️ **Excepción registrada:** `src/build_contiguous_figures.py` conserva el término
+en las leyendas de la variante *chrome*, que van a `documento-resultados.md` y
+**nunca al paper** (`_resolve`, líneas 218-240). No tocar sin revisar ese
+documento.
 
 ---
 
@@ -39,11 +70,11 @@ Asignación actual, toda en la Sección III:
 | (1) | proyección al eje: `s(p)`, `ℓ(p)` | III-A, paso 2 |
 | (2) | sentido de marcha: `d` | III-A, paso 3 |
 | (3) | el headway: `t_c`, `h` | III-A, paso 6 |
-| (4) | la tarea de pronóstico: `ĥ(t+H) = f(·)` | III-B |
+| (4) | la tarea de predicción: `ĥ(t+H) = f(·)` | III-B |
 | (5) | el objetivo de error cuadrático: `L` | III-B |
 | (6) | promedio y corte: `h̄(t)`, `τ(t)` | III-C |
 | (7) | indicador de bunching sobre lo observado: `b_i(t)` | III-C |
-| (8) | el detector evaluado, sobre el pronóstico: `b̂_i(t)` | III-C |
+| (8) | el detector evaluado, sobre la predicción: `b̂_i(t)` | III-C |
 | (9) | `τ(ĥ) ≠ τ(h)` | III-C |
 
 Esta tabla es estado, no norma: registra qué número tiene hoy cada ecuación. Las
@@ -137,7 +168,7 @@ ninguno de los ocho trabajos que resume puntúa el ordenamiento sin umbral;
 Manibardo et al. (2022) acota lo que vale la primera etapa. Título anterior, «La
 receta estándar», retirado por metáfora (Sección 4 de `reglas-redaccion.md`).
 
-**B. Compresión de la dispersión del pronóstico** — ✅ **ESCRITA.** Mayer y Yang
+**B. Compresión de la dispersión de la predicción** — ✅ **ESCRITA.** Mayer y Yang
 la enuncian y la cuantifican; el Corolario 2 de Patton y Timmermann la ordena por
 horizonte; Petetin et al. documentan su daño sobre una métrica categórica.
 
@@ -158,7 +189,7 @@ horizonte; Petetin et al. documentan su daño sobre una métrica categórica.
 
 **C. Recalibrar el umbral: precedente fuera del transporte** — ✅ **ESCRITA.** Dos
 familias de remedio agrupadas por qué objeto tocan: Hoffmann et al. (2018) mueve
-el umbral, Petetin et al. (2022) mueve el pronóstico con mapeo de cuantiles.
+el umbral, Petetin et al. (2022) mueve la predicción con mapeo de cuantiles.
 
 > **Contra-argumento que hay que sostener.** Hoffmann dice que un indicador
 > definido sobre un cuantil de la distribución de referencia queda libre de sesgo
@@ -182,7 +213,7 @@ el contraste.
 
 ### III. Método propuesto
 
-**Orden fijado el 2026-08-27: headway → pronóstico → bunching.** Sigue el flujo
+**Orden fijado el 2026-08-27: headway → predicción → bunching.** Sigue el flujo
 real del dato, y no es solo cosmético: con bunching al final, el lector llega a la
 definición del evento con `h` y `ĥ` ya sobre la mesa, así que las Ecuaciones (7) y
 (8) se definen juntas. En el orden anterior —A headway, B bunching— la subsección
@@ -200,7 +231,7 @@ ajuste, y que la velocidad se deriva del desplazamiento y no se lee del campo de
 proveedor. El segundo es el que un revisor va a pedir: hoy el eje se presenta como
 un procedimiento único cuando son dos.
 
-**B. La tarea de pronóstico** — ✅ **ESCRITA.** Qué se recibe, qué se emite, los
+**B. La tarea de predicción** — ✅ **ESCRITA.** Qué se recibe, qué se emite, los
 cuatro horizontes directos, y el objetivo de error cuadrático con su consecuencia:
 tiende a la media condicional, que es más pareja que la realidad. Ecuaciones (4)–(5).
 
@@ -210,7 +241,7 @@ tiende a la media condicional, que es más pareja que la realidad. Ecuaciones (4
 > una tabla de hiperparámetros.
 
 **C. Qué cuenta como bunching** — ✅ **ESCRITA.** La definición del evento sobre lo
-observado y el detector compuesto sobre el pronóstico, definidos uno al lado del
+observado y el detector compuesto sobre la predicción, definidos uno al lado del
 otro, y de ahí que el corte no sea el mismo cuando cambia la dispersión.
 Ecuaciones (6)–(9).
 → **Fig. 2 y 3**
@@ -241,7 +272,7 @@ que en este molde vive dentro de Resultados.
 | | Contenido | Evidencia |
 |---|---|---|
 | A | El resultado escalar y su frontera | — |
-| B | El pronóstico sale más parejo | Fig. 5, Fig. 6 |
+| B | La predicción sale más pareja | Fig. 5, Fig. 6 |
 | C | La alarma no suena | Fig. 7, Tabla 1 |
 | D | Ese factor no mide al modelo | — |
 | E | La reparación | Fig. 8, Tabla 2 |

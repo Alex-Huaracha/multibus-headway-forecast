@@ -22,7 +22,7 @@ insumo de P3 (referencias) y la evidencia de P2 (reencuadre de contribuciones).
 
 | Pieza de nuestro argumento | ¿Nueva? | Quién llegó antes |
 |---|---|---|
-| Los pronósticos puntuales están sub-dispersos | **No** | Patton & Timmermann 2012 (teorema); Mayer & Yang 2022 |
+| Las predicciones puntuales están sub-dispersas | **No** | Patton & Timmermann 2012 (teorema); Mayer & Yang 2022 |
 | Empeora monótonamente con el horizonte | **No** | Patton & Timmermann 2012, Corolario 2 (es teoría, no hallazgo) |
 | La sub-dispersión rompe umbrales de evento | **No** | Ravuri et al. 2021 (*Nature*); Hoffmann et al. 2018; **Petetin et al. 2022** (§0.5 — el más cercano) |
 | Aparear error continuo con métrica categórica, y que nombren ganadores distintos | **No** | **Petetin et al. 2022**, como titular. Ver §0.5 — por esto se retiró nuestro titular viejo |
@@ -32,8 +32,8 @@ insumo de P3 (referencias) y la evidencia de P2 (reencuadre de contribuciones).
 | Crítica del punto de operación único | **No** | **Sun et al. 2021** |
 | Reversión al puntuar sin umbral (ROC) | **No** | **Sun et al. 2021** |
 | Maximizar F1 degenera a "marcar todo" | **No** | Lipton et al. 2014 (teorema) |
-| **Medir la causa: razón de CV pronóstico/observación** | **Sí** | Nadie, en transporte |
-| **Invertir `Z = 0.5/cv` del TCQSM sobre el pronóstico** | **Sí** | Nadie |
+| **Medir la causa: razón de CV predicción/observación** | **Sí** | Nadie, en transporte |
+| **Invertir `Z = 0.5/cv` del TCQSM sobre la predicción** | **Sí** | Nadie |
 | **Recalibrar el corte en una ventana anterior disjunta** | **Sí** | Nadie en transporte; y es el caso de umbral **relativo**, que la prior art de hidrología/meteorología no cubre |
 | **Precisión media (AP) en detección de bunching** | **Sí** | Nadie |
 
@@ -67,7 +67,7 @@ MSE-optimized power forecasts were shown to be more underdispersed than
 MAE-optimized ones, which seems to be the general case in solar forecasting."*
 
 Además atribuyen la dependencia del horizonte a **Vannitsem y Hagedorn (2011)**:
-el post-procesamiento que reduce el MSE produce pronósticos más sub-dispersos a
+el post-procesamiento que reduce el MSE produce predicciones más sub-dispersas a
 mayor *lead time*, porque convergen a la media climatológica cuando cae la
 correlación. **Es un segundo precedente de nuestra monotonía**, además de Patton
 y Timmermann.
@@ -84,7 +84,7 @@ dispersión **transversal** entre componentes de un vector.
 
 **Consecuencia: C1 se reformula.** No podemos reclamar el enunciado estructural.
 Queda: (a) primera cuantificación sobre un **vector de *headways***, como CV
-transversal; (b) la inversión del `Z = 0.5/cv` del TCQSM sobre el pronóstico;
+transversal; (b) la inversión del `Z = 0.5/cv` del TCQSM sobre la predicción;
 (c) la consecuencia **sobre una regla de evento**, que ellos no tocan. Citarlos
 de frente en la §II-B.
 
@@ -128,7 +128,7 @@ El rango "20 s a ¼" queda verificado. **La atribución disputada a
 Y un pendiente nuevo: mencionan **Gong et al. (2020)** con umbral **variable**
 según tipo de servicio e información en tiempo real. Hay que revisar que no sea
 una amenaza a C2 (variable por contexto operativo ≠ recalibrado contra la
-distribución del pronóstico, pero conviene verificarlo).
+distribución de la predicción, pero conviene verificarlo).
 
 ### 0.4 Yu et al. (2016) — **la reconciliación, y nos AYUDA**
 `[TEXTO COMPLETO]` — doi:`10.1016/j.trc.2016.09.007`, *TR-C* 72:45–59.
@@ -150,7 +150,7 @@ parada de la misma corrida.
 > con otro punto de referencia. Deja de ser "invención nuestra sin precedente" y
 > pasa a ser "la misma sustitución que Yu et al., con otra referencia" — y la
 > diferencia que importa queda nítida: **su referencia es observada y no se mueve
-> con el pronóstico; la nuestra es predicha y sí se mueve.** Ahí está el
+> con la predicción; la nuestra es predicha y sí se mueve.** Ahí está el
 > mecanismo, expresado como contraste con un precedente en lugar de como
 > peculiaridad nuestra.
 
@@ -189,7 +189,7 @@ sospechaba — y aun así C2 sobrevive, por un motivo estructural.**
   tells little about the forecast value."* Y el caso concreto: *"a MOS method can
   give the best RMSE and PCC, yet the poorest high O₃ detection skills. This was
   the case of the unweighted GBM method."*
-- **La sub-dispersión, diagnosticada y cuantificada:** el pronóstico crudo tiene
+- **La sub-dispersión, diagnosticada y cuantificada:** la predicción cruda tiene
   *"underestimated variability (nMSDB around −30 %)"*, y los métodos sofisticados
   quedan *"too smooth"*, con *"more difficulty in capturing the lowest and highest
   O₃ concentrations"*.
@@ -209,9 +209,9 @@ sospechaba — y aun así C2 sobrevive, por un motivo estructural.**
   normativa de la UE. Un umbral legal no se reajusta contra la distribución de un
   modelo — la pregunta no existe en su marco. **Ahí está la diferencia
   estructural con nuestro caso**, y no es un tecnicismo: nuestro corte es
-  **relativo y auto-referencial**, así que el denominador se mueve con el
-  pronóstico. El suyo no se mueve nunca.
-- **Su remedio va del otro lado.** Corrigen el pronóstico para que su
+  **relativo y auto-referencial**, así que el denominador se mueve con la
+  predicción. El suyo no se mueve nunca.
+- **Su remedio va del otro lado.** Corrigen la predicción para que su
   distribución se parezca a la observada —*"the quantile mapping (QM) method aims
   at adjusting the distribution of the forecast concentrations to the
   distribution of observed concentrations"*—, no la regla de decisión. Es la
@@ -280,7 +280,13 @@ escala de nivel de servicio (Exhibit 3-30), que es donde está la fuerza.
 ### C3. El CV **no es** "la métrica estándar en operación"
 `[TEXTO COMPLETO]` de la presentación del seminario IBBG; artículo `[META]`.
 
-**Trompet, Liu & Graham (2011)**, *TRR* 2216(1):33–41, doi:`10.3141/2216-04`.
+**Trompet, M., Liu, X. & Graham, D. J. (2011)**, «Development of Key Performance
+Indicator to Compare Regularity of Service between Urban Bus Operators», *TRR:
+Journal of the Transportation Research Board* 2216(1):33–41, doi:`10.3141/2216-04`.
+Título, las tres iniciales, volumen, número y páginas **confirmados contra Crossref
+2026-09-04**. ⚠️ **El cuerpo del artículo no se leyó**: la tabla de abajo viene de
+la presentación del seminario IBBG, que sí está a texto completo. Se cita desde la
+§I por el relevamiento, y **no se le atribuye texto ni cifras del artículo**.
 Relevamiento de doce operadores del *International Bus Benchmarking Group*:
 
 | Indicador en uso | Operadores |
@@ -346,14 +352,14 @@ Literal:
 **Corta para los dos lados y hay que decidir cómo se presenta.**
 
 *En contra:* nuestro mecanismo está aritméticamente implicado por un manual de
-2003. `Z = 0.5/cv` con CV real 0.79 da Z ≈ 0.63; con CV del pronóstico 0.16 da
+2003. `Z = 0.5/cv` con CV real 0.79 da Z ≈ 0.63; con CV de la predicción 0.16 da
 Z ≈ 3.1 y P ≈ 0.1 %. Un revisor hostil deriva nuestro titular en una línea.
 
-*A favor:* la escala de nivel de servicio del propio manual califica al
-pronóstico como **LOS A, "service provided like clockwork"**, y a las
+*A favor:* la escala de nivel de servicio del propio manual califica a la
+predicción como **LOS A, "service provided like clockwork"**, y a las
 observaciones como **LOS F, "most vehicles bunched"**. Mismo corredor, mismo
 instrumento, veredictos opuestos. Nadie aplicó `Z = 0.5/cv` al CV de un
-**pronóstico**.
+**predicción**.
 
 **Decisión:** asumir la aritmética, citar la fuente primaria, y reclamar novedad
 exactamente donde está — la inversión, no la fórmula. Es más fuerte
@@ -386,7 +392,7 @@ reformulado y la §II-B del manuscrito ya está escrita sobre esa base.
 |---|---|---|---|
 | **Patton & Timmermann (2012)**, *JBES* 30(1):1–17 | doi:`10.1080/07350015.2012.634337` | `[TEXTO COMPLETO]` | **Nuestro anclaje más fuerte.** `V[Y] = V[Ŷ*] + E[e*²]` y Corolario 2: `V[Ŷ*_{t|t−hS}] ≥ V[Ŷ*_{t|t−hL}]` para `hS < hL`. La monotonía en el horizonte es **teorema**, no hallazgo |
 | **Gneiting (2011)**, *JASA* 106(494):746–762 | doi:`10.1198/jasa.2011.r10138`, arXiv:`0912.0902` | `[TEXTO COMPLETO]` | Elicitabilidad: Bregman ⟺ media; GPL de orden α ⟺ cuantil α. **NO contiene ninguna afirmación de sub-dispersión** — verificado por grep del preprint completo. Citar solo por el funcional |
-| Gneiting, Balabdaoui & Raftery (2007), *JRSS-B* 69(2):243–268 | doi:`10.1111/j.1467-9868.2007.00587.x` | `[ABSTRACT]` | "Maximizar sharpness sujeto a calibración". El pivote natural hacia pronóstico probabilístico |
+| Gneiting, Balabdaoui & Raftery (2007), *JRSS-B* 69(2):243–268 | doi:`10.1111/j.1467-9868.2007.00587.x` | `[ABSTRACT]` | "Maximizar sharpness sujeto a calibración". El pivote natural hacia predicción probabilística |
 | **Ravuri et al. (2021)**, *Nature* 597:672–677 | doi:`10.1038/s41586-021-03854-z`, arXiv:`2104.00954` | `[ABSTRACT]` literal | *"blurry nowcasts at longer lead times, yielding poor performance on more rare medium-to-heavy rain events."* Sub-dispersión + horizonte + daño sobre eventos por umbral, las tres en *Nature*. Su explicación es "lack of constraints", no elicitabilidad |
 | Subich et al. (2025), ICML 2025 | arXiv:`2501.19374` | `[ABSTRACT]` | MSE causa suavizado por doble penalización; lo arreglan con pérdida armónica esférica. GraphCast: resolución efectiva 1250 km → 160 km |
 | Bonavita (2024), *GRL* 51 | doi:`10.1029/2023GL107377`, arXiv:`2309.08473` | `[ABSTRACT]` | Modelos ML de clima producen espectros de energía suavizados; su ventaja en métricas deterministas es **parcialmente atribuible** al suavizado |
@@ -616,14 +622,14 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 
 | Fuente | ID | Estado | Rol |
 |---|---|---|---|
-| **Usama & Koutsopoulos (2025)** | arXiv:`2510.03121` | `[TEXTO COMPLETO]` | **Nuestra mejor cita motivadora.** ConvLSTM sobre el vector de headways de una línea de metro. Grepeado: **cero** ocurrencias de "bunch", "threshold", "classif", "F1", "recall", "smooth", "underestimat", "variance". Solo RMSE/MAE. Grupo de primera línea. Su lista de ausencias es nuestra lista de contribuciones |
+| **Usama, M. & Koutsopoulos, H. (2025)**, «Real Time Headway Predictions in Urban Rail Systems and Implications for Service Control: A Deep Learning Approach» | arXiv:`2510.03121`, 2025-10-03 | `[TEXTO COMPLETO]` — título, byline y fecha confirmados contra arXiv 2026-09-04 | **Citado en la §I como la complicación.** Es el hueco que este trabajo llena: predicen el vector y no lo convierten en detección. ConvLSTM sobre el vector de headways de una línea de metro. Grepeado: **cero** ocurrencias de "bunch", "threshold", "classif", "F1", "recall", "smooth", "underestimat", "variance". Solo RMSE/MAE. Grupo de primera línea. Su lista de ausencias es nuestra lista de contribuciones |
 | **Jiao, J., Shen, P. & Zhang, Y. (2023)**, «Headway-based Bus Bunching Prediction Using LSTM with Attention», *2023 IEEE 8th International Conference on Intelligent Transportation Engineering (ICITE)*:451–458 | doi:`10.1109/icite59717.2023.10733869` | `[TEXTO COMPLETO]` — **PDF leído 2026-09-04** | ✅ **Reconciliado — ya no es liabilidad; ver V3.** **Umbral verificado**, Ec. (7): `B_b = 1 si h_n ≤ h_{n,0}/4`, donde `h_{n,0}` es *"the headway of the bus run n at the first stop"* — relativo a una **observación**, no al horario, misma sustitución que la Ec. 13 de Yu. **Y su modelo no minimiza solo el MSE**: Ec. (14) `Loss = w_l·MSE + (1−w_l)·focal_loss` (α = 0,25, γ = 2), más **SMOTE** sobre el entrenamiento; tasa base 6,1 %. Su justificación enuncia la causa: *"If the loss function cares only about minimizing the overall regression errors, the training model tend to classify some non-zero elements as noise."* El 89 % es **BB-Recall** (precisión y F1 también 0,89) en la ruta 9 de Xiangyang, con salto **espacial** (paradas 0–7 → parada 8 y siguientes), no horizonte temporal. ⚠️ Medido sobre 5 días de **validación**; no describen conjunto de prueba aparte. ⚠️ Su línea base «LSTM» aparece con F1 0,75 (Tabla II) y 0,85 (Tabla III): **no apoyar nada en ella** |
 | **Yu et al. (2016)**, *TR-C* | doi:`10.1016/j.trc.2016.09.007` | `[TEXTO COMPLETO]` | ✅ **Reconciliado — ver §0.4.** El titular es a **2 paradas**; su propia sensibilidad cae a **73 % a 5 paradas** (vía Sun et al. 2021). Y su Ec. 13 usa el *headway* **observado** de la primera parada como sustituto del horario ausente: precedente directo de nuestra sustitución. Citado en §II-A |
 | Li, Yang & Wang (2025) | arXiv:`2509.06979` | `[TEXTO COMPLETO]` | Zirui Li, Bin Yang, Meng Wang. 31 ago 2025. **Preprint sin venue.** Grepeado: "headway", "bunching", "dispersion", "coefficient of variation" **no aparecen**. Su villano es la **normalización** (curable por arquitectura); el nuestro es la **pérdida** (estructural). Afirmaciones opuestas sobre tratabilidad = nuestra novedad. Su borde expuesto: *"overly stable and indistinguishable outputs"* — citar y neutralizar |
 | Liu, Wu, Wang & Long (2022) | arXiv:`2205.14415` | `[ABSTRACT]` | Origen del término *over-stationarization*. **Venue NeurIPS 2022 NO VERIFICADO** — el registro de arXiv no tiene journal-ref |
 | **Boudabbous, Karaa, Sboui, Montecinos & Alam (2026)**, «Scalable Transit Delay Prediction at City Scale» | arXiv:`2601.18521` | `[TEXTO COMPLETO]` — **PDF leído 2026-09-04**, 42 pp. | ⚠️ **Corregido 2026-09-04: eran 275×, no 77×.** Literal: *"outperforming transformer models by 18–52% while using **275× fewer parameters**"* (LSTM 31K contra PatchTST 2,4M). Cinco arquitecturas sobre la red de la STM de Montreal: LSTM, XGBoost, xLSTM, PatchTST y Autoformer. Target = **retraso**, no headway. ⚠️ **NO sirve para el nulo espacial de la §V-G: sus transformers son temporales.** PatchTST y Autoformer operan sobre la secuencia de tiempo; la §V-G contrasta contra arquitecturas que operan **a través del eje de buses**. Es otro eje. Respalda «lo recurrente simple gana» en general, no nuestro nulo en particular |
 | **Rodrigues, F. (2022)**, «On the importance of stationarity, strong baselines and benchmarks in transport prediction problems» | arXiv:`2203.02954` | `[TEXTO COMPLETO]` — **PDF leído 2026-09-04**, 6 pp. | **Sostiene que las líneas base fuertes son competitivas, y solo eso.** Literal: *"a naive baseline method based on the average weekly pattern and linear regression can achieve comparable results to many state-of-the-art deep learning approaches… or even outperform them on several datasets"*, y su HA+LR *"even outperforms very popular approaches based on complex graph neural networks… such as DCRNN and STGCN"*. ⚠️ **NO citarlo como que lo espacial no sirve — el autor dice lo contrario, y apunta a nuestro caso**: *"Although the results in this paper highlight the importance of temporal correlations and average weekly patterns, **the spatial correlations should not be neglected**. In fact, the latter can have a significant impact on forecasting error, **especially when shorter forecasting horizons**."* Un revisor que lo conozca lo usa contra nosotros si escribimos el nulo espacial apoyándonos en él. Se cita por la competitividad de la línea base, nunca por la inutilidad de lo espacial |
-| Chen, Cheng, Jin, Trépanier & Sun (2022) | arXiv:`2206.06915` | `[ABSTRACT]` verbatim | ⚠️ **Corregido 2026-07-30.** La descripción anterior decía "mezcla gaussiana sobre vectores de headway" y era imprecisa: su objetivo es el **tiempo de viaje**. Literal: *"we concatenate the link travel time vectors and the headway vector from a pair of two adjacent buses as a new augmented variable and model it with a constrained Multivariate Gaussian mixture distributions."* El *headway* entra como parte de la variable aumentada, no como objetivo. Guangzhou, veinte tramos. Sigue sirviendo: el remedio probabilístico **ya existe** en pronóstico de buses |
+| Chen, Cheng, Jin, Trépanier & Sun (2022) | arXiv:`2206.06915` | `[ABSTRACT]` verbatim | ⚠️ **Corregido 2026-07-30.** La descripción anterior decía "mezcla gaussiana sobre vectores de headway" y era imprecisa: su objetivo es el **tiempo de viaje**. Literal: *"we concatenate the link travel time vectors and the headway vector from a pair of two adjacent buses as a new augmented variable and model it with a constrained Multivariate Gaussian mixture distributions."* El *headway* entra como parte de la variable aumentada, no como objetivo. Guangzhou, veinte tramos. Sigue sirviendo: el remedio probabilístico **ya existe** en predicción de buses |
 | Yu, Wu, Chen & Ma (2016), *IEEE T-ITS* | doi:`10.1109/tits.2016.2620483` | `[ABSTRACT]` | Predicción **probabilística** de headway con RVM |
 | Zhang, Xu, Lu & Fan (2022), *Sustainability* 14(23):15583 | doi:`10.3390/su142315583` | `[TEXTO COMPLETO]` | Cita limpia del 0.5× en uso |
 | Manibardo, Laña & Del Ser (2021), *IEEE T-ITS* | arXiv:`2012.02260` | `[ABSTRACT]` | ⚠️ **El cruce por horizonte NO está confirmado en su abstract.** Podría ser arXiv:`2004.08170`. **No citar el cruce a este paper sin leerlo completo** |
@@ -646,7 +652,7 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 | V7 | Pre-empt "¿por qué no probabilidades de excedencia?" | Sun et al. **proponen ese paper ellos mismos** como trabajo futuro. La pregunta ya está planteada en la literatura del dominio |
 | ~~V8~~ | ✅ **Cerrado 2026-07-29.** Santos et al. leído — §0.2 | Sin barrido de umbral: C2 sobrevive. Y su tabla de la literatura previa sostiene la §II-D |
 | ~~V9~~ | ✅ **Cerrado 2026-07-29.** Yu et al. a texto completo — §0.4 | Su Ec. 13 y la sustitución del horario están verificadas de primera mano. Citado en §II-A |
-| V11 | **Gong et al. (2020)**, umbral **variable** — surgió de Rezazada | Verificar que "variable según contexto operativo" no colisione con C2 (recalibrado contra la distribución del pronóstico). Prioridad media |
+| V11 | **Gong et al. (2020)**, umbral **variable** — surgió de Rezazada | Verificar que "variable según contexto operativo" no colisione con C2 (recalibrado contra la distribución de la predicción). Prioridad media |
 | V10 | Kim, Moon & Kim (2024), *TRR* 2679(1):1662–1679, doi:`10.1177/03611981241255907` | `[NO RECUPERADO]` (SAGE 403). Probablemente tiene una crítica actualizada del CV como medida de regularidad — nos toca directo |
 
 **No citar bajo ninguna circunstancia** (no recuperados): SSRN `abstract_id=6880258`;

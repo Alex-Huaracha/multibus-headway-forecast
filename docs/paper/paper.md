@@ -8,25 +8,56 @@ _(pendiente — se escribe al final)_
 
 ## I. Introducción
 
-_(pendiente)_
+El headway es el tiempo que separa el paso de dos buses consecutivos por un mismo
+punto de una ruta. El bunching es la circulación conjunta de dos unidades que ese
+tiempo debería mantener separadas, y desiguala la espera entre los pasajeros del
+corredor. Rezazada y colaboradores lo atribuyen a la congestión, a la demanda
+atípica, a la acumulación de pasajeros y al comportamiento del conductor
+[@rezazada2024]. Trompet, Liu y Graham relevan doce operadores urbanos, y los que
+publican un indicador de servicio lo definen sobre la regularidad agregada del
+recorrido y no sobre un headway aislado [@trompet2011].
 
-Reclamamos tres contribuciones. Este trabajo predice el vector completo de
-headways de un corredor con un LSTM. La regla de la Sección III-C convierte lo
-predicho en un indicador de bunching, y la evaluación puntúa esa detección con y
-sin umbral. La Sección II-D delimita cuánto del mecanismo que este trabajo mide ya
-estaba publicado.
+La predicción de ese evento sigue una receta de dos etapas. La primera estima el
+headway que separará a dos buses en un instante futuro. La segunda compara ese
+valor contra una referencia y emite un indicador binario. Yu y colaboradores dan
+la formulación canónica sobre datos de tarjeta inteligente de dos rutas de Pekín
+[@yu2016], y Jiao, Shen y Zhang la repiten con una red recurrente sobre una ruta
+de Xiangyang [@jiao2023]. La referencia de comparación no está fijada: los
+umbrales publicados van desde veinte segundos hasta un cuarto del headway
+programado [@rezazada2024].
 
-- **Primera.** Medimos la compresión sobre el vector de headways, como dispersión
-  entre buses en un mismo instante. Los precedentes trabajan sobre la variabilidad
-  temporal de una serie escalar, que no es la misma cantidad.
-- **Segunda.** Invertimos la fórmula de calidad de servicio del *Transit Capacity
-  and Quality of Service Manual* (TCQSM) y la aplicamos a lo predicho en lugar de
-  a lo observado.
-- **Tercera.** La atamos a una regla de evento **relativa y auto-referencial**,
-  donde la compresión mueve el numerador y el denominador a la vez. Es la que no
+Esa receta deja dos huecos. Usama y Koutsopoulos predicen el vector completo de
+headways de una línea de metro con una red profunda, y reportan solo el error en
+minutos, sin convertir lo predicho en un indicador de evento [@usama2025]. Sun,
+Schmöcker y Nakamura sí llegan a la detección, y encuentran que el veredicto entre
+métodos se revierte al puntuar el ordenamiento sin fijar un punto de operación
+[@sun2021]. Queda sin medir qué le hace el error de la primera etapa a la decisión
+de la segunda.
+
+Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta el
+punto de operación. Predice el vector completo de headways de un corredor con un
+LSTM. La regla de la Sección III-C convierte lo predicho en un indicador de
+bunching, y la evaluación puntúa esa detección con y sin umbral. La Sección II-D
+delimita cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestras
+contribuciones son tres:
+
+- Medimos la compresión sobre el vector de headways, como dispersión entre buses
+  en un mismo instante. Los precedentes trabajan sobre la variabilidad temporal de
+  una serie escalar, que no es la misma cantidad.
+- Invertimos la fórmula de calidad de servicio del *Transit Capacity and Quality
+  of Service Manual* (TCQSM) y la aplicamos a lo predicho en lugar de a lo
+  observado.
+- Atamos esa fórmula a una regla de evento **relativa y auto-referencial**, donde
+  la compresión mueve el numerador y el denominador a la vez. Es la que no
   encontramos con precedente dentro ni fuera del transporte: en Petetin y
   colaboradores esa pieza no falta por descuido sino por construcción, porque sus
   umbrales son regulatorios y no admiten recalibración.
+
+El resto del documento se organiza como sigue. La Sección II revisa los trabajos
+relacionados. La Sección III presenta el método propuesto. La Sección IV describe
+el diseño experimental. La Sección V reporta los resultados y los discute. La
+Sección VI acota las amenazas a la validez. La Sección VII concluye y la Sección
+VIII reúne las declaraciones.
 
 ---
 
@@ -34,8 +65,8 @@ estaba publicado.
 
 Esta sección recorre la literatura en cuatro pasos. El primero describe el método
 con que el campo predice el bunching y las medidas con que lo evalúa. El segundo
-reúne lo que ya se estableció sobre la compresión de la dispersión de un
-pronóstico. El tercero recoge los dos remedios publicados para esa compresión,
+reúne lo que ya se estableció sobre la compresión de la dispersión de una
+predicción. El tercero recoge los dos remedios publicados para esa compresión,
 ambos fuera del transporte. El cuarto delimita cuánto del mecanismo que este
 documento mide ya estaba publicado.
 
@@ -64,7 +95,7 @@ resumen siete trabajos previos del subcampo en una tabla y agregan el suyo
 [@santos2022]. Las medidas que esa tabla registra son de dos clases: errores
 continuos, como el error cuadrático medio, y conteos sobre la clasificación, como
 la exactitud, la precisión y el recall. Ninguna de sus ocho filas registra una
-medida que puntúe el ordenamiento del pronóstico sin fijar antes un umbral.
+medida que puntúe el ordenamiento de la predicción sin fijar antes un umbral.
 
 La primera etapa tiene además un margen angosto donde más importa. Manibardo, Laña
 y Del Ser equiparan la persistencia con repetir el último valor observado, y
@@ -73,27 +104,27 @@ modelos entrenados [@manibardo2022]. Su afirmación sobre el horizonte es que to
 los modelos se degradan al alargarlo, y no que la relación entre ellos se
 invierta.
 
-### B. Compresión de la dispersión del pronóstico
+### B. Compresión de la dispersión de la predicción
 
-La primera etapa de esa receta arrastra una propiedad conocida. Un pronóstico
-ajustado para minimizar el error cuadrático sale menos disperso que la cantidad
-que predice. Mayer y Yang lo miden sobre irradiancia solar: sus pronósticos
-optimizados de ese modo capturan menos del 75 % de la varianza observada
+La primera etapa de esa receta arrastra una propiedad conocida. Una predicción
+ajustada para minimizar el error cuadrático sale menos disperso que la cantidad
+que predice. Mayer y Yang lo miden sobre irradiancia solar: sus predicciones
+optimizadas de ese modo capturan menos del 75 % de la varianza observada
 [@mayer2023]. Y señalan la consecuencia sobre la comparación entre métodos: como
-la raíz del error cuadrático medio premia justamente al pronóstico de menor
+la raíz del error cuadrático medio premia justamente a la predicción de menor
 dispersión, evaluar con ella sobrevalora al más comprimido.
 
 La propiedad es un teorema y no una regularidad empírica. Patton y Timmermann
-descomponen la varianza del objetivo en la del pronóstico óptimo más el error
-cuadrático esperado, y su Corolario 2 ordena esas varianzas por horizonte: la del
-pronóstico a horizonte corto es mayor o igual que la del pronóstico a horizonte
-largo [@patton2012]. La compresión crece entonces al alargar el horizonte, por
+descomponen la varianza del objetivo en la de la predicción óptima más el error
+cuadrático esperado, y su Corolario 2 ordena esas varianzas por horizonte: la de
+la predicción a horizonte corto es mayor o igual que la de la predicción a
+horizonte largo [@patton2012]. La compresión crece entonces al alargar el horizonte, por
 construcción y no por una falla del ajuste. Ese resultado recae sobre la varianza
 temporal de una serie escalar, y no sobre la dispersión entre unidades medidas en
 un mismo instante.
 
 El daño de esa compresión sobre una regla de umbral ya se documentó fuera del
-transporte. Petetin y colaboradores corrigen pronósticos de ozono y encuentran
+transporte. Petetin y colaboradores corrigen predicciones de ozono y encuentran
 que el método con mejor error cuadrático y mejor correlación es el que peor
 detecta los episodios altos, porque subestima la variabilidad [@petetin2022].
 Todas sus métricas categóricas se degradan además al alargar el horizonte, de
@@ -111,12 +142,12 @@ en los datos de referencia, calcula el valor de ese mismo percentil en cada
 simulación y recalcula el indicador con el umbral así ajustado, sin tocar los
 datos del modelo [@hoffmann2018].
 
-El segundo mueve el pronóstico. Petetin y colaboradores corrigen pronósticos de
+El segundo mueve la predicción. Petetin y colaboradores corrigen predicciones de
 ozono cuyos umbrales están fijados por normativa y no admiten ajuste. Su mapeo de
 cuantiles lleva la distribución de lo predicho a la de lo observado
 [@petetin2022]. Los dos remedios piden insumos distintos. El mapeo de cuantiles
 necesita una distribución de observaciones de referencia. Recalibrar el umbral
-necesita solo una ventana anterior del propio pronóstico.
+necesita solo una ventana anterior de la propia predicción.
 
 Ninguno de los dos se enfrenta a un umbral que se mueva con lo que evalúa. El de
 Hoffmann y colaboradores es un valor fijo, y el de Petetin y colaboradores es
@@ -348,8 +379,8 @@ $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los umbrales que resultan
 de aplicar $\rho$ al vector observado y al vector predicho. La referencia de Yu y
-colaboradores no tiene esa propiedad: es observada, de modo que no se mueve con el
-pronóstico. Las Figuras 2 y 3 lo muestran con el mismo headway de dos minutos.
+colaboradores no tiene esa propiedad: es observada, de modo que no se mueve con la
+predicción. Las Figuras 2 y 3 lo muestran con el mismo headway de dos minutos.
 
 ![Corredor disparejo](figuras/bunching/with_bunching.png)
 
@@ -519,7 +550,7 @@ R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{10}$$
 donde $P$ es la precisión y $R$ el recall.
 
 El F1 no usa TN [@chicco2020], y premia por eso al detector que marca toda
-posición como evento: maximizar el F1 sobre un pronóstico sin información conduce
+posición como evento: maximizar el F1 sobre una predicción sin información conduce
 a ese detector con independencia de la tasa base [@lipton2014]. La tasa base de
 una celda es la fracción de sus posiciones donde el indicador observado vale 1.
 Ese detector alcanza recall 1 y precisión igual a la tasa base [@flach2015], así
@@ -531,7 +562,7 @@ El área bajo la curva ROC (AUC) prescinde del umbral —el punto de operación 
 detector— y puntúa el ordenamiento del puntaje continuo
 $-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (6) es el umbral en $-\rho$. Es
 la probabilidad de que una posición de bunching reciba un puntaje mayor que una
-sin bunching [@handtill2001], y vale 0,5 cuando el pronóstico no ordena.
+sin bunching [@handtill2001], y vale 0,5 cuando la predicción no ordena.
 
 Sobre esas cantidades se construyen tres cocientes. La tasa de disparo de un
 método es la fracción de posiciones que marca como evento. El factor entre dos
@@ -539,9 +570,9 @@ métodos es el cociente de sus F1, y mide cuántas veces mejor aparece uno de el
 bajo el mismo umbral. El tercero exige una cantidad más. La precisión promedio
 también prescinde del umbral: recorre el ordenamiento que el AUC puntúa, de mayor
 a menor, y promedia la precisión de la Ecuación (10) sobre las posiciones de
-bunching. Un pronóstico que no ordena alcanza una precisión promedio igual a la
+bunching. Una predicción que no ordena alcanza una precisión promedio igual a la
 tasa base. El lift es entonces la precisión promedio dividida por la tasa base, y
-vale 1 cuando el pronóstico no ordena mejor que el azar.
+vale 1 cuando la predicción no ordena mejor que el azar.
 
 El umbral no se hereda de lo observado. Se ajusta maximizando el MCC sobre el
 período de prueba de la ventana 2 y se aplica sin cambios al de la ventana 3. Los
@@ -865,7 +896,7 @@ entre sí sobre los mismos datos. Por eso sus cifras se leen unas contra otras y
 contra las del resto de la Sección V. La primera es el LSTM que este trabajo
 lleva, que recibe el vector aplanado. Las otras dos modelan la relación entre
 posiciones vecinas: una convolución sobre el eje de los buses y atención entre las
-posiciones del vector. Esa relación es la estructura que un pronóstico vectorial
+posiciones del vector. Esa relación es la estructura que una predicción vectorial
 podría aprovechar.
 
 Las tres quedaron dentro de un rango de 0,017 a 0,074 minutos en las doce celdas,
@@ -917,7 +948,7 @@ Eso no es una alarma. Una alarma tiene que sonar cuando ocurre el evento, y con 
 umbral trasplantado el detector se queda callado la mayoría de las veces. Lo que
 queda es un **filtro de prioridad**: un aviso poco frecuente y más informativo que
 el azar, que sirve para ordenar la atención de un despachador y no para
-dispararla. La consecuencia para quien evalúa un pronóstico de este tipo es
+dispararla. La consecuencia para quien evalúa una predicción de este tipo es
 distinta. **El punto de operación se recalibra contra la distribución de lo
 predicho, no se hereda de las observaciones.** Requiere recalcular un escalar y no
 reentrenar nada.
@@ -1091,6 +1122,15 @@ doi: 10.1080/15472450.2020.1725887.
 `[@tcqsm2003]` *Transit Capacity and Quality of Service Manual*, 2nd ed., TCRP
 Report 100, Transportation Research Board, 2003, Part 3, ch. 3, p. 3-48,
 Exhibit 3-30.
+
+`[@trompet2011]` M. Trompet, X. Liu, and D. J. Graham, "Development of Key
+Performance Indicator to Compare Regularity of Service between Urban Bus
+Operators," *Transportation Research Record: Journal of the Transportation
+Research Board*, vol. 2216, no. 1, pp. 33–41, 2011, doi: 10.3141/2216-04.
+
+`[@usama2025]` M. Usama and H. Koutsopoulos, "Real Time Headway Predictions in
+Urban Rail Systems and Implications for Service Control: A Deep Learning
+Approach," arXiv:2510.03121, 2025.
 
 `[@yu2016]` H. Yu, D. Chen, Z. Wu, X. Ma, and Y. Wang, "Headway-based bus bunching
 prediction using transit smart card data," *Transportation Research Part C:
