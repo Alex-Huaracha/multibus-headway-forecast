@@ -1,141 +1,154 @@
 # multibus-headway-forecast
 
-Pronóstico multi-horizonte de headways en corredores de transporte público urbano
-con datos GPS reales del SIT Arequipa, comparando LSTM, SpatialConvLSTM y
-SpatialTransformer contra baselines de persistencia, estadísticos y XGBoost.
+Code for a study on forecasting the headway vector of urban bus corridors from
+SIT Arequipa GPS data. This repository holds the full pipeline: preprocessing,
+training, evaluation, and the generation of every table and figure in the paper.
 
-**No se construyó ninguna GNN.** La propuesta original planteaba una arquitectura
-GNN+LSTM; lo que se implementó fueron dos arquitecturas espaciales alternativas
-(SpatialConvLSTM y SpatialTransformer), y ninguna supera al LSTM plano. Ese nulo
-espacial es un resultado del trabajo, no un pendiente.
+- Manuscript: [`docs/paper/paper.md`](docs/paper/paper.md)
+- Data: [`…-raw`](https://www.kaggle.com/datasets/alexhuaracha/multibus-headway-forecast-raw)
+  (raw GPS) and
+  [`…-clean`](https://www.kaggle.com/datasets/alexhuaracha/multibus-headway-forecast-clean)
+  (cleaned GPS + headways), on Kaggle under CC BY 4.0
 
-Publicación objetivo: IJACSA. La propuesta original se conserva en
-[`docs/propuesta.md`](docs/propuesta.md) como registro de lo planificado; los
-resultados y el alcance real están en
-[`docs/resultados/documento-resultados.md`](docs/resultados/documento-resultados.md).
+---
 
-## Convenciones del proyecto
+## Requirements
 
-- **Clave compuesta**: siempre `(empresaid, unidadid)` — los `unidadid` se reutilizan entre empresas (34 de 150 aparecen en 3+ empresas). Nunca usar `unidadid` solo.
-- **Corredores incluidos**: empresas **2, 4 y 59**. La propuesta declaraba también
-  la 58, pero **E58 nunca entró al pipeline**: no tiene parquet procesado, no
-  aparece en ningún resultado y ningún builder la referencia. El alcance real del
-  trabajo son tres corredores. El resto de empresas se descartó por viabilidad
-  (ver propuesta sección 4.3).
-- **Formato de datos procesados**: Parquet. Nada de CSV en el pipeline interno.
-- **Datos no van a Git** — viven en Kaggle Datasets (versionados allá) y localmente bajo `data/` (gitignored).
+- **[`uv`](https://docs.astral.sh/uv/) installed.** It manages Python and the
+  dependencies. Everything runs through `uv run`; you do not need to install
+  Python or create a virtual environment yourself.
 
-## Estructura
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh                              # macOS / Linux
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"   # Windows
+  ```
 
-```
-data/raw/         GPS crudo (gitignored, descarga local del dataset Kaggle)
-data/processed/   Parquets limpios por corredor (gitignored)
-notebooks/        Pipeline por fases (EDA, preprocesamiento, headways, baselines, modelos)
-src/              Utilidades reusables entre notebooks
-kaggle/           Metadata de notebooks y datasets Kaggle
-docs/             Propuesta y notas
-```
+- **A Kaggle account with an API token**, only for the steps that download
+  results or launch training runs. The local analysis steps do not need one.
+- **A GPU**, only if you retrain. Reproducing the tables and figures does not
+  require one.
 
-## Setup
+Python 3.12 is pinned in `.python-version` and `uv` installs it for you.
 
-Gestión de Python y dependencias con [`uv`](https://docs.astral.sh/uv/). Versión de Python pinneada en `.python-version` (3.12).
+---
 
-Instalar `uv` (una sola vez):
+## Installation
 
 ```bash
-# macOS / Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Windows (PowerShell)
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+uv sync          # creates .venv with Python 3.12 and the locked dependencies
 ```
 
-Reproducir el entorno del proyecto:
+For the Kaggle steps, copy `.env.example` to `.env` and paste your token
+(kaggle.com → Settings → API → Create New Token):
 
 ```bash
-uv sync                    # crea .venv con Python 3.12 + deps del lockfile
-uv run jupyter lab         # abre notebooks
-uv run python src/...      # corre cualquier script
-uv add <paquete>            # agregar dependencias
+cp .env.example .env
 ```
 
-Token de Kaggle en `.env` (`KAGGLE_API_TOKEN`, ver `.env.example`). Las
-credenciales quedan dentro del repo: borrar `.env` y `.kaggle-local/` no deja
-rastro en la máquina. El cliente también acepta `~/.kaggle/access_token`, pero
-esa ruta sí persiste fuera del repo.
+> **`uv run` does not read `.env` on its own.** Export it once per shell, or pass
+> it on every call. Without this, every `kaggle` command fails to authenticate.
+>
+> ```bash
+> export UV_ENV_FILE=.env                  # bash / zsh
+> $env:UV_ENV_FILE = ".env"                # PowerShell
+>
+> uv run --env-file .env kaggle ...        # alternative, per call
+> ```
 
-`uv run` no lee `.env` solo, así que antes de cualquier `uv run kaggle ...` de
-este README hay que exportarlo una vez por shell — o pasarlo por llamada:
+---
 
-```bash
-$env:UV_ENV_FILE = ".env"                     # PowerShell; en bash: export UV_ENV_FILE=.env
-uv run --env-file .env kaggle ...             # alternativa por llamada
-```
+## Reproducing the results
 
-## Reproducción de resultados (recertificación)
+### 1. Download the residuals from Kaggle
 
-El pipeline es **builders → Kaggle (GPU, entrenamiento) → análisis local**. Los notebooks
-bajo `notebooks/` son **artefactos generados**: se emiten desde `src/build_notebook_*.py` y
-nunca se editan a mano. Los datos crudos/procesados viven en Kaggle Datasets (pinneados en
-[`docs/dataset-manifest.md`](docs/dataset-manifest.md)), no en Git.
-
-**1 — Entorno**
-
-```bash
-uv sync                        # .venv con Python 3.12 + deps del lockfile
-uv run pytest -q               # suite completa (~880 tests)
-```
-
-> ⚠️ Correr la suite completa **reescribe los notebooks generados** (los tests de
-> `test_build_notebook_*` ejecutan los builders). Tras `uv run pytest`, revisá `git status`
-> y revertí cambios no deseados con `git checkout -- notebooks/`.
-
-**2 — Descargar residuos desde Kaggle** (fuente de verdad del análisis)
-
-Hay **dos** conjuntos de residuos y no son intercambiables:
-
-| Conjunto | Familias | Para qué sirve |
-|---|---|---|
-| **Pipeline contiguo** (vigente) | `21-lstm-contiguous-{h1,h3,h5,h10}` y `-e4-{h1,h3,h5,h10}`, más `22-xgb-contiguous` | Todo verdicto del paper. Cumple los contratos C1/C2/C3: una muestra por `(empresa, sentido, start_ts, horizonte)`, ventanas de minutos consecutivos, sin features que filtren. |
-| **Comparativa de arquitecturas** (congelada) | 11/12/13 en E2/E59, 17/18/19 en E4 | Solo el ranking LSTM vs SpatialConvLSTM vs SpatialTransformer, cuya validez descansa en que las tres comparten el mismo sesgo. **No usar para claims contra persistencia o XGBoost.** |
+They are the ground truth of the analysis: one row per sample, carrying each
+method's error.
 
 ```bash
 uv run kaggle kernels output alexhuaracha/21-lstm-contiguous-h3 \
   -p docs/resultados/residuos-multihorizon/21-lstm-contiguous/
 uv run kaggle kernels output alexhuaracha/22-xgb-contiguous \
   -p docs/resultados/residuos-multihorizon/22-xgb-contiguous/
-# … repetir por horizonte y grupo; runbook completo en docs/correr-kaggle.md
 ```
 
-**3 — Regenerar tablas localmente** (no requiere GPU ni reentrenar)
+Repeat per horizon (`h1`, `h3`, `h5`, `h10`) and per group (`-e4-` for the third
+corridor). The full runbook is in
+[`docs/correr-kaggle.md`](docs/correr-kaggle.md).
+
+### 2. Rebuild the tables
+
+No GPU and no retraining. These read the residuals and write to
+`docs/resultados/csv-multihorizon/`.
 
 ```bash
-uv run python -m src.build_sample_index                       # congela la población compartida
-uv run python -m src.build_contiguous_significance            # DM/Wilcoxon con varianza por día
-uv run python -m src.build_contiguous_paired_audit            # sesgo de encuadre (debe dar ~0)
-uv run python -m src.build_contiguous_volatility              # estratificación ex-ante (lento, ~min)
-uv run python -m src.build_contiguous_router                  # router + corte temporal + semillas
-uv run python -m src.build_contiguous_vector_metrics          # métricas vectoriales
-uv run python -m src.build_contiguous_winsorization_sensitivity  # robustez al techo p99
+uv run python -m src.build_sample_index                          # freezes the shared sample population
+uv run python -m src.build_contiguous_significance               # paired tests clustered by service day
+uv run python -m src.build_contiguous_paired_audit               # framing-bias audit
+uv run python -m src.build_contiguous_vector_metrics             # metrics over the vector
+uv run python -m src.build_detection_calibrated                  # out-of-sample recalibrated threshold
+uv run python -m src.build_contiguous_volatility                 # volatility strata (slow)
+uv run python -m src.build_contiguous_winsorization_sensitivity  # robustness to the p99 cap
 ```
 
-Leen `docs/resultados/residuos-multihorizon/` y escriben en
-`docs/resultados/csv-multihorizon/`, fijando `POLARS_MAX_THREADS=1` para salidas
-byte-idénticas. Varios **fallan cerrado** si la población no coincide con la
-congelada: eso es intencional, no un bug.
+Several **fail closed** when the sample population does not match the frozen one.
+That is intentional: it prevents comparing methods over different sets.
 
-Los builders `build_exante_*`, `build_volatility_*` y `build_router*` (sin
-`contiguous`) corresponden a la comparativa congelada y se conservan por
-reproducibilidad de esa tabla.
+### 3. Rebuild the paper's figures and tables
 
-**4 — Lanzar una corrida en Kaggle** (opcional, requiere credenciales)
+These are built from the CSVs of the previous step, never from the residuals, so
+a figure cannot disagree with the table next to it.
 
 ```bash
-uv run python src/build_notebook_21_lstm_contiguous.py            # regenerar los 8 notebooks
-uv run kaggle kernels push -p notebooks/21_lstm_contiguous/h3/    # subir versión + correr
+uv run python -m src.build_contiguous_figures    # result figures
+uv run python -m src.build_schematic_figures     # method schematics
+uv run python -m src.build_paper_tables          # tables as Markdown
 ```
 
-Kaggle solo admite **2 sesiones GPU simultáneas**: lanzar de a dos. Si un kernel
-falla con `no kernel image is available for execution on the device`, es un
-desajuste de entorno (P100 vs T4×2) que se corrige desde la web, no desde el CLI
-ni el builder.
+---
+
+## Optional
+
+### Rebuilding `raw_gps.parquet` from the original CSVs
+
+The published starting point is `raw_gps.parquet`, already available on Kaggle.
+These scripts are only needed to rebuild it from the original export, and they
+take the paths as arguments because the CSVs live outside the repository:
+
+```bash
+uv run python src/inspect_raw.py <csv> [<csv> ...]   # per-file summary
+uv run python src/merge_raw.py  <csv> [<csv> ...]    # → data/raw/raw_gps.parquet
+```
+
+### Relaunching a training run on Kaggle
+
+Requires a token and a GPU. The notebooks under `notebooks/` are emitted by the
+builders, so regenerate them first and push afterwards.
+
+```bash
+uv run python src/build_notebook_21_lstm_contiguous.py            # regenerates the 8 notebooks
+uv run kaggle kernels push -p notebooks/21_lstm_contiguous/h3/    # uploads a version and runs it
+```
+
+Kaggle allows **2 concurrent GPU sessions**: launch them two at a time. A kernel
+failing with `no kernel image is available for execution on the device` is a
+Kaggle environment mismatch (P100 vs T4×2), fixed from the web UI rather than the
+CLI.
+
+---
+
+## Layout
+
+```
+src/preprocessing/   raw GPS → headways
+src/data/            headways → tensors
+src/models/          LSTM and the two spatial architectures it was contrasted against
+src/baselines/       persistence, hourly historical average, XGBoost
+src/evaluation/      metrics, significance tests, audits
+src/build_*.py       notebook, table and figure generators
+notebooks/           artifacts emitted by the builders
+docs/                manuscript, results and process notes
+data/                local data (not versioned)
+```
+
+A phase-by-phase walkthrough with `file:line` anchors is in
+[`docs/proceso/fases.md`](docs/proceso/fases.md).

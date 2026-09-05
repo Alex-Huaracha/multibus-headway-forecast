@@ -1,11 +1,22 @@
-"""Inspect the two raw CSVs to decide merge/discard strategy."""
-import polars as pl
+"""Inspect the raw CSVs to decide merge/discard strategy.
+
+The export arrived as two CSVs, but the paths are the caller's: they live outside
+the repository and differ per machine, so they are arguments rather than
+constants.
+
+Usage
+-----
+    uv run python src/inspect_raw.py <csv> [<csv> ...]
+"""
+import sys
 from pathlib import Path
 
-FILES = {
-    "satchek1": "/mnt/c/Users/Programador/Downloads/satchek csvs/satchek1.csv",
-    "satchek2": "/mnt/c/Users/Programador/Downloads/satchek csvs/satchek2.csv",
-}
+import polars as pl
+
+if len(sys.argv) < 2:
+    raise SystemExit(f"usage: {Path(sys.argv[0]).name} <csv> [<csv> ...]")
+
+FILES = {Path(p).stem: p for p in sys.argv[1:]}
 
 for name, path in FILES.items():
     print(f"\n========== {name} ==========")

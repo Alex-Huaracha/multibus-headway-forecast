@@ -38,23 +38,23 @@ existía justamente para poder descartarla. La línea gruesa es el recorrido rea
 
 | # | Paso | Qué hace | Dónde |
 |---|---|---|---|
-| 1.1 | Perfilar cada archivo | Filas, unidades, empresas, nulos de `lat` y `time`, rango de fechas, y filas por empresa — por archivo, para poder compararlos | `inspect_raw.py:10-32` |
+| 1.1 | Perfilar cada archivo | Filas, unidades, empresas, nulos de `lat` y `time`, rango de fechas, y filas por empresa — por archivo, para poder compararlos | `inspect_raw.py:21-43` |
 | 1.2 | Decidir | Las empresas 56 y 58 aparecen en los dos archivos: el corte no separa nada. Se unen | `merge_raw.py:3-7` |
-| 1.3 | Unir y volcar | Concatenación vertical en streaming a parquet zstd nivel 3, sin materializar en memoria | `merge_raw.py:28-34` |
-| 1.4 | Verificar | Relee el parquet y reporta filas, empresas distintas y rango de fechas | `merge_raw.py:41-48` |
+| 1.3 | Unir y volcar | Concatenación vertical en streaming a parquet zstd nivel 3, sin materializar en memoria | `merge_raw.py:37-43` |
+| 1.4 | Verificar | Relee el parquet y reporta filas, empresas distintas y rango de fechas | `merge_raw.py:50-57` |
 
 ## Entrada y salida
 
 | | Detalle |
 |---|---|
-| Entrada | `satchek1.csv` y `satchek2.csv`, ~6.2 GB en total. Rutas absolutas embebidas en el código (`merge_raw.py:20-23`) |
-| Columnas | `empresaid`, `unidadid`, `time`, `lat`, `lon`. Esquema **inferido** sobre las primeras 10 000 filas, no declarado (`merge_raw.py:29`) |
-| Salida | `data/raw/raw_gps.parquet` (`merge_raw.py:18`, `:34`) |
+| Entrada | `satchek1.csv` y `satchek2.csv`, ~6.2 GB en total. Ambos scripts reciben las rutas como argumentos de línea de comandos (`merge_raw.py:32`, `inspect_raw.py:19`); antes estaban embebidas y eran absolutas |
+| Columnas | `empresaid`, `unidadid`, `time`, `lat`, `lon`. Esquema **inferido** sobre las primeras 10 000 filas, no declarado (`merge_raw.py:38`) |
+| Salida | `data/raw/raw_gps.parquet` (`merge_raw.py:27`, `:43`) |
 
 ## Riesgos de esta fase
 
 | Riesgo | Detalle |
 |---|---|
-| No reproducible desde el repositorio | Las rutas de entrada son absolutas y de WSL (`/mnt/c/...`); en otra máquina hay que editar el código. Los CSV no están versionados |
-| La verificación no cierra el círculo | `merge_raw.py:41-48` cuenta filas del parquet, pero no las compara contra los conteos que `inspect_raw.py` reportó por archivo. Una pérdida de filas en la concatenación no se detectaría acá |
+| Los CSV de entrada no están versionados | Ya no hay rutas embebidas —se pasan por argumento—, pero los dos CSV originales no están en el repositorio ni publicados. La Fase 0 se reconstruye solo con ellos; el punto de partida publicado es `raw_gps.parquet` |
+| La verificación no cierra el círculo | `merge_raw.py:50-57` cuenta filas del parquet, pero no las compara contra los conteos que `inspect_raw.py` reportó por archivo. Una pérdida de filas en la concatenación no se detectaría acá |
 | Sin tests | Ninguno de los dos scripts tiene cobertura |

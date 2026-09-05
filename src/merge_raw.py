@@ -7,20 +7,29 @@ appear in both files. This script unifies them so the rest of the pipeline
 (viability analysis, filtering, modeling) sees a single coherent raw dataset.
 
 Output: data/raw/raw_gps.parquet
+
+The CSVs live outside the repository and their location differs per machine, so
+they are arguments rather than constants.
+
+Usage
+-----
+    uv run python src/merge_raw.py <csv> [<csv> ...]
 """
-from pathlib import Path
-import polars as pl
+import sys
 import time
+from pathlib import Path
+
+import polars as pl
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "raw"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 OUT = OUT_DIR / "raw_gps.parquet"
 
-INPUTS = [
-    "/mnt/c/Users/Programador/Downloads/satchek csvs/satchek1.csv",
-    "/mnt/c/Users/Programador/Downloads/satchek csvs/satchek2.csv",
-]
+if len(sys.argv) < 2:
+    raise SystemExit(f"usage: {Path(sys.argv[0]).name} <csv> [<csv> ...]")
+
+INPUTS = sys.argv[1:]
 
 t0 = time.time()
 print(f"Reading and merging {len(INPUTS)} CSVs (streaming)...")
