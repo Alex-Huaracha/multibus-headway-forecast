@@ -233,7 +233,7 @@ def tabla_3() -> str:
 
     table = _render(
         ["Corredor", "h", "Ventana 1", "Ventana 2", "Ventana 3", "Coinciden",
-         "AUC, corte absoluto"],
+         "AUC, umbral absoluto"],
         rows,
         aligns="lrlllcr",
     )

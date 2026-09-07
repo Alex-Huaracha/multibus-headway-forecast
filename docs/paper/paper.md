@@ -174,9 +174,9 @@ clase de modelo, no recalibrar el umbral.
 Ninguno de los cinco mide un umbral relativo y auto-referencial, donde la
 compresión de lo predicho mueve el umbral y el valor comparado a la vez. El
 umbral de Jiao y colaboradores es relativo pero no auto-referencial, porque se
-ancla en una observación fija y la compresión alcanza solo al valor comparado; y
-su reparación agrega un término de clasificación a la pérdida, es decir, cambia
-el objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la Ecuación
+ancla en una observación fija y la compresión alcanza solo al valor comparado. Su
+reparación agrega un término de clasificación a la pérdida, es decir, cambia el
+objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la Ecuación
 (7) hace explícito, y es donde este documento interviene: recalibra ese umbral
 sobre una ventana anterior disjunta, sin reentrenar ni cambiar el objetivo.
 
@@ -916,8 +916,8 @@ continuó con la más simple de las tres.
 Ese resultado nulo tiene compañía, aunque ninguna sobre el mismo eje. Rodrigues
 reporta que una línea base de patrón semanal con regresión lineal iguala a métodos
 de aprendizaje profundo espacio-temporales y supera a varios basados en redes de
-grafos, y advierte a la vez que la correlación espacial no debe descartarse, sobre
-todo a horizontes cortos [@rodrigues2022]. Boudabbous y colaboradores encuentran
+grafos [@rodrigues2022]. Advierte a la vez que la correlación espacial no debe
+descartarse, sobre todo a horizontes cortos. Boudabbous y colaboradores encuentran
 que una red recurrente supera a dos transformadores entre 18 y 52 % con 275 veces
 menos parámetros, sobre la red de Montreal y contra arquitecturas que operan sobre
 el tiempo [@boudabbous2026]. Ninguno de los dos releva a la Tabla 4 de su propia

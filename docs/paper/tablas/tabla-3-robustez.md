@@ -1,4 +1,4 @@
-| Corredor | h | Ventana 1 | Ventana 2 | Ventana 3 | Coinciden | AUC, corte absoluto |
+| Corredor | h | Ventana 1 | Ventana 2 | Ventana 3 | Coinciden | AUC, umbral absoluto |
 | :--- | ---: | :--- | :--- | :--- | :---: | ---: |
 | E2 | 1 | persist. | persist. | persist. | sí | 0,645 |
 | E2 | 3 | LSTM | LSTM | LSTM | sí | 0,582 |
