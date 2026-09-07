@@ -149,7 +149,7 @@ LANG = {
         "origin_2": "Origen 2 — calibra el umbral",
         "origin_1": "Origen 1 — réplica más antigua",
         "train_days": "  {days} d de entrenamiento",
-        "threshold_note": "el umbral se calibra sobre esta ventana\ny se aplica hacia adelante",
+        "threshold_note": "el umbral se calibra sobre este origen\ny se aplica hacia adelante",
         "calendar_axis": "2023-10-01 → 2024-02-29 · 152 días seguidos, sin huecos",
         "temporal_split_caption": (
             "Nunca al azar: un operador solo tiene el pasado. Los tres orígenes arrancan el mismo día y el entrenamiento se alarga —61, 83 y 107 días—,",

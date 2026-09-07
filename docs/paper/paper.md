@@ -146,7 +146,7 @@ ozono cuyos umbrales están fijados por normativa y no admiten ajuste. Su mapeo 
 cuantiles lleva la distribución de lo predicho a la de lo observado
 [@petetin2022]. Los dos remedios piden insumos distintos. El mapeo de cuantiles
 necesita una distribución de observaciones de referencia. Recalibrar el umbral
-necesita solo una ventana anterior de la propia predicción.
+necesita solo un período anterior de la propia predicción.
 
 Ninguno de los dos se enfrenta a un umbral que se mueva con lo que evalúa. El de
 Hoffmann y colaboradores es un valor fijo, y el de Petetin y colaboradores es
@@ -177,7 +177,7 @@ ancla en una observación fija y la compresión alcanza solo al valor comparado.
 reparación agrega un término de clasificación a la pérdida, es decir, cambia el
 objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la Ecuación
 (7) hace explícito, y es donde este documento interviene: recalibra ese umbral
-sobre una ventana anterior disjunta, sin reentrenar ni cambiar el objetivo.
+sobre un período anterior disjunto, sin reentrenar ni cambiar el objetivo.
 
 ---
 
@@ -279,8 +279,8 @@ donde $\mathbf{h}(t)$ es el vector de headways del corredor en el minuto $t$ y
 $\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante.
 El término $c(t)$ reúne cuatro variables de calendario del minuto $t$: el seno y
 el coseno de la hora, y el seno y el coseno del día de la semana. El modelo
-recibe ese conjunto en cada uno de los $T$ minutos de la ventana, y no solo en el
-último. Aquí $f$ es el modelo ajustado y $T$ es la cantidad de minutos de
+recibe ese conjunto en cada uno de los $T$ minutos de la ventana de entrada, y no
+solo en el último. Aquí $f$ es el modelo ajustado y $T$ es la cantidad de minutos de
 historia que recibe.
 
 Se predice a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
@@ -464,7 +464,7 @@ del día, calculado sobre entrenamiento por corredor y sentido; no lee la ventan
 entrada, de modo que su error no depende del horizonte.
 
 El conjunto excluye tres métodos estadísticos. La media del período de
-entrenamiento, la media móvil causal en tres ventanas y el suavizado exponencial
+entrenamiento, la media móvil causal de tres minutos y el suavizado exponencial
 simple de factor 0,3 no combinan las dos entradas de la Ecuación (2), el historial
 reciente y el calendario. Los tres repiten información que la persistencia o el
 promedio histórico ya aportan.
@@ -488,9 +488,9 @@ diferencia.
 La partición es **por fecha y nunca al azar**, porque un operador solo dispone del
 pasado. El período se divide en 107 días de entrenamiento, 23 de validación y 22
 de prueba. Todo el protocolo se repite después sobre tres orígenes de evaluación,
-identificados aquí como ventanas 1, 2 y 3. Los tres arrancan el mismo día y
+numerados aquí 1, 2 y 3. Los tres arrancan el mismo día y
 alargan el entrenamiento a 61, 83 y 107 días. Sus períodos de prueba no se solapan
-entre sí, y el de la ventana 3 es el que se publica. Como los entrenamientos están
+entre sí, y el del origen 3 es el que se publica. Como los entrenamientos están
 anidados, esto establece estabilidad frente a la elección del período de prueba y
 no réplica independiente. La Figura 4 muestra el esquema.
 
@@ -503,7 +503,8 @@ solapan.
 La comparación exige además tres condiciones, cada una sobre una fuente distinta
 de fuga: el tiempo, la población evaluada y los valores extremos. La primera es la
 continuidad estricta: una muestra es válida solo si sus minutos son consecutivos.
-Sin ella la ventana puede atravesar un hueco de señal, y el horizonte mediría un
+Sin ella la ventana de entrada puede atravesar un hueco de señal, y el horizonte
+mediría un
 intervalo mayor que el declarado. La regla retiene entre el 81,9 % y el 90,2 % de
 los snapshots del período de prueba.
 
@@ -589,7 +590,7 @@ tasa base. El lift es entonces la precisión promedio dividida por la tasa base,
 vale 1 cuando la predicción no ordena mejor que el azar.
 
 El umbral no se hereda de lo observado. Se ajusta maximizando el MCC sobre el
-período de prueba de la ventana 2 y se aplica sin cambios al de la ventana 3. Los
+período de prueba del origen 2 y se aplica sin cambios al del origen 3. Los
 dos períodos son disjuntos y provienen de modelos entrenados por separado, de modo
 que el período publicado no informa su propio umbral.
 
@@ -627,9 +628,9 @@ donde el detector nunca marca no recibe intervalo: no hay precisión que acotar.
 
 Esta sección reporta el error escalar del vector y la frontera de régimen que lo
 acota. Mide después la dispersión transversal de lo predicho, la detección con el
-umbral del evento observado y el comportamiento del factor entre las tres ventanas.
+umbral del evento observado y el comportamiento del factor entre los tres orígenes.
 Cierra con la detección puntuada sin umbral y con el umbral recalibrado, los
-ensayos de robustez frente a la ventana y a la definición del evento, el
+ensayos de robustez frente al origen y a la definición del evento, el
 contraste entre arquitecturas y las implicaciones operativas.
 
 ### A. Error escalar y su frontera de régimen
@@ -670,13 +671,13 @@ corredor a diez minutos, fue de
 
 Esa brecha no fue un caso aislado. El sesgo del coeficiente de variación resultó
 negativo —lo predicho siempre más regular que la realidad— en
-**las doce celdas y las tres ventanas de prueba**. Y se profundizó de forma estrictamente
+**las doce celdas y los tres orígenes de evaluación**. Y se profundizó de forma estrictamente
 ordenada a medida que se alarga el horizonte: en E2 pasó de −0,42 a un minuto a
 −0,63 a diez. No hubo una sola excepción en los tres corredores.
 
 Dos comparaciones acotan de qué depende el efecto. La primera identifica la causa
 por descarte: la persistencia no comprimió nada. Su sesgo se mantuvo dentro de
-±0,022 en las doce celdas y las tres ventanas, porque propaga el vector observado y
+±0,022 en las doce celdas y los tres orígenes, porque propaga el vector observado y
 hereda su dispersión sin traducción. Es el control del experimento, y sitúa el
 efecto en el acto de **emitir una predicción puntual**, no en los datos ni en el
 corredor. La segunda
@@ -722,7 +723,7 @@ fenómeno que se le pidió anticipar. Hay tres motivos para desconfiar de esa
 lectura. El primero es que el ganador declarado tampoco detectó bien. El detector
 trivial de la Sección IV-D superó a la
 persistencia en 5 de las doce celdas, y en 15 de las 36 combinaciones de celda y
-ventana.
+origen.
 
 El segundo es el mecanismo de la Sección V-B. El umbral se mide contra el promedio
 del propio vector evaluado. Si el vector predicho es más regular que la realidad, sus
@@ -765,20 +766,20 @@ relativo le queda en la cola.
 
 † La regla vacía —marcar toda posición— supera al ganador declarado en estas celdas.
 
-### D. Estabilidad del factor entre ventanas y sus dos excepciones
+### D. Estabilidad del factor entre orígenes y sus dos excepciones
 
 Si el factor de 253 de la Sección V-C midiera una capacidad del modelo, debería
-ser aproximadamente estable al cambiar la ventana de prueba. En diez de las doce
-celdas lo es: entre la primera ventana y la tercera varía entre 0,90 y 1,58. Las
-dos excepciones están en E2. A cinco minutos el factor valió **126** en la primera
-ventana, **58** en la segunda y **36** en la tercera. A diez minutos valió
+ser aproximadamente estable al cambiar el origen de evaluación. En diez de las doce
+celdas lo es: entre el primer origen y el tercero varía entre 0,90 y 1,58. Las
+dos excepciones están en E2. A cinco minutos el factor valió **126** en el primer
+origen, **58** en el segundo y **36** en el tercero. A diez minutos valió
 **2 299**, **817** y **253**.
 
 Esas dos son las celdas donde el umbral trasplantado dejó al detector casi sin
 disparos: su F1 cayó a 0,011 y 0,001 en la Tabla 1. Un cociente cuyo denominador
 se acerca a cero no mide una capacidad del sistema evaluado, sino la interacción
 entre el umbral y la distribución sobre la que cayó. La observación no depende de
-qué modelo se use ni de cuál de las tres ventanas se mida. Depende de que el umbral
+qué modelo se use ni de cuál de los tres orígenes se mida. Depende de que el umbral
 se haya trasladado entre dos distribuciones con dispersión distinta.
 
 ### E. La detección sin umbral y con el umbral recalibrado
@@ -793,8 +794,8 @@ la Tabla 1.
 El umbral trasplantado de la Tabla 1 dejaba a la persistencia por delante en las
 doce celdas. Los dos instrumentos que la Tabla 2 reúne mueven ese conteo en
 distinta medida. Puntuado sin umbral, mediante el AUC, **el LSTM ganó en las nueve
-combinaciones de corredor y ventana a diez minutos**, y en 6 de las 12 celdas de
-la ventana 3. Recalibrar el umbral en lugar de eliminarlo lo mueve menos: con el
+combinaciones de corredor y origen a diez minutos**, y en 6 de las 12 celdas del
+origen 3. Recalibrar el umbral en lugar de eliminarlo lo mueve menos: con el
 MCC recalibrado el LSTM ganó en 5 de las 12 celdas, entre ellas las tres de diez
 minutos. La persistencia conservó la ventaja en el horizonte de un minuto, donde
 el error escalar también la favorecía en E4 y E59.
@@ -853,11 +854,11 @@ Los dos cruces van en el mismo sentido, y ninguna serie se acerca al azar.
 | E59 | 5 | **0,665** | 0,648 | 0,205 | **0,249** | LSTM |
 | E59 | 10 | **0,632** | 0,571 | **0,161** | 0,119 | LSTM |
 
-### F. Robustez frente a la ventana y a la definición del evento
+### F. Robustez frente al origen y a la definición del evento
 
-El veredicto sin umbral de la Sección V-E no depende de la ventana calendaria. Las
-tres ventanas coincidieron en 11 de las 12 celdas, y a diez minutos coincidieron
-en las nueve combinaciones de corredor y ventana. La primera de las tres cubre del
+El veredicto sin umbral de la Sección V-E no depende del origen calendario. Los
+tres orígenes coincidieron en 11 de las 12 celdas, y a diez minutos coincidieron
+en las nueve combinaciones de corredor y origen. El primero de los tres cubre del
 23 de diciembre al 13 de enero. Ese acuerdo incluye entonces el período de
 fiestas, cuando la frecuencia del servicio y la demanda no se parecen a las de un
 mes ordinario.
@@ -867,7 +868,7 @@ III-C podría estar produciendo el efecto por sí solo, y un umbral absoluto en
 minutos —como el de un minuto de Sun, Schmöcker y Nakamura [@sun2021]— podría
 disolverlo. Se probó con uno fijo en la cuarta parte del headway mediano
 observado de cada corredor y dirección. Queda entre 1,4 y 2,4 minutos, se calibró
-sobre la ventana 2 y se aplicó sin cambios a la ventana 3. **No se atenuó:
+sobre el origen 2 y se aplicó sin cambios al origen 3. **No se atenuó:
 empeoró.** La tasa de disparo del modelo cayó por un factor de mediana 138 en diez
 de las doce celdas, y en las otras dos no marcó ninguna posición.
 
@@ -875,12 +876,12 @@ El mismo ensayo acota una afirmación anterior. Bajo el umbral absoluto la
 capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0,60, y en
 E2 a diez minutos llegó a 0,49, indistinguible del azar. La afirmación de que el
 LSTM no es ciego se sostiene para el evento relativo y falla para el evento
-absoluto en esa celda. La Tabla 3 recoge las tres ventanas y ese ensayo.
+absoluto en esa celda. La Tabla 3 recoge los tres orígenes y ese ensayo.
 
-**Tabla 3.** Robustez: las tres ventanas temporales y el ensayo con un umbral
+**Tabla 3.** Robustez: los tres orígenes de evaluación y el ensayo con un umbral
 absoluto en minutos.
 
-| Corredor | h | Ventana 1 | Ventana 2 | Ventana 3 | Coinciden | AUC, umbral absoluto |
+| Corredor | h | Origen 1 | Origen 2 | Origen 3 | Coinciden | AUC, umbral absoluto |
 | :--- | ---: | :--- | :--- | :--- | :---: | ---: |
 | E2 | 1 | persist. | persist. | persist. | sí | 0,645 |
 | E2 | 3 | LSTM | LSTM | LSTM | sí | 0,582 |
@@ -975,7 +976,7 @@ reclamo de detección es entonces el evento así definido.
 
 El corpus acota dos cosas más. Un vector reúne entre 3,8 y 5,9 headways en
 promedio, de modo que la dispersión transversal reposa sobre pocas observaciones.
-Que el efecto se repita en los tres corredores y en las tres ventanas lo hace poco
+Que el efecto se repita en los tres corredores y en los tres orígenes lo hace poco
 atribuible a esa longitud. Cada cifra individual es menos estable en E2 y en E4,
 que tienen el vector más corto, que en E59. El período de prueba contiene además
 los días de Carnaval, cuya composición no se caracterizó, de modo que la
@@ -1012,7 +1013,7 @@ evaluar el modelo contra ella queda para trabajo futuro.
 Este trabajo predice el vector de headways de tres corredores de Arequipa con un
 LSTM, y convierte lo predicho en un indicador de bunching mediante una regla
 relativa al promedio del propio vector. La dispersión transversal de lo predicho
-queda por debajo de la observada en las doce celdas y las tres ventanas de prueba,
+queda por debajo de la observada en las doce celdas y los tres orígenes de evaluación,
 y la brecha se profundiza al alargar el horizonte. Con el umbral del evento
 observado trasladado sin cambios, el detector se dispara catorce veces sobre los
 15 245 eventos que la regla marca en E2 a diez minutos. La persistencia lo supera
@@ -1021,7 +1022,7 @@ ahí por un factor de 253 en el F1.
 Ese colapso no mide la capacidad del modelo sino el punto de operación en el que
 se lo evalúa. Puntuada sin fijar un umbral, mediante el AUC, la predicción del
 LSTM ordena mejor que la persistencia en las nueve combinaciones de corredor y
-ventana a diez minutos. Recalibrar el umbral sobre una ventana anterior disjunta
+origen a diez minutos. Recalibrar el umbral sobre un período anterior disjunto
 recupera parte de esa ventaja sin reentrenar. El punto de operación se calcula
 entonces contra la distribución de lo predicho, y no se hereda de las
 observaciones.
@@ -1037,7 +1038,7 @@ todavía no producen.
 
 ## VIII. Declaraciones
 
-Los datos de origen son registros GPS del Sistema Integrado de Transporte de
+Los datos primarios son registros GPS del Sistema Integrado de Transporte de
 Arequipa, cuya fuente es la Municipalidad Provincial de Arequipa. El conjunto
 crudo y el procesado están disponibles en Kaggle, en
 `kaggle.com/datasets/alexhuaracha/multibus-headway-forecast-raw` y
