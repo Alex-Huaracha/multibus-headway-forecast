@@ -34,6 +34,7 @@
 ## 4. Estructura Lógica y Títulos
 *   **Títulos:** Exclusivamente lenguaje técnico e ingenieril. NUNCA usar metáforas ni títulos coloquiales.
 *   **Glosario y Conceptos Nuevos:** Todo término de dominio (*headway*, *bunching*), sustantivo no estándar o metáfora técnica debe definirse **conceptualmente** en su primera aparición, y **además matemáticamente** cuando el término tenga forma cerrada en este documento. Prohibido usar un término o una metáfora que el lector no haya visto definida antes en el propio texto.
+*   **Un objeto, un nombre:** Cada objeto técnico recibe un nombre y conserva ese nombre en todo el documento. Prohibido rotar sinónimos para el mismo objeto: repetir la misma palabra es el estándar del campo y no un defecto de estilo. Prohibido también usar una misma palabra para dos objetos distintos; si la palabra ya nombra otra cosa, se elige otra. El nombre se establece en el cuerpo del texto: un título de paso, de párrafo o de sección NO lo establece, porque el lector no puede resolver un pronombre contra un encabezado. Todo artículo definido y todo demostrativo que introduzca un objeto técnico apunta a un sustantivo dicho antes en el cuerpo y con esa misma palabra. Repetir la definición de una sigla, o su forma expandida junto a la sigla, es admisible y no incumple esta regla.
 *   **Hoja de ruta de sección:** Toda sección con subsecciones abre con un párrafo que enumera, en orden, lo que la sección contiene. Sin ese párrafo la primera subsección se lee como un salto. Ese párrafo enumera y no argumenta: no adelanta hallazgos ni justifica decisiones.
 *   **Encadenamiento de bloques:** Cada párrafo o subsección abre nombrando el objeto que recibe del bloque anterior, o la afirmación a la que sirve. Prohibido abrir declarando un instrumento sin antecedente. Prohibidas también las etiquetas paralelas inventadas que no establecen orden entre sí. *Incorrecto:* "El error se mide sobre las posiciones válidas...". *Correcto:* "El modelo entrega un vector de headways. La regla de la Sección III-C lo convierte en un indicador binario. La evaluación mide entonces dos objetos en cadena...".
 *   **Flujo de la Introducción (Modelo SCQA adaptado):**
@@ -82,7 +83,7 @@ Consecuencia obligatoria: si un párrafo no llega a 50 palabras sin agregar rell
 
 ## 8. Verificación Antes de Entregar
 
-Ninguna redacción se da por terminada sin recorrer esta lista. El chequeo no se escribe dentro del manuscrito: el informe va en la respuesta, fuera del texto del paper. Los puntos 1, 2 y 10 no son razonamiento: exigen abrir la fuente y comparar. Prohibido declarar cumplido un punto sin haberlo comprobado contra el archivo. Si algún punto falla, corregir antes de entregar y reportar qué se corrigió.
+Ninguna redacción se da por terminada sin recorrer esta lista. El chequeo no se escribe dentro del manuscrito: el informe va en la respuesta, fuera del texto del paper. Los puntos 1, 2, 10 y 13 no son razonamiento: exigen abrir la fuente y comparar, o contar sobre el propio documento. Prohibido declarar cumplido un punto sin haberlo comprobado contra el archivo. Si algún punto falla, corregir antes de entregar y reportar qué se corrigió.
 
 1.  **Cifras.** Cada número del texto aparece idéntico en su fuente de verdad. Los que no, quedan como `[INSERTAR DATO/MÉTRICA]`.
 2.  **Citas.** Cada cita existe en `fuentes-verificadas.md` y está marcada como verificada. Las demás quedan como `[CITA_REQUERIDA]`.
@@ -96,3 +97,4 @@ Ninguna redacción se da por terminada sin recorrer esta lista. El chequeo no se
 10. **Código.** Cada instrumento que el documento define coincide con su implementación en `src/`, comprobada abriéndola.
 11. **Tachado.** Ninguna afirmación repite una conclusión que el documento ya emite en otro lugar. Lo que sostiene el resultado está en Resultados y no entre las salvedades.
 12. **Método.** Ninguna sección de Método enumera candidatas evaluadas, sus mediciones o el criterio numérico que decidió entre ellas.
+13. **Nombres y referentes.** Para cada objeto técnico, se cuenta cuántas palabras distintas lo nombran; con más de una, se elige la que se queda y se reemplaza el resto. Ninguna palabra nombra dos objetos. Todo artículo definido y todo demostrativo que introduce un objeto apunta a un sustantivo dicho antes en el cuerpo, con esa misma palabra.

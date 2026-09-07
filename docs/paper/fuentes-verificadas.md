@@ -637,6 +637,14 @@ b=0.20; 0.137 con b=0.25; **0.168 con b=0.30**. El piso de AP al azar es π.
 
 **Nota de norma — frameworks no se citan.** Grepeados los ocho PDF del repo (Jiao, Santos, Yu, Mayer, Moreira-Matias, Patton, Fawcett y el del venue): **cero** citan PyTorch, TensorFlow o Keras. Santos es el único que menciona `scikit-learn`, y en una **nota al pie con URLs**, fuera de su bibliografía. Por eso no se cita `torch` pese a que `src/models/lstm.py:58` usa `nn.LSTM`. Y por la misma regla —se cita al describir, no al nombrar— **Hochreiter y Schmidhuber quedan fuera**: la §IV-B dejó de expandir la sigla. Jiao usa «LSTM» 74 veces sin citar a ninguno de los dos.
 
+**Nota de norma — un objeto, un nombre.** Medida la concentración del nombre del objeto central sobre los once PDF del repo. Los papers no rotan sinónimos: repiten la misma palabra hasta la monotonía. Yu escribe `headway` **114** veces contra 2 de «time interval between», y `bunching` **114** contra 5 de «headway irregularity» — una cada 79 palabras en 9 058. Jiao tiene **un solo nombre** por objeto (`headway` 58, `bunching` 45), igual que Boudabbous (`clustering` 45). Moreira-Matias: `headway` 103 contra 3.
+
+Esa medición es la que fundamenta la regla «Un objeto, un nombre» de la §4 de `reglas-redaccion.md`, y la que fijó su alcance. Contra lo que se suponía al redactarla, **la literatura sí redefine sus siglas y sí alterna la sigla con la forma expandida**: Chicco define `MCC` **once veces** y escribe «Matthews correlation coefficient» 28 veces junto a 93 usos de la sigla; también define `ROC` cinco veces. Moreira-Matias define `TTP` tres veces y alterna `BB` 114/13. Jiao define `AFC` y `GPS` dos veces cada una. Por eso la regla prohíbe rotar nombres de objetos y **no** prohíbe repetir la definición de una sigla.
+
+Las tablas de nomenclatura son minoría: **3 de 11** (Moreira-Matias, Chicco, Mayer). No son requisito del formato.
+
+Medido con la misma vara, el manuscrito cumple en sus dos términos del título —`headway` 98 % de concentración, `bunching` 90 %— y falla en dos objetos: la línea central del corredor lleva **cuatro** nombres (eje, trazado del corredor, línea central, curva principal, 75 %) y el registro GPS lleva **tres** (el dato, emisiones, coordenadas GPS, 50 %), con el dominante sin definir en ninguna parte. Pendiente aparte: `eje` carga **tres** significados (la línea central, el eje de buses de la V-G y una metáfora en la V-G) y `posición` carga **dos** en 53 apariciones.
+
 ---
 
 ## 6. Pendientes bloqueantes antes de someter
