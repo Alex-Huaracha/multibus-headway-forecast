@@ -220,13 +220,15 @@ corregirlo.
 salto de más de treinta minutos sin señal, una inversión de sentido o la salida
 del terminal tras una espera de más de cinco minutos cierran el viaje en curso.
 
-**5) La rejilla común.** Los buses no emiten sincronizados entre sí, de modo que
-ningún instante los reúne a todos. Todo se lleva a una rejilla de sesenta
-segundos: la posición de cada bus en cada minuto se interpola entre sus dos
-registros vecinos. Cada minuto queda así descrito por una **instantánea** del
-corredor, la posición de todos sus buses en ese instante.
+**5) La rejilla común.** Cada bus manda sus registros GPS cada pocos segundos,
+cada uno por su cuenta, de modo que dos buses casi nunca tienen un registro en el
+mismo momento. Compararlos exige un momento común. Todo se lleva entonces a una
+**rejilla** de sesenta segundos, y la posición de cada bus en cada minuto se
+interpola entre sus dos
+registros vecinos. Cada minuto queda así descrito por un **snapshot** del
+corredor: la posición de todos sus buses en ese minuto.
 
-**6) El headway.** Sobre esa instantánea, para un par de buses consecutivos en el
+**6) El headway.** Sobre ese snapshot, para un par de buses consecutivos en el
 mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
@@ -253,8 +255,8 @@ separación por la velocidad del bus de atrás: esa división supone que la
 velocidad actual se mantiene, e introduce una estimación dentro de la cantidad
 que se busca estimar.
 
-Ese headway describe un solo par. En cada minuto de la
-rejilla, los buses de un mismo sentido se ordenan por su coordenada de arco, y
+Ese headway describe un solo par. En cada
+snapshot, los buses de un mismo sentido se ordenan por su coordenada de arco, y
 cada bus con uno delante forma un par con él. Con $N$ buses circulando quedan
 $N-1$ pares, de modo que el corredor queda descrito por un vector de $N-1$
 headways ordenados desde el frente. Ese orden numera las posiciones del vector:
@@ -468,8 +470,8 @@ reciente y el calendario. Los tres repiten información que la persistencia o el
 promedio histórico ya aportan.
 
 De los cuatro métodos retenidos, solo el LSTM y el XGBoost ajustan parámetros.
-Ambos se ajustan por corredor y por horizonte, y cada par de corredor y horizonte
-se denomina aquí **celda**: hay doce. Los dos sentidos comparten el modelo de su
+Ambos se ajustan por corredor y por horizonte, y cada combinación de corredor y
+horizonte se denomina aquí **celda**: hay doce. Los dos sentidos comparten el modelo de su
 corredor y entran juntos al entrenamiento. Lo que se separa por sentido son los
 estadísticos de estandarización, de modo que lo predicho se devuelve a minutos con
 los del sentido que le corresponde. El LSTM usa 32 unidades ocultas, una o dos
@@ -503,7 +505,7 @@ de fuga: el tiempo, la población evaluada y los valores extremos. La primera es
 continuidad estricta: una muestra es válida solo si sus minutos son consecutivos.
 Sin ella la ventana puede atravesar un hueco de señal, y el horizonte mediría un
 intervalo mayor que el declarado. La regla retiene entre el 81,9 % y el 90,2 % de
-las instantáneas del período de prueba.
+los snapshots del período de prueba.
 
 La segunda es la población compartida: los cuatro métodos se puntúan sobre
 exactamente las mismas filas. El trabajo de entrenamiento recalcula la lista de
