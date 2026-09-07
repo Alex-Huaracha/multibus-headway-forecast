@@ -192,8 +192,9 @@ en un evento de bunching.
 El headway de la Sección I se construye aquí desde la posición de los buses, y la
 Figura 1 lo ilustra. La forma habitual de medirlo es en una parada, con la lista
 de paradas de la ruta y los horarios de paso. Ninguna de las dos existe en este
-caso: el dato disponible son coordenadas GPS crudas. Para llegar al headway desde
-esas coordenadas se aplica la secuencia de seis pasos que sigue.
+caso: cada bus emite su identificador, el instante y su coordenada, y ese
+**registro GPS** es la única entrada disponible. Para llegar al headway desde
+esos registros se aplica la secuencia de seis pasos que sigue.
 
 **1) El eje.** El eje es la línea que los buses siguen a lo largo del corredor.
 Se estima de ellos mismos: se ajusta una curva a las posiciones de los buses
@@ -208,19 +209,22 @@ conserva solo si su desvío lateral no pasa de 300 m; lo que cae más lejos no
 pertenece al corredor.
 
 **3) El sentido de marcha.** Sobre ese mismo eje circulan los buses de ida y los
-de vuelta, y el dato no distingue unos de otros. El sentido se asigna como el
-signo del avance sobre el eje promediado en las últimas cinco posiciones, de modo
-que un error aislado no invierta la dirección. La derivación es forzosa: uno de
-los corredores no reporta rumbo en absoluto.
+de vuelta, y el registro GPS no distingue unos de otros. El sentido se asigna como
+el signo del avance a lo largo del eje: se promedia ese avance sobre los cinco
+últimos registros y se toma su signo, de modo que un error aislado no invierta la
+dirección. Ese signo es la única fuente del sentido en los tres corredores. Dos
+traen además un campo de rumbo, que solo sirve para comprobarlo y nunca para
+corregirlo.
 
 **4) Los viajes.** Ya con sentido, el recorrido de cada bus se corta en viajes: un
-salto de más de treinta minutos sin señal, una inversión de sentido o una espera
-de más de cinco minutos en terminal cierran el viaje en curso.
+salto de más de treinta minutos sin señal, una inversión de sentido o la salida
+del terminal tras una espera de más de cinco minutos cierran el viaje en curso.
 
 **5) La rejilla común.** Los buses no emiten sincronizados entre sí, de modo que
-hace falta un instante compartido. Todo se lleva a una rejilla de sesenta
-segundos, y así cada minuto queda descrito por una **instantánea** del corredor:
-la posición de todos sus buses en ese momento.
+ningún instante los reúne a todos. Todo se lleva a una rejilla de sesenta
+segundos: la posición de cada bus en cada minuto se interpola entre sus dos
+registros vecinos. Cada minuto queda así descrito por una **instantánea** del
+corredor, la posición de todos sus buses en ese instante.
 
 **6) El headway.** Sobre esa instantánea, para un par de buses consecutivos en el
 mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
@@ -233,7 +237,7 @@ del bus de adelante y del de atrás. El instante $t_{c}$ es el último en que el
 adelante ocupó la posición que el de atrás ocupa en $T$, y $h$ es el headway
 resultante. Es un cruce por posición y no por parada, lo que permite prescindir de
 la tabla de paradas. Si no existe tal $t_{c}$, o si $h$ supera los treinta
-minutos, se emite «sin dato» en lugar de arrastrar un paso de horas antes.
+minutos, se emite «sin valor» en lugar de arrastrar un paso de horas antes.
 
 ![Definición del headway](figuras/headway/headway.png)
 
@@ -255,7 +259,7 @@ cada bus con uno delante forma un par con él. Con $N$ buses circulando quedan
 $N-1$ pares, de modo que el corredor queda descrito por un vector de $N-1$
 headways ordenados desde el frente. Ese orden numera las posiciones del vector:
 la primera es la del par que va más adelante. Un par sin headway válido conserva
-su posición y se emite «sin dato», para que el orden no dependa de cuántos pares
+su posición y se emite «sin valor», para que el orden no dependa de cuántos pares
 resolvieron.
 
 ### B. Formulación de la tarea de predicción
@@ -307,10 +311,10 @@ recae sobre quien espera en ese intervalo: la espera que enfrenta es la que el
 intervalo mide, y no el headway promedio del corredor. Sus causas son
 heterogéneas, entre ellas la congestión, un día de demanda atípica, la acumulación
 de pasajeros en el bus adelantado o el comportamiento del conductor
-[@rezazada2024]. Este trabajo no observa ninguna de ellas: el registro disponible
-trae identificador, instante y coordenada, y no pasajeros, ocupación ni estado del
-tránsito. Por eso el evento se define sobre la geometría del vector de headways,
-que sí es observable, y no sobre lo que la produjo.
+[@rezazada2024]. Este trabajo no observa ninguna de ellas: los registros GPS no
+traen pasajeros, ocupación ni estado del tránsito. Por eso el evento se define sobre la
+geometría del vector de headways, que sí es observable, y no sobre lo que la
+produjo.
 
 Dos rasgos del fenómeno gobiernan cómo se lo define aquí. Es una propiedad del
 patrón colectivo y no de un bus: cada bus puede estar donde le corresponde y
@@ -322,7 +326,7 @@ Resta decidir cuándo un headway cuenta como bunching. La convención del campo 
 una fracción del headway programado: un cuarto en las formulaciones más citadas
 [@moreiramatias2016], y la mitad en el TCQSM [@tcqsm2003]. Estos corredores no
 tienen programación contra la cual comparar. Sustituir esa referencia por una
-observada del propio dato es práctica establecida. Yu y colaboradores reemplazan
+que se observe en el propio corredor es práctica establecida. Yu y colaboradores reemplazan
 el horario ausente de su corredor por el headway observado en la primera parada de
 la misma corrida [@yu2016]. Jiao y colaboradores fijan su umbral en un cuarto de
 ese mismo headway [@jiao2023]. Aquí el denominador se sustituye por el promedio
@@ -410,12 +414,11 @@ predicción del vector de headways.
 
 ### A. Datos
 
-El trabajo usa los registros de posición de empresas del Sistema Integrado de
-Transporte de Arequipa. Cada bus emite su coordenada **cada 20 segundos**, y la
-cadencia es regular: la mediana y el percentil 95 del tiempo entre emisiones
-coinciden, de modo que el dato no llega a ráfagas. Esa regularidad sostiene la
-rejilla de sesenta segundos de la Sección III-A, porque cada minuto reúne tres
-emisiones por bus.
+El trabajo usa los registros GPS de empresas del Sistema Integrado de Transporte
+de Arequipa. Cada bus emite su coordenada **cada 20 segundos**, y la cadencia es
+regular: la mediana y el percentil 95 del tiempo entre registros coinciden, de
+modo que no llegan a ráfagas. Esa regularidad sostiene la rejilla de sesenta
+segundos de la Sección III-A, porque cada minuto reúne tres registros por bus.
 
 Se cubren tres corredores —identificados aquí como E2, E4 y E59, uno por empresa
 operadora— durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de
@@ -425,11 +428,11 @@ esté dominado por una sola dirección: la varianza de las posiciones a lo largo
 esa dirección supera cuatro veces la lateral. La segunda es que circulen al menos
 cinco buses a la vez, sin lo cual un vector de headways no describe nada.
 
-El registro no incluye horario publicado, archivo GTFS ni tabla de paradas, de
-modo que el corredor, el sentido y el headway se construyen desde la posición
-cruda, como describe la Sección III-A.
+Los registros GPS no incluyen horario publicado, archivo GTFS ni tabla de
+paradas, de modo que el corredor, el sentido y el headway se construyen desde
+ellos, como describe la Sección III-A.
 
-La construcción del headway desde la posición cruda no siempre produce un valor.
+La construcción del headway desde los registros GPS no siempre produce un valor.
 Dos condiciones dejan un par de buses sin headway: que la Ecuación (1) no
 encuentre el cruce, o que el headway supere los treinta minutos. La cobertura —la
 fracción de pares evaluados con headway válido— es del 63,5 % en E2, del 64,8 % en
@@ -437,8 +440,8 @@ E4 y del 77,1 % en E59: 3 938 174 pares con headway válido sobre 5 601 738
 evaluados. Una posición del vector sin headway válido se enmascara.
 
 Los huecos que deja ese enmascaramiento no se distribuyen al azar. Casi todo el
-faltante viene de una sola de las dos condiciones: el cruce existe, pero es
-anterior al tope de treinta minutos. Esa condición recorta por el extremo alto, de
+faltante viene de una sola de las dos condiciones: el cruce existe, pero quedó
+más de treinta minutos atrás. Esa condición recorta por el extremo alto, de
 modo que los descartados son los intervalos más largos. La que no encuentra cruce
 explica menos de un punto porcentual en cada corredor. La cobertura tampoco es
 pareja entre corredores: entre el mejor y el peor medido hay 13,6 puntos
