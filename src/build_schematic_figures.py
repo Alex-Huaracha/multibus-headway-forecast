@@ -135,7 +135,7 @@ LANG = {
         "time_axis": "Tiempo [min] →",
         "distance_axis": "Distancia recorrida sobre el eje (s) →",
         "headway_caption": (
-            "Trayectorias ilustrativas, no datos reales. Es una definición de cruce por posición, no por parada: no necesita una tabla de paradas,",
+            "Trayectorias ilustrativas, no datos reales. Es una definición de cruce por coordenada, no por parada: no necesita una tabla de paradas,",
             "que es exactamente lo que falta en estos datos.",
             "Se calcula para cada par de buses consecutivos en el mismo sentido; con N buses circulando, el vector tiene N − 1 números.",
             "Si el cruce hallado tiene más de 30 minutos de antigüedad se emite «sin dato», para no arrastrar pasos de horas o días antes.",

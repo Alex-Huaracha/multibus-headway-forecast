@@ -183,13 +183,13 @@ sobre un período anterior disjunto, sin reentrenar ni cambiar el objetivo.
 
 ## III. Método propuesto
 
-Esta sección construye el headway a partir de posiciones GPS, formula la tarea de
+Esta sección construye el headway a partir de registros GPS, formula la tarea de
 predicción sobre el vector de headways y define la regla que convierte ese vector
 en un evento de bunching.
 
-### A. Construcción del headway a partir de posiciones GPS
+### A. Construcción del headway a partir de registros GPS
 
-El headway de la Sección I se construye aquí desde la posición de los buses, y la
+El headway de la Sección I se construye aquí desde la coordenada de los buses, y la
 Figura 1 lo ilustra. La forma habitual de medirlo es en una parada, con la lista
 de paradas de la ruta y los horarios de paso. Ninguna de las dos existe en este
 caso: cada bus emite su identificador, el instante y su coordenada, y ese
@@ -197,14 +197,14 @@ caso: cada bus emite su identificador, el instante y su coordenada, y ese
 esos registros se aplica la secuencia de seis pasos que sigue.
 
 **1) El eje.** El eje es la línea que los buses siguen a lo largo del corredor.
-Se estima de ellos mismos: se ajusta una curva a las posiciones de los buses
+Se estima de ellos mismos: se ajusta una curva a las coordenadas de los buses
 que superan los 10 km/h y después se suaviza. La curva queda ordenada de un
 extremo del corredor al otro.
 
-**2) La proyección a una dimensión.** Con el eje ya trazado, cada posición se
+**2) La proyección a una dimensión.** Con el eje ya trazado, cada coordenada se
 reduce a dos números: cuánto ha avanzado el bus a lo largo del corredor y a qué
 distancia quedó del eje. Es la operación que la norma ISO 19148 [@iso19148] especifica
-para referenciar posiciones contra un objeto unidimensional. La posición se
+para referenciar coordenadas contra un objeto unidimensional. La coordenada se
 conserva solo si su desvío lateral no pasa de 300 m; lo que cae más lejos no
 pertenece al corredor.
 
@@ -223,10 +223,10 @@ del terminal tras una espera de más de cinco minutos cierran el viaje en curso.
 **5) La rejilla común.** Cada bus manda sus registros GPS cada pocos segundos,
 cada uno por su cuenta, de modo que dos buses casi nunca tienen un registro en el
 mismo momento. Compararlos exige un momento común. Todo se lleva entonces a una
-**rejilla** de sesenta segundos, y la posición de cada bus en cada minuto se
+**rejilla** de sesenta segundos, y la coordenada de cada bus en cada minuto se
 interpola entre sus dos
 registros vecinos. Cada minuto queda así descrito por un **snapshot** del
-corredor: la posición de todos sus buses en ese minuto.
+corredor: la coordenada de todos sus buses en ese minuto.
 
 **6) El headway.** Sobre ese snapshot, para un par de buses consecutivos en el
 mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
@@ -236,8 +236,8 @@ $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
 
 donde $T$ es el instante evaluado, y $s_{L}$ y $s_{F}$ son las coordenadas de arco
 del bus de adelante y del de atrás. El instante $t_{c}$ es el último en que el de
-adelante ocupó la posición que el de atrás ocupa en $T$, y $h$ es el headway
-resultante. Es un cruce por posición y no por parada, lo que permite prescindir de
+adelante pasó por la coordenada que el de atrás ocupa en $T$, y $h$ es el headway
+resultante. Es un cruce por coordenada y no por parada, lo que permite prescindir de
 la tabla de paradas. Si no existe tal $t_{c}$, o si $h$ supera los treinta
 minutos, se emite «sin valor» en lugar de arrastrar un paso de horas antes.
 
@@ -426,7 +426,7 @@ Se cubren tres corredores —identificados aquí como E2, E4 y E59, uno por empr
 operadora— durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de
 2024, sin huecos de calendario. Son 90 buses en total. Una empresa entra como
 corredor bajo dos condiciones. La primera es que el desplazamiento de sus buses
-esté dominado por una sola dirección: la varianza de las posiciones a lo largo de
+esté dominado por una sola dirección: la varianza de las coordenadas a lo largo de
 esa dirección supera cuatro veces la lateral. La segunda es que circulen al menos
 cinco buses a la vez, sin lo cual un vector de headways no describe nada.
 
