@@ -9,9 +9,9 @@ _(pendiente — se escribe al final)_
 ## I. Introducción
 
 El headway es el tiempo que separa el paso de dos buses consecutivos por un mismo
-punto de una ruta. El bunching es la circulación conjunta de dos unidades que ese
-tiempo debería mantener separadas, y desiguala la espera entre los pasajeros del
-corredor. Rezazada y colaboradores lo atribuyen a la congestión, a la demanda
+punto de una ruta. El bunching es la circulación conjunta de dos buses que ese
+tiempo debería mantener separados, y desiguala la espera entre los pasajeros de
+esa ruta. Rezazada y colaboradores lo atribuyen a la congestión, a la demanda
 atípica, a la acumulación de pasajeros y al comportamiento del conductor
 [@rezazada2024]. Trompet, Liu y Graham relevan doce operadores urbanos, y los que
 publican un indicador de servicio lo definen sobre la regularidad agregada del
@@ -33,8 +33,9 @@ métodos se revierte al puntuar el ordenamiento sin fijar un punto de operación
 de la segunda.
 
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta el
-punto de operación. Predice el vector completo de headways de un corredor con una
-red recurrente. La regla de la Sección III-C convierte lo predicho en un indicador de
+punto de operación. Predice el vector completo de headways de un corredor —los
+buses de una empresa que circulan sobre una misma ruta— con una red recurrente.
+La regla de la Sección III-C convierte lo predicho en un indicador de
 bunching, y la evaluación puntúa esa detección con y sin umbral. La Sección II-D
 delimita cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestras
 contribuciones son tres:
@@ -118,7 +119,7 @@ cuadrático esperado, y su Corolario 2 ordena esas varianzas por horizonte: la d
 la predicción a horizonte corto es mayor o igual que la de la predicción a
 horizonte largo [@patton2012]. La compresión crece entonces al alargar el horizonte, por
 construcción y no por una falla del ajuste. Ese resultado recae sobre la varianza
-temporal de una serie escalar, y no sobre la dispersión entre unidades medidas en
+temporal de una serie escalar, y no sobre la dispersión entre buses medidos en
 un mismo instante.
 
 El daño de esa compresión sobre una regla de umbral ya se documentó fuera del
@@ -159,7 +160,7 @@ posiciones a la vez.
 
 Cinco trabajos llegan cerca del mecanismo que este documento mide, y ninguno cubre
 el caso que lo define. Los tres de la Sección II-B establecen la compresión y su
-daño sobre una regla de umbral, pero ninguno la mide entre unidades de un mismo
+daño sobre una regla de umbral, pero ninguno la mide entre buses de un mismo
 instante. Los dos remedios de la Sección II-C llegan ocho años antes que este
 trabajo, y ninguno se aplica sobre un umbral que se mueva con lo que evalúa.
 
@@ -194,9 +195,10 @@ de paradas de la ruta y los horarios de paso. Ninguna de las dos existe en este
 caso: el dato disponible son coordenadas GPS crudas. Para llegar al headway desde
 esas coordenadas se aplica la secuencia de seis pasos que sigue.
 
-**1) El eje.** El trazado del corredor se estima de los propios buses: se ajusta
-una línea central a las posiciones de las unidades que superan los 10 km/h y
-después se suaviza, lo que entrega una curva principal a lo largo del recorrido.
+**1) El eje.** El eje es la línea que los buses siguen a lo largo del corredor.
+Se estima de ellos mismos: se ajusta una curva a las posiciones de los buses
+que superan los 10 km/h y después se suaviza. La curva queda ordenada de un
+extremo del corredor al otro.
 
 **2) La proyección a una dimensión.** Con el eje ya trazado, cada posición se
 reduce a dos números: cuánto ha avanzado el bus a lo largo del corredor y a qué
@@ -311,7 +313,7 @@ tránsito. Por eso el evento se define sobre la geometría del vector de headway
 que sí es observable, y no sobre lo que la produjo.
 
 Dos rasgos del fenómeno gobiernan cómo se lo define aquí. Es una propiedad del
-patrón colectivo y no de una unidad: cada bus puede estar donde le corresponde y
+patrón colectivo y no de un bus: cada bus puede estar donde le corresponde y
 el corredor estar apelotonado igual. Y se manifiesta en posiciones del vector de
 la Sección III-A, de modo que un mismo instante puede llevar varias posiciones
 afectadas a la vez.
@@ -408,8 +410,8 @@ predicción del vector de headways.
 
 ### A. Datos
 
-El trabajo usa los registros de posición de la flota del Sistema Integrado de
-Transporte de Arequipa. Cada unidad emite su coordenada **cada 20 segundos**, y la
+El trabajo usa los registros de posición de empresas del Sistema Integrado de
+Transporte de Arequipa. Cada bus emite su coordenada **cada 20 segundos**, y la
 cadencia es regular: la mediana y el percentil 95 del tiempo entre emisiones
 coinciden, de modo que el dato no llega a ráfagas. Esa regularidad sostiene la
 rejilla de sesenta segundos de la Sección III-A, porque cada minuto reúne tres
@@ -417,10 +419,15 @@ emisiones por bus.
 
 Se cubren tres corredores —identificados aquí como E2, E4 y E59, uno por empresa
 operadora— durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de
-2024, sin huecos de calendario. Son 90 unidades en total. El registro no incluye
-horario publicado, archivo GTFS ni tabla de paradas, de modo que el corredor, el
-sentido y el headway se construyen desde la posición cruda, como describe la
-Sección III-A.
+2024, sin huecos de calendario. Son 90 buses en total. Una empresa entra como
+corredor bajo dos condiciones. La primera es que el desplazamiento de sus buses
+esté dominado por una sola dirección: la varianza de las posiciones a lo largo de
+esa dirección supera cuatro veces la lateral. La segunda es que circulen al menos
+cinco buses a la vez, sin lo cual un vector de headways no describe nada.
+
+El registro no incluye horario publicado, archivo GTFS ni tabla de paradas, de
+modo que el corredor, el sentido y el headway se construyen desde la posición
+cruda, como describe la Sección III-A.
 
 La construcción del headway desde la posición cruda no siempre produce un valor.
 Dos condiciones dejan un par de buses sin headway: que la Ecuación (1) no
@@ -817,11 +824,12 @@ que sigue de esto para quien opera.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
-**Fig. 8.** Las mismas predicciones puntuadas sin umbral. Eje izquierdo: cuánto
-error absoluto le gana el LSTM a la persistencia. Eje derecho: área bajo la
-curva de detección, invariante a cualquier reescalado monótono de lo predicho y
-por lo tanto inmune al artefacto. Los dos cruces van en el mismo sentido, y
-ninguna serie se acerca al azar.
+**Fig. 8.** Las mismas predicciones puntuadas sin umbral, un panel por corredor.
+La serie azul mide cuánto error absoluto le gana el LSTM a la persistencia, y su
+escala corre por el lado izquierdo. Las dos series que se leen por el lado
+derecho son el área bajo la curva de detección de cada método, invariante a
+cualquier reescalado monótono de lo predicho y por lo tanto inmune al artefacto.
+Los dos cruces van en el mismo sentido, y ninguna serie se acerca al azar.
 
 **Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra.
 
@@ -890,16 +898,17 @@ Antes de fijar el protocolo de la Sección IV, tres arquitecturas se contrastaro
 entre sí sobre los mismos datos. Por eso sus cifras se leen unas contra otras y no
 contra las del resto de la Sección V. La primera es el LSTM que este trabajo
 lleva, que recibe el vector aplanado. Las otras dos modelan la relación entre
-posiciones vecinas: una convolución sobre el eje de los buses y atención entre las
-posiciones del vector. Esa relación es la estructura que una predicción vectorial
-podría aprovechar.
+posiciones vecinas: una convolución que combina cada posición con sus dos
+contiguas, y una atención que pondera todas las posiciones entre sí. Esa relación
+es la estructura que una predicción vectorial podría aprovechar.
 
 Las tres quedaron dentro de un rango de 0,017 a 0,074 minutos en las doce celdas,
 y ninguna quedó primera en las doce. La Tabla 4 las recoge. Modelar la relación
 entre posiciones vecinas no movió el error escalar, de modo que el trabajo
 continuó con la más simple de las tres.
 
-Ese resultado nulo tiene compañía, aunque ninguna sobre el mismo eje. Rodrigues
+Ese resultado nulo tiene compañía, aunque ninguno de los precedentes mide la
+relación entre posiciones de un mismo vector. Rodrigues
 reporta que una línea base de patrón semanal con regresión lineal iguala a métodos
 de aprendizaje profundo espacio-temporales y supera a varios basados en redes de
 grafos [@rodrigues2022]. Advierte a la vez que la correlación espacial no debe
