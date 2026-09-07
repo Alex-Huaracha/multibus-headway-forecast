@@ -17,14 +17,12 @@ atípica, a la acumulación de pasajeros y al comportamiento del conductor
 publican un indicador de servicio lo definen sobre la regularidad agregada del
 recorrido y no sobre un headway aislado [@trompet2011].
 
-La predicción de ese evento sigue una receta de dos etapas. La primera estima el
-headway que separará a dos buses en un instante futuro. La segunda compara ese
-valor contra una referencia y emite un indicador binario. Yu y colaboradores dan
-la formulación canónica sobre datos de tarjeta inteligente de dos rutas de Pekín
-[@yu2016], y Jiao, Shen y Zhang la repiten con una red recurrente sobre una ruta
-de Xiangyang [@jiao2023]. La referencia de comparación no está fijada: los
-umbrales publicados van desde veinte segundos hasta un cuarto del headway
-programado [@rezazada2024].
+La predicción de ese evento sigue una receta de dos etapas: primero se estima el
+headway futuro, y después se lo compara contra una referencia que decide si hay
+evento. Yu y colaboradores fijan su formulación canónica [@yu2016], y la
+literatura la repite sobre corredores y modelos distintos [@jiao2023]. Su segunda
+etapa no tiene un valor acordado: los umbrales publicados van desde veinte
+segundos hasta un cuarto del headway programado [@rezazada2024].
 
 Esa receta deja dos huecos. Usama y Koutsopoulos predicen el vector completo de
 headways de una línea de metro con una red profunda, y reportan solo el error en
@@ -35,8 +33,8 @@ métodos se revierte al puntuar el ordenamiento sin fijar un punto de operación
 de la segunda.
 
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta el
-punto de operación. Predice el vector completo de headways de un corredor con un
-LSTM. La regla de la Sección III-C convierte lo predicho en un indicador de
+punto de operación. Predice el vector completo de headways de un corredor con una
+red recurrente. La regla de la Sección III-C convierte lo predicho en un indicador de
 bunching, y la evaluación puntúa esa detección con y sin umbral. La Sección II-D
 delimita cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestras
 contribuciones son tres:
@@ -190,16 +188,11 @@ en un evento de bunching.
 
 ### A. Construcción del headway a partir de posiciones GPS
 
-El headway es el tiempo que separa el paso de dos buses consecutivos por un mismo
-punto, y la Figura 1 lo ilustra. Es la cantidad que revela si un corredor mantiene
-sus buses espaciados o si dos de ellos terminan viajando casi juntos y dejan un
-intervalo largo detrás. Ese segundo caso es el evento que define la Sección III-C.
-El headway es la variable que predecimos.
-
-La forma habitual de medir el headway es en una parada, con la lista de paradas de
-la ruta y los horarios de paso. Ninguna de las dos existe en este caso: el dato
-disponible son coordenadas GPS crudas. Para llegar al headway desde esas
-coordenadas se aplica la secuencia de seis pasos que sigue.
+El headway de la Sección I se construye aquí desde la posición de los buses, y la
+Figura 1 lo ilustra. La forma habitual de medirlo es en una parada, con la lista
+de paradas de la ruta y los horarios de paso. Ninguna de las dos existe en este
+caso: el dato disponible son coordenadas GPS crudas. Para llegar al headway desde
+esas coordenadas se aplica la secuencia de seis pasos que sigue.
 
 **1) El eje.** El trazado del corredor se estima de los propios buses: se ajusta
 una línea central a las posiciones de las unidades que superan los 10 km/h y
@@ -677,10 +670,7 @@ efecto en el acto de **emitir una predicción puntual**, no en los datos ni en e
 corredor. La segunda
 descarta la arquitectura: el XGBoost comprimió igual que la red en E2, y
 las dos curvas se superponen. En los otros dos corredores comprimió **más** que
-ella, con un sesgo de −0,46 contra −0,35 en E59 a diez minutos. Un fenómeno que
-aparece
-igual en una red recurrente y en un conjunto de árboles no es una propiedad de
-ninguna de las dos.
+ella, con un sesgo de −0,46 contra −0,35 en E59 a diez minutos.
 
 La consecuencia práctica se aprecia al leer esas cifras contra la escala de nivel
 de servicio del TCQSM [@tcqsm2003]. El manual indexa sus bandas
@@ -720,15 +710,13 @@ fenómeno que se le pidió anticipar. Hay tres motivos para desconfiar de esa
 lectura. El primero es que el ganador declarado tampoco detectó bien. El detector
 trivial de la Sección IV-D superó a la
 persistencia en 5 de las doce celdas, y en 15 de las 36 combinaciones de celda y
-ventana. Un procedimiento de evaluación en el que una regla vacía vence al
-ganador declarado no ordena modelos.
+ventana.
 
 El segundo es el mecanismo de la Sección V-B. El umbral se mide contra el promedio
 del propio vector evaluado. Si el vector predicho es más regular que la realidad, sus
 headways se apartan menos de su propio promedio, y el umbral deja de alcanzarse
-casi siempre. Lo que la regla registra no es que el modelo no vea el evento: es
-que el modelo no produce la dispersión necesaria para cruzar un umbral calibrado
-sobre otra distribución.
+casi siempre. La regla registra entonces una dispersión insuficiente para cruzar
+un umbral calibrado sobre otra distribución.
 
 El tercero es el acierto del modelo en las pocas ocasiones en que disparó. De
 los catorce disparos de E2, diez correspondieron a eventos de bunching reales: 71 %
@@ -736,9 +724,7 @@ de precisión contra una tasa base de 30 %. El intervalo de la Sección IV-E va 
 42 % a 92 % sobre esos catorce disparos, de modo que la cifra señala un régimen y
 no un valor. Las celdas con más disparos lo estrechan. A diez minutos el modelo
 acertó 776 de 1 572 disparos en E59, con precisión entre 47 % y 52 % contra una
-tasa base de 21 %. En E4 acertó 75 de 150, entre 42 % y 58 % contra 18 %. Una
-medida que castiga por igual al que no marca y al que marca mal no distingue esos
-dos casos.
+tasa base de 21 %. En E4 acertó 75 de 150, entre 42 % y 58 % contra 18 %.
 
 ![Tasa de disparo contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
