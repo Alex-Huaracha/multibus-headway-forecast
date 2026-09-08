@@ -18,7 +18,7 @@ publican un indicador de servicio lo definen sobre la regularidad agregada del
 recorrido y no sobre un headway aislado [@trompet2011].
 
 La predicción de ese evento sigue una receta de dos etapas: primero se estima el
-headway futuro, y después se lo compara contra una referencia que decide si hay
+headway futuro, y después se lo compara contra un umbral que decide si hay
 evento. Yu y colaboradores fijan su formulación canónica [@yu2016], y la
 literatura la repite sobre corredores y modelos distintos [@jiao2023]. Su segunda
 etapa no tiene un valor acordado: los umbrales publicados van desde veinte
@@ -72,8 +72,8 @@ documento mide ya estaba publicado.
 ### A. Predicción del headway y detección por umbral
 
 El bunching se predice en dos etapas. La primera estima el headway que separará a
-dos buses en un instante futuro. La segunda compara ese valor contra una
-referencia y emite un indicador binario del evento. Yu y colaboradores dan la
+dos buses en un instante futuro. La segunda compara ese valor contra un
+umbral y emite un indicador binario del evento. Yu y colaboradores dan la
 formulación canónica de esa secuencia sobre datos de tarjeta inteligente de dos
 rutas de Pekín: la ocurrencia del bunching se detecta umbralizando el headway
 predicho contra el horario programado [@yu2016]. Las dos etapas optimizan
@@ -137,7 +137,7 @@ mueve el umbral. Hoffmann, Menz y Spekat trabajan con indicadores climáticos
 definidos por un valor fijo, como los días con temperatura máxima sobre 30 °C.
 Cada modelo climático reproduce ese indicador con un sesgo propio. Su
 procedimiento localiza el percentil que ese valor ocupa
-en los datos de referencia, calcula el valor de ese mismo percentil en cada
+en los datos observados, calcula el valor de ese mismo percentil en cada
 simulación y recalcula el indicador con el umbral así ajustado, sin tocar los
 datos del modelo [@hoffmann2018].
 
@@ -145,13 +145,13 @@ El segundo mueve la predicción. Petetin y colaboradores corrigen predicciones d
 ozono cuyos umbrales están fijados por normativa y no admiten ajuste. Su mapeo de
 cuantiles lleva la distribución de lo predicho a la de lo observado
 [@petetin2022]. Los dos remedios piden insumos distintos. El mapeo de cuantiles
-necesita una distribución de observaciones de referencia. Recalibrar el umbral
+necesita una distribución de observaciones. Recalibrar el umbral
 necesita solo un período anterior de la propia predicción.
 
 Ninguno de los dos se enfrenta a un umbral que se mueva con lo que evalúa. El de
 Hoffmann y colaboradores es un valor fijo, y el de Petetin y colaboradores es
 regulatorio. Ellos mismos observan que un indicador definido sobre un cuantil de
-la distribución de referencia queda libre de sesgo por construcción
+la distribución observada queda libre de sesgo por construcción
 [@hoffmann2018]. Un umbral que es una fracción del promedio de lo predicho no
 tiene esa propiedad, porque la compresión mueve el promedio y la separación entre
 posiciones a la vez.
@@ -327,7 +327,7 @@ afectadas a la vez.
 Resta decidir cuándo un headway cuenta como bunching. La convención del campo es
 una fracción del headway programado: un cuarto en las formulaciones más citadas
 [@moreiramatias2016], y la mitad en el TCQSM [@tcqsm2003]. Estos corredores no
-tienen programación contra la cual comparar. Sustituir esa referencia por una
+tienen programación contra la cual comparar. Sustituir ese denominador por uno
 que se observe en el propio corredor es práctica establecida. Yu y colaboradores reemplazan
 el horario ausente de su corredor por el headway observado en la primera parada de
 la misma corrida [@yu2016]. Jiao y colaboradores fijan su umbral en un cuarto de
@@ -386,8 +386,8 @@ $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 \qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{7}$$
 
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los umbrales que resultan
-de aplicar $\rho$ al vector observado y al vector predicho. La referencia de Yu y
-colaboradores no tiene esa propiedad: es observada, de modo que no se mueve con la
+de aplicar $\rho$ al vector observado y al vector predicho. El denominador de Yu y
+colaboradores no tiene esa propiedad: es observado, de modo que no se mueve con la
 predicción. Las Figuras 2 y 3 lo muestran con el mismo headway de dos minutos.
 
 ![Corredor disparejo](figuras/bunching/with_bunching.png)
