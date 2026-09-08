@@ -211,8 +211,8 @@ pertenece al corredor.
 **3) El sentido de marcha.** Sobre ese mismo eje circulan los buses de ida y los
 de vuelta, y el registro GPS no distingue unos de otros. El sentido se asigna como
 el signo del avance a lo largo del eje: se promedia ese avance sobre los cinco
-últimos registros y se toma su signo, de modo que un error aislado no invierta la
-dirección. Ese signo es la única fuente del sentido en los tres corredores. Dos
+últimos registros y se toma su signo, de modo que un error aislado no invierta el
+sentido. Ese signo es la única fuente del sentido en los tres corredores. Dos
 traen además un campo de rumbo, que solo sirve para comprobarlo y nunca para
 corregirlo.
 
@@ -809,12 +809,12 @@ umbral no depende entonces de cuál de los dos puntajes se use. Con el MCC
 recalibrado el acuerdo baja a once de doce. La excepción es E59 a cinco minutos,
 donde el LSTM gana el AUC y pierde la correlación recalibrada.
 
-Los dos cruces van en el mismo sentido. Medido por el signo de la diferencia, el
+Los dos cruces coinciden. Medido por el signo de la diferencia, el
 error escalar pasó a favor del LSTM entre uno y tres minutos en los tres
 corredores. El AUC pasó a su favor entre uno y tres minutos en E2, entre tres y
 cinco en E59, y entre cinco y diez en E4. La detección cruzó entonces uno o dos
 escalones de horizonte más tarde que el error en dos de los tres corredores.
-Ninguna de las dos métricas cruzó en sentido contrario. La disociación que las
+Ninguna de las dos métricas cruzó a favor de la persistencia. La disociación que las
 Secciones V-A y V-C parecían mostrar, con el LSTM ganando en error y perdiendo en
 detección, la producía el umbral.
 
@@ -835,7 +835,7 @@ La serie azul mide cuánto error absoluto le gana el LSTM a la persistencia, y s
 escala corre por el lado izquierdo. Las dos series que se leen por el lado
 derecho son el área bajo la curva de detección de cada método, invariante a
 cualquier reescalado monótono de lo predicho y por lo tanto inmune al artefacto.
-Los dos cruces van en el mismo sentido, y ninguna serie se acerca al azar.
+Los dos cruces coinciden, y ninguna serie se acerca al azar.
 
 **Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra.
 
@@ -867,7 +867,7 @@ Tampoco depende de la definición del evento. El umbral relativo de la Sección
 III-C podría estar produciendo el efecto por sí solo, y un umbral absoluto en
 minutos —como el de un minuto de Sun, Schmöcker y Nakamura [@sun2021]— podría
 disolverlo. Se probó con uno fijo en la cuarta parte del headway mediano
-observado de cada corredor y dirección. Queda entre 1,4 y 2,4 minutos, se calibró
+observado de cada corredor y sentido. Queda entre 1,4 y 2,4 minutos, se calibró
 sobre el origen 2 y se aplicó sin cambios al origen 3. **No se atenuó:
 empeoró.** La tasa de disparo del modelo cayó por un factor de mediana 138 en diez
 de las doce celdas, y en las otras dos no marcó ninguna posición.

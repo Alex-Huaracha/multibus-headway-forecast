@@ -519,7 +519,7 @@ def detection_without_threshold(*, lang: str = "es", chrome: bool = True) -> Pat
         _caption(fig, [
             "Eje izquierdo (azul, ↑ mejor): cuánto MAE le gana el LSTM a la persistencia. Eje derecho (rojo y gris, ↑ mejor): AUC de",
             "detección de bunching, invariante a cualquier reescalado monótono del pronóstico y por lo tanto inmune al artefacto de",
-            "umbral. Los dos cruces van en el mismo sentido y en la misma zona; el de detección ocurre igual o algo más tarde que el",
+            "umbral. Los dos cruces coinciden y caen en la misma zona; el de detección ocurre igual o algo más tarde que el",
             "escalar. Ninguna serie está cerca del azar (0.5, punteado): el aprendiz no es ciego al evento en ninguna celda.",
         ])
     fig.tight_layout(rect=(0, 0.11, 1, 0.88) if chrome else CLEAN_RECT)
