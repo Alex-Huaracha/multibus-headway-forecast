@@ -13,7 +13,7 @@ punto de una ruta. El bunching es la circulación conjunta de dos buses que ese
 tiempo debería mantener separados, y desiguala la espera entre los pasajeros de
 esa ruta. Rezazada y colaboradores lo atribuyen a la congestión, a la demanda
 atípica, a la acumulación de pasajeros y al comportamiento del conductor
-[@rezazada2024]. Trompet, Liu y Graham relevan doce empresas de bus urbano, y las
+[@rezazada2024]. Trompet, Liu y Graham comparan doce empresas de bus urbano, y las
 que publican un indicador de servicio lo definen sobre la regularidad agregada del
 recorrido y no sobre un headway aislado [@trompet2011].
 
@@ -220,7 +220,7 @@ corregirlo.
 salto de más de treinta minutos sin señal, una inversión de sentido o la salida
 del terminal tras una espera de más de cinco minutos cierran el viaje en curso.
 
-**5) La rejilla común.** Cada bus manda sus registros GPS cada pocos segundos,
+**5) La rejilla común.** Cada bus emite sus registros GPS cada pocos segundos,
 cada uno por su cuenta, de modo que dos buses casi nunca tienen un registro en el
 mismo momento. Compararlos exige un momento común. Todo se lleva entonces a una
 **rejilla** de sesenta segundos, y la coordenada de cada bus en cada minuto se
@@ -320,7 +320,7 @@ produjo.
 
 Dos rasgos del fenómeno gobiernan cómo se lo define aquí. Es una propiedad del
 patrón colectivo y no de un bus: cada bus puede estar donde le corresponde y
-el corredor estar apelotonado igual. Y se manifiesta en posiciones del vector de
+el corredor presentar bunching igual. Y se manifiesta en posiciones del vector de
 la Sección III-A, de modo que un mismo instante puede llevar varias posiciones
 afectadas a la vez.
 
@@ -329,8 +329,8 @@ una fracción del headway programado: un cuarto en las formulaciones más citada
 [@moreiramatias2016], y la mitad en el TCQSM [@tcqsm2003]. Estos corredores no
 tienen programación contra la cual comparar. Sustituir ese denominador por uno
 que se observe en el propio corredor es práctica establecida. Yu y colaboradores reemplazan
-el horario ausente de su corredor por el headway observado en la primera parada de
-la misma corrida [@yu2016]. Jiao y colaboradores fijan su umbral en un cuarto de
+el horario ausente de su corredor por el headway observado en la primera parada
+del mismo viaje [@yu2016]. Jiao y colaboradores fijan su umbral en un cuarto de
 ese mismo headway [@jiao2023]. Aquí el denominador se sustituye por el promedio
 del propio vector en ese instante. **Un headway cuenta como bunching si cae por
 debajo de la mitad de ese promedio.** Ese valor es el umbral relativo del evento: se lo llama
@@ -393,15 +393,15 @@ de aplicar $\rho$ al vector observado y al vector predicho. El denominador de Yu
 colaboradores no tiene esa propiedad: es observado, de modo que no se mueve con la
 predicción. Las Figuras 2 y 3 lo muestran con el mismo headway de dos minutos.
 
-![Corredor disparejo](figuras/bunching/with_bunching.png)
+![Corredor irregular](figuras/bunching/with_bunching.png)
 
-**Fig. 2.** Corredor disparejo. El vector es [9,5 · 1,2 · 11,0 · 2,0], su promedio
+**Fig. 2.** Corredor irregular. El vector es [9,5 · 1,2 · 11,0 · 2,0], su promedio
 5,9 min y el umbral 3,0 min. Los headways de 2,0 y 1,2 quedan debajo del umbral:
 **los dos son bunching.** Esquema ilustrativo, no datos reales.
 
-![Corredor parejo](figuras/bunching/without_bunching.png)
+![Corredor regular](figuras/bunching/without_bunching.png)
 
-**Fig. 3.** Corredor parejo. El vector es [3,5 · 2,0 · 4,0 · 3,0], su promedio
+**Fig. 3.** Corredor regular. El vector es [3,5 · 2,0 · 4,0 · 3,0], su promedio
 3,1 min y el umbral 1,6 min. El mismo headway de 2,0 min queda ahora encima del
 umbral: **no es bunching.** Esquema ilustrativo, no datos reales.
 
@@ -449,7 +449,7 @@ faltante viene de una sola de las dos condiciones: el cruce existe, pero quedó
 más de treinta minutos atrás. Esa condición recorta por el extremo alto, de
 modo que los descartados son los intervalos más largos. La que no encuentra cruce
 explica menos de un punto porcentual en cada corredor. La cobertura tampoco es
-pareja entre corredores: entre el mejor y el peor medido hay 13,6 puntos
+uniforme entre corredores: entre el mejor y el peor medido hay 13,6 puntos
 porcentuales.
 
 ### B. Métodos comparados
@@ -491,7 +491,7 @@ diferencia.
 La partición es **por fecha y nunca al azar**, porque un operador solo dispone del
 pasado. El período se divide en 107 días de entrenamiento, 23 de validación y 22
 de prueba. Todo el protocolo se repite después sobre tres orígenes de evaluación,
-numerados aquí 1, 2 y 3. Los tres arrancan el mismo día y
+numerados aquí 1, 2 y 3. Los tres comienzan el mismo día y
 alargan el entrenamiento a 61, 83 y 107 días. Sus períodos de prueba no se solapan
 entre sí, y el del origen 3 es el que se publica. Como los entrenamientos están
 anidados, esto establece estabilidad frente a la elección del período de prueba y
@@ -500,7 +500,7 @@ no réplica independiente. La Figura 4 muestra el esquema.
 ![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.es.png)
 
 **Fig. 4.** La partición por tiempo y los tres orígenes de evaluación. Los tres
-arrancan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
+comienzan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
 solapan.
 
 La comparación exige además tres condiciones, cada una sobre una fuente distinta
@@ -650,7 +650,7 @@ es una propiedad del aprendizaje profundo: el XGBoost la reprodujo entera, y a
 diez minutos aventajó a la persistencia por 1,59 minutos en E2, 1,09 en E4 y 0,79
 en E59. La segunda es que esa frontera no está en el horizonte sino en la dispersión
 de la ventana de entrada. Medida con los tercios de dispersión de la
-Sección IV-C, la ventaja del LSTM creció de forma ordenada del tercio calmo al
+Sección IV-C, la ventaja del LSTM creció de forma ordenada del tercio tranquilo al
 volátil en 11 de las 12 celdas.
 Alargar el horizonte no cambió quién ganaba: movió la ventaja hacia tercios cada
 vez más tranquilos.
@@ -746,8 +746,8 @@ tasa base de 21 %. En E4 acertó 75 de 150, entre 42 % y 58 % contra 18 %.
 
 **Fig. 7.** Fracción de posiciones con trigger de cada método, contra la tasa
 real del evento (punteada). La persistencia propaga el vector observado, hereda su
-dispersión y el umbral cae donde fue diseñado: emite casi tan seguido como el
-evento ocurre. La predicción puntual es un vector comprimido, y el mismo umbral
+dispersión y el umbral cae donde fue diseñado: emite casi con la misma frecuencia
+con que ocurre el evento. La predicción puntual es un vector comprimido, y el mismo umbral
 relativo le queda en la cola.
 
 **Tabla 1.** Detección con el umbral del evento observado aplicado sin cambios a lo predicho, con el piso del detector trivial al lado.
@@ -975,8 +975,8 @@ El umbral del evento es la fracción del promedio que usa la convención del cam
 y no proviene de un registro de eventos observados. Esa elección lo hace
 comparable con los trabajos que la Sección III-C cita, y deja sin verificar que la
 fracción marque lo que un operador llamaría bunching. Validarla exigiría un
-registro de incidentes que estos corredores no producen. El alcance de todo
-reclamo de detección es entonces el evento así definido.
+registro de incidentes que estos corredores no producen. El alcance de toda
+afirmación de detección es entonces el evento así definido.
 
 El corpus acota dos cosas más. Un vector reúne entre 3,8 y 5,9 headways en
 promedio, de modo que la dispersión transversal reposa sobre pocas observaciones.
@@ -999,7 +999,7 @@ de la Sección IV y no se rehízo después.
 La elección de métricas tiene además una disputa abierta. Chicco y Jurman
 sostienen que el MCC debe reemplazar al AUC como medida estándar de clasificación
 binaria, porque el AUC no informa sobre la precisión ni sobre el valor predictivo
-negativo [@chicco2023]. Ese reclamo alcanza a quien reporta solo el AUC. La
+negativo [@chicco2023]. Esa afirmación alcanza a quien reporta solo el AUC. La
 Sección IV-D reporta los tres: el AUC y la precisión promedio miden el
 ordenamiento sin fijar umbral, y el MCC resume el punto de operación ya elegido,
 de modo que responden preguntas distintas y ninguno sustituye al otro.
