@@ -91,7 +91,7 @@ LANG = {
         "stage_models": "Modelos:\npersistencia,\nXGBoost, LSTM",
         "stage_forecast": "Predicción del\nvector a 1, 3,\n5 y 10 min",
         "stage_threshold": "Umbral de\ndecisión sobre\nlo predicho",
-        "stage_alarm": "Alarma\nsí / no",
+        "stage_trigger": "Trigger\nsí / no",
         "stage_evaluation": "Evaluación\npareada +\nsignificancia",
         "pipeline_band_experiment": "Partes III, IV y V — experimentar y medir",
         "pipeline_caption": (
@@ -169,7 +169,7 @@ LANG = {
         "stage_models": "Models:\npersistence,\nXGBoost, LSTM",
         "stage_forecast": "Vector forecast\nat 1, 3,\n5 and 10 min",
         "stage_threshold": "Decision\nthreshold on\nthe forecast",
-        "stage_alarm": "Alarm\nyes / no",
+        "stage_trigger": "Trigger\nyes / no",
         "stage_evaluation": "Paired\nevaluation +\nsignificance",
         "pipeline_band_experiment": "Parts III, IV and V — experiment and measure",
         "pipeline_caption": (
@@ -385,7 +385,7 @@ def pipeline(*, lang: str = "es", chrome: bool = True) -> Path:
         (words["stage_models"], "tab:green"),
         (words["stage_forecast"], "tab:green"),
         (words["stage_threshold"], ACCENT),
-        (words["stage_alarm"], ACCENT),
+        (words["stage_trigger"], ACCENT),
         (words["stage_evaluation"], "tab:purple"),
     ]
     for index, (text, color) in enumerate(stages2):

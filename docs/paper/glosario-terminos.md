@@ -5,9 +5,9 @@ cuenta de usos verificada sobre `paper.md` y el nombre que le corresponde al
 traducir.
 
 Existe porque `reglas-redaccion.md` §4 obliga a un nombre por objeto pero no dice
-cuál. Los defectos que se corrigieron no fueron términos mal elegidos: en cinco
+cuál. Los defectos que se corrigieron no fueron términos mal elegidos: en seis
 casos el nombre correcto ya estaba escrito en el paper —`historial`,
-`orígenes de evaluación`, `coordenada`, `denominador`, `coincidir`— y se
+`orígenes de evaluación`, `coordenada`, `denominador`, `coincidir`, `celda`— y se
 abandonaba a los pocos párrafos. La columna **Nunca** es la que hace el trabajo:
 casi todo defecto fue una palabra correcta desplazada por un sinónimo, no un
 término inventado.
@@ -23,7 +23,7 @@ Aquí solo va la decisión.
 | Los buses de una empresa que circulan sobre una misma ruta | `corredor` | 65 | `corridor` | — |
 | El trazado vial que el corredor recorre | `ruta` | — | `route` | — |
 | El vehículo | `bus` | 51 | `bus` | unidad ², flota |
-| La entidad dueña de los buses | `empresa` | 5 | `company` ³ | operador |
+| La entidad dueña de los buses | `empresa` | 6 | `company` ³ | operador |
 | Lo que el bus emite: identificador, instante y coordenada | `registro GPS` | 10 | `GPS record` | dato, emisión, ping, bitácora, registro ⁴ |
 | La ubicación de un bus en el espacio | `coordenada` | 14 | `position` ⁵ | posición, punto ⁶, ubicación |
 | El lado del eje hacia el que el bus avanza | `sentido` | 15 | `direction` ¹⁵ | dirección ¹⁶ |
@@ -32,7 +32,7 @@ Aquí solo va la decisión.
 | La coordenada de todos los buses en un minuto | `snapshot` | 4 | `snapshot` | instantánea |
 | Dos buses consecutivos del mismo sentido | `par` | 10 | `bus pair` | — |
 | La casilla del vector de headways | `posición` | 40 | `position` ⁵ | slot, casilla, índice, componente ⁸ |
-| La combinación de corredor y horizonte | `celda` | 30 | `case` ⁹ | par ¹⁴, combinación |
+| La combinación de corredor y horizonte | `celda` | 31 | `case` ⁹ | par ¹⁴, combinación |
 | Los $T$ minutos de historia que lee el modelo | `ventana de entrada` | 5 | `input window` ¹⁰ | ventana ¹¹ |
 | Una re-ejecución completa del protocolo | `origen` | 32 | `evaluation origin`, `fold` | ventana |
 | El instante en que el de adelante pasó por la coordenada del de atrás | `cruce` | 4 | `crossing` ¹⁸ | — |
@@ -56,12 +56,17 @@ Aquí solo va la decisión.
    LSTM. Cualquier otro es el defecto.
 3. `operador` nombra un **rol** en el paper: «un operador solo dispone del pasado»,
    «lo que un operador llamaría bunching». La entidad es `empresa`, que además es
-   la clave `empresaid` del corpus. **En inglés el choque se invierte**: la
-   literatura usa `operator` para la entidad —Yu «transit **operators** use
-   predictions», Boudabbous «tailored to a single city, **operator**, or
-   corridor»—, 17 usos en 7 de 11. Por eso la entidad va a `company` (16 usos en
-   4 de 11, en Santos y Moreira-Matias) y `operator` queda para el rol, como el
-   paper ya lo reparte.
+   la clave `empresaid` del corpus. **El inglés reparte igual**, medido sobre los
+   20 usos de `operator` en 7 de las 11 referencias: unos 14 son el rol —Boudabbous
+   «control center **operators** must identify delayed vehicles… and decide when to
+   intervene», Yu «transit **operators** can adopt preventive countermeasures», Jiao
+   «support transit **operators** to issue BB warnings»—, unos 5 la entidad
+   —Boudabbous «tailored to a single city, **operator**, or corridor»— y uno el
+   conductor —Yu «bus **operators** are a dominant factor in causing running time
+   variation»—. Para la entidad el inglés dispone de `company`/`companies` (15 usos
+   en 3) y `agency`/`agencies` (11 en 3). Así que `operator` traduce el rol y
+   `company` la entidad. El único contagio venía del título de Trompet, «Regularity
+   of Service between Urban Bus **Operators**», y ya se corrigió en el paper.
 4. `registro` a secas no: `registro de incidentes` es otro objeto, el que VII
    declara ausente. Los dos compuestos van siempre completos.
 5. **Las dos filas colapsan en `position` al traducir.** El código resuelve el

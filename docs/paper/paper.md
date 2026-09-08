@@ -13,8 +13,8 @@ punto de una ruta. El bunching es la circulación conjunta de dos buses que ese
 tiempo debería mantener separados, y desiguala la espera entre los pasajeros de
 esa ruta. Rezazada y colaboradores lo atribuyen a la congestión, a la demanda
 atípica, a la acumulación de pasajeros y al comportamiento del conductor
-[@rezazada2024]. Trompet, Liu y Graham relevan doce operadores urbanos, y los que
-publican un indicador de servicio lo definen sobre la regularidad agregada del
+[@rezazada2024]. Trompet, Liu y Graham relevan doce empresas de bus urbano, y las
+que publican un indicador de servicio lo definen sobre la regularidad agregada del
 recorrido y no sobre un headway aislado [@trompet2011].
 
 La predicción de ese evento sigue una receta de dos etapas: primero se estima el
@@ -524,8 +524,8 @@ enmascaradas.
 Sobre esa misma población, los resultados se desglosan además por régimen de
 dispersión. La dispersión se mide sobre cada posición del vector por separado: es
 la desviación estándar muestral de los headways que esa posición registró a lo
-largo de la ventana de entrada, en minutos. Cada combinación de corredor y
-horizonte se parte en tercios por esa cantidad, con los dos umbrales fijados sobre
+largo de la ventana de entrada, en minutos. Cada celda se parte en tercios por esa
+cantidad, con los dos umbrales fijados sobre
 entrenamiento y validación y aplicados sin cambios a prueba. Calibrarlos sobre
 prueba dejaría que la estratificación conociera el período que evalúa.
 
@@ -919,7 +919,7 @@ continuó con la más simple de las tres.
 
 Ese resultado nulo tiene compañía, aunque ninguno de los precedentes mide la
 relación entre posiciones de un mismo vector. Rodrigues
-reporta que una línea base de patrón semanal con regresión lineal iguala a métodos
+reporta que un modelo de patrón semanal con regresión lineal iguala a métodos
 de aprendizaje profundo espacio-temporales y supera a varios basados en redes de
 grafos [@rodrigues2022]. Advierte a la vez que la correlación espacial no debe
 descartarse, sobre todo a horizontes cortos. Boudabbous y colaboradores encuentran
