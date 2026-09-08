@@ -362,7 +362,8 @@ $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
 \qquad \text{definido solo si } m \ge 3, \tag{5}$$
 
 donde $b_i(t)$ vale 1 si la posición $i$ cuenta como bunching y 0 si no, y
-$\mathbb{1}[\cdot]$ es la función indicadora. La condición $m \ge 3$ descarta los
+$\mathbb{1}[\cdot]$ es la función indicadora. Cada posición con $b_i(t) = 1$ es un
+evento, y se dice que la regla la **marca**. La condición $m \ge 3$ descarta los
 vectores más cortos y exige al menos cuatro buses en circulación. Con dos
 headways cualquier medida de irregularidad se reduce a la diferencia entre ellos,
 y no describe un patrón.
@@ -374,7 +375,9 @@ $$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
 \,\right], \tag{6}$$
 
 donde $\hat{b}_i(t)$ es la detección emitida sobre la posición $i$ del vector
-predicho y $\bar{\hat{h}}(t)$ es el promedio de ese mismo vector predicho. El
+predicho y $\bar{\hat{h}}(t)$ es el promedio de ese mismo vector predicho. Cada
+posición con $\hat{b}_i(t) = 1$ es un **trigger**: la señal que el detector emite
+sobre esa posición, y lo único que un operador vería. El
 umbral sale del vector predicho y no del observado porque quien opera un corredor
 no dispone del observado al momento de decidir.
 
@@ -564,8 +567,8 @@ R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{10}$$
 
 donde $P$ es la precisión y $R$ el recall.
 
-El F1 no usa TN [@chicco2020], y premia por eso al detector que marca toda
-posición como evento: maximizar el F1 sobre una predicción sin información conduce
+El F1 no usa TN [@chicco2020], y premia por eso al detector que emite un trigger
+en toda posición: maximizar el F1 sobre una predicción sin información conduce
 a ese detector con independencia de la tasa base [@lipton2014]. La tasa base de
 una celda es la fracción de sus posiciones donde el indicador observado vale 1.
 Ese detector alcanza recall 1 y precisión igual a la tasa base [@flach2015], así
@@ -579,8 +582,8 @@ $-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (6) es el umbral en $-\rho$. E
 la probabilidad de que una posición de bunching reciba un puntaje mayor que una
 sin bunching [@handtill2001], y vale 0,5 cuando la predicción no ordena.
 
-Sobre esas cantidades se construyen tres cocientes. La tasa de disparo de un
-método es la fracción de posiciones que marca como evento. El factor entre dos
+Sobre esas cantidades se construyen tres cocientes. La tasa de trigger de un
+método es la fracción de sus posiciones con $\hat{b}_i = 1$. El factor entre dos
 métodos es el cociente de sus F1, y mide cuántas veces mejor aparece uno de ellos
 bajo el mismo umbral. El tercero exige una cantidad más. La precisión promedio
 también prescinde del umbral: recorre el ordenamiento que el AUC puntúa, de mayor
@@ -615,12 +618,12 @@ lleva el tamaño efectivo de muestra de entre 75 747 y 240 907 filas, según la
 celda, a los 22 días del período de prueba.
 
 La precisión de la Ecuación (10) admite su propia acotación, porque puede
-descansar sobre muy pocas posiciones marcadas. Se acota con el intervalo exacto de
+descansar sobre muy pocos triggers. Se acota con el intervalo exacto de
 Clopper–Pearson [@clopper1934] al 95 %, calculado sobre los conteos de TP y de
 FP de cada celda. Los conteos que necesitan acotarse aquí son los pequeños, y en
 ellos la aproximación normal deja parte de su intervalo fuera del rango válido de
 una proporción. Una celda
-donde el detector nunca marca no recibe intervalo: no hay precisión que acotar.
+sin ningún trigger no recibe intervalo: no hay precisión que acotar.
 
 ---
 
@@ -712,10 +715,10 @@ distancia que se pide anticipar.
 
 La regla de la Sección III-C, aplicada a lo observado, marcó 15 245 eventos en E2
 a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo umbral,
-se disparó **catorce veces**. La persistencia disparó 15 083 veces. Puntuada con
+emitió **catorce triggers**. La persistencia emitió 15 083. Puntuada con
 el F1 de la Sección IV-D, la persistencia apareció 253 veces mejor que el LSTM. En
 las otras celdas el factor va de 1,5 a 36. El XGBoost obtuvo un F1
-exactamente cero en tres de las doce celdas: ahí no disparó nunca. La Tabla 1
+exactamente cero en tres de las doce celdas: ahí no emitió ninguno. La Tabla 1
 recoge las doce celdas.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
@@ -731,19 +734,19 @@ headways se apartan menos de su propio promedio, y el umbral deja de alcanzarse
 casi siempre. La regla registra entonces una dispersión insuficiente para alcanzar
 un umbral calibrado sobre otra distribución.
 
-El tercero es el acierto del modelo en las pocas ocasiones en que disparó. De
-los catorce disparos de E2, diez correspondieron a eventos de bunching reales: 71 %
+El tercero es el acierto del modelo en las pocas ocasiones en que emitió. De
+los catorce triggers de E2, diez correspondieron a eventos de bunching reales: 71 %
 de precisión contra una tasa base de 30 %. El intervalo de la Sección IV-E va de
-42 % a 92 % sobre esos catorce disparos, de modo que la cifra señala un régimen y
-no un valor. Las celdas con más disparos lo estrechan. A diez minutos el modelo
-acertó 776 de 1 572 disparos en E59, con precisión entre 47 % y 52 % contra una
+42 % a 92 % sobre esos catorce triggers, de modo que la cifra señala un régimen y
+no un valor. Las celdas con más triggers lo estrechan. A diez minutos el modelo
+acertó 776 de 1 572 triggers en E59, con precisión entre 47 % y 52 % contra una
 tasa base de 21 %. En E4 acertó 75 de 150, entre 42 % y 58 % contra 18 %.
 
-![Tasa de disparo contra tasa real del evento](figuras/artefacto-umbral.es.png)
+![Tasa de trigger contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 7.** Fracción de posiciones que cada método marca como bunching, contra la tasa
+**Fig. 7.** Fracción de posiciones con trigger de cada método, contra la tasa
 real del evento (punteada). La persistencia propaga el vector observado, hereda su
-dispersión y el umbral cae donde fue diseñado: marca casi tan seguido como el
+dispersión y el umbral cae donde fue diseñado: emite casi tan seguido como el
 evento ocurre. La predicción puntual es un vector comprimido, y el mismo umbral
 relativo le queda en la cola.
 
@@ -764,7 +767,7 @@ relativo le queda en la cola.
 | E59 | 5 | 0,208 | 0,344 | 0,405 | 0,083 | 4,9× |
 | E59 | 10 | 0,208 | 0,344 | 0,303&nbsp;† | 0,034 | 8,8× |
 
-† La regla vacía —marcar toda posición— supera al ganador declarado en estas celdas.
+† La regla vacía —un trigger en toda posición— supera al ganador declarado en estas celdas.
 
 ### D. Estabilidad del factor entre orígenes y sus dos excepciones
 
@@ -776,7 +779,7 @@ origen, **58** en el segundo y **36** en el tercero. A diez minutos valió
 **2 299**, **817** y **253**.
 
 Esas dos son las celdas donde el umbral trasplantado dejó al detector casi sin
-disparos: su F1 cayó a 0,011 y 0,001 en la Tabla 1. Un cociente cuyo denominador
+triggers: su F1 cayó a 0,011 y 0,001 en la Tabla 1. Un cociente cuyo denominador
 se acerca a cero no mide una capacidad del sistema evaluado, sino la interacción
 entre el umbral y la distribución sobre la que cayó. La observación no depende de
 qué modelo se use ni de cuál de los tres orígenes se mida. Depende de que el umbral
@@ -788,7 +791,7 @@ Si el problema es el umbral, recalibrarlo debería bastar. Se aplicó
 entonces la recalibración de la Sección IV-D, sin tocar el modelo. Elegir el MCC y
 no el F1 como objetivo responde a que en este corpus el F1 degenera. Sobre la
 persistencia en E2, de tres minutos en adelante, el umbral que optimiza el F1
-disparó entre el 99,9 % y el 100 % de las posiciones, esto es, la regla vacía de
+emitió un trigger entre el 99,9 % y el 100 % de las posiciones, esto es, la regla vacía de
 la Tabla 1.
 
 El umbral trasplantado de la Tabla 1 dejaba a la persistencia por delante en las
@@ -802,7 +805,7 @@ el error escalar también la favorecía en E4 y E59.
 
 El AUC no es la única forma de puntuar sin umbral. El lift de la Sección IV-D
 recorre el mismo ordenamiento, pero pesa más su cabeza, donde caen las posiciones
-que un detector marcaría primero. Los dos coincidieron en las doce celdas: en cada
+que un detector señalaría primero. Los dos coincidieron en las doce celdas: en cada
 una ganó el mismo método. A diez minutos el lift del LSTM valió 1,19 en E2, 1,45
 en E4 y 1,48 en E59, contra 1,08, 1,24 y 1,26 de la persistencia. El veredicto sin
 umbral no depende entonces de cuál de los dos puntajes se use. Con el MCC
@@ -870,8 +873,8 @@ minutos —como el de un minuto de Sun, Schmöcker y Nakamura [@sun2021]— podr
 disolverlo. Se probó con uno fijo en la cuarta parte del headway mediano
 observado de cada corredor y sentido. Queda entre 1,4 y 2,4 minutos, se calibró
 sobre el origen 2 y se aplicó sin cambios al origen 3. **No se atenuó:
-empeoró.** La tasa de disparo del modelo cayó por un factor de mediana 138 en diez
-de las doce celdas, y en las otras dos no marcó ninguna posición.
+empeoró.** La tasa de trigger del modelo cayó por un factor de mediana 138 en diez
+de las doce celdas, y en las otras dos no emitió ninguno.
 
 El mismo ensayo acota una afirmación anterior. Bajo el umbral absoluto la
 capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0,60, y en
@@ -946,20 +949,20 @@ mayor y la menor de cada fila.
 
 ### H. Implicaciones operativas
 
-El resultado operativo no es que el modelo detecte mejor. Es que **marcó poco y
-acertó cuando marcó**, y el F1 de la Ecuación (10) combina esas dos propiedades en
-un solo número. La Sección V-C reporta los conteos: catorce disparos en E2 a diez
+El resultado operativo no es que el modelo detecte mejor. Es que **emitió pocos
+triggers y acertó en ellos**, y el F1 de la Ecuación (10) combina esas dos
+propiedades en un solo número. La Sección V-C reporta los conteos: catorce en E2 a diez
 minutos, y en ese horizonte la precisión quedó por encima de la tasa base en los
 tres corredores, con su intervalo al lado. Esa lectura describe el umbral
 trasplantado, y recalibrarlo deshace su primera mitad: el detector recalibrado
-marcó el 26,98 % de las posiciones de E2 a diez minutos, contra el 0,03 % del
+emitió un trigger en el 26,98 % de las posiciones de E2 a diez minutos, contra el 0,03 % del
 trasplantado.
 
 Eso no es una alarma. Una alarma tiene que sonar cuando ocurre el evento, y con el
 umbral trasplantado el detector se queda callado la mayoría de las veces. Lo que
 queda es un **filtro de prioridad**: un aviso poco frecuente y más informativo que
 el azar, que sirve para ordenar la atención de un despachador y no para
-dispararla. La consecuencia para quien evalúa una predicción de este tipo es
+reclamarla. La consecuencia para quien evalúa una predicción de este tipo es
 distinta. **El punto de operación se recalibra contra la distribución de lo
 predicho, no se hereda de las observaciones.** Requiere recalcular un escalar y no
 reentrenar nada.
@@ -1016,7 +1019,7 @@ LSTM, y convierte lo predicho en un indicador de bunching mediante una regla
 relativa al promedio del propio vector. La dispersión transversal de lo predicho
 queda por debajo de la observada en las doce celdas y los tres orígenes de evaluación,
 y la brecha se profundiza al alargar el horizonte. Con el umbral del evento
-observado trasladado sin cambios, el detector se dispara catorce veces sobre los
+observado trasladado sin cambios, el detector emite catorce triggers sobre los
 15 245 eventos que la regla marca en E2 a diez minutos. La persistencia lo supera
 ahí por un factor de 253 en el F1.
 

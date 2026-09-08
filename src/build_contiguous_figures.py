@@ -10,7 +10,7 @@ so a figure can never disagree with the table it illustrates.
                                         escalar.
     contiguo-volatilidad.png            Δ MAE por tercil ex-ante. Que la frontera es
                                         la volatilidad, no el horizonte.
-    contiguo-artefacto-umbral.png       Tasa de disparo contra tasa real del evento.
+    contiguo-artefacto-umbral.png       Tasa de trigger contra tasa real del evento.
                                         El artefacto que se está explicando.
     contiguo-deteccion-sin-umbral.png   Ventaja escalar y AUC de detección, juntas.
                                         El veredicto corregido.
@@ -24,7 +24,7 @@ paper's headline and they only work as a pair: the first shows a comparison
 decided by its own operating point, the second shows what the same data says
 once the operating point is removed. Publishing either alone would misrepresent
 the result — the earlier ``contiguo-disociacion.png`` did exactly that by
-plotting fixed-cut F1 as if it measured the models, and it is gone. The two
+plotting fixed-threshold F1 as if it measured the models, and it is gone. The two
 compression figures pair the same way: one measures the flattening at a single
 horizon, the other shows it deepening with every minute added.
 
@@ -94,9 +94,9 @@ LANG = {
         "persistence_better": "persistencia mejor ▲",
         "lstm_better": "LSTM mejor ▼",
         "base_rate": "Tasa real de bunching (lo que habría que detectar)",
-        "persistence_fires": "Persistencia — dispara a la tasa base",
-        "lstm_silenced": "LSTM — el corte fijo lo silencia",
-        "fire_rate_axis": "Fracción de posiciones marcadas como bunching",
+        "persistence_fires": "Persistencia — emite a la tasa base",
+        "lstm_silenced": "LSTM — el umbral fijo lo silencia",
+        "fire_rate_axis": "Fracción de posiciones con trigger",
         "scalar_advantage": "Ventaja escalar del LSTM (MAE)",
         "auc_persistence": "AUC de bunching — persistencia",
         "auc_lstm": "AUC de bunching — LSTM",
@@ -123,7 +123,7 @@ LANG = {
         "lstm_better": "LSTM better ▼",
         "base_rate": "Observed bunching rate (what should be detected)",
         "persistence_fires": "Persistence — fires at the base rate",
-        "lstm_silenced": "LSTM — the fixed cut silences it",
+        "lstm_silenced": "LSTM — the fixed threshold silences it",
         "fire_rate_axis": "Fraction of positions flagged as bunching",
         "scalar_advantage": "LSTM scalar advantage (MAE)",
         "auc_persistence": "Bunching AUC — persistence",
@@ -363,10 +363,10 @@ def threshold_artifact(*, lang: str = "es", chrome: bool = True) -> Path:
     """The artifact, in one glance: who fires, and how often the event happens.
 
     The previously published verdict rested on bunching F1 at a fixed relative
-    cut. This figure shows why that comparison was decided by the cut and not by
+    threshold. This figure shows why that comparison was decided by the threshold and not by
     the models: persistence fires almost exactly at the base rate — because the
     rule was calibrated in the units it lives in — while the learner's compressed
-    vector puts the same relative cut deep in its tail, so it falls silent.
+    vector puts the same relative threshold deep in its tail, so it falls silent.
     """
     path = _resolve("threshold_artifact", lang, chrome)
     words = LANG[lang]
@@ -408,7 +408,7 @@ def threshold_artifact(*, lang: str = "es", chrome: bool = True) -> Path:
     axes[0].set_ylabel(words["fire_rate_axis"])
     if chrome:
         fig.suptitle(
-            "El artefacto: con el corte fijo, la persistencia dispara a la tasa base "
+            "El artefacto: con el umbral fijo, la persistencia emite a la tasa base "
             "y el aprendiz enmudece",
             y=0.99, fontsize=12.5,
         )
@@ -421,8 +421,8 @@ def threshold_artifact(*, lang: str = "es", chrome: bool = True) -> Path:
     if chrome:
         _caption(fig, [
             "La regla marca toda posición por debajo de 0.5x la media de su vector. La persistencia propaga el vector observado, así que",
-            "hereda su dispersión y el corte cae donde fue diseñado: dispara casi exactamente tan seguido como ocurre el evento. El",
-            "pronóstico puntual emite un vector comprimido (CV 0.16 contra 0.79), así que el mismo corte relativo le queda en la cola.",
+            "hereda su dispersión y el umbral cae donde fue diseñado: emite casi exactamente tan seguido como ocurre el evento. El",
+            "pronóstico puntual emite un vector comprimido (CV 0.16 contra 0.79), así que el mismo umbral relativo le queda en la cola.",
         ])
     fig.tight_layout(rect=(0, 0.11, 1, 0.88) if chrome else CLEAN_RECT)
 
@@ -432,12 +432,12 @@ def threshold_artifact(*, lang: str = "es", chrome: bool = True) -> Path:
 
 
 def detection_without_threshold(*, lang: str = "es", chrome: bool = True) -> Path:
-    """The corrected verdict: remove the cut and both metrics cross over together.
+    """The corrected verdict: remove the threshold and both metrics cross over together.
 
     Left axis is the scalar advantage, right axis is threshold-free
     discrimination (AUC) for both models. The point is that they AGREE:
     persistence leads at h=1 on both, the learner leads at h=10 on both. The
-    "dissociation" reported earlier was the fixed cut, not the models.
+    "dissociation" reported earlier was the fixed threshold, not the models.
     """
     path = _resolve("detection_without_threshold", lang, chrome)
     words = LANG[lang]
@@ -533,7 +533,7 @@ def dispersion_compression(*, lang: str = "es", chrome: bool = True) -> Path:
     """Observed vs predicted coefficient of variation, by model and corridor.
 
     This is the cause of the artefact plotted by ``threshold_artifact``: a point
-    forecast emits a vector flatter than the one it describes, so a cut calibrated
+    forecast emits a vector flatter than the one it describes, so a threshold calibrated
     on observed dispersion lands in its left tail. Persistence is the control —
     it propagates the observed vector, so it inherits the real dispersion and its
     bias is ~0. That both learners compress, and by comparable amounts, is what
@@ -586,7 +586,7 @@ def dispersion_compression(*, lang: str = "es", chrome: bool = True) -> Path:
         _caption(fig, [
             "Horizonte de 10 minutos. La persistencia propaga el vector observado, así que hereda su dispersión y su barra roja iguala a la gris: es el control.",
             "Los dos aprendices la aplanan, y por márgenes comparables — el efecto es del pronóstico puntual, no de una arquitectura.",
-            "Sobre un vector aplanado, un corte calibrado en la dispersión real cae en la cola izquierda y no se dispara nunca.",
+            "Sobre un vector aplanado, un umbral calibrado en la dispersión real cae en la cola izquierda y no produce ningún trigger.",
         ])
     fig.tight_layout(rect=(0, 0.13, 1, 0.88) if chrome else CLEAN_RECT)
 

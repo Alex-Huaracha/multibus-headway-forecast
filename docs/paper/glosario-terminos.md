@@ -38,6 +38,8 @@ Aquí solo va la decisión.
 | El instante en que el de adelante pasó por la coordenada del de atrás | `cruce` | 4 | `crossing` ¹⁸ | — |
 | El punto a partir del cual el LSTM pasa a ganar | `frontera de régimen` | 5 | ¹⁹ | cruce, frontera ²⁰ |
 | La tabla que cruza lo observado con lo predicho | `matriz de confusión` | 1 | `confusion matrix` ²¹ | cruce |
+| La señal que el detector emite sobre una posición predicha | `trigger` | 19 | `trigger` ²² | disparo, alarma, alerta ²³ |
+| Lo que hace la regla sobre lo observado al fijar el evento verdadero | `marcar` | 3 | `mark` ²² | trigger ²⁴ |
 | El valor contra el que se compara el headway | `umbral` | 95 | `threshold` | corte, referencia |
 | El valor del que el umbral es una fracción | `denominador` | 7 | `denominator` ¹² | referencia |
 | El error que fijan los métodos sin ajuste | `error de referencia` | 2 | `reference` | línea base, benchmark |
@@ -151,6 +153,34 @@ Aquí solo va la decisión.
     ROC. En el código, `vector_metrics.py:59`. No se presta sin traducir porque
     «matriz de confusión» es el nombre estándar en castellano; `headway` se presta
     porque no lo tiene.
+
+22. **`trigger` es préstamo declarado, no traducción pendiente.** Se toma de
+    Moreira-Matias, que es quien nombra este objeto: «Frequency-based threshold to
+    **trigger** a BB alarm on stop Bj», «once a BB alarm is **triggered**». Hay que
+    saber dos cosas al traducir. La primera: **en la fuente `trigger` es el verbo y
+    `alarm` el sustantivo**, de modo que la versión inglesa dirá «the detector
+    **triggers** an alert on position $i$» y no «a trigger». La segunda: **la
+    `tasa de trigger` es acuñada** —el campo no nombra esa fracción— y hay que
+    declararla. El resto del vocabulario del campo: Yu usa `alert` como verbo
+    —«we aim to **alert** when and where the possible bus bunching will occur»— y
+    `notice` como sustantivo; Jiao, «issue BB **warnings**». `fire` da **cero**
+    usos y `flag` **uno**, así que el `fire_rate` del código no se traduce literal.
+    **Corrección a una cuenta anterior**: los 38 de `alert` estaban inflados —21
+    son nombres de variable de Waze en Santos (`alertSubtype`,
+    `alertNThumbsUp`), no el detector—. Para lo observado, `mark` o `label`.
+23. `alarma` y `alerta` **están vetadas por el propio paper**: V-H abre con «Eso no
+    es una **alarma**. Una alarma tiene que sonar cuando ocurre el evento», y
+    concluye que lo que queda es un filtro de prioridad. Usar el sustantivo que la
+    sección niega contradiría su conclusión operativa. `disparo` se descartó por
+    legibilidad fuera del gremio: se entiende en un contexto de software, no en uno
+    de transporte.
+24. **El paper ya trazaba la línea entre los dos objetos**, en dos frases seguidas
+    de V-C: «La regla… aplicada a lo observado, **marcó** 15 245 eventos… Aplicada
+    a lo predicho…, emitió catorce **triggers**». Doce usos la habían cruzado y
+    volvieron. La frase que peor la cruzaba era la definición misma de la tasa, en
+    IV-D, que decía «la fracción de posiciones que **marca** como evento». Ahora
+    las dos se definen sobre su ecuación: `marcar` en la (5) y `trigger` en la (6),
+    en lugar de deducirse doscientas líneas después.
 
 ## Nota sobre la concordancia
 

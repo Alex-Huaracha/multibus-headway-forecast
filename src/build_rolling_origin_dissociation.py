@@ -288,7 +288,7 @@ def main() -> None:
     lstm_rows = table.filter(pl.col("model") == "LSTM")
     n_negative_bias = int((lstm_rows.get_column("cv_bias") < 0).sum())
 
-    print(f"\n{n_agree}/{n_cells} celdas coinciden en los tres origenes (F1, corte fijo)")
+    print(f"\n{n_agree}/{n_cells} celdas coinciden en los tres origenes (F1, umbral fijo)")
     print(
         f"{int(summary.get_column('agrees_auc').sum())}/{n_cells} celdas coinciden "
         "en los tres origenes (AUC, sin umbral)"

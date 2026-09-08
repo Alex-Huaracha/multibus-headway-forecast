@@ -9,9 +9,9 @@ The defect
 ``bunching_flags`` fires when a value falls below ``BUNCHING_RATIO = 0.5`` of
 its vector's mean. That operating point is calibrated on OBSERVED vectors.
 Persistence copies an observed vector, so it inherits the realized dispersion
-(CV about 0.79) and the cut lands where it was designed to land. An L1-trained
+(CV about 0.79) and the threshold lands where it was designed to land. An L1-trained
 point forecast emits a compressed vector (CV about 0.16), so the SAME relative
-cut sits roughly three standard deviations into its left tail and the detector
+threshold sits roughly three standard deviations into its left tail and the detector
 fires fourteen times in fifty thousand opportunities. Reporting that as a
 detection failure confuses a mis-set threshold with missing information.
 
@@ -19,7 +19,7 @@ Three columns settle it
 -----------------------
 ``auc`` / ``average_precision``
     Threshold-free. Invariant to any monotone rescaling of the score — exactly
-    the transformation a fixed relative cut is NOT invariant to. If the learner
+    the transformation a fixed relative threshold is NOT invariant to. If the learner
     were blind, these would be at chance. They are not.
 
 ``f1_calibrated``
@@ -140,7 +140,7 @@ def build() -> pl.DataFrame:
                 fixed = detection_scores(truth, flags)
 
                 # One scalar, fitted on the earlier window, applied here. MCC is
-                # the fitting objective; the F1-fitted cut is carried alongside
+                # the fitting objective; the F1-fitted threshold is carried alongside
                 # only to document that it degenerates (see below).
                 threshold = best_threshold(fit_truth, fit_values, objective="mcc")
                 recalibrated = detection_scores(truth, values >= threshold)
@@ -222,7 +222,7 @@ def verdicts(table: pl.DataFrame) -> pl.DataFrame:
                     "auc_lstm": lstm["auc"],
                     "auc_persist": persist["auc"],
                     "trivial_f1": lstm["trivial_f1"],
-                    # Fitting the cut on F1 instead of MCC collapses it to
+                    # Fitting the threshold on F1 instead of MCC collapses it to
                     # "flag everything" — recorded so the choice of objective
                     # is auditable rather than asserted.
                     "f1fit_fire_rate_lstm": lstm["fire_rate_f1fit"],

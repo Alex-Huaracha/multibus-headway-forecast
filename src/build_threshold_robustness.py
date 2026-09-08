@@ -336,7 +336,7 @@ def main() -> None:
               f"(1.0 = dispara tan seguido como ocurre el evento)")
         print(f"  regla auto-referencial : "
               f"{sub.get_column('underfire_relative').median():.4f}")
-        print(f"  corte absoluto         : "
+        print(f"  umbral absoluto        : "
               f"{sub.get_column('underfire_absolute').median():.4f}")
 
     print("\nEstabilidad del umbral ajustado, mediana del rango entre los tres origenes:")

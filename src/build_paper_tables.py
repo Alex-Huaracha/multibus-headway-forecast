@@ -4,13 +4,13 @@ Same contract as ``build_contiguous_figures``: every cell traces to a CSV under
 ``docs/resultados/csv-multihorizon/``, so a table can never disagree with the
 figure it sits next to, and no number in the paper is ever typed by hand.
 
-    tabla-1-deteccion-corte-trasplantado.md   The artifact. Detection scored with
-                                              the cut carried over from the
+    tabla-1-deteccion-umbral-trasplantado.md   The artifact. Detection scored with
+                                              the threshold carried over from the
                                               observations, next to the floor of
                                               the do-nothing detector.
     tabla-2-veredicto-sin-umbral.md           The repair. The same predictions
-                                              scored without a cut, and with the
-                                              cut refitted out of sample.
+                                              scored without a threshold, and with the
+                                              threshold refitted out of sample.
     tabla-3-robustez.md                       Does it survive the month, and does
                                               it survive the field's own event
                                               rule instead of ours.
@@ -118,7 +118,7 @@ def _cell(df: pl.DataFrame, column: str, **keys) -> float | None:
 
 
 def tabla_1() -> str:
-    """Detection under the transplanted cut, against the trivial floor.
+    """Detection under the transplanted threshold, against the trivial floor.
 
     The dagger is the point of the table: it marks the cells where marking
     *every position* — a rule with no content — beats the declared winner. A
@@ -162,7 +162,7 @@ def tabla_1() -> str:
 
 
 def tabla_2() -> str:
-    """The same predictions scored without a cut, and with the cut refitted.
+    """The same predictions scored without a threshold, and with the threshold refitted.
 
     Two scorings sit side by side on purpose. The area under the curve needs no
     operating point at all; the refitted Matthews correlation keeps one but
@@ -201,7 +201,7 @@ def tabla_3() -> str:
     """Robustness on two axes: the month, and whose event rule.
 
     The last column is the paper attacking itself. It re-scores the learner
-    under the field's dominant convention — an absolute cut at a quarter of the
+    under the field's dominant convention — an absolute threshold at a quarter of the
     reference — rather than under the relative rule this work proposes. The
     finding survives, and the one cell where it does not is visible here rather
     than buried in prose.
@@ -464,7 +464,7 @@ def tabla_6() -> str:
 
 
 TABLES = {
-    "tabla-1-deteccion-corte-trasplantado.md": tabla_1,
+    "tabla-1-deteccion-umbral-trasplantado.md": tabla_1,
     "tabla-2-veredicto-sin-umbral.md": tabla_2,
     "tabla-3-robustez.md": tabla_3,
     "tabla-4-cobertura-headway.md": tabla_4,
