@@ -197,9 +197,9 @@ caso: cada bus emite su identificador, el instante y su coordenada, y ese
 esos registros se aplica la secuencia de seis pasos que sigue.
 
 **1) El eje.** El eje es la línea que los buses siguen a lo largo del corredor.
-Se estima de ellos mismos: se ajusta una curva a las coordenadas de los buses
-que superan los 10 km/h y después se suaviza. La curva queda ordenada de un
-extremo del corredor al otro.
+Se estima de ellos mismos: se ajusta a las coordenadas de los buses que superan
+los 10 km/h y después se suaviza. Queda ordenado de un extremo del corredor al
+otro.
 
 **2) La proyección a una dimensión.** Con el eje ya trazado, cada coordenada se
 reduce a dos números: cuánto ha avanzado el bus a lo largo del corredor y a qué
