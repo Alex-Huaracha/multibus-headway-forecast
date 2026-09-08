@@ -553,8 +553,8 @@ quedan sobre la misma escala. Su sesgo es el CV de lo predicho menos el de lo
 observado, y un valor negativo dice que lo predicho es más regular que la realidad.
 
 El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto dependen
-del umbral, sobre el cruce entre el indicador observado de la Ecuación (5) y el
-detector de la Ecuación (6). Sean TP las posiciones con $b_i = \hat{b}_i = 1$, FP
+del umbral, sobre la matriz de confusión entre el indicador observado de la
+Ecuación (5) y el detector de la Ecuación (6). Sean TP las posiciones con $b_i = \hat{b}_i = 1$, FP
 las que tienen $\hat{b}_i = 1$ y $b_i = 0$, FN las que tienen $b_i = 1$ y
 $\hat{b}_i = 0$, y TN las restantes. La precisión, el recall y el F1 son entonces
 
@@ -627,7 +627,7 @@ donde el detector nunca marca no recibe intervalo: no hay precisión que acotar.
 ## V. Resultados y discusión
 
 Esta sección reporta el error escalar del vector y la frontera de régimen que lo
-acota. Mide después la dispersión transversal de lo predicho, la detección con el
+acota: el punto a partir del cual el LSTM pasa a ganar. Mide después la dispersión transversal de lo predicho, la detección con el
 umbral del evento observado y el comportamiento del factor entre los tres orígenes.
 Cierra con la detección puntuada sin umbral y con el umbral recalibrado, los
 ensayos de robustez frente al origen y a la definición del evento, el
@@ -642,10 +642,10 @@ relación se invirtió y la persistencia ganó, por 0,46 minutos en E4 y 0,33 en
 En E2 la diferencia fue de 0,07 minutos y no resistió la prueba estadística al
 agrupar las observaciones por día de servicio.
 
-Tres precisiones acotan ese resultado. La primera es que el cruce no es una
-propiedad del aprendizaje profundo: el XGBoost lo reprodujo entero, y a
+Tres precisiones acotan ese resultado. La primera es que la frontera de régimen no
+es una propiedad del aprendizaje profundo: el XGBoost la reprodujo entera, y a
 diez minutos aventajó a la persistencia por 1,59 minutos en E2, 1,09 en E4 y 0,79
-en E59. La segunda es que la frontera real no es el horizonte sino la dispersión
+en E59. La segunda es que esa frontera no está en el horizonte sino en la dispersión
 de la ventana de entrada. Medida con los tercios de dispersión de la
 Sección IV-C, la ventaja del LSTM creció de forma ordenada del tercio calmo al
 volátil en 11 de las 12 celdas.
@@ -728,7 +728,7 @@ origen.
 El segundo es el mecanismo de la Sección V-B. El umbral se mide contra el promedio
 del propio vector evaluado. Si el vector predicho es más regular que la realidad, sus
 headways se apartan menos de su propio promedio, y el umbral deja de alcanzarse
-casi siempre. La regla registra entonces una dispersión insuficiente para cruzar
+casi siempre. La regla registra entonces una dispersión insuficiente para alcanzar
 un umbral calibrado sobre otra distribución.
 
 El tercero es el acierto del modelo en las pocas ocasiones en que disparó. De
@@ -809,12 +809,13 @@ umbral no depende entonces de cuál de los dos puntajes se use. Con el MCC
 recalibrado el acuerdo baja a once de doce. La excepción es E59 a cinco minutos,
 donde el LSTM gana el AUC y pierde la correlación recalibrada.
 
-Los dos cruces coinciden. Medido por el signo de la diferencia, el
+Las dos fronteras de régimen coinciden. Medido por el signo de la diferencia, el
 error escalar pasó a favor del LSTM entre uno y tres minutos en los tres
 corredores. El AUC pasó a su favor entre uno y tres minutos en E2, entre tres y
-cinco en E59, y entre cinco y diez en E4. La detección cruzó entonces uno o dos
-escalones de horizonte más tarde que el error en dos de los tres corredores.
-Ninguna de las dos métricas cruzó a favor de la persistencia. La disociación que las
+cinco en E59, y entre cinco y diez en E4. La detección cambió de régimen entonces
+uno o dos escalones de horizonte más tarde que el error en dos de los tres
+corredores. En ninguna de las dos volvió la ventaja a la persistencia al alargar
+el horizonte. La disociación que las
 Secciones V-A y V-C parecían mostrar, con el LSTM ganando en error y perdiendo en
 detección, la producía el umbral.
 
@@ -835,7 +836,7 @@ La serie azul mide cuánto error absoluto le gana el LSTM a la persistencia, y s
 escala corre por el lado izquierdo. Las dos series que se leen por el lado
 derecho son el área bajo la curva de detección de cada método, invariante a
 cualquier reescalado monótono de lo predicho y por lo tanto inmune al artefacto.
-Los dos cruces coinciden, y ninguna serie se acerca al azar.
+Las dos fronteras de régimen coinciden, y ninguna serie se acerca al azar.
 
 **Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra.
 

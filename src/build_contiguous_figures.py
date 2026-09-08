@@ -287,7 +287,7 @@ def degradation(*, lang: str = "es", chrome: bool = True) -> Path:
         _caption(fig, [
             "Los tres modelos puntúan las mismas celdas (contrato C1; sesgo de encuadre medido: 0.001 min).",
             "La persistencia gana a h = 1 en los tres corredores; los dos aprendices la superan desde h = 5 con holgura creciente.",
-            "El XGBoost reproduce el cruce: no es una propiedad del Deep Learning.",
+            "El XGBoost reproduce la frontera de régimen: no es una propiedad del Deep Learning.",
         ])
     fig.tight_layout(rect=(0, 0.10, 1, 0.88) if chrome else CLEAN_RECT)
 
@@ -519,8 +519,8 @@ def detection_without_threshold(*, lang: str = "es", chrome: bool = True) -> Pat
         _caption(fig, [
             "Eje izquierdo (azul, ↑ mejor): cuánto MAE le gana el LSTM a la persistencia. Eje derecho (rojo y gris, ↑ mejor): AUC de",
             "detección de bunching, invariante a cualquier reescalado monótono del pronóstico y por lo tanto inmune al artefacto de",
-            "umbral. Los dos cruces coinciden y caen en la misma zona; el de detección ocurre igual o algo más tarde que el",
-            "escalar. Ninguna serie está cerca del azar (0.5, punteado): el aprendiz no es ciego al evento en ninguna celda.",
+            "umbral. Las dos fronteras de régimen coinciden y caen en la misma zona; la de detección ocurre igual o algo más tarde",
+            "que la escalar. Ninguna serie está cerca del azar (0.5, punteado): el aprendiz no es ciego al evento en ninguna celda.",
         ])
     fig.tight_layout(rect=(0, 0.11, 1, 0.88) if chrome else CLEAN_RECT)
 

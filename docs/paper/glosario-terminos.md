@@ -35,6 +35,9 @@ Aquí solo va la decisión.
 | La combinación de corredor y horizonte | `celda` | 30 | `case` ⁹ | par ¹⁴, combinación |
 | Los $T$ minutos de historia que lee el modelo | `ventana de entrada` | 5 | `input window` ¹⁰ | ventana ¹¹ |
 | Una re-ejecución completa del protocolo | `origen` | 32 | `evaluation origin`, `fold` | ventana |
+| El instante en que el de adelante pasó por la coordenada del de atrás | `cruce` | 4 | `crossing` ¹⁸ | — |
+| El punto a partir del cual el LSTM pasa a ganar | `frontera de régimen` | 5 | ¹⁹ | cruce, frontera ²⁰ |
+| La tabla que cruza lo observado con lo predicho | `matriz de confusión` | 1 | `confusion matrix` ²¹ | cruce |
 | El valor contra el que se compara el headway | `umbral` | 95 | `threshold` | corte, referencia |
 | El valor del que el umbral es una fracción | `denominador` | 7 | `denominator` ¹² | referencia |
 | El error que fijan los métodos sin ajuste | `error de referencia` | 2 | `reference` | línea base, benchmark |
@@ -121,6 +124,33 @@ Aquí solo va la decisión.
     coordenadas crudas y por otro procedimiento —PCA sobre `(lat, lon)` en el
     notebook 01, contra la mediana por bins del 04—. El eje es la curva ajustada;
     la dirección es la recta que la hace posible.
+
+18. Sin término que heredar: `crossing`, `crossed` y `crosses` dan **cero** usos
+    en las 11 referencias, porque todas miden en paradas y nada cruza nada.
+    Acuñado, pero definido en la 240 y respaldado por el nombre de la formulación
+    en el código —«Opción C.2 — **trailing crossing**», `build_notebook_04.py:70`,
+    y «a pair with no **crossing**», `build_headway_coverage.py:4`.
+19. **En inglés este objeto no se nombra con un sustantivo: se dice con verbo**,
+    «the LSTM **outperforms** persistence from three minutes on» —`outperform`, 31
+    usos en 7 de 11—. Los sustantivos candidatos no existen: `crossover` **cero**,
+    `cross over` **cero**, `break-even` **cero**, `tipping point` **cero**,
+    `turning point` **cero**, `regime boundary` **cero**. Y `boundary`, que tiene
+    40 usos, no sirve: 29 son `decision boundary` en un trabajo de clasificación, y
+    este paper clasifica bunching. Traducir `cruce` por `crossing` y este objeto
+    por `crossover` recrearía en inglés el defecto que el castellano acaba de
+    quitar, porque comparten raíz.
+20. `frontera` **nunca va sola**, como `ventana`. La mitad anclada del compuesto
+    es `régimen`, que el código define: «The **regime** is the ex-ante
+    input-window dispersion, binned with p33/p66 frozen on train+val»
+    (`build_contiguous_router.py:27`), con su `assign_regime`. `frontera` sola
+    solo tiene un docstring detrás (`build_contiguous_figures.py:300`), y en las
+    11 referencias `frontier` da **cero**.
+21. El concepto ya estaba construido sin nombre: la 557 define TP, FP, FN y TN una
+    por una. `confusion matrix` da 46 usos, y están en Chicco (39) y Fawcett (7),
+    que son justo las dos referencias que el paper cita para el MCC y la curva
+    ROC. En el código, `vector_metrics.py:59`. No se presta sin traducir porque
+    «matriz de confusión» es el nombre estándar en castellano; `headway` se presta
+    porque no lo tiene.
 
 ## Nota sobre la concordancia
 
