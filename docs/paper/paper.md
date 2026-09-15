@@ -176,7 +176,7 @@ umbral de Jiao y colaboradores es relativo pero no auto-referencial, porque se
 ancla en una observación fija y la compresión alcanza solo al valor comparado. Su
 reparación agrega un término de clasificación a la pérdida, es decir, cambia el
 objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la Ecuación
-(7) hace explícito, y es donde este documento interviene: recalibra ese umbral
+(8) hace explícito, y es donde este documento interviene: recalibra ese umbral
 sobre un período anterior disjunto, sin reentrenar ni cambiar el objetivo.
 
 ---
@@ -197,58 +197,91 @@ caso: cada bus emite su identificador, el instante y su coordenada, y ese
 esos registros se aplica la secuencia de seis pasos que sigue.
 
 **1) El eje.** El eje es la línea que los buses siguen a lo largo del corredor.
-Se estima de ellos mismos: se ajusta a las coordenadas de los buses que superan
-los 10 km/h y después se suaviza. Queda ordenado de un extremo del corredor al
-otro.
+No existe una geometría publicada de la ruta, de modo que el eje se estima de los
+propios registros GPS. Por análisis de componentes principales se obtiene la
+dirección de máxima varianza de las coordenadas, que es la orientación del
+corredor. El recorrido se divide en tramos a lo largo de esa dirección y en cada
+tramo se toma la mediana de la coordenada transversal, lo que descarta las
+excursiones laterales de buses aislados. La secuencia de medianas se suaviza y
+queda ordenada de un extremo del corredor al otro. Solo entran los registros de
+buses que superan los 10 km/h: un bus detenido emite muchos registros en un mismo
+punto, y los terminales y los semáforos desplazarían el eje hacia donde los buses
+esperan.
 
-**2) La proyección a una dimensión.** Con el eje ya trazado, cada coordenada se
-reduce a dos números: cuánto ha avanzado el bus a lo largo del corredor y a qué
-distancia quedó del eje. Es la operación que la norma ISO 19148 [@iso19148] especifica
-para referenciar coordenadas contra un objeto unidimensional. La coordenada se
-conserva solo si su desvío lateral no pasa de 300 m; lo que cae más lejos no
-pertenece al corredor.
+**2) La proyección a una dimensión.** Un par de coordenadas no ordena a los
+buses: con latitud y longitud no hay respuesta a cuál de dos va por delante, y el
+resto de la construcción exige ese orden. La proyección reemplaza cada coordenada
+por un solo número sobre el eje. Cada coordenada se lleva a metros con una
+aproximación plana local, válida a la escala de un corredor urbano, y se proyecta
+ortogonalmente sobre el segmento del eje que le queda más cerca. Es la operación
+que la norma ISO 19148 [@iso19148] especifica para referenciar coordenadas contra
+un objeto unidimensional:
+
+$$s \;=\; \Lambda_{k^{*}} + t^{*}\,\ell_{k^{*}},
+\qquad d \;=\; \lVert\, \mathbf{p} - \mathbf{c}_{k^{*}}(t^{*}) \,\rVert, \tag{1}$$
+
+donde $\mathbf{p}$ es la coordenada del bus en metros; $\mathbf{c}_{k}(t)$ recorre
+el segmento $k$ del eje con $t \in [0,1]$; $k^{*}$ y $t^{*}$ son el segmento y la
+posición dentro de él que minimizan la distancia a $\mathbf{p}$; $\Lambda_{k^{*}}$
+es la longitud del eje acumulada hasta el inicio de ese segmento; $\ell_{k^{*}}$
+es la longitud de ese segmento; $s$ es la **coordenada de arco**, los metros
+recorridos sobre el eje desde el inicio del corredor; y $d$ es el **desvío
+lateral**, la distancia del bus al eje. El registro se conserva solo si $d$ no
+pasa de 300 m. Un umbral más ancho admitiría los registros de calles paralelas y
+de depósitos, que no pertenecen al corredor.
 
 **3) El sentido de marcha.** Sobre ese mismo eje circulan los buses de ida y los
 de vuelta, y el registro GPS no distingue unos de otros. El sentido se asigna como
-el signo del avance a lo largo del eje: se promedia ese avance sobre los cinco
-últimos registros y se toma su signo, de modo que un error aislado no invierta el
-sentido. Ese signo es la única fuente del sentido en los tres corredores. Dos
-traen además un campo de rumbo, que solo sirve para comprobarlo y nunca para
-corregirlo.
+el signo del cambio de la coordenada de arco: se promedia ese cambio sobre los
+cinco últimos registros y se toma su signo, de modo que un error aislado no
+invierta el sentido. El signo toma tres valores, porque ese cambio promediado
+puede ser nulo: un bus con sentido indeterminado queda fuera de los pares de ese
+minuto. Ese signo es la única fuente del sentido en los tres corredores. La
+elección es forzada: uno de los tres no reporta rumbo, de modo que ningún método
+apoyado en ese campo cubriría los tres. Los otros dos sí traen el campo, y ahí
+sirve para comprobar el signo y nunca para corregirlo.
 
-**4) Los viajes.** Ya con sentido, el recorrido de cada bus se corta en viajes: un
-salto de más de treinta minutos sin señal, una inversión de sentido o la salida
-del terminal tras una espera de más de cinco minutos cierran el viaje en curso.
+**4) El eje por sentido.** En dos de los tres corredores los buses de ida y los de
+vuelta circulan por calles paralelas. Un eje único ajustado sobre los dos sentidos
+cae entre ambas calles, y entonces la coordenada de arco y el desvío lateral se
+miden contra una línea por la que ningún bus circula. En esos dos corredores se
+repiten los pasos 1 y 2 una vez por sentido, ya con el sentido asignado, y las dos
+cantidades se recalculan contra el eje que corresponde. El orden de los cuatro
+primeros pasos es forzado: el eje por sentido necesita el sentido, y el sentido
+necesita una primera proyección contra el eje único.
 
 **5) La rejilla común.** Cada bus emite sus registros GPS cada pocos segundos,
 cada uno por su cuenta, de modo que dos buses casi nunca tienen un registro en el
 mismo momento. Compararlos exige un momento común. Todo se lleva entonces a una
 **rejilla** de sesenta segundos, y la coordenada de cada bus en cada minuto se
-interpola entre sus dos
-registros vecinos. Cada minuto queda así descrito por un **snapshot** del
-corredor: la coordenada de todos sus buses en ese minuto.
+interpola entre sus dos registros vecinos. Cada minuto queda así descrito por un
+**snapshot** del corredor: la coordenada de todos sus buses en ese minuto.
 
 **6) El headway.** Sobre ese snapshot, para un par de buses consecutivos en el
 mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
-\qquad h = T - t_{c}, \tag{1}$$
+\qquad h = T - t_{c}, \tag{2}$$
 
 donde $T$ es el instante evaluado, y $s_{L}$ y $s_{F}$ son las coordenadas de arco
 del bus de adelante y del de atrás. El instante $t_{c}$ es el último en que el de
 adelante pasó por la coordenada que el de atrás ocupa en $T$, y $h$ es el headway
 resultante. Es un cruce por coordenada y no por parada, lo que permite prescindir de
-la tabla de paradas. Si no existe tal $t_{c}$, o si $h$ supera los treinta
-minutos, se emite «sin valor» en lugar de arrastrar un paso de horas antes.
+la tabla de paradas. El cruce se resuelve sobre los registros GPS originales del
+bus de adelante y no sobre la rejilla: la rejilla fija el instante $T$ y el orden
+de los buses, no la trayectoria sobre la que se busca $t_{c}$. Si no existe tal
+$t_{c}$, o si $h$ supera los treinta minutos, se emite «sin valor». El tope acota
+lo que dos calles paralelas proyectadas sobre un mismo eje pueden producir: sin él,
+el cruce hallado puede corresponder a un paso de horas antes.
 
 ![Definición del headway](figuras/headway/headway.png)
 
 **Fig. 1.** El headway en un punto fijo del corredor: el bus de adelante —el $L$ de
-la Ecuación (1)— pasa por p₂ a las 12:30 y el de atrás —el $F$— a las 12:35, de
+la Ecuación (2)— pasa por p₂ a las 12:30 y el de atrás —el $F$— a las 12:35, de
 modo que el headway en p₂ es de cinco minutos. La separación espacial entre los dos
 buses no interviene. Esquema ilustrativo, no datos reales.
 
-La Ecuación (1) entrega tiempo entre pasadas. La distancia en metros entre dos
+La Ecuación (2) entrega tiempo entre pasadas. La distancia en metros entre dos
 buses consecutivos es la alternativa inmediata, y queda fuera porque mide
 separación espacial. Tampoco se proyecta ese tiempo hacia adelante dividiendo la
 separación por la velocidad del bus de atrás: esa división supone que la
@@ -273,7 +306,7 @@ los últimos $T$ minutos y un contexto de calendario, se busca el vector del
 corredor $H$ minutos más adelante:
 
 $$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\;
-c(t-T+1), \dots, c(t)\big), \qquad T = 12, \tag{2}$$
+c(t-T+1), \dots, c(t)\big), \qquad T = 12, \tag{3}$$
 
 donde $\mathbf{h}(t)$ es el vector de headways del corredor en el minuto $t$ y
 $\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante.
@@ -292,7 +325,7 @@ bus. **El objetivo que se minimiza es el error cuadrático**, promediado sobre e
 posiciones válidas:
 
 $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
-\big(\hat{h}_i - h_i\big)^{2}, \tag{3}$$
+\big(\hat{h}_i - h_i\big)^{2}, \tag{4}$$
 
 donde $\mathcal{L}$ es la pérdida que el ajuste minimiza, $\mathcal{V}$ es el
 conjunto de posiciones del vector con bus asignado en el instante objetivo, y
@@ -300,7 +333,7 @@ $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$ y $h_i$ son el valor
 predicho y el observado en la posición $i$, expresados en la escala tipificada
 por sentido que fija la Sección IV-B y no en minutos.
 
-La Ecuación (3) fija entonces qué puede emitir el modelo. Una predicción que
+La Ecuación (4) fija entonces qué puede emitir el modelo. Una predicción que
 minimiza error cuadrático tiende a la media condicional, y la Sección II-B
 recoge por qué esa media es menos dispersa que la realidad. El efecto de esa
 compresión sobre la regla del evento es el asunto de la Sección III-C.
@@ -350,7 +383,7 @@ El vector de la Sección III-B se escribe por componentes como
 $\mathbf{h}(t) = (h_1, \dots, h_m)$. Su promedio y el umbral del evento son
 
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
-\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}, \tag{4}$$
+\qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}, \tag{5}$$
 
 donde $m = N - 1$ es la cantidad de posiciones del vector, $N$ es la cantidad de
 buses en circulación y $h_j(t)$ es el headway de la posición $j$. El promedio del
@@ -359,7 +392,7 @@ fracción del promedio que lo fija. La posición $i$ cuenta como bunching cuando
 por debajo de ese umbral:
 
 $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
-\qquad \text{definido solo si } m \ge 3, \tag{5}$$
+\qquad \text{definido solo si } m \ge 3, \tag{6}$$
 
 donde $b_i(t)$ vale 1 si la posición $i$ cuenta como bunching y 0 si no, y
 $\mathbb{1}[\cdot]$ es la función indicadora. Cada posición con $b_i(t) = 1$ es un
@@ -369,10 +402,10 @@ headways cualquier medida de irregularidad se reduce a la diferencia entre ellos
 y no describe un patrón.
 
 El detector que este trabajo evalúa es esa misma regla aplicada al vector predicho
-de la Ecuación (2), con el promedio de ese mismo vector fijando el umbral:
+de la Ecuación (3), con el promedio de ese mismo vector fijando el umbral:
 
 $$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
-\,\right], \tag{6}$$
+\,\right], \tag{7}$$
 
 donde $\hat{b}_i(t)$ es la detección emitida sobre la posición $i$ del vector
 predicho y $\bar{\hat{h}}(t)$ es el promedio de ese mismo vector predicho. Cada
@@ -382,11 +415,11 @@ umbral sale del vector predicho y no del observado porque quien opera un corredo
 no dispone del observado al momento de decidir.
 
 Como $\tau$ es función del propio vector que se evalúa, y no un número fijo de
-minutos, las Ecuaciones (5) y (6) no comparan contra el mismo umbral:
+minutos, las Ecuaciones (6) y (7) no comparan contra el mismo umbral:
 
 $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 \;\neq\; \rho\,\bar{h} \;=\; \tau(\mathbf{h})
-\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{7}$$
+\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{8}$$
 
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los umbrales que resultan
 de aplicar $\rho$ al vector observado y al vector predicho. El denominador de Yu y
@@ -423,7 +456,11 @@ El trabajo usa los registros GPS de empresas del Sistema Integrado de Transporte
 de Arequipa. Cada bus emite su coordenada **cada 20 segundos**, y la cadencia es
 regular: la mediana y el percentil 95 del tiempo entre registros coinciden, de
 modo que no llegan a ráfagas. Esa regularidad sostiene la rejilla de sesenta
-segundos de la Sección III-A, porque cada minuto reúne tres registros por bus.
+segundos de la Sección III-A, porque cada minuto reúne tres registros por bus. El
+registro trae además un campo de velocidad que el trabajo no usa: en dos
+corredores reporta cero mientras el bus se desplaza. Toda velocidad —incluido el
+umbral de 10 km/h de la Sección III-A— se calcula del desplazamiento entre
+registros consecutivos.
 
 Se cubren tres corredores —identificados aquí como E2, E4 y E59, uno por empresa
 operadora— durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de
@@ -438,7 +475,7 @@ paradas, de modo que el corredor, el sentido y el headway se construyen desde
 ellos, como describe la Sección III-A.
 
 La construcción del headway desde los registros GPS no siempre produce un valor.
-Dos condiciones dejan un par de buses sin headway: que la Ecuación (1) no
+Dos condiciones dejan un par de buses sin headway: que la Ecuación (2) no
 encuentre el cruce, o que el headway supere los treinta minutos. La cobertura —la
 fracción de pares evaluados con headway válido— es del 63,5 % en E2, del 64,8 % en
 E4 y del 77,1 % en E59: 3 938 174 pares con headway válido sobre 5 601 738
@@ -450,7 +487,8 @@ más de treinta minutos atrás. Esa condición recorta por el extremo alto, de
 modo que los descartados son los intervalos más largos. La que no encuentra cruce
 explica menos de un punto porcentual en cada corredor. La cobertura tampoco es
 uniforme entre corredores: entre el mejor y el peor medido hay 13,6 puntos
-porcentuales.
+porcentuales. La diferencia se repite entre los dos sentidos de un mismo
+corredor: en E2, el sentido de ida cubre 57,8 % y el de vuelta 70,5 %.
 
 ### B. Métodos comparados
 
@@ -459,7 +497,7 @@ distinto. El método bajo estudio es una red recurrente (**LSTM**); la Sección 
 contrasta esa elección contra dos arquitecturas que modelan la relación entre
 posiciones vecinas del vector. Un conjunto de árboles con refuerzo de gradiente
 (**XGBoost**) [@chen2016] actúa como **control de arquitectura**: si reproduce el patrón del LSTM, ese patrón
-no proviene del aprendizaje profundo sino del objetivo de la Ecuación (3). Los dos
+no proviene del aprendizaje profundo sino del objetivo de la Ecuación (4). Los dos
 restantes no ajustan parámetros y fijan el error de referencia. La **persistencia**
 repite el último vector observado, así que su error crece con el horizonte. El
 **promedio histórico por franja horaria** responde con el valor típico de esa hora
@@ -468,7 +506,7 @@ entrada, de modo que su error no depende del horizonte.
 
 El conjunto excluye tres métodos estadísticos. La media del período de
 entrenamiento, la media móvil causal de tres minutos y el suavizado exponencial
-simple de factor 0,3 no combinan las dos entradas de la Ecuación (2), el historial
+simple de factor 0,3 no combinan las dos entradas de la Ecuación (3), el historial
 reciente y el calendario. Los tres repiten información que la persistencia o el
 promedio histórico ya aportan.
 
@@ -534,36 +572,36 @@ prueba dejaría que la estratificación conociera el período que evalúa.
 El modelo entrega un vector de headways que la regla de la Sección III-C convierte
 en un indicador binario de bunching, y la evaluación mide esos dos objetos en
 cadena. El error del vector es el error absoluto medio (MAE) sobre las posiciones
-válidas que define la Ecuación (3):
+válidas que define la Ecuación (4):
 
 $$\mathrm{MAE} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
-\big|\hat{h}_i - h_i\big|, \tag{8}$$
+\big|\hat{h}_i - h_i\big|, \tag{9}$$
 
 donde $\mathcal{V}$, $|\mathcal{V}|$, $\hat{h}_i$ y $h_i$ conservan el
-significado de la Ecuación (3). Se reporta el MAE y no el error cuadrático porque
+significado de la Ecuación (4). Se reporta el MAE y no el error cuadrático porque
 expresa el resultado en minutos de headway.
 
 El MAE no describe la forma del vector. El coeficiente de variación (CV) es su
 desviación estándar muestral dividida por su promedio:
 
 $$\mathrm{CV}(\mathbf{h}) \;=\; \frac{1}{\bar{h}}
-\sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\big(h_j - \bar{h}\big)^{2}}, \tag{9}$$
+\sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\big(h_j - \bar{h}\big)^{2}}, \tag{10}$$
 
-donde $m$, $h_j$ y $\bar{h}$ conservan el significado de la Ecuación (4). Se
-calcula sobre los vectores de tres posiciones o más que exige la Ecuación (5). Se
+donde $m$, $h_j$ y $\bar{h}$ conservan el significado de la Ecuación (5). Se
+calcula sobre los vectores de tres posiciones o más que exige la Ecuación (6). Se
 reporta porque es adimensional, de modo que corredores de frecuencias distintas
 quedan sobre la misma escala. Su sesgo es el CV de lo predicho menos el de lo
 observado, y un valor negativo dice que lo predicho es más regular que la realidad.
 
 El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto dependen
 del umbral, sobre la matriz de confusión entre el indicador observado de la
-Ecuación (5) y el detector de la Ecuación (6). Sean TP las posiciones con $b_i = \hat{b}_i = 1$, FP
+Ecuación (6) y el detector de la Ecuación (7). Sean TP las posiciones con $b_i = \hat{b}_i = 1$, FP
 las que tienen $\hat{b}_i = 1$ y $b_i = 0$, FN las que tienen $b_i = 1$ y
 $\hat{b}_i = 0$, y TN las restantes. La precisión, el recall y el F1 son entonces
 
 $$\mathrm{F}_1 \;=\; \frac{2PR}{P+R}, \qquad
 P \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}, \qquad
-R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{10}$$
+R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{11}$$
 
 donde $P$ es la precisión y $R$ el recall.
 
@@ -578,7 +616,7 @@ detector su cociente queda indeterminado, porque numerador y denominador se
 anulan a la vez, y se le asigna cero por extensión por continuidad [@chicco2020].
 El área bajo la curva ROC (AUC) prescinde del umbral —el punto de operación del
 detector— y puntúa el ordenamiento del puntaje continuo
-$-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (6) es el umbral en $-\rho$. Es
+$-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (7) es el umbral en $-\rho$. Es
 la probabilidad de que una posición de bunching reciba un puntaje mayor que una
 sin bunching [@handtill2001], y vale 0,5 cuando la predicción no ordena.
 
@@ -587,7 +625,7 @@ método es la fracción de sus posiciones con $\hat{b}_i = 1$. El factor entre d
 métodos es el cociente de sus F1, y mide cuántas veces mejor aparece uno de ellos
 bajo el mismo umbral. El tercero exige una cantidad más. La precisión promedio
 también prescinde del umbral: recorre el ordenamiento que el AUC puntúa, de mayor
-a menor, y promedia la precisión de la Ecuación (10) sobre las posiciones de
+a menor, y promedia la precisión de la Ecuación (11) sobre las posiciones de
 bunching. Una predicción que no ordena alcanza una precisión promedio igual a la
 tasa base. El lift es entonces la precisión promedio dividida por la tasa base, y
 vale 1 cuando la predicción no ordena mejor que el azar.
@@ -605,8 +643,8 @@ comparación de dos métodos sobre las mismas muestras bajo una métrica declara
 y consta de tres partes: cuál de los dos gana, por cuánto y si la diferencia
 sobrevive su prueba. Exigir muestras idénticas es lo que lo distingue de la resta
 de dos métricas agregadas, que pueden haberse calculado sobre poblaciones
-distintas. Este trabajo emite veredictos sobre el MAE de la Ecuación (8) y sobre
-las cantidades de detección de la Ecuación (10), el MCC y el AUC. Un veredicto
+distintas. Este trabajo emite veredictos sobre el MAE de la Ecuación (9) y sobre
+las cantidades de detección de la Ecuación (11), el MCC y el AUC. Un veredicto
 sin umbral es el que usa el AUC, que no depende del punto de operación.
 
 Una diferencia de MAE entre dos métodos puede ser ruido del período de prueba. Se
@@ -617,7 +655,7 @@ muestras de un mismo día comparten clima, incidentes y demanda. El agrupamiento
 lleva el tamaño efectivo de muestra de entre 75 747 y 240 907 filas, según la
 celda, a los 22 días del período de prueba.
 
-La precisión de la Ecuación (10) admite su propia acotación, porque puede
+La precisión de la Ecuación (11) admite su propia acotación, porque puede
 descansar sobre muy pocos triggers. Se acota con el intervalo exacto de
 Clopper–Pearson [@clopper1934] al 95 %, calculado sobre los conteos de TP y de
 FP de cada celda. Los conteos que necesitan acotarse aquí son los pequeños, y en
@@ -667,7 +705,7 @@ horizonte largo el competidor exigente sea él y no la persistencia.
 ### B. Compresión de la dispersión transversal
 
 El error escalar de la Sección V-A no dice nada sobre la forma del vector. El
-coeficiente de variación de la Ecuación (9) sí. Medido sobre lo observado, fue de
+coeficiente de variación de la Ecuación (10) sí. Medido sobre lo observado, fue de
 0,79 en E2. Medido sobre lo que el modelo predijo para el mismo instante y el mismo
 corredor a diez minutos, fue de
 0,16. El vector predicho describió un corredor casi cinco veces más regular que el real.
@@ -692,7 +730,7 @@ La consecuencia práctica se aprecia al leer esas cifras contra la escala de niv
 de servicio del TCQSM [@tcqsm2003]. El manual indexa sus bandas
 por la dispersión del headway respecto del programado. Estos corredores no tienen
 programación, así que la escala se lee con el coeficiente de variación de la
-Ecuación (9). Con esa sustitución, el mismo corredor en el mismo instante calificó
+Ecuación (10). Con esa sustitución, el mismo corredor en el mismo instante calificó
 como nivel A —«service provided like clockwork»— según lo predicho y como nivel F
 —«most vehicles bunched»— según lo observado. La cantidad que estas medidas
 capturan es la dispersión **entre buses en un mismo instante**, y no la
@@ -825,7 +863,7 @@ detección, la producía el umbral.
 El cambio de veredicto no requirió tocar el modelo. El AUC de la Figura 8 se
 calculó sobre las mismas predicciones que la Figura 7 puntúa con el umbral
 trasplantado. No se reentrenó, no se agregó información y no se modificó ninguna
-arquitectura. Entre las dos figuras cambió el umbral de la Ecuación (6). La
+arquitectura. Entre las dos figuras cambió el umbral de la Ecuación (7). La
 Figura 7 lo hereda de lo observado y la Figura 8 lo elimina; la columna del MCC
 recalibrado de la Tabla 2 lo reajusta contra lo predicho. Como ninguna otra cosa
 varió, ninguna otra cosa explica el cambio de conteo, y el umbral queda
@@ -950,7 +988,7 @@ mayor y la menor de cada fila.
 ### H. Implicaciones operativas
 
 El resultado operativo no es que el modelo detecte mejor. Es que **emitió pocos
-triggers y acertó en ellos**, y el F1 de la Ecuación (10) combina esas dos
+triggers y acertó en ellos**, y el F1 de la Ecuación (11) combina esas dos
 propiedades en un solo número. La Sección V-C reporta los conteos: catorce en E2 a diez
 minutos, y en ese horizonte la precisión quedó por encima de la tasa base en los
 tres corredores, con su intervalo al lado. Esa lectura describe el umbral
