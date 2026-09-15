@@ -217,11 +217,11 @@ ortogonalmente sobre el segmento del eje que le queda más cerca. Es la operaci�
 que la norma ISO 19148 [@iso19148] especifica para referenciar coordenadas contra
 un objeto unidimensional:
 
-$$s \;=\; \Lambda_{k^{*}} + t^{*}\,\ell_{k^{*}},
-\qquad d \;=\; \lVert\, \mathbf{p} - \mathbf{c}_{k^{*}}(t^{*}) \,\rVert, \tag{1}$$
+$$s \;=\; \Lambda_{k^{*}} + u^{*}\,\ell_{k^{*}},
+\qquad d \;=\; \lVert\, \mathbf{p} - \mathbf{e}_{k^{*}}(u^{*}) \,\rVert, \tag{1}$$
 
-donde $\mathbf{p}$ es la coordenada del bus en metros; $\mathbf{c}_{k}(t)$ recorre
-el segmento $k$ del eje con $t \in [0,1]$; $k^{*}$ y $t^{*}$ son el segmento y la
+donde $\mathbf{p}$ es la coordenada del bus en metros; $\mathbf{e}_{k}(u)$ recorre
+el segmento $k$ del eje con $u \in [0,1]$; $k^{*}$ y $u^{*}$ son el segmento y la
 posición dentro de él que minimizan la distancia a $\mathbf{p}$; $\Lambda_{k^{*}}$
 es la longitud del eje acumulada hasta el inicio de ese segmento; $\ell_{k^{*}}$
 es la longitud de ese segmento; $s$ es la **coordenada de arco**, los metros
@@ -385,10 +385,14 @@ $\mathbf{h}(t) = (h_1, \dots, h_m)$. Su promedio y el umbral del evento son
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
 \qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}, \tag{5}$$
 
-donde $m = N - 1$ es la cantidad de posiciones del vector, $N$ es la cantidad de
-buses en circulación y $h_j(t)$ es el headway de la posición $j$. El promedio del
-vector es $\bar{h}(t)$, el umbral relativo del evento es $\tau(t)$ y $\rho$ es la
-fracción del promedio que lo fija. La posición $i$ cuenta como bunching cuando cae
+donde $m$ es la cantidad de posiciones con headway resuelto y $h_j(t)$ es el
+headway de la posición $j$. El promedio del vector es $\bar{h}(t)$, el umbral
+relativo del evento es $\tau(t)$ y $\rho$ es la fracción del promedio que lo fija.
+Con $N$ buses en circulación el vector tiene $N-1$ posiciones, pero las que la
+Sección III-A emite «sin valor» no entran ni en el promedio ni en $m$. El umbral
+se calcula entonces sobre lo resuelto. La condición de los treinta minutos
+descarta los headways más largos, de modo que ese promedio queda por debajo del
+que daría el vector completo. La posición $i$ cuenta como bunching cuando cae
 por debajo de ese umbral:
 
 $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
@@ -397,7 +401,8 @@ $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
 donde $b_i(t)$ vale 1 si la posición $i$ cuenta como bunching y 0 si no, y
 $\mathbb{1}[\cdot]$ es la función indicadora. Cada posición con $b_i(t) = 1$ es un
 evento, y se dice que la regla la **marca**. La condición $m \ge 3$ descarta los
-vectores más cortos y exige al menos cuatro buses en circulación. Con dos
+vectores más cortos y exige al menos tres posiciones resueltas, y por lo tanto
+cuatro buses en circulación o más. Con dos
 headways cualquier medida de irregularidad se reduce a la diferencia entre ellos,
 y no describe un patrón.
 
@@ -531,7 +536,11 @@ pasado. El período se divide en 107 días de entrenamiento, 23 de validación y
 de prueba. Todo el protocolo se repite después sobre tres orígenes de evaluación,
 numerados aquí 1, 2 y 3. Los tres comienzan el mismo día y
 alargan el entrenamiento a 61, 83 y 107 días. Sus períodos de prueba no se solapan
-entre sí, y el del origen 3 es el que se publica. Como los entrenamientos están
+entre sí, y el del origen 3 es el que se publica. El primero entrena hasta el 30
+de noviembre de 2023 y prueba del 23 de diciembre al 13 de enero. El segundo
+entrena hasta el 22 de diciembre y prueba del 14 de enero al 4 de febrero. El
+tercero entrena hasta el 15 de enero, valida hasta el 7 de febrero y prueba del 8
+al 29 de febrero de 2024. Como los entrenamientos están
 anidados, esto establece estabilidad frente a la elección del período de prueba y
 no réplica independiente. La Figura 4 muestra el esquema.
 
@@ -1014,7 +1023,9 @@ y no proviene de un registro de eventos observados. Esa elección lo hace
 comparable con los trabajos que la Sección III-C cita, y deja sin verificar que la
 fracción marque lo que un operador llamaría bunching. Validarla exigiría un
 registro de incidentes que estos corredores no producen. El alcance de toda
-afirmación de detección es entonces el evento así definido.
+afirmación de detección es entonces el evento así definido, y sobre las posiciones
+que resolvieron: la tasa base que se reporta no admite comparación directa con
+tasas de bunching medidas sobre registros sin enmascarar.
 
 El corpus acota dos cosas más. Un vector reúne entre 3,8 y 5,9 headways en
 promedio, de modo que la dispersión transversal reposa sobre pocas observaciones.
