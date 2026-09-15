@@ -664,6 +664,17 @@ muestras de un mismo día comparten clima, incidentes y demanda. El agrupamiento
 lleva el tamaño efectivo de muestra de entre 75 747 y 240 907 filas, según la
 celda, a los 22 días del período de prueba.
 
+El AUC y el MCC no admiten ninguna de esas dos pruebas: la primera contrasta un
+diferencial de pérdida por muestra y la segunda acota una proporción. La
+diferencia de cualquiera de los dos entre dos métodos se acota remuestreando días
+de servicio con reemplazo. Se recalculan ambas cantidades sobre cada remuestreo y
+se toma el intervalo percentil al 95 %, con dos mil remuestreos y semilla fija.
+El agrupamiento es el mismo del diferencial de pérdida y responde a la misma
+razón. El contraste habitual entre dos AUC calculados sobre las mismas muestras
+es la prueba de DeLong [@delong1988]. Admite la correlación entre las dos curvas,
+pero no la que hay entre observaciones, y las de un mismo día no son
+independientes.
+
 La precisión de la Ecuación (11) admite su propia acotación, porque puede
 descansar sobre muy pocos triggers. Se acota con el intervalo exacto de
 Clopper–Pearson [@clopper1934] al 95 %, calculado sobre los conteos de TP y de
@@ -845,10 +856,14 @@ El umbral trasplantado de la Tabla 1 dejaba a la persistencia por delante en las
 doce celdas. Los dos instrumentos que la Tabla 2 reúne mueven ese conteo en
 distinta medida. Puntuado sin umbral, mediante el AUC, **el LSTM ganó en las nueve
 combinaciones de corredor y origen a diez minutos**, y en 6 de las 12 celdas del
-origen 3. Recalibrar el umbral en lugar de eliminarlo lo mueve menos: con el
+origen 3. Las nueve diferencias de diez minutos sobrevivieron su intervalo, y van
+de 0,033 a 0,061. De las seis celdas restantes del origen 3, dos no lo
+sobrevivieron: E59 a tres minutos y E4 a cinco, que la Tabla 2 marca como
+indistinguibles. Recalibrar el umbral en lugar de eliminarlo lo mueve menos: con el
 MCC recalibrado el LSTM ganó en 5 de las 12 celdas, entre ellas las tres de diez
 minutos. La persistencia conservó la ventaja en el horizonte de un minuto, donde
-el error escalar también la favorecía en E4 y E59.
+el error escalar también la favorecía en E4 y E59, y esa ventaja sobrevivió su
+intervalo en los tres corredores y los tres orígenes.
 
 El AUC no es la única forma de puntuar sin umbral. El lift de la Sección IV-D
 recorre el mismo ordenamiento, pero pesa más su cabeza, donde caen las posiciones
@@ -890,20 +905,20 @@ Las dos fronteras de régimen coinciden, y ninguna serie se acerca al azar.
 
 **Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra.
 
-| Corredor | h | AUC LSTM | AUC persist. | MCC recal. LSTM | MCC recal. persist. | Gana AUC |
-| :--- | ---: | ---: | ---: | ---: | ---: | :--- |
-| E2 | 1 | 0,714 | **0,723** | 0,310 | **0,401** | persistencia |
-| E2 | 3 | **0,629** | 0,598 | **0,178** | 0,160 | LSTM |
-| E2 | 5 | **0,604** | 0,567 | **0,139** | 0,102 | LSTM |
-| E2 | 10 | **0,565** | 0,528 | **0,085** | 0,027 | LSTM |
-| E4 | 1 | 0,811 | **0,833** | 0,476 | **0,615** | persistencia |
-| E4 | 3 | 0,702 | **0,719** | 0,269 | **0,375** | persistencia |
-| E4 | 5 | 0,648 | **0,649** | 0,190 | **0,254** | persistencia |
-| E4 | 10 | **0,604** | 0,558 | **0,126** | 0,111 | LSTM |
-| E59 | 1 | 0,760 | **0,781** | 0,363 | **0,517** | persistencia |
-| E59 | 3 | 0,688 | **0,689** | 0,237 | **0,328** | persistencia |
-| E59 | 5 | **0,665** | 0,648 | 0,205 | **0,249** | LSTM |
-| E59 | 10 | **0,632** | 0,571 | **0,161** | 0,119 | LSTM |
+| Corredor | h | AUC LSTM | AUC persist. | Δ AUC [IC 95 %] | MCC recal. LSTM | MCC recal. persist. | Gana AUC |
+| :--- | ---: | ---: | ---: | :---: | ---: | ---: | :--- |
+| E2 | 1 | 0,714 | **0,723** | -0,009 [-0,015, -0,004] | 0,310 | **0,401** | persistencia |
+| E2 | 3 | **0,629** | 0,598 | +0,031 [+0,025, +0,036] | **0,178** | 0,160 | LSTM |
+| E2 | 5 | **0,604** | 0,567 | +0,037 [+0,031, +0,042] | **0,139** | 0,102 | LSTM |
+| E2 | 10 | **0,565** | 0,528 | +0,037 [+0,026, +0,047] | **0,085** | 0,027 | LSTM |
+| E4 | 1 | 0,811 | **0,833** | -0,022 [-0,027, -0,016] | 0,476 | **0,615** | persistencia |
+| E4 | 3 | 0,702 | **0,719** | -0,017 [-0,025, -0,009] | 0,269 | **0,375** | persistencia |
+| E4 | 5 | 0,648 | 0,649 | -0,001 [-0,010, +0,008] | 0,190 | **0,254** | indistinguible |
+| E4 | 10 | **0,604** | 0,558 | +0,047 [+0,030, +0,063] | **0,126** | 0,111 | LSTM |
+| E59 | 1 | 0,760 | **0,781** | -0,021 [-0,025, -0,016] | 0,363 | **0,517** | persistencia |
+| E59 | 3 | 0,688 | 0,689 | 0,000 [-0,005, +0,005] | 0,237 | **0,328** | indistinguible |
+| E59 | 5 | **0,665** | 0,648 | +0,017 [+0,012, +0,022] | 0,205 | **0,249** | LSTM |
+| E59 | 10 | **0,632** | 0,571 | +0,061 [+0,054, +0,067] | **0,161** | 0,119 | LSTM |
 
 ### F. Robustez frente al origen y a la definición del evento
 
@@ -1139,6 +1154,11 @@ doi: 10.1186/s13040-023-00322-4.
 `[@clopper1934]` C. J. Clopper and E. S. Pearson, "The use of confidence or
 fiducial limits illustrated in the case of the binomial," *Biometrika*, vol. 26,
 no. 4, pp. 404–413, 1934, doi: 10.1093/biomet/26.4.404.
+
+`[@delong1988]` E. R. DeLong, D. M. DeLong, and D. L. Clarke-Pearson, "Comparing
+the areas under two or more correlated receiver operating characteristic curves:
+a nonparametric approach," *Biometrics*, vol. 44, no. 3, pp. 837–845, 1988,
+doi: 10.2307/2531595.
 
 `[@diebold1995]` F. X. Diebold and R. S. Mariano, "Comparing Predictive Accuracy,"
 *Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995,

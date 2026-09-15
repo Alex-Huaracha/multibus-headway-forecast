@@ -90,6 +90,20 @@ def _factor(ratio: float | None) -> str:
     return f"{ratio:.0f}×"
 
 
+def _signed(value: float | None, places: int = 3) -> str:
+    """A difference always carries its sign, so a column of them reads at a glance.
+
+    Except when it rounds to zero: "-0,000" asserts a direction the rounding has
+    already thrown away.
+    """
+    if value is None:
+        return "—"
+    rendered = f"{value:+.{places}f}"
+    if float(rendered) == 0.0:
+        rendered = f"{0.0:.{places}f}"
+    return rendered.replace(".", DECIMAL_SEP)
+
+
 def _int(value: int) -> str:
     """Thousands grouped the Spanish way, with a space that cannot wrap."""
     return f"{int(value):,}".replace(",", "&nbsp;")
@@ -170,6 +184,9 @@ def tabla_2() -> str:
     which is what makes the repair a repair and not a second artifact.
     """
     det = _load("contiguous_detection_calibrated.csv")
+    # The interval decides the last column. Two cells of this table used to name
+    # a winner off a margin of 0,001, which no bound supports.
+    ci = _load("detection_ranking_ci.csv").filter(pl.col("origin") == "main")
 
     rows: list[list[str]] = []
     for corridor in CORRIDORS:
@@ -179,21 +196,37 @@ def tabla_2() -> str:
             auc_r = _cell(det, "auc", model=RIVAL, **keys)
             mcc_l = _cell(det, "mcc_calibrated", model=LEARNER, **keys)
             mcc_r = _cell(det, "mcc_calibrated", model=RIVAL, **keys)
-            winner = LEARNER if auc_l > auc_r else "persistencia"
+
+            delta = _cell(ci, "delta_auc", **keys)
+            low = _cell(ci, "auc_ci_low", **keys)
+            high = _cell(ci, "auc_ci_high", **keys)
+            survives = _cell(ci, "auc_survives", **keys)
+            band = "—" if delta is None else (
+                f"{_signed(delta)} [{_signed(low)}, {_signed(high)}]"
+            )
+
+            # Without a bound that clears zero there is no winner to name, and
+            # bolding one of the two would assert what the interval denies.
+            if survives:
+                winner = LEARNER if auc_l > auc_r else "persistencia"
+                left = f"**{_num(auc_l)}**" if auc_l > auc_r else _num(auc_l)
+                right = f"**{_num(auc_r)}**" if auc_r > auc_l else _num(auc_r)
+            else:
+                winner = "indistinguible"
+                left, right = _num(auc_l), _num(auc_r)
+
             rows.append([
-                corridor, str(horizon),
-                f"**{_num(auc_l)}**" if auc_l > auc_r else _num(auc_l),
-                f"**{_num(auc_r)}**" if auc_r > auc_l else _num(auc_r),
+                corridor, str(horizon), left, right, band,
                 f"**{_num(mcc_l)}**" if mcc_l > mcc_r else _num(mcc_l),
                 f"**{_num(mcc_r)}**" if mcc_r > mcc_l else _num(mcc_r),
                 winner,
             ])
 
     return _render(
-        ["Corredor", "h", f"AUC {LEARNER}", "AUC persist.",
+        ["Corredor", "h", f"AUC {LEARNER}", "AUC persist.", "Δ AUC [IC 95 %]",
          f"MCC recal. {LEARNER}", "MCC recal. persist.", "Gana AUC"],
         rows,
-        aligns="lrrrrrl",
+        aligns="lrrrcrrl",
     )
 
 

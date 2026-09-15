@@ -446,6 +446,14 @@ formulaciones más citadas» con dos fuentes a texto completo detrás, y ahora c
 [@moreiramatias2016] por el ¼ del programado y [@yu2016] por la sustitución
 cuando no hay horario.
 
+### La que cierra el `[CITA_REQUERIDA]` de la prueba de ordenamiento — verificada 2026-09-15
+
+| Fuente | ID | Estado | Qué sostiene y qué no |
+|---|---|---|---|
+| **DeLong, E. R., DeLong, D. M., & Clarke-Pearson, D. L. (1988)**, «Comparing the areas under two or more correlated receiver operating characteristic curves: a nonparametric approach», *Biometrics* 44(3):837–845 | doi:`10.2307/2531595`, PMID:`3203132` | `[CROSSREF]` — DOI, título, byline, volumen y número confirmados contra el registro de Crossref, que devuelve **solo la página inicial** (837). El rango 837–845 se confirmó contra el registro de PubMed vía E-utilities, que coincide en título, byline, revista, año, volumen y número. Contenido no leído | La alternativa que la Sección IV-E declina antes de adoptar el bootstrap agrupado. **Se cita por el método, no por texto ni cifras.** Lo que el manuscrito le atribuye es su alcance, no un resultado: contrasta dos AUC calculados sobre las mismas muestras y admite la correlación entre las dos curvas, no la que hay entre observaciones. Esa lectura está respaldada por Li & Zhou (2008), *JASA* 103(482):705–713, doi:`10.1198/016214508000000364`, que clasifica a DeLong et al. entre los métodos *«for independent data»* y lo contrapone a los de datos agrupados (Obuchowski 1997; Emir et al. 1998, 2000). **Li & Zhou no se cita en el manuscrito**: queda aquí como evidencia de la caracterización. Crossref devuelve el título en caja de título; en la lista va en caja de oración, igual que Clopper–Pearson |
+
+---
+
 ### Las tres que cerraban los `[CITA_REQUERIDA]` — verificadas 2026-09-03
 
 | Fuente | ID | Estado | Qué sostiene y qué no |
