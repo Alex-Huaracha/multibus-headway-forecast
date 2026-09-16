@@ -41,16 +41,21 @@ delimita cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestr
 contribuciones son tres:
 
 - Medimos la compresión sobre el vector de headways, como dispersión entre buses
-  en un mismo instante. Los precedentes trabajan sobre la variabilidad temporal de
-  una serie escalar, que no es la misma cantidad.
+  en un mismo instante. La cantidad no es nueva fuera del transporte —la
+  predicción meteorológica la mide sobre el campo espacial y le da nombre—, pero
+  no se había medido sobre el vector de headways de un corredor, y aquí se la
+  aísla con la persistencia como control de compresión nula.
 - Invertimos la fórmula de calidad de servicio del *Transit Capacity and Quality
   of Service Manual* (TCQSM) y la aplicamos a lo predicho en lugar de a lo
   observado.
-- Atamos esa fórmula a una regla de evento **relativa y auto-referencial**, donde
-  la compresión mueve el numerador y el denominador a la vez. Es la que no
-  encontramos con precedente dentro ni fuera del transporte: en Petetin y
-  colaboradores esa pieza no falta por descuido sino por construcción, porque sus
-  umbrales son regulatorios y no admiten recalibración.
+- Atamos esa fórmula a una regla de evento **relativa pero no preservadora de
+  tasa**, donde la compresión mueve el numerador y el denominador a la vez. La
+  distinción es la que la Sección II-C desarrolla: un evento definido sobre un
+  cuantil conserva su frecuencia bajo cualquier compresión monótona, y uno
+  definido sobre una fracción del promedio no, porque la compresión encoge la
+  separación entre posiciones respecto de ese promedio. Los umbrales que la
+  literatura recalibra se fijan una vez sobre un período anterior; este se
+  recalcula con cada vector que evalúa.
 
 El resto del documento se organiza como sigue. La Sección II revisa los trabajos
 relacionados. La Sección III presenta el método propuesto. La Sección IV describe
@@ -119,8 +124,20 @@ cuadrático esperado, y su Corolario 2 ordena esas varianzas por horizonte: la d
 la predicción a horizonte corto es mayor o igual que la de la predicción a
 horizonte largo [@patton2012]. La compresión crece entonces al alargar el horizonte, por
 construcción y no por una falla del ajuste. Ese resultado recae sobre la varianza
-temporal de una serie escalar, y no sobre la dispersión entre buses medidos en
-un mismo instante.
+temporal de una serie escalar.
+
+La versión transversal de la misma propiedad —la dispersión medida entre unidades
+de un conjunto en un mismo instante, y no a lo largo del tiempo— también está
+documentada, y fuera del transporte es un resultado conocido. Bonavita compara
+modelos de predicción meteorológica ajustados con error cuadrático contra el
+análisis que los entrena, y reporta que sus campos salen con energía espectral
+deficiente: *«they consistently show reduced forecast variability at smaller
+(sub-synoptic, mesoscale) spatial scales»* [@bonavita2024]. El eje de la
+dispersión ahí es el espacio y no el tiempo, de modo que la cantidad que la
+Sección V-B mide sobre el vector de headways tiene precedente como cantidad. Lo
+que no encontramos es esa medición sobre el vector de headways de un corredor, ni
+un control que separe la compresión del resto del procedimiento; la Sección V-B
+usa la persistencia para eso.
 
 El daño de esa compresión sobre una regla de umbral ya se documentó fuera del
 transporte. Petetin y colaboradores corrigen predicciones de ozono y encuentran
@@ -148,21 +165,39 @@ cuantiles lleva la distribución de lo predicho a la de lo observado
 necesita una distribución de observaciones. Recalibrar el umbral
 necesita solo un período anterior de la propia predicción.
 
-Ninguno de los dos se enfrenta a un umbral que se mueva con lo que evalúa. El de
-Hoffmann y colaboradores es un valor fijo, y el de Petetin y colaboradores es
-regulatorio. Ellos mismos observan que un indicador definido sobre un cuantil de
-la distribución observada queda libre de sesgo por construcción
-[@hoffmann2018]. Un umbral que es una fracción del promedio de lo predicho no
-tiene esa propiedad, porque la compresión mueve el promedio y la separación entre
-posiciones a la vez.
+Hay una tercera práctica, y es operativa. El *Extreme Forecast Index* del Centro
+Europeo de Predicción Meteorológica a Plazo Medio decide si una situación es
+extrema comparando la distribución del pronóstico vigente contra la climatología
+**del propio modelo** y no contra observaciones: *«The Extreme Forecast Index is
+computed from the difference between Cumulative Distribution Function curves of
+the M-climate and the forecast distribution of the current ensemble»*
+[@ecmwffug]. Esa climatología se construye volviendo a correr un conjunto de once
+miembros sobre las mismas fechas de calendario de los últimos veinte años
+[@ecmwffug], y el índice que la usa se introdujo en 2003 [@lalaurette2003]. De
+modo que referir el umbral a lo que el modelo mismo produce no es nuevo.
+
+Lo que ninguna de las tres prácticas enfrenta es un umbral que se mueva **dentro
+de la instancia que evalúa**. El de Hoffmann y colaboradores es un valor fijo, el
+de Petetin y colaboradores es regulatorio, y la climatología del *Extreme
+Forecast Index* se fija sobre veinte años anteriores y no cambia con el
+pronóstico que se puntúa. Hay además una propiedad que separa a esos umbrales del
+nuestro. Hoffmann y colaboradores observan que un indicador definido sobre un
+cuantil queda libre de sesgo por construcción [@hoffmann2018], y la razón es que
+un cuantil **conserva la frecuencia del evento** bajo cualquier transformación
+monótona de lo predicho. Una fracción del promedio no la conserva: la compresión
+encoge la separación entre posiciones respecto de ese promedio, de modo que el
+umbral y el valor comparado se mueven a la vez y la tasa del evento cae. Ese es
+el caso que este trabajo mide, y es relativo sin ser preservador de tasa.
 
 ### D. Delimitación de lo previo
 
-Cinco trabajos llegan cerca del mecanismo que este documento mide, y ninguno cubre
-el caso que lo define. Los tres de la Sección II-B establecen la compresión y su
-daño sobre una regla de umbral, pero ninguno la mide entre buses de un mismo
-instante. Los dos remedios de la Sección II-C llegan ocho años antes que este
-trabajo, y ninguno se aplica sobre un umbral que se mueva con lo que evalúa.
+Ningún trabajo consultado cubre el caso que este documento define, y conviene
+decir con precisión cuánto sí está cubierto. Los cuatro de la Sección II-B
+establecen la compresión y su daño sobre una regla de umbral, uno de ellos sobre
+un campo espacial; ninguno la mide sobre el vector de headways de un corredor.
+Las tres prácticas de la Sección II-C recalibran un umbral, y una de ellas lo
+refiere a la distribución del propio modelo; ninguna se aplica sobre un umbral
+que se recalcule con cada instancia evaluada.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura
 [@sun2021], y llega más lejos de lo que su resumen deja ver. Diagnostican que el
@@ -178,10 +213,10 @@ comparado y no al umbral. Y su corte se elige en el espacio de probabilidad del
 clasificador y sobre los mismos días que evalúan, no sobre una ventana anterior
 disjunta.
 
-Ninguno de los cinco mide un umbral relativo y auto-referencial, donde la
-compresión de lo predicho mueve el umbral y el valor comparado a la vez. El
-umbral de Jiao y colaboradores es relativo pero no auto-referencial, porque se
-ancla en una observación fija y la compresión alcanza solo al valor comparado. Su
+Ninguno de ellos mide un umbral relativo que no preserve la tasa del evento,
+donde la compresión de lo predicho mueve el umbral y el valor comparado a la vez.
+El umbral de Jiao y colaboradores es relativo pero se ancla en una observación
+fija, de modo que la compresión alcanza solo al valor comparado. Su
 reparación agrega un término de clasificación a la pérdida, es decir, cambia el
 objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la Ecuación
 (8) hace explícito, y es donde este documento interviene: recalibra ese umbral
@@ -352,7 +387,14 @@ por sentido que fija la Sección IV-B y no en minutos.
 
 La Ecuación (4) fija entonces qué puede emitir el modelo. Una predicción que
 minimiza error cuadrático tiende a la media condicional, y la Sección II-B
-recoge por qué esa media es menos dispersa que la realidad. El efecto de esa
+recoge por qué esa media es menos dispersa que la realidad. Gneiting formaliza de
+qué depende esa elección: la predicción puntual óptima queda determinada por la
+función de pérdida, de modo que el error cuadrático pide la media y el error
+absoluto pide la mediana, y evaluar una predicción con una función que no
+corresponde al objetivo con que se la ajustó *«can lead to grossly misguided
+inferences»* [@gneiting2011]. Aquí el objetivo del ajuste es una media y la
+decisión que se toma después es un evento por umbral, y ese segundo paso —qué le
+hace a la decisión la media que se emitió— es lo que la Sección III-C plantea. El efecto de esa
 compresión sobre la regla del evento es el asunto de la Sección III-C.
 
 ### C. Definición del evento de bunching
@@ -1204,6 +1246,14 @@ a corregir llamadas. La numeración por orden de primera aparición se resuelve 
 convertir al formato IJACSA, sustituyendo cada clave por su número; el orden de
 esta lista no es todavía el definitivo.)_
 
+`[@bonavita2024]` M. Bonavita, "On some limitations of data-driven weather
+forecasting models," arXiv:2309.08473, 2023. Las citas literales de la Sección
+II-B provienen de este preprint, que examina un solo modelo; la versión publicada
+—"On Some Limitations of Current Machine Learning Weather Prediction Models,"
+*Geophysical Research Letters*, vol. 51, no. 12, art. e2023GL107377, 2024,
+doi: 10.1029/2023GL107377— lleva otro título y examina tres, de modo que no se le
+atribuye texto.
+
 `[@boudabbous2026]` E. Boudabbous, M. Karaa, L. Sboui, J. Montecinos, and O. Alam,
 "Scalable Transit Delay Prediction at City Scale: A Systematic Approach with
 Multi-Resolution Feature Engineering and Deep Learning," arXiv:2601.18521, 2026.
@@ -1236,9 +1286,18 @@ doi: 10.2307/2531595.
 *Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995,
 doi: 10.1080/07350015.1995.10524599.
 
+`[@ecmwffug]` *Forecast User Guide*, European Centre for Medium-Range Weather
+Forecasts, Reading, U.K., §5.3.1 "M-Climate, the Medium Range Model Climate" and
+§8.1.9.2 "Extreme Forecast Index — EFI", accessed Sep. 16, 2026. [Online].
+Available: https://confluence.ecmwf.int/display/FUG/
+
 `[@flach2015]` P. A. Flach and M. Kull, "Precision-Recall-Gain Curves: PR
 Analysis Done Right," in *Advances in Neural Information Processing Systems 28*,
 2015, pp. 838–846.
+
+`[@gneiting2011]` T. Gneiting, "Making and Evaluating Point Forecasts," *Journal
+of the American Statistical Association*, vol. 106, no. 494, pp. 746–762, 2011,
+doi: 10.1198/jasa.2011.r10138.
 
 `[@handtill2001]` D. J. Hand and R. J. Till, "A Simple Generalisation of the Area
 Under the ROC Curve for Multiple Class Classification Problems," *Machine
@@ -1259,6 +1318,11 @@ International Organization for Standardization, Geneva, Switzerland, 2021.
 Prediction Using LSTM with Attention," in *2023 IEEE 8th International Conference
 on Intelligent Transportation Engineering (ICITE)*, 2023, pp. 451–458,
 doi: 10.1109/ICITE59717.2023.10733869.
+
+`[@lalaurette2003]` F. Lalaurette, "Early detection of abnormal weather
+conditions using a probabilistic extreme forecast index," *Quarterly Journal of
+the Royal Meteorological Society*, vol. 129, no. 594, pp. 3037–3057, 2003,
+doi: 10.1256/qj.02.152.
 
 `[@lipton2014]` Z. C. Lipton, C. Elkan, and B. Naryanaswamy, "Optimal
 Thresholding of Classifiers to Maximize F1 Measure," in *ECML PKDD 2014*, Lecture
