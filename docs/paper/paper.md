@@ -318,8 +318,17 @@ historia que recibe.
 
 Se predice a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
 ajustado por separado para cada uno: no hay recursión, cada horizonte se predice
-de forma directa. El vector no tiene longitud fija, porque $N$ varía minuto a
-minuto. El modelo emite entonces una
+de forma directa. Los cuatro no cumplen la misma función. A un minuto la
+predicción no deja margen de intervención, porque retener un bus en un terminal
+o adelantar a otro no se resuelve en ese plazo; ese horizonte entra como
+referencia del régimen donde repetir el último vector observado es difícil de
+superar, y es la condición que Manibardo, Laña y Del Ser describen
+[@manibardo2022]. El margen de maniobra empieza hacia los cinco minutos, de modo
+que las afirmaciones operativas de la Sección V-H se leen sobre los horizontes
+de cinco y diez. Conservar el de un minuto es lo que permite situar a los otros
+tres: sin él no se observa dónde cambia de dueño el veredicto ni desde dónde se
+profundiza la compresión que mide la Sección V-B. El vector no tiene longitud
+fija, porque $N$ varía minuto a minuto. El modelo emite entonces una
 salida de longitud fija y el error se computa solo sobre las posiciones donde hay
 bus. **El objetivo que se minimiza es el error cuadrático**, promediado sobre esas
 posiciones válidas:
@@ -529,6 +538,19 @@ búsqueda previa que no se rehízo sobre esas muestras, en dos de los tres
 corredores. La Sección VI acota qué afirmaciones no se sostienen con esa
 diferencia.
 
+A los cuatro se agrega un quinto método que no compite con ellos y cumple otra
+función: fijar un piso. El **perfil posicional** responde con el headway
+promedio que cada posición del vector registró en un período anterior, y lo
+repite sin cambios en cada minuto del período de prueba. No lee la ventana de
+entrada, de modo que no puede anticipar nada. Existe porque las posiciones del
+vector no son intercambiables: las de más adelante llevan headways
+sistemáticamente más cortos, así que algunas caen por debajo de la mitad del
+promedio de su vector por la posición que ocupan y no por lo que ocurrió ese
+minuto. Cuanto ordene ese perfil es la parte del ordenamiento que la posición
+explica por sí sola. Se ajusta sobre el período de prueba del origen 2 y se
+aplica al del origen 3, los mismos dos períodos que la Sección IV-D usa para el
+umbral y por la misma razón.
+
 ### C. Protocolo de evaluación
 
 La partición es **por fecha y nunca al azar**, porque un operador solo dispone del
@@ -628,6 +650,13 @@ detector— y puntúa el ordenamiento del puntaje continuo
 $-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (7) es el umbral en $-\rho$. Es
 la probabilidad de que una posición de bunching reciba un puntaje mayor que una
 sin bunching [@handtill2001], y vale 0,5 cuando la predicción no ordena.
+
+Ese 0,5 es el piso de una predicción sin ninguna información, y no el de una
+predicción sin información **temporal**. El perfil posicional de la Sección IV-B
+fija el segundo: es lo que alcanza el AUC cuando solo se conoce qué posición del
+vector suele llevar el headway más corto. Cumple para el AUC la misma función
+que el detector trivial cumple para el F1, y por eso acompaña a todo AUC
+reportado.
 
 Sobre esas cantidades se construyen tres cocientes. La tasa de trigger de un
 método es la fracción de sus posiciones con $\hat{b}_i = 1$. El factor entre dos
@@ -858,12 +887,23 @@ distinta medida. Puntuado sin umbral, mediante el AUC, **el LSTM ganó en las nu
 combinaciones de corredor y origen a diez minutos**, y en 6 de las 12 celdas del
 origen 3. Las nueve diferencias de diez minutos sobrevivieron su intervalo, y van
 de 0,033 a 0,061. De las seis celdas restantes del origen 3, dos no lo
-sobrevivieron: E59 a tres minutos y E4 a cinco, que la Tabla 2 marca como
-indistinguibles. Recalibrar el umbral en lugar de eliminarlo lo mueve menos: con el
+sobrevivieron: E59 a tres minutos y E4 a cinco, cuyos intervalos en la Tabla 2
+contienen al cero. Recalibrar el umbral en lugar de eliminarlo lo mueve menos: con el
 MCC recalibrado el LSTM ganó en 5 de las 12 celdas, entre ellas las tres de diez
-minutos. La persistencia conservó la ventaja en el horizonte de un minuto, donde
-el error escalar también la favorecía en E4 y E59, y esa ventaja sobrevivió su
-intervalo en los tres corredores y los tres orígenes.
+minutos, si bien la de E4 no resiste su propio intervalo. La persistencia conservó
+la ventaja en el horizonte de un minuto, donde el error escalar también la
+favorecía en E4 y E59, y esa ventaja sobrevivió su intervalo en los tres
+corredores y los tres orígenes.
+
+Recalibrar el umbral tampoco pone a los dos métodos por encima del piso del
+detector trivial que la Tabla 1 exige. Medido con el F1 sobre el punto de
+operación ya reajustado, el LSTM supera ese piso en 9 de las 12 celdas y la
+persistencia en 7. Las que ninguno de los dos supera son las tres de E2 desde los
+tres minutos en adelante, y la razón es la tasa base: con el 30 % de las
+posiciones marcadas, marcarlas todas alcanza un F1 de 0,46, que ninguno de los
+dos detectores calibrados iguala. El piso no distingue entre ellos, de modo que
+no invierte ningún veredicto de la Tabla 2; lo que acota es hasta dónde llega el
+punto de operación recalibrado en el corredor de mayor prevalencia.
 
 El AUC no es la única forma de puntuar sin umbral. El lift de la Sección IV-D
 recorre el mismo ordenamiento, pero pesa más su cabeza, donde caen las posiciones
@@ -903,22 +943,44 @@ derecho son el área bajo la curva de detección de cada método, invariante a
 cualquier reescalado monótono de lo predicho y por lo tanto inmune al artefacto.
 Las dos fronteras de régimen coinciden, y ninguna serie se acerca al azar.
 
-**Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra.
+Un AUC por encima de 0,5 no basta, sin embargo, para atribuirle el ordenamiento
+a la anticipación. El perfil posicional de la Sección IV-B lo acota, y su
+respuesta no es la misma en los tres corredores. En E4 y en E59 queda
+indistinguible del azar —entre 0,486 y 0,523 en las ocho celdas—, de modo que el
+ordenamiento del LSTM en esos dos corredores no proviene de la posición: lo
+supera por entre 0,08 y 0,29. En E2 el piso sube a 0,58 y no se mueve con el
+horizonte, señal de que ese corredor sí lleva una estructura posicional estable.
+**A diez minutos en E2 el LSTM queda por debajo de ese piso, 0,565 contra
+0,579**, y ahí la ventaja sin umbral no se sostiene contra un método que no lee
+la ventana de entrada. Es la única de las doce celdas donde ocurre, y es la que
+las Secciones V-C y VII exhiben. El piso también supera a la persistencia en E2
+a cinco y a diez minutos.
 
-| Corredor | h | AUC LSTM | AUC persist. | Δ AUC [IC 95 %] | MCC recal. LSTM | MCC recal. persist. | Gana AUC |
-| :--- | ---: | ---: | ---: | :---: | ---: | ---: | :--- |
-| E2 | 1 | 0,714 | **0,723** | -0,009 [-0,015, -0,004] | 0,310 | **0,401** | persistencia |
-| E2 | 3 | **0,629** | 0,598 | +0,031 [+0,025, +0,036] | **0,178** | 0,160 | LSTM |
-| E2 | 5 | **0,604** | 0,567 | +0,037 [+0,031, +0,042] | **0,139** | 0,102 | LSTM |
-| E2 | 10 | **0,565** | 0,528 | +0,037 [+0,026, +0,047] | **0,085** | 0,027 | LSTM |
-| E4 | 1 | 0,811 | **0,833** | -0,022 [-0,027, -0,016] | 0,476 | **0,615** | persistencia |
-| E4 | 3 | 0,702 | **0,719** | -0,017 [-0,025, -0,009] | 0,269 | **0,375** | persistencia |
-| E4 | 5 | 0,648 | 0,649 | -0,001 [-0,010, +0,008] | 0,190 | **0,254** | indistinguible |
-| E4 | 10 | **0,604** | 0,558 | +0,047 [+0,030, +0,063] | **0,126** | 0,111 | LSTM |
-| E59 | 1 | 0,760 | **0,781** | -0,021 [-0,025, -0,016] | 0,363 | **0,517** | persistencia |
-| E59 | 3 | 0,688 | 0,689 | 0,000 [-0,005, +0,005] | 0,237 | **0,328** | indistinguible |
-| E59 | 5 | **0,665** | 0,648 | +0,017 [+0,012, +0,022] | 0,205 | **0,249** | LSTM |
-| E59 | 10 | **0,632** | 0,571 | +0,061 [+0,054, +0,067] | **0,161** | 0,119 | LSTM |
+**Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra,
+con el piso del perfil posicional al lado del AUC que acota.
+
+| Corredor | h | AUC LSTM | AUC persist. | Piso posicional | Δ AUC [IC 95 %] | MCC recal. LSTM | MCC recal. persist. | Δ MCC [IC 95 %] |
+| :--- | ---: | ---: | ---: | ---: | :---: | ---: | ---: | :---: |
+| E2 | 1 | 0,714 | **0,723** | 0,587 | -0,009 [-0,015, -0,004] | 0,310 | **0,401** | -0,091 [-0,106, -0,078] |
+| E2 | 3 | **0,629** | 0,598 | 0,580 | +0,031 [+0,025, +0,036] | **0,178** | 0,160 | +0,018 [+0,005, +0,028] |
+| E2 | 5 | **0,604** | 0,567 | 0,582&nbsp;§ | +0,037 [+0,031, +0,042] | **0,139** | 0,102 | +0,037 [+0,026, +0,046] |
+| E2 | 10 | 0,565 | 0,528 | **0,579**&nbsp;§ | +0,037 [+0,026, +0,047] | **0,085** | 0,027 | +0,058 [+0,039, +0,073] |
+| E4 | 1 | 0,811 | **0,833** | 0,523 | -0,022 [-0,027, -0,016] | 0,476 | **0,615** | -0,140 [-0,150, -0,130] |
+| E4 | 3 | 0,702 | **0,719** | 0,520 | -0,017 [-0,025, -0,009] | 0,269 | **0,375** | -0,106 [-0,122, -0,086] |
+| E4 | 5 | 0,648 | 0,649 | 0,519 | -0,001 [-0,010, +0,008] | 0,190 | **0,254** | -0,064 [-0,083, -0,043] |
+| E4 | 10 | **0,604** | 0,558 | 0,521 | +0,047 [+0,030, +0,063] | 0,126 | 0,111 | +0,015 [-0,005, +0,033] |
+| E59 | 1 | 0,760 | **0,781** | 0,498 | -0,021 [-0,025, -0,016] | 0,363 | **0,517** | -0,154 [-0,164, -0,144] |
+| E59 | 3 | 0,688 | 0,689 | 0,493 | 0,000 [-0,005, +0,005] | 0,237 | **0,328** | -0,091 [-0,100, -0,081] |
+| E59 | 5 | **0,665** | 0,648 | 0,492 | +0,017 [+0,012, +0,022] | 0,205 | **0,249** | -0,044 [-0,053, -0,036] |
+| E59 | 10 | **0,632** | 0,571 | 0,486 | +0,061 [+0,054, +0,067] | **0,161** | 0,119 | +0,042 [+0,033, +0,052] |
+
+La negrita marca al ganador de cada par, y se omite donde el intervalo de esa
+diferencia contiene al cero: ahí los dos métodos son indistinguibles. Ocurre en
+tres celdas, y en E4 a diez minutos afecta solo a la correlación recalibrada,
+donde la ventaja del LSTM no resiste su intervalo aunque sí resista la del AUC.
+
+§ El piso posicional supera a la persistencia en estas celdas, y al LSTM en la
+de diez minutos. La negrita compara los dos métodos entre sí y no contra el piso.
 
 ### F. Robustez frente al origen y a la definición del evento
 
@@ -1090,7 +1152,9 @@ ahí por un factor de 253 en el F1.
 Ese colapso no mide la capacidad del modelo sino el punto de operación en el que
 se lo evalúa. Puntuada sin fijar un umbral, mediante el AUC, la predicción del
 LSTM ordena mejor que la persistencia en las nueve combinaciones de corredor y
-origen a diez minutos. Recalibrar el umbral sobre un período anterior disjunto
+origen a diez minutos. Esa ventaja se sostiene contra un perfil que solo conoce
+la posición en E4 y en E59, y no en E2 a diez minutos, donde ese perfil ordena
+mejor que el modelo. Recalibrar el umbral sobre un período anterior disjunto
 recupera parte de esa ventaja sin reentrenar. El punto de operación se calcula
 entonces contra la distribución de lo predicho, y no se hereda de las
 observaciones.

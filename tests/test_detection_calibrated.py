@@ -309,3 +309,72 @@ class TestTheDocumentQuotesTheTable:
         """253x is not deleted — it is the artifact being explained, and hiding
         it would be its own dishonesty."""
         assert "253" in doc
+
+
+class TestThePaperReportsBothInstrumentsSymmetrically:
+    """Section IV-E declares one bootstrap for the AUC and for the MCC alike.
+
+    Reporting the interval of the instrument that confirms the claim and not of
+    the one that qualifies it is the asymmetry a reviewer with this repository
+    reproduces in an hour, so each half is pinned to the CSV it comes from.
+    """
+
+    PAPER = REPO_ROOT / "docs" / "paper" / "paper.md"
+    CI_CSV = (
+        REPO_ROOT / "docs" / "resultados" / "csv-multihorizon"
+        / "detection_ranking_ci.csv"
+    )
+
+    @pytest.fixture(scope="class")
+    def paper(self) -> str:
+        return self.PAPER.read_text(encoding="utf-8")
+
+    @pytest.fixture(scope="class")
+    def intervals(self) -> pl.DataFrame:
+        if not self.CI_CSV.exists():
+            pytest.skip(f"{self.CI_CSV.name} not built yet")
+        return pl.read_csv(self.CI_CSV).filter(pl.col("origin") == "main")
+
+    def test_the_paper_prints_every_delta_mcc_interval(self, paper, intervals):
+        """Twelve cells, twelve intervals. A missing one is a hidden verdict."""
+        for row in intervals.iter_rows(named=True):
+            printed = (
+                f"{row['delta_mcc_calibrated']:+.3f} "
+                f"[{row['mcc_calibrated_ci_low']:+.3f}, "
+                f"{row['mcc_calibrated_ci_high']:+.3f}]"
+            ).replace(".", ",")
+            assert printed in paper, (
+                f"{row['corridor']} h={row['horizon']}: {printed} is not in the "
+                "paper"
+            )
+
+    def test_the_paper_qualifies_the_mcc_win_that_does_not_survive(
+        self, paper, intervals
+    ):
+        """One h=10 cell is counted inside the flagship claim and fails its own
+        interval. The claim may stand; stating it unqualified may not."""
+        failing = intervals.filter(
+            (pl.col("horizon") == 10) & (~pl.col("mcc_calibrated_survives"))
+        )
+        if failing.height == 0:
+            pytest.skip("no h=10 MCC win fails its interval any more")
+        assert "no resiste su propio intervalo" in paper
+
+    def test_the_paper_reports_the_trivial_floor_after_recalibration(self, paper):
+        """Section V-C makes the always-fire rule a standard of evidence against
+        persistence. Dropping it before scoring the calibrated detector is the
+        selective step; these are the counts that keep it applied to both."""
+        table = pl.read_csv(OUT_CSV)
+        floors = table.filter(pl.col("model") == "LSTM").select(
+            "corridor", "horizon", "trivial_f1"
+        )
+        counts = {}
+        for name in ("LSTM", "Persistence"):
+            merged = table.filter(pl.col("model") == name).join(
+                floors, on=["corridor", "horizon"]
+            )
+            counts[name] = int(
+                (merged["f1_calibrated"] > merged["trivial_f1"]).sum()
+            )
+        assert f"en {counts['LSTM']} de las 12 celdas" in paper, counts
+        assert f"la\npersistencia en {counts['Persistence']}" in paper, counts
