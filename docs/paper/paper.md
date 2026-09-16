@@ -165,10 +165,18 @@ instante. Los dos remedios de la Sección II-C llegan ocho años antes que este
 trabajo, y ninguno se aplica sobre un umbral que se mueva con lo que evalúa.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura
-[@sun2021]. Diagnostican que el paradigma de predecir y umbralizar falla, y que el veredicto
-se revierte al puntuar sin punto de operación. Su etiqueta es un umbral absoluto de
-un minuto y no una regla relativa al propio vector, y su remedio es cambiar de
-clase de modelo, no recalibrar el umbral.
+[@sun2021], y llega más lejos de lo que su resumen deja ver. Diagnostican que el
+paradigma de predecir y umbralizar falla, y reportan el área bajo la curva —de
+0,99 a 0,93 entre una y quince paradas de anticipación—, de modo que el veredicto
+sin punto de operación ya está publicado dentro del subcampo. Eligen además ese
+punto de operación: pasan a un clasificador probabilístico y toman el corte que
+minimiza los falsos positivos y negativos ponderados, con dos juegos de pesos que
+representan la actitud del operador ante el bunching. Dos rasgos separan ese
+trabajo del nuestro. Su etiqueta es un umbral absoluto de un minuto y no una
+regla relativa al propio vector, de modo que la compresión alcanza al valor
+comparado y no al umbral. Y su corte se elige en el espacio de probabilidad del
+clasificador y sobre los mismos días que evalúan, no sobre una ventana anterior
+disjunta.
 
 Ninguno de los cinco mide un umbral relativo y auto-referencial, donde la
 compresión de lo predicho mueve el umbral y el valor comparado a la vez. El

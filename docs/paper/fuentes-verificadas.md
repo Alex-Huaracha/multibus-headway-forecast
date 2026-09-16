@@ -329,12 +329,39 @@ Ya publicaron, literal:
 - El punto de operación único: *"only one combination of sensitivity and specificity is derived, as headway prediction produces an exact value for each headway"*; *"Deterministic methods can only produce one combination of prediction performance which greatly limits its contribution to the real application."*
 - La reversión sin umbral: grafican los puntos de operación de los regresores contra la curva ROC del clasificador (AUC 0.9922 → 0.9279 de 1 a 15 paradas).
 
-**Qué nos deja.** Su etiqueta es un corte **absoluto de 1 minuto**, no una regla
-relativa al propio vector. No miden CV ni dispersión. No tienen el argumento de
-profundidad en la cola. **Su remedio es cambiar de clase de modelo
-(regresión → logística), no recalibrar el corte.** Sin ventana de calibración
-disjunta, sin modelos profundos, sin persistencia, sin F1, sin AP. Una ruta,
-cinco días de test. Ocho citas y ningún trabajo que lo extienda.
+**CORRECCIÓN 2026-09-16.** Esta entrada afirmaba que su remedio era cambiar de
+clase de modelo y **no** recalibrar el corte. Es falso, y esa frase se había
+propagado a `paper.md` §II-D. El PDF se recuperó por la ruta REST de DSpace 7
+(`/server/api/core/bitstreams/<uuid>/content`; la ruta `/download` anunciada
+devuelve el armazón JavaScript) y quedó cacheado en `docs/paper/papers/sun2021.pdf`
+— ese directorio está en `.gitignore`, de modo que es caché local y no artefacto.
+Verificado contra el PDF, literal:
+
+- Eligen el corte, y esa elección es lo que facturan como contribución:
+  *"Therefore the cut-off point choice should depend on the operator's attitude
+  towards bunching."* (§6.2)
+- Con una función de costo explícita: *"The cut-off point generating the lowest
+  cost is taken as the optimal one"*, con `c = w_FP · ΣFP + w_FN · ΣFN` (Ec. 18)
+  y dos juegos de pesos, 1:1 y 3:1.
+- La Tabla 5 publica los cortes seleccionados por horizonte: 90.31 / 87.19 /
+  87.56 / 81.60 % para LOGR-N y 73.50 / 77.53 / 79.74 / 71.50 % para LOGR-A.
+- El cambio de clase de modelo es el **habilitador**, no el remedio: *"by using
+  logistic regression different combinations are obtained depending on the
+  cut-off point applied to the predicted probability"* (§6.2); *"The notable
+  advantage of LOGR over the other two methods is its trade-off functionality"*
+  (§6.3).
+
+**Qué nos deja, ya corregido.** Su etiqueta es un corte **absoluto de 1 minuto**
+—*"1min is used for the bunching threshold as larger threshold can include
+headway variance that does not lead to bunching"* (§4)—, no una regla relativa al
+propio vector, así que la compresión alcanza al valor comparado y no al corte. Su
+punto de operación se elige en el **espacio de probabilidad del clasificador** y
+**sobre los mismos días que evalúan**: el único reparto que describen es de
+estimación (cinco días de entrenamiento, cinco de prueba, §4) y todos los cortes
+y curvas reportados viven en los días de prueba. **Sigue sin haber ventana de
+calibración anterior disjunta**, que es lo nuestro. No miden CV ni dispersión. No
+tienen el argumento de profundidad en la cola. Sin modelos profundos, sin
+persistencia, sin F1, sin AP. Una ruta, cinco días de test.
 
 ### 2.2 TCQSM, Exhibit 3-30 — la aritmética ya estaba en un manual de 2003
 `[TEXTO COMPLETO]` — *Transit Capacity and Quality of Service Manual*, 2ª ed.
