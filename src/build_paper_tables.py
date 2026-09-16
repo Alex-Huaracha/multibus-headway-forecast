@@ -175,6 +175,21 @@ def tabla_1() -> str:
     return table + note
 
 
+def _pair(left: float | None, right: float | None, *, decided: bool) -> list[str]:
+    """Two figures, with the better one bold only when something decided it.
+
+    ``decided`` is never the margin itself. A margin of 0,001 names a winner as
+    confidently as one of 0,061, and the difference between them is the whole
+    question.
+    """
+    if not decided:
+        return [_num(left), _num(right)]
+    return [
+        f"**{_num(left)}**" if left > right else _num(left),
+        f"**{_num(right)}**" if right > left else _num(right),
+    ]
+
+
 def tabla_2() -> str:
     """The same predictions scored without a threshold, and with the threshold refitted.
 
@@ -182,11 +197,23 @@ def tabla_2() -> str:
     operating point at all; the refitted Matthews correlation keeps one but
     fixes it on a window the scoring never sees. They agree on the direction,
     which is what makes the repair a repair and not a second artifact.
+
+    Each instrument is bolded against its own interval. Letting the area's bound
+    decide the correlation's bold would report one standard and print two, which
+    is how E4 at ten minutes came to show a Matthews win its interval denies.
+
+    The positional floor sits between the two areas rather than in a footnote,
+    because it is what those areas have to clear. A rule that answers the mean
+    headway of each position, reads no input window and therefore anticipates
+    nothing still scores above chance wherever the positions of a vector are not
+    exchangeable. Where that floor beats both methods no winner is named at all:
+    bolding one of them would award a race that a no-information rule won.
     """
     det = _load("contiguous_detection_calibrated.csv")
-    # The interval decides the last column. Two cells of this table used to name
-    # a winner off a margin of 0,001, which no bound supports.
+    # The intervals decide every bold in this table. Two cells used to name a
+    # winner off a margin of 0,001, which no bound supports.
     ci = _load("detection_ranking_ci.csv").filter(pl.col("origin") == "main")
+    null = _load("positional_null.csv")
 
     rows: list[list[str]] = []
     for corridor in CORRIDORS:
@@ -196,37 +223,57 @@ def tabla_2() -> str:
             auc_r = _cell(det, "auc", model=RIVAL, **keys)
             mcc_l = _cell(det, "mcc_calibrated", model=LEARNER, **keys)
             mcc_r = _cell(det, "mcc_calibrated", model=RIVAL, **keys)
+            auc_floor = _cell(null, "auc_null", **keys)
 
-            delta = _cell(ci, "delta_auc", **keys)
-            low = _cell(ci, "auc_ci_low", **keys)
-            high = _cell(ci, "auc_ci_high", **keys)
-            survives = _cell(ci, "auc_survives", **keys)
-            band = "—" if delta is None else (
-                f"{_signed(delta)} [{_signed(low)}, {_signed(high)}]"
-            )
+            bands = [
+                "—" if delta is None else (
+                    f"{_signed(delta)} [{_signed(low)}, {_signed(high)}]"
+                )
+                for delta, low, high in (
+                    (
+                        _cell(ci, "delta_auc", **keys),
+                        _cell(ci, "auc_ci_low", **keys),
+                        _cell(ci, "auc_ci_high", **keys),
+                    ),
+                    (
+                        _cell(ci, "delta_mcc_calibrated", **keys),
+                        _cell(ci, "mcc_calibrated_ci_low", **keys),
+                        _cell(ci, "mcc_calibrated_ci_high", **keys),
+                    ),
+                )
+            ]
 
-            # Without a bound that clears zero there is no winner to name, and
-            # bolding one of the two would assert what the interval denies.
-            if survives:
-                winner = LEARNER if auc_l > auc_r else "persistencia"
-                left = f"**{_num(auc_l)}**" if auc_l > auc_r else _num(auc_l)
-                right = f"**{_num(auc_r)}**" if auc_r > auc_l else _num(auc_r)
-            else:
-                winner = "indistinguible"
-                left, right = _num(auc_l), _num(auc_r)
+            # The floor is bold where it beats the learner and flagged where it
+            # beats persistence, so a reader sees which of the two it overtook.
+            floor = _num(auc_floor)
+            if auc_floor is not None and auc_floor > auc_l:
+                floor = f"**{floor}**"
+            if auc_floor is not None and auc_floor > auc_r:
+                floor += "&nbsp;§"
+
+            outranked = auc_floor is not None and auc_floor > max(auc_l, auc_r)
 
             rows.append([
-                corridor, str(horizon), left, right, band,
-                f"**{_num(mcc_l)}**" if mcc_l > mcc_r else _num(mcc_l),
-                f"**{_num(mcc_r)}**" if mcc_r > mcc_l else _num(mcc_r),
-                winner,
+                corridor, str(horizon),
+                *_pair(
+                    auc_l, auc_r,
+                    decided=bool(_cell(ci, "auc_survives", **keys)) and not outranked,
+                ),
+                floor,
+                bands[0],
+                *_pair(
+                    mcc_l, mcc_r,
+                    decided=bool(_cell(ci, "mcc_calibrated_survives", **keys)),
+                ),
+                bands[1],
             ])
 
     return _render(
-        ["Corredor", "h", f"AUC {LEARNER}", "AUC persist.", "Δ AUC [IC 95 %]",
-         f"MCC recal. {LEARNER}", "MCC recal. persist.", "Gana AUC"],
+        ["Corredor", "h", f"AUC {LEARNER}", "AUC persist.", "Piso posicional",
+         "Δ AUC [IC 95 %]", f"MCC recal. {LEARNER}", "MCC recal. persist.",
+         "Δ MCC [IC 95 %]"],
         rows,
-        aligns="lrrrcrrl",
+        aligns="lrrrrcrrc",
     )
 
 
