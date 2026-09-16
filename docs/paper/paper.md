@@ -959,8 +959,8 @@ El AUC no es la única forma de puntuar sin umbral. El lift de la Sección IV-D
 recorre el mismo ordenamiento, pero pesa más su cabeza, donde caen las posiciones
 que un detector señalaría primero. Los dos coincidieron en las doce celdas: en cada
 una ganó el mismo método. A diez minutos el lift del LSTM valió 1,19 en E2, 1,45
-en E4 y 1,48 en E59, contra 1,08, 1,24 y 1,26 de la persistencia. El veredicto sin
-umbral no depende entonces de cuál de los dos puntajes se use. Con el MCC
+en E4 y 1,48 en E59, contra 1,08, 1,24 y 1,26 de la persistencia. El veredicto
+entre esos dos métodos no depende entonces de cuál de los dos puntajes se use. Con el MCC
 recalibrado el acuerdo baja a once de doce. La excepción es E59 a cinco minutos,
 donde el LSTM gana el AUC y pierde la correlación recalibrada.
 
@@ -991,20 +991,32 @@ La serie azul mide cuánto error absoluto le gana el LSTM a la persistencia, y s
 escala corre por el lado izquierdo. Las dos series que se leen por el lado
 derecho son el área bajo la curva de detección de cada método, invariante a
 cualquier reescalado monótono de lo predicho y por lo tanto inmune al artefacto.
-Las dos fronteras de régimen coinciden, y ninguna serie se acerca al azar.
+Las dos fronteras de régimen coinciden. El piso que acota esas dos series no es
+0,5 sino el perfil posicional de la Sección IV-B, que la Tabla 2 recoge celda por
+celda.
 
 Un AUC por encima de 0,5 no basta, sin embargo, para atribuirle el ordenamiento
 a la anticipación. El perfil posicional de la Sección IV-B lo acota, y su
 respuesta no es la misma en los tres corredores. En E4 y en E59 queda
 indistinguible del azar —entre 0,486 y 0,523 en las ocho celdas—, de modo que el
 ordenamiento del LSTM en esos dos corredores no proviene de la posición: lo
-supera por entre 0,08 y 0,29. En E2 el piso sube a 0,58 y no se mueve con el
-horizonte, señal de que ese corredor sí lleva una estructura posicional estable.
+supera por entre 0,08 y 0,29, y las ocho diferencias sobreviven su intervalo. En
+E2 el piso sube a 0,58 y no se mueve con el horizonte, señal de que ese corredor
+sí lleva una estructura posicional estable.
+
 **A diez minutos en E2 el LSTM queda por debajo de ese piso, 0,565 contra
-0,579**, y ahí la ventaja sin umbral no se sostiene contra un método que no lee
-la ventana de entrada. Es la única de las doce celdas donde ocurre, y es la que
-las Secciones V-C y VII exhiben. El piso también supera a la persistencia en E2
-a cinco y a diez minutos.
+0,579.** La diferencia vale -0,013 [-0,023, -0,003] y sobrevive su intervalo, de
+modo que ahí la ventaja sin umbral no se sostiene contra un método que no lee la
+ventana de entrada. Es la única de las doce celdas donde ocurre, y es la que la
+Sección V-C usa para exhibir el artefacto del umbral. El piso también supera a la
+persistencia en E2 a cinco y a diez minutos, de modo que acota a los dos métodos
+comparados.
+
+Los dos puntajes sin umbral se separan en esa celda. El lift del LSTM valió 1,19
+contra 1,16 del piso, y ese orden es el contrario del que da el área. El piso
+ordena mejor el conjunto y el modelo ordena mejor la cabeza, que es la parte que
+un detector recorre primero. El acuerdo entre los dos puntajes vale entonces para
+el par de la Tabla 2 y no se extiende al piso.
 
 **Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra,
 con el piso del perfil posicional al lado del AUC que acota.
@@ -1052,9 +1064,11 @@ de las doce celdas, y en las otras dos no emitió ninguno.
 
 El mismo ensayo acota una afirmación anterior. Bajo el umbral absoluto la
 capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0,60, y en
-E2 a diez minutos llegó a 0,49, indistinguible del azar. La afirmación de que el
-LSTM no es ciego se sostiene para el evento relativo y falla para el evento
-absoluto en esa celda. La Tabla 3 recoge los tres orígenes y ese ensayo.
+E2 a diez minutos llegó a 0,49, indistinguible del azar. Esa celda ya había
+fallado bajo el evento relativo, contra el perfil posicional de la Sección V-E.
+Las dos definiciones del evento coinciden entonces en ella. La afirmación de que
+el LSTM no es ciego se sostiene fuera de esa celda y no dentro. La Tabla 3 recoge
+los tres orígenes y ese ensayo.
 
 **Tabla 3.** Robustez: los tres orígenes de evaluación y el ensayo con un umbral
 absoluto en minutos.
@@ -1074,7 +1088,7 @@ absoluto en minutos.
 | E59 | 5 | LSTM | LSTM | LSTM | sí | 0,637 |
 | E59 | 10 | LSTM | LSTM | LSTM | sí | 0,616 |
 
-‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y se declara como tal.
+‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y es también la celda que el perfil posicional gana en la Tabla 2.
 
 ### G. Selección de la arquitectura
 
@@ -1180,6 +1194,15 @@ Sección IV-D reporta los tres: el AUC y la precisión promedio miden el
 ordenamiento sin fijar umbral, y el MCC resume el punto de operación ya elegido,
 de modo que responden preguntas distintas y ninguno sustituye al otro.
 
+El piso posicional que acota ese AUC tiene dos límites propios. Se ajusta sobre un
+solo origen anterior, mientras que los veredictos entre métodos se replican sobre
+tres, de modo que su margen descansa en una ventana y no en tres. Y no carece de
+información: puntuar divide por el promedio del vector evaluado, de manera que el
+piso lee qué posiciones ocupó el corredor en ese minuto. Lo que no lee es la
+ventana de entrada, y eso es lo que lo vuelve incapaz de anticipar. Los dos
+métodos que acota leen esa misma composición, de modo que la comparación no le
+concede nada a ninguno.
+
 Las métricas de la Sección IV-D son genéricas y comparables entre corredores, y
 ninguna liga un error de predicción a una decisión de intervención. Un despacho
 necesitaría una función de costo que pondere el aviso perdido contra el aviso
@@ -1203,11 +1226,17 @@ Ese colapso no mide la capacidad del modelo sino el punto de operación en el qu
 se lo evalúa. Puntuada sin fijar un umbral, mediante el AUC, la predicción del
 LSTM ordena mejor que la persistencia en las nueve combinaciones de corredor y
 origen a diez minutos. Esa ventaja se sostiene contra un perfil que solo conoce
-la posición en E4 y en E59, y no en E2 a diez minutos, donde ese perfil ordena
-mejor que el modelo. Recalibrar el umbral sobre un período anterior disjunto
-recupera parte de esa ventaja sin reentrenar. El punto de operación se calcula
-entonces contra la distribución de lo predicho, y no se hereda de las
-observaciones.
+la posición en E4 y en E59. En E59 a diez minutos el área vale 0,632 contra 0,571
+de la persistencia, y las dos quedan por encima del 0,486 de ese perfil; el
+margen del modelo sobre él vale 0,146 y sobrevive su intervalo. Recalibrar el
+umbral sobre un período anterior disjunto recupera parte de esa ventaja sin
+reentrenar. El punto de operación se calcula entonces contra la distribución de
+lo predicho, y no se hereda de las observaciones.
+
+El mismo perfil acota hasta dónde llega la afirmación. En E2 a diez minutos
+ordena mejor que el modelo, y esa es la celda de la que sale el factor de 253:
+allí queda medido el colapso que el umbral trasplantado produce, y no la
+capacidad de anticipación que quedaría al retirarlo.
 
 Tres extensiones quedan abiertas. La primera liga la detección a una función de
 costo que pondere el aviso perdido contra el aviso falso, que la Sección VI

@@ -132,6 +132,104 @@ class TestTheExceptionInE2:
         assert beaten.row(0, named=True)["horizon"] == 10
 
 
+class TestTheFloorIsBoundedLikeEveryOtherVerdict:
+    """Section IV-E defines a verdict as three parts, and the floor owed two.
+
+    ``Un veredicto … consta de tres partes: cuál de los dos gana, por cuánto y
+    si la diferencia sobrevive su prueba``. The floor was published as a bare
+    point estimate, so the manuscript asserted a sign at a resolution finer than
+    every interval it prints — 0,013 against a comparable band of ±0,011. These
+    columns give the floor the same instrument the rest of the table uses.
+    """
+
+    BOUNDED = ("lstm", "persist")
+
+    @pytest.mark.parametrize("model", BOUNDED)
+    def test_each_comparison_against_the_floor_carries_its_interval(
+        self, table, model
+    ):
+        for suffix in ("delta", "ci_low", "ci_high", "survives"):
+            assert f"{model}_vs_null_{suffix}" in table.columns
+
+    @pytest.mark.parametrize("model", BOUNDED)
+    def test_the_interval_brackets_its_own_point_estimate(self, table, model):
+        """A band that excludes the difference it bounds is not that difference."""
+        for row in table.iter_rows(named=True):
+            low, delta, high = (
+                row[f"{model}_vs_null_ci_low"],
+                row[f"{model}_vs_null_delta"],
+                row[f"{model}_vs_null_ci_high"],
+            )
+            assert low <= delta <= high, (row["corridor"], row["horizon"], model)
+
+    @pytest.mark.parametrize("model", BOUNDED)
+    def test_the_point_estimate_is_the_difference_of_the_published_areas(
+        self, table, model
+    ):
+        for row in table.iter_rows(named=True):
+            expected = row[f"auc_{model}"] - row["auc_null"]
+            assert abs(row[f"{model}_vs_null_delta"] - expected) < 1e-9, row
+
+    @pytest.mark.parametrize("model", BOUNDED)
+    def test_survival_is_the_interval_clearing_zero(self, table, model):
+        for row in table.iter_rows(named=True):
+            clears = not (
+                row[f"{model}_vs_null_ci_low"]
+                <= 0.0
+                <= row[f"{model}_vs_null_ci_high"]
+            )
+            assert bool(row[f"{model}_vs_null_survives"]) is clears, row
+
+    def test_the_loss_in_e2_at_ten_minutes_survives_its_interval(self, table):
+        """The concession the manuscript has to make in full.
+
+        A point estimate alone would let the cell be dismissed as noise. It is
+        not: the learner sits below a rule that reads no input window, and the
+        bound says so.
+        """
+        row = table.filter(
+            (pl.col("corridor") == "E2") & (pl.col("horizon") == 10)
+        ).row(0, named=True)
+        assert row["lstm_vs_null_delta"] < 0, row
+        assert row["lstm_vs_null_ci_high"] < 0, row
+        assert row["lstm_vs_null_survives"], row
+
+    def test_the_bootstrap_is_the_one_the_rest_of_the_paper_uses(self, table):
+        """A second resampling convention would make the columns incomparable."""
+        from src.build_detection_ranking_ci import LEVEL, N_BOOT, SEED
+
+        assert (table.get_column("n_boot") == N_BOOT).all()
+        assert (table.get_column("seed") == SEED).all()
+        assert (table.get_column("level") == LEVEL).all()
+
+
+class TestTheHeadOfTheRankingDisagreesWithTheArea:
+    """Two threshold-free scores, and in the disputed cell they part ways.
+
+    Section V-E claims the AUC and the lift agree in all twelve cells. That
+    holds for the learner-persistence pair. Against the floor it fails in E2 at
+    ten minutes, and the manuscript has to report the disagreement rather than
+    the half of it that suits either side.
+    """
+
+    def test_the_learner_clears_the_floor_on_lift_where_it_loses_on_area(
+        self, table
+    ):
+        row = table.filter(
+            (pl.col("corridor") == "E2") & (pl.col("horizon") == 10)
+        ).row(0, named=True)
+        assert row["auc_lstm"] < row["auc_null"], row
+        assert row["ap_lift_lstm"] > row["ap_lift_null"], row
+
+    def test_the_floor_still_outranks_persistence_on_both_scores_there(self, table):
+        """The floor indicts the winner the transplanted threshold crowned."""
+        row = table.filter(
+            (pl.col("corridor") == "E2") & (pl.col("horizon") == 10)
+        ).row(0, named=True)
+        assert row["auc_null"] > row["auc_persist"], row
+        assert row["ap_lift_null"] > row["ap_lift_persist"], row
+
+
 class TestTheDocumentDeclaresTheFloor:
     """A floor computed and not reported is worse than never computing it."""
 
@@ -148,3 +246,23 @@ class TestTheDocumentDeclaresTheFloor:
         """The sentence that costs the showcase cell. Its absence is the
         selective-reporting failure this whole file exists to prevent."""
         assert "0,579" in paper
+
+    def test_the_paper_bounds_that_exception(self, table, paper):
+        """Reporting the sign without the bound is the defect Section IV-E names."""
+        row = table.filter(
+            (pl.col("corridor") == "E2") & (pl.col("horizon") == 10)
+        ).row(0, named=True)
+        band = "{:+.3f} [{:+.3f}, {:+.3f}]".format(
+            row["lstm_vs_null_delta"],
+            row["lstm_vs_null_ci_low"],
+            row["lstm_vs_null_ci_high"],
+        ).replace(".", ",")
+        assert band in paper, band
+
+    def test_the_paper_reports_the_lift_of_the_floor(self, table, paper):
+        """Publishing the score that loses and withholding the one that wins is
+        selective reporting, whichever direction it favours."""
+        row = table.filter(
+            (pl.col("corridor") == "E2") & (pl.col("horizon") == 10)
+        ).row(0, named=True)
+        assert f"{row['ap_lift_null']:.2f}".replace(".", ",") in paper
