@@ -738,3 +738,87 @@ Ciclo del CFP: someter 25 ago 2026 → notificación 15 sep → publicación 30 
 > y el rolling origin van **al frente como contribuciones metodológicas
 > explícitas**, porque acá son diferenciadores, no higiene. Y agregar la
 > declaración de disponibilidad de datos/código que ninguno de los ocho tiene.
+
+---
+
+## 8. Fuentes verificadas el 2026-09-17
+
+Cinco búsquedas en paralelo sobre web, OpenAlex, arXiv y Crossref, más lectura
+directa de tres PDF. Esta sección **corrige dos entradas anteriores** y habilita
+cuatro citas nuevas.
+
+### 8.1 Correcciones a lo que este archivo afirmaba
+
+| Entrada previa | Qué decía | Qué dice la fuente |
+|---|---|---|
+| §1, fila «Reversión al puntuar sin umbral (ROC)» → *ya tomada por Sun et al. 2021* | Que Sun et al. reportan una reversión del veredicto entre métodos al puntuar sin umbral | **Falso.** Su Tabla 5 tiene **una sola columna de AUC**, la de LOGR. LR y SVM no tienen AUC y no pueden tenerla: *"For headway-based methods, only one combination of sensitivity and specificity is derived, as headway prediction produces an exact value for each headway"*. Su comparación sin umbral es geométrica —punto contra curva— y **confirma** el veredicto: *"the two headway-based methods (LR and SVM) generally fall below and sometimes on the LOGR curve"*. La inversión real del paper es entre **LOGR-N y LOGR-A**, dos puntos de operación fijos. **La novedad estaba libre y se había cedido por mala lectura.** |
+| §C1, tabla de reglas, fila Yu et al. 2016 → *«¼ del headway programado … relativa al horario»* | Que Yu umbraliza contra el horario | **Falso.** Yu p. 50: *"this study uses the headway at the first stop as the ''scheduled'' headway"*, porque *"It cannot provide a fixed timetable … most route schedules change over time"*. Su Ec. (13) es h_i < h_1/4 con h_1 **observado**. ⚠️ Su Conclusión (p. 58) dice *"thresholding the predicted headway with the planned bus schedule"* y **contradice su propia §4.3**: citar p. 50, nunca p. 58. |
+
+Dos precisiones más sobre **Sun et al. 2021**, ambas a favor:
+
+- **Sí reportan volumen de alarma.** Su Tabla 4 lleva columna de *predicted
+  positives* junto a *observed positives*: día 1, LR emite 238 avisos (161 TP,
+  77 FP) y LOGR-A emite 462; día 2 LOGR-A emite 611 contra 384 eventos reales.
+  Es **precedente de la práctica**, no hueco. (Yu y Jiao sí es cierto que no la
+  reportan: verificado por lectura completa de ambos.)
+- **Su umbral de 1 minuto sale del horario:** *"The scheduled headway varies from
+  hour to hour, and the mean scheduled headway at the initial stop is 6.97min…
+  Based on this, 1min is used for the bunching threshold"*. **Todos** los umbrales
+  publicados rastrean a un horario.
+- **No declaran sobre qué datos ajustaron el corte.** Cero apariciones de
+  `validation` en 29 páginas; solo 5 días de entrenamiento y 5 de prueba.
+  Afirmar la **ausencia** de ventana disjunta, nunca la fuga.
+- ⚠️ El PDF del repo es el **preprint sin maquetar**: sus páginas no son las de
+  *JITS* 25(4):384–400. No citar números de página de ese archivo.
+
+### 8.2 Citas nuevas habilitadas
+
+| Fuente | ID | Estado | Qué establece |
+|---|---|---|---|
+| **Andres & Nair (2017)**, *TR-B* 104:123–148 | doi:`10.1016/j.trb.2017.06.013` | `[TEXTO COMPLETO]` — `docs/paper/papers/andres2017.pdf` | **Definieron nuestra Ecuación (2).** §3: *"The **space-based headway** h_n,s … is defined as the difference between their arrival times a_n−1,s and a_n,s at s"*; *"The **continuous-time headway** h_n(t) … is defined as h_n(t) := h_n,d_n(t), where d_n(t) denotes the **offset distance** of bus n at time t"*, y añaden *"defined similar to Pilachowski (2009)"*. La **predicen como serie temporal** *"instead of predicting arrival times at stops as an intermediate step"*, comparando regresión lineal, kernel, redes neuronales y autorregresivos; su resultado es nulo: *"the simple linear-regression method performs similarly to the more advanced techniques"*. **Lo que los separa de nosotros:** Apéndice A, *"The second set contains **General Transit Feed Specification Reference (GTFS)** data and provides infrastructure data of the transit system like **stop locations and schedules**"* y *"Computing offsets by **projecting coordinates to a shape**"*. Proyectan contra una traza dada; nosotros la ajustamos. Predicen **una serie por par** (escalar, no vector) y **no umbralizan**. 🎁 Su §5.3.2 declara abierta nuestra dificultad: *"it might be **difficult to assign to a bus its preceding and succeeding buses only using the GPS data** due to data noise and the fact that **buses of the same route might be operated on different shapes**"* |
+| **He (2020)** | arXiv:`2006.08700`; versión de revista *Comput. Ind. Eng.* doi:`10.1016/j.cie.2019.106237` | `[TEXTO COMPLETO]` (arXiv) | **El denominador del evento ya existe, como objetivo de control.** *"For a high-frequency bus line **without any pre-specified schedule or headway**, we need to find some criterion to decide on the specific holding time… H(t) = Σ h_b(t) / n_B, where h_b(t) is the time headway of bus b to its nearest leading bus at time t"*. Define además una desviación dentro del instante. **Nunca lo usa para definir el evento que se predice.** ⚠️ No confundir con el *dynamic threshold* de Rossetti & Turitto (1998), que es criterio de retención |
+| **Green, Abdallah & Silva Filho (2026)** | arXiv:`2606.04342` | `[TEXTO COMPLETO]` (fetch) | **El mecanismo general, enunciado, y en seis dominios incluido tráfico.** *"MSE-optimal predictions computed over multiple instances fail to match the target's marginal variability across instances: the predictive marginal variance drops below the true marginal variance"*. Cuantifica un compromiso exactitud–realismo (≤5 % de MSE compra ~17 % de realismo marginal). **No lo conecta con detección por umbral y no discute cuantil contra relativo.** Es el precedente general más cercano y se detiene un paso antes: omitirlo regala la objeción más fácil |
+| **Rezazada, Nassir, Tanin & Ceder (2024)**, *Transport Reviews* | doi:`10.1080/01441647.2024.2313969` | `[TEXTO COMPLETO]` — vía Minerva Access, `hdl:11343/352221` | Ya citada como `@rezazada2024`; ahora leída entera. **El «umbral variable» no nos contradice:** *"Typically, this threshold ranges from 20 s to ¼ of the planned headways. However, some recent works suggest a **variable threshold**, which considers the service type, real-time information, and passenger demand. … For instance, **Gong et al. (2020)** considered the **temporal variability and service type**"*. Cita un solo ejemplo y varía por **estrato**, no dentro de la instancia: no se comprime con la predicción |
+| **Byon, Cortés, Jeong, Martínez, Munizaga & Zúñiga (2017)**, *Int. J. Civ. Eng.* | doi:`10.1007/s40999-017-0153-3` | `[TEXTO COMPLETO]` — `docs/paper/papers/byon2017.pdf` | **NO es precedente, pese al «raw GPS» de su resumen.** Su eje espacial **es la lista de paradas**: Fig. 6, *"Discretized distance – represented by a bus stop"*, *"(Stop Spacing)"*. Búsqueda de `shape`, `shapefile`, `route geometry`, `centerline`, `map-match` → **0 apariciones**. Evento del horario: *"Bunching occurs when headways between consecutive buses become smaller than **scheduled headways**"*, con 29 menciones de *scheduled headway*. Índices retrospectivos (IPH, IPO, PRDM); **no predice** |
+
+### 8.3 Contexto verificado que no se cita todavía
+
+| Fuente | ID | Estado | Para qué sirve |
+|---|---|---|---|
+| Usama & Koutsopoulos (2025) | arXiv:`2510.03121` | `[TEXTO COMPLETO]` (fetch) | Predice el vector completo (64 tramos × 2 sentidos × 15 pasos), **pérdida MSE**, y evalúa **solo con RMSE, R² y mapas de calor**. Nunca convierte a evento ni compara dispersiones. Tiene el defecto adentro y las métricas ciegas a él |
+| Nguyen & Li (2025) | arXiv:`2510.09350` | `[TEXTO COMPLETO]` (fetch) | **El único caso verificado de vector de red → evento binario → precisión/recall/F1** (0,6229 / 0,4572 / 0,5274). Y su titular es nuestra disociación en sentido contrario: el modelo *"is challenged on pure error metrics (MAE) by a simpler Persistence baseline"* pero *"achieves consistently higher precision in classifying delay events"*. ⚠️ Es **retraso ferroviario** con umbral «retraso > 0»: absoluto y trivial, no relativo a la instancia |
+| Quek, Chung, Saw & Chew (2020) | arXiv:`2004.13022`, Apéndice A | `[TEXTO COMPLETO]` (fetch) | Ajusta el eje desde la nube de puntos GPS sin mapa: *"A smooth line fitted along the scattered coordinates traces out the bus route… These points are used to transform the 2-D spatial coordinates into a 1-D path"*, con resolución derivada de los datos (7,9 m). Marca **las 12 paradas a mano**, es simulación/control y **no predice** |
+| Bapaume, Côme, Ameli, Roos & Oukhellou (2023), *TR-C* 152:104195 | doi:`10.1016/j.trc.2023.104195` | `[ABSTRACT]` | Línea de metro entera como **imagen**, predicción por *inpainting*, U-transformer, tres años de la Línea 9 de París, *"forecast all the desired future train loads simultaneously"*. Es el análogo más cercano a la formulación vectorial. **Muro de pago: método y métricas sin verificar** |
+
+### 8.4 Negativos con conteo, para el contraste de §II-D
+
+Consultas sobre OpenAlex (título+resumen) salvo donde se indica:
+
+| Consulta | Resultados |
+|---|---|
+| `"bus bunching"` | 368 |
+| `"informal transit" AND headway` | **0** |
+| `matatu AND headway` | **0** |
+| `paratransit AND bunching` | **1** (capítulo genérico) |
+| `"bus route" AND "centerline" AND GPS` | **0** |
+| `"transit" AND "route geometry" AND "inference"` | **0** |
+| `"arc length" AND bus AND GPS AND headway` | **0** |
+| `headway AND "map inference"` | **0** |
+| `"virtual stop" AND headway` | **0** |
+| `headway AND "checkpoint" AND bus` | **0** |
+| `"headway" AND "multi-horizon"` | **0** |
+| `bus AND headway`, afiliación Perú | **0** |
+
+Filtrar las 368 de `"bus bunching"` por términos de transporte informal deja
+**cero**. Los dos papers insignia de inferencia de mapas (Kharita, arXiv:`1702.06025`;
+COLTRANE, arXiv:`1909.11048`) **no contienen ni una vez** `bus`, `transit`,
+`headway` ni `bunching`: las dos literaturas no se citan.
+
+⚠️ **Dos advertencias de redacción, ambas de la búsqueda:**
+
+1. **No escribir «schedule-free» como descriptor de datos.** Sánchez-Martínez,
+   Koutsopoulos & Wilson (2016), doi:`10.1007/s12469-016-0129-8`, tienen ese
+   término para un paradigma de **control** en tiempo real.
+2. **No reclamar «primeros en calcular headway desde GPS».** Byon et al. dicen
+   *"raw GPS"* en su resumen. El reclamo necesita los calificadores de
+   **geometría desconocida** y **predicción**.
