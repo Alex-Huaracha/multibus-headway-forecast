@@ -264,7 +264,11 @@ excursiones laterales de buses aislados. La secuencia de medianas se suaviza y
 queda ordenada de un extremo del corredor al otro. Solo entran los registros de
 buses que superan los 10 km/h: un bus detenido emite muchos registros en un mismo
 punto, y los terminales y los semáforos desplazarían el eje hacia donde los buses
-esperan.
+esperan. Ajustar el eje desde la nube de registros tiene precedente: Quek y
+colaboradores trazan la ruta con una línea suavizada sobre las coordenadas
+dispersas, y la usan para pasar de dos dimensiones a una [@quek2020]. Ese trabajo
+marca las paradas a mano y simula estrategias de control, de modo que no llega a
+predecir nada.
 
 **2) La proyección a una dimensión.** Un par de coordenadas no ordena a los
 buses: con latitud y longitud no hay respuesta a cuál de dos va por delante, y el
@@ -1525,6 +1529,10 @@ no. 1, pp. 1–17, 2012, doi: 10.1080/07350015.2012.634337.
 
 `[@rodrigues2022]` F. Rodrigues, "On the importance of stationarity, strong
 baselines and benchmarks in transport prediction problems," arXiv:2203.02954, 2022.
+
+`[@quek2020]` W. L. Quek, N. N. Chung, V.-L. Saw, and L. Y. Chew, "Analysis and
+simulation of intervention strategies against bus bunching by means of an
+empirical agent-based model," arXiv:2004.13022, 2020.
 
 `[@rezazada2024]` M. Rezazada, N. Nassir, E. Tanin, and A. Ceder, "Bus bunching: a
 comprehensive review from demand, supply, and decision-making perspectives,"
