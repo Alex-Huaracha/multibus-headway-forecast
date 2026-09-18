@@ -152,8 +152,7 @@ umbral.
 > ya abreviada. Si el planteo del problema nombra el manual antes, el desarrollo
 > se mueve allí y la viñeta pasa a usar la sigla.
 
-**C. Contribuciones** — ✅ **ESCRITA.** Cierra la sección, como exige el cuarto
-elemento del flujo de la Sección 4 de `reglas-redaccion.md`. Situación,
+**C. Contribuciones** — ✅ **ESCRITA.** Cierra la sección. Situación,
 complicación y pregunta siguen pendientes.
 
 **D. Estructura** — Un párrafo, no una lista.
@@ -166,7 +165,7 @@ complicación y pregunta siguen pendientes.
 (2016) da la formulación canónica; la Tabla 1 de Santos et al. (2022) muestra que
 ninguno de los ocho trabajos que resume puntúa el ordenamiento sin umbral;
 Manibardo et al. (2022) acota lo que vale la primera etapa. Título anterior, «La
-receta estándar», retirado por metáfora (Sección 4 de `reglas-redaccion.md`).
+receta estándar», retirado por metáfora (Sección 5 de `reglas-redaccion.md`).
 
 **B. Compresión de la dispersión de la predicción** — ✅ **ESCRITA.** Mayer y Yang
 la enuncian y la cuantifican; el Corolario 2 de Patton y Timmermann la ordena por

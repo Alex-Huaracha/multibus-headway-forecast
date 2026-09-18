@@ -4,7 +4,7 @@ Registro de los nombres fijados para cada objeto técnico del manuscrito, con la
 cuenta de usos verificada sobre `paper.md` y el nombre que le corresponde al
 traducir.
 
-Existe porque `reglas-redaccion.md` §4 obliga a un nombre por objeto pero no dice
+Existe porque `reglas-redaccion.md` §5 obliga a un nombre por objeto pero no dice
 cuál. Los defectos que se corrigieron no fueron términos mal elegidos: en seis
 casos el nombre correcto ya estaba escrito en el paper —`historial`,
 `orígenes de evaluación`, `coordenada`, `denominador`, `coincidir`, `celda`— y se
