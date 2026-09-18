@@ -43,6 +43,7 @@ The four tests that carry the finding:
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 os.environ.setdefault("POLARS_MAX_THREADS", "1")
@@ -404,7 +405,9 @@ class TestTheDocumentReportsTheExperiment:
 
     @pytest.fixture(scope="class")
     def paper(self) -> str:
-        return self.PAPER.read_text(encoding="utf-8").replace("\r\n", "\n")
+        # Whitespace collapsed: these guards assert what the paper states, not
+        # where its lines happen to wrap.
+        return re.sub(r"\s+", " ", self.PAPER.read_text(encoding="utf-8"))
 
     def test_it_names_the_three_denominators(self, paper):
         """``promedio``, not ``media``: Section III-C already named that object."""

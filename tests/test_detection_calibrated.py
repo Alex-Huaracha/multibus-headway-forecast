@@ -23,6 +23,7 @@ correction cannot silently rot back into the original claim:
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 os.environ.setdefault("POLARS_MAX_THREADS", "1")
@@ -327,7 +328,10 @@ class TestThePaperReportsBothInstrumentsSymmetrically:
 
     @pytest.fixture(scope="class")
     def paper(self) -> str:
-        return self.PAPER.read_text(encoding="utf-8")
+        # Whitespace collapsed: these guards assert what the paper states, not
+        # where its lines happen to wrap. A phrase the paper does state must not
+        # fail because a reflow moved a line break into the middle of it.
+        return re.sub(r"\s+", " ", self.PAPER.read_text(encoding="utf-8"))
 
     @pytest.fixture(scope="class")
     def intervals(self) -> pl.DataFrame:
@@ -377,4 +381,4 @@ class TestThePaperReportsBothInstrumentsSymmetrically:
                 (merged["f1_calibrated"] > merged["trivial_f1"]).sum()
             )
         assert f"en {counts['LSTM']} de las 12 celdas" in paper, counts
-        assert f"la\npersistencia en {counts['Persistence']}" in paper, counts
+        assert f"la persistencia en {counts['Persistence']}" in paper, counts

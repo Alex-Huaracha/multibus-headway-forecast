@@ -35,6 +35,7 @@ across twelve cells whose ratios span an order of magnitude.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 os.environ.setdefault("POLARS_MAX_THREADS", "1")
@@ -144,7 +145,9 @@ class TestTheDocumentDeclaresWhatTheModelExplains:
 
     @pytest.fixture(scope="class")
     def paper(self) -> str:
-        return self.PAPER.read_text(encoding="utf-8").replace("\r\n", "\n")
+        # Whitespace collapsed: these guards assert what the paper states, not
+        # where its lines happen to wrap.
+        return re.sub(r"\s+", " ", self.PAPER.read_text(encoding="utf-8"))
 
     def test_the_paper_reports_the_widest_and_the_narrowest_share(self, table):
         """Both ends, so the range cannot be read as uniformly good or bad."""

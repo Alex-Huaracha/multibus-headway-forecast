@@ -30,6 +30,7 @@ advantage was positional bookkeeping.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 os.environ.setdefault("POLARS_MAX_THREADS", "1")
@@ -237,7 +238,9 @@ class TestTheDocumentDeclaresTheFloor:
 
     @pytest.fixture(scope="class")
     def paper(self) -> str:
-        return self.PAPER.read_text(encoding="utf-8")
+        # Whitespace collapsed: these guards assert what the paper states, not
+        # where its lines happen to wrap.
+        return re.sub(r"\s+", " ", self.PAPER.read_text(encoding="utf-8"))
 
     def test_the_paper_names_the_positional_floor(self, paper):
         assert "perfil posicional" in paper
