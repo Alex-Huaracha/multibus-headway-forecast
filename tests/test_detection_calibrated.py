@@ -342,7 +342,7 @@ class TestThePaperReportsBothInstrumentsSymmetrically:
                 f"{row['delta_mcc_calibrated']:+.3f} "
                 f"[{row['mcc_calibrated_ci_low']:+.3f}, "
                 f"{row['mcc_calibrated_ci_high']:+.3f}]"
-            ).replace(".", ",")
+            )
             assert printed in paper, (
                 f"{row['corridor']} h={row['horizon']}: {printed} is not in the "
                 "paper"

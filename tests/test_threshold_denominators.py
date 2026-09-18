@@ -416,13 +416,13 @@ class TestTheDocumentReportsTheExperiment:
     def test_it_prints_the_three_firing_medians(self, table, paper):
         for rule in RULES:
             median = float(_lstm(table, rule).get_column("rate_ratio").median())
-            printed = f"{median:.3f}".replace(".", ",")
+            printed = f"{median:.3f}"
             assert printed in paper, (rule, printed)
 
     def test_it_prints_the_mcc_the_rank_rule_recovers(self, table, paper):
         for rule in ("pred_mean", "rank"):
             median = float(_lstm(table, rule).get_column("mcc").median())
-            printed = f"{median:.3f}".replace(".", ",")
+            printed = f"{median:.3f}"
             assert printed in paper, (rule, printed)
 
     def test_it_reports_the_quota_rounding(self, table, paper):
@@ -431,7 +431,7 @@ class TestTheDocumentReportsTheExperiment:
         """
         published = _lstm(table, "pred_mean").get_column("base_rate").to_numpy()
         rank = _lstm(table, "rank").get_column("base_rate").to_numpy()
-        printed = f"{100.0 * (rank - published).max():.1f}".replace(".", ",")
+        printed = f"{100.0 * (rank - published).max():.1f}"
         assert printed in paper, printed
 
     def test_it_reports_the_limit_and_not_only_the_recovery(self, paper):

@@ -66,7 +66,7 @@ class TestAblationRows:
         """Averaging the three rows would report 4.0 here, not 4.0 by luck."""
         frame = _frame(_full("E2", 10, (4.0, 5.0, 6.0)))
         rows = ablation_rows(frame, corridors=("E2",), horizons=(10,))
-        assert rows[0][2:5] == ["4,000", "5,000", "6,000"]
+        assert rows[0][2:5] == ["4.000", "5.000", "6.000"]
 
     def test_one_row_per_corridor_and_horizon(self) -> None:
         cells = []
@@ -81,7 +81,7 @@ class TestAblationRows:
     def test_the_spread_is_the_widest_gap_of_the_row(self) -> None:
         frame = _frame(_full("E2", 10, (4.0, 4.25, 4.1)))
         rows = ablation_rows(frame, corridors=("E2",), horizons=(10,))
-        assert rows[0][5] == "0,250"
+        assert rows[0][5] == "0.250"
 
     def test_a_missing_architecture_is_refused(self) -> None:
         cells = _full("E2", 10, (4.0, 4.1, 4.2))
@@ -116,5 +116,5 @@ class TestTabla6:
         )
         table = tabla_6()
         for row in pooled.iter_rows(named=True):
-            printed = f"{row['value']:.3f}".replace(".", ",")
+            printed = f"{row['value']:.3f}"
             assert printed in table, f"{row['corridor']} h{row['horizon']} missing"

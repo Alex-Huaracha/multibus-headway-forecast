@@ -125,7 +125,7 @@ class TestTabla5:
             ),
         )
 
-        assert "0,125" in build_paper_tables.tabla_5()
+        assert "0.125" in build_paper_tables.tabla_5()
 
     def test_matches_the_committed_probe(self) -> None:
         """Section III-A quotes these eight figures; the CSV owns them.
@@ -136,12 +136,12 @@ class TestTabla5:
         table = build_paper_tables.tabla_5()
 
         # The adopted definition: the two dimensions that decided the discards.
-        assert "0,313" in table and "0,603" in table
-        assert "0,358" in table and "1,256" in table
+        assert "0.313" in table and "0.603" in table
+        assert "0.358" in table and "1.256" in table
         # Virtual points on the axis, discarded on autocorrelation.
-        assert "0,167" in table and "-0,005" in table
+        assert "0.167" in table and "-0.005" in table
         # Forward projection, discarded on neighbour mutual information.
-        assert "0,226" in table and "0,326" in table
+        assert "0.226" in table and "0.326" in table
 
     def test_carries_the_four_candidates(self) -> None:
         table = build_paper_tables.tabla_5()

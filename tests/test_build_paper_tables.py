@@ -91,7 +91,7 @@ class TestTablaDosPrintsWhatItsSourcesPublished:
         }
         for row in _load("positional_null.csv").iter_rows(named=True):
             key = (row["corridor"], row["horizon"])
-            assert printed[key] == f"{row['auc_null']:.3f}".replace(".", ","), key
+            assert printed[key] == f"{row['auc_null']:.3f}", key
 
     def test_every_interval_is_the_one_the_bootstrap_published(self, rows) -> None:
         printed = {(cells[0], int(cells[1])): (cells[5], cells[8]) for cells in rows}
@@ -113,4 +113,4 @@ class TestTablaDosPrintsWhatItsSourcesPublished:
                     figure = f"{row[column]:+.3f}"
                     if float(figure) == 0.0:
                         figure = f"{0.0:.3f}"
-                    assert figure.replace(".", ",") in band, (key, column)
+                    assert figure in band, (key, column)

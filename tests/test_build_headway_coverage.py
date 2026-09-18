@@ -136,7 +136,7 @@ class TestTabla4:
             ),
         )
 
-        assert "12,5 %" in build_paper_tables.tabla_4()
+        assert "12.5 %" in build_paper_tables.tabla_4()
 
     def test_matches_the_committed_counts(self) -> None:
         """The manuscript quotes these three figures; the CSV owns them.
@@ -146,6 +146,6 @@ class TestTabla4:
         """
         table = build_paper_tables.tabla_4()
 
-        assert "| E2 |" in table and "63,5 %" in table
-        assert "| E4 |" in table and "64,8 %" in table
-        assert "| E59 |" in table and "77,1 %" in table
+        assert "| E2 |" in table and "63.5 %" in table
+        assert "| E4 |" in table and "64.8 %" in table
+        assert "| E59 |" in table and "77.1 %" in table

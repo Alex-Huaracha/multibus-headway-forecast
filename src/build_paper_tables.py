@@ -57,9 +57,9 @@ HORIZONS = (1, 3, 5, 10)
 LEARNER = "LSTM"
 RIVAL = "Persistence"
 
-# Spanish decimal comma: the draft is written in Spanish and translated at the
-# end. `_num` is the single place that has to change for the English pass.
-DECIMAL_SEP = ","
+# Decimal point, the convention of the final English document. Keeping it in the
+# Spanish draft avoids converting every figure at translation time.
+DECIMAL_SEP = "."
 
 
 def _load(name: str) -> pl.DataFrame:
@@ -93,7 +93,7 @@ def _factor(ratio: float | None) -> str:
 def _signed(value: float | None, places: int = 3) -> str:
     """A difference always carries its sign, so a column of them reads at a glance.
 
-    Except when it rounds to zero: "-0,000" asserts a direction the rounding has
+    Except when it rounds to zero: "-0.000" asserts a direction the rounding has
     already thrown away.
     """
     if value is None:

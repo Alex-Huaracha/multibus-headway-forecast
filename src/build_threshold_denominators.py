@@ -350,7 +350,7 @@ def main() -> None:
             )
 
     agreement = threshold_free_agreement(table)
-    print("\nMediana de la razon disparo/evento (1,0 = dispara tan seguido como ocurre)")
+    print("\nMediana de la razon disparo/evento (1.0 = dispara tan seguido como ocurre)")
     for rule in RULES:
         lstm = table.filter((pl.col("rule") == rule) & (pl.col("model") == "LSTM"))
         persist = table.filter(

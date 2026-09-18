@@ -115,7 +115,7 @@ class TestCompressionTracksTheError:
         paper = (REPO_ROOT / "docs" / "paper" / "paper.md").read_text(
             encoding="utf-8"
         )
-        printed = f"{table.get_column('r_identity')[0]:.3f}".replace(".", ",")
+        printed = f"{table.get_column('r_identity')[0]:.3f}"
         assert printed in paper, printed
 
     def test_the_gap_left_by_dropping_the_covariance_is_small(self, table):
@@ -156,7 +156,7 @@ class TestTheDocumentDeclaresWhatTheModelExplains:
         """With the unit attached, so the figure cannot pass by coincidence."""
         share = table.get_column("explained")
         for value in (share.min(), share.max()):
-            printed = "{:.1f} %".format(100.0 * value).replace(".", ",")
+            printed = "{:.1f} %".format(100.0 * value)
             assert printed in paper, printed
 
     def test_the_paper_names_the_threat_the_identity_answers(self, paper):

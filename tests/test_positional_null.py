@@ -245,7 +245,7 @@ class TestTheDocumentDeclaresTheFloor:
     def test_the_paper_declares_the_e2_exception(self, paper):
         """The sentence that costs the showcase cell. Its absence is the
         selective-reporting failure this whole file exists to prevent."""
-        assert "0,579" in paper
+        assert "0.579" in paper
 
     def test_the_paper_bounds_that_exception(self, table, paper):
         """Reporting the sign without the bound is the defect Section IV-E names."""
@@ -256,7 +256,7 @@ class TestTheDocumentDeclaresTheFloor:
             row["lstm_vs_null_delta"],
             row["lstm_vs_null_ci_low"],
             row["lstm_vs_null_ci_high"],
-        ).replace(".", ",")
+        )
         assert band in paper, band
 
     def test_the_paper_reports_the_lift_of_the_floor(self, table, paper):
@@ -265,4 +265,4 @@ class TestTheDocumentDeclaresTheFloor:
         row = table.filter(
             (pl.col("corridor") == "E2") & (pl.col("horizon") == 10)
         ).row(0, named=True)
-        assert f"{row['ap_lift_null']:.2f}".replace(".", ",") in paper
+        assert f"{row['ap_lift_null']:.2f}" in paper
