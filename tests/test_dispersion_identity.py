@@ -20,6 +20,12 @@ That relation holding cell by cell is what distinguishes the theorem operating
 from an artifact: an artifact of the corpus has no reason to track the error term
 across twelve cells whose ratios span an order of magnitude.
 
+A second reading is available to the reviewer once the first is closed: that the
+compression is a habit of recurrent networks rather than of forecasts fitted by
+squared error. The decomposition therefore runs over both forecasters the paper
+publishes, scored on the same vectors, and the manuscript rests on the two agreeing
+rather than on the one it happens to feature.
+
 ``TestTheIdentityIsAlgebra``
     The three terms close exactly. If this fails the columns are wrong, not the
     finding.
@@ -27,6 +33,10 @@ across twelve cells whose ratios span an order of magnitude.
 ``TestCompressionTracksTheError``
     The result the manuscript rests on. The measured ratio follows the error term
     alone, so the compression is not free to be whatever the corpus makes it.
+
+``TestTheCompressionIsNotTheArchitecture``
+    The answer to 'this is a pathology of your LSTM'. A recurrent network and a
+    boosted-tree ensemble share no inductive bias, and they compress alike.
 
 ``TestTheDocumentDeclaresWhatTheModelExplains``
     The uncomfortable half of the same table, pinned so it cannot quietly leave
@@ -46,7 +56,9 @@ import pytest  # noqa: E402
 
 from src.build_contiguous_significance import CORRIDORS, HORIZONS  # noqa: E402
 from src.build_dispersion_identity import (  # noqa: E402
+    MODELS,
     OUT_CSV,
+    PUBLISHED_MODEL,
     SCORING_ORIGIN,
     build,
 )
@@ -62,14 +74,45 @@ def table() -> pl.DataFrame:
 
 
 class TestTableShape:
-    def test_one_row_per_cell(self, table):
-        expected = len(CORRIDORS) * len(HORIZONS)
+    def test_one_row_per_cell_and_model(self, table):
+        expected = len(MODELS) * len(CORRIDORS) * len(HORIZONS)
         assert table.height == expected
-        assert table.unique(subset=["corridor", "horizon"]).height == expected
+        assert table.unique(subset=["model", "corridor", "horizon"]).height == expected
+
+    def test_both_forecasters_cover_the_same_cells(self, table):
+        """A model missing a cell would let the agreement be an artifact of
+        which cells each one happens to be scored on."""
+        cells = {
+            name: set(
+                table.filter(pl.col("model") == name)
+                .select("corridor", "horizon")
+                .iter_rows()
+            )
+            for name in MODELS
+        }
+        assert len(set(map(frozenset, cells.values()))) == 1, cells
+
+    def test_the_featured_model_is_one_of_the_two(self):
+        assert PUBLISHED_MODEL in MODELS
 
     def test_it_is_scored_where_the_rest_of_the_verdicts_are(self):
         """A different origin would make these columns incomparable with §V."""
         assert SCORING_ORIGIN == "main"
+
+    def test_the_two_forecasters_are_scored_on_the_same_vectors(self, table):
+        """The comparison is a paired one, so it owes the same population.
+
+        Section IV-C fixes one sample population and the manuscript's own
+        contract requires every A-beats-B claim to trace to identical samples.
+        An unequal vector count here would mean the two ratios are averages over
+        different corpora.
+        """
+        for corridor in CORRIDORS:
+            for horizon in HORIZONS:
+                cell = table.filter(
+                    (pl.col("corridor") == corridor) & (pl.col("horizon") == horizon)
+                )
+                assert cell.get_column("n_vectors").n_unique() == 1, cell
 
 
 class TestTheIdentityIsAlgebra:
@@ -94,30 +137,38 @@ class TestTheIdentityIsAlgebra:
 class TestCompressionTracksTheError:
     """The answer to 'this is just your noisy corpus'."""
 
-    def test_the_measured_ratio_follows_the_error_term(self, table):
+    @pytest.mark.parametrize("model", MODELS)
+    def test_the_measured_ratio_follows_the_error_term(self, table, model):
         """One number predicts the compression of all twelve cells.
 
-        The ratios span 0,04 to 0,56 across the corpus. A preprocessing artifact
+        The ratios span 0.04 to 0.56 across the corpus. A preprocessing artifact
         has no reason to move with the error term over that range.
         """
-        measured = table.get_column("ratio_measured").to_numpy()
-        identity = table.get_column("explained").to_numpy()
+        cell = table.filter(pl.col("model") == model)
+        measured = cell.get_column("ratio_measured").to_numpy()
+        identity = cell.get_column("explained").to_numpy()
         assert np.corrcoef(measured, identity)[0, 1] > 0.95
 
-    def test_the_correlation_travels_in_the_table(self, table):
+    @pytest.mark.parametrize("model", MODELS)
+    def test_the_correlation_travels_in_the_table(self, table, model):
         """The manuscript quotes it, so it needs a source of truth to quote."""
-        column = table.get_column("r_identity")
+        cell = table.filter(pl.col("model") == model)
+        column = cell.get_column("r_identity")
         assert column.n_unique() == 1
-        measured = table.get_column("ratio_measured").to_numpy()
-        identity = table.get_column("explained").to_numpy()
+        measured = cell.get_column("ratio_measured").to_numpy()
+        identity = cell.get_column("explained").to_numpy()
         assert abs(column[0] - np.corrcoef(measured, identity)[0, 1]) < 1e-9
 
-    def test_the_paper_prints_that_correlation(self, table):
+    @pytest.mark.parametrize("model", MODELS)
+    def test_the_paper_prints_that_correlation(self, table, model):
+        """Both, because publishing only the featured one would leave the
+        agreement between architectures unsourced."""
         paper = (REPO_ROOT / "docs" / "paper" / "paper.md").read_text(
             encoding="utf-8"
         )
-        printed = f"{table.get_column('r_identity')[0]:.3f}"
-        assert printed in paper, printed
+        row = table.filter(pl.col("model") == model)
+        printed = f"{row.get_column('r_identity')[0]:.3f}"
+        assert printed in paper, (model, printed)
 
     def test_the_gap_left_by_dropping_the_covariance_is_small(self, table):
         """How far the forecast sits from a conditional mean, in the same units."""
@@ -129,13 +180,81 @@ class TestCompressionTracksTheError:
         explains, and the corpus would be doing work the theorem does not."""
         assert (table.get_column("gap_no_cov") >= 0.0).all()
 
-    def test_compression_deepens_with_the_horizon_in_every_corridor(self, table):
+    @pytest.mark.parametrize("model", MODELS)
+    def test_compression_deepens_with_the_horizon_in_every_corridor(
+        self, table, model
+    ):
         """Corollary 2 read on this axis: longer horizon, larger error, less
         surviving spread."""
         for corridor in CORRIDORS:
-            cell = table.filter(pl.col("corridor") == corridor).sort("horizon")
+            cell = table.filter(
+                (pl.col("model") == model) & (pl.col("corridor") == corridor)
+            ).sort("horizon")
             ratios = cell.get_column("ratio_measured").to_list()
-            assert ratios == sorted(ratios, reverse=True), (corridor, ratios)
+            assert ratios == sorted(ratios, reverse=True), (model, corridor, ratios)
+
+
+class TestTheCompressionIsNotTheArchitecture:
+    """The answer to 'this is a pathology of your LSTM'.
+
+    A recurrent network and a boosted-tree ensemble share no inductive bias and
+    no optimizer. What they share is a squared-error objective, which is what the
+    corollary is about. If the compression were a habit of the architecture, the
+    two would not land on the same curve.
+    """
+
+    @pytest.mark.parametrize("model", MODELS)
+    def test_every_cell_compresses_under_both_forecasters(self, table, model):
+        cell = table.filter(pl.col("model") == model)
+        assert cell.height == len(CORRIDORS) * len(HORIZONS)
+        assert (cell.get_column("ratio_measured") < 1.0).all(), cell
+
+    def test_the_two_forecasters_compress_alike_cell_by_cell(self, table):
+        """Not the same number — the same ordering across an order of magnitude.
+
+        The claim is that the compression is a property of the objective, so the
+        cell where one forecaster keeps the most spread has to be the cell where
+        the other one does too.
+        """
+        pair = (
+            table.filter(pl.col("model") == MODELS[0])
+            .select("corridor", "horizon", "ratio_measured")
+            .join(
+                table.filter(pl.col("model") == MODELS[1]).select(
+                    "corridor", "horizon", pl.col("ratio_measured").alias("other")
+                ),
+                on=["corridor", "horizon"],
+            )
+        )
+        assert pair.height == len(CORRIDORS) * len(HORIZONS)
+        correlation = np.corrcoef(
+            pair.get_column("ratio_measured").to_numpy(),
+            pair.get_column("other").to_numpy(),
+        )[0, 1]
+        assert correlation > 0.90, correlation
+
+    def test_the_identity_holds_for_both_and_not_only_the_featured_one(self, table):
+        """If it held for one architecture alone the decomposition would be
+        describing that model, not the objective it was fitted with."""
+        for model in MODELS:
+            r = table.filter(pl.col("model") == model).get_column("r_identity")[0]
+            assert r > 0.95, (model, r)
+
+    def test_the_paper_states_that_both_architectures_compress(self, table):
+        """A measurement taken and left out of the document does not answer the
+        objection it was taken to answer."""
+        paper = re.sub(
+            r"\s+",
+            " ",
+            (REPO_ROOT / "docs" / "paper" / "paper.md").read_text(encoding="utf-8"),
+        )
+        assert "XGBoost" in paper
+        worst = (
+            table.filter(pl.col("model") != PUBLISHED_MODEL)
+            .sort("ratio_measured")
+            .row(0, named=True)
+        )
+        assert f"{worst['ratio_measured']:.3f}" in paper, worst
 
 
 class TestTheDocumentDeclaresWhatTheModelExplains:
@@ -151,13 +270,13 @@ class TestTheDocumentDeclaresWhatTheModelExplains:
 
     def test_the_paper_reports_the_widest_and_the_narrowest_share(self, table):
         """Both ends, so the range cannot be read as uniformly good or bad."""
-        share = table.get_column("explained")
+        share = table.filter(pl.col("model") == PUBLISHED_MODEL).get_column("explained")
         assert share.min() < 0.05
         assert share.max() > 0.45
 
     def test_the_paper_prints_both_ends_as_percentages(self, table, paper):
         """With the unit attached, so the figure cannot pass by coincidence."""
-        share = table.get_column("explained")
+        share = table.filter(pl.col("model") == PUBLISHED_MODEL).get_column("explained")
         for value in (share.min(), share.max()):
             printed = "{:.1f} %".format(100.0 * value)
             assert printed in paper, printed
