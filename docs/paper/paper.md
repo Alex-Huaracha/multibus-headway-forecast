@@ -148,9 +148,9 @@ análisis que los entrena, y reporta que sus campos salen con energía espectral
 deficiente: *«they consistently show reduced forecast variability at smaller
 (sub-synoptic, mesoscale) spatial scales»* [@bonavita2024]. El eje de la
 dispersión ahí es el espacio y no el tiempo, de modo que la cantidad que la
-Sección V-C mide sobre el vector de headways tiene precedente como cantidad. Lo
+Sección V-B mide sobre el vector de headways tiene precedente como cantidad. Lo
 que no encontramos es esa medición sobre el vector de headways de un corredor, ni
-un control que separe la compresión del resto del procedimiento; la Sección V-C
+un control que separe la compresión del resto del procedimiento; la Sección V-B
 usa la persistencia para eso.
 
 El daño de esa compresión sobre una regla de umbral ya se documentó fuera del
@@ -274,10 +274,10 @@ o adelantar a otro no se resuelve en ese plazo; ese horizonte entra como
 referencia del régimen donde repetir el último vector observado es difícil de
 superar, y es la condición que Manibardo, Laña y Del Ser describen
 [@manibardo2022]. El margen de maniobra empieza hacia los cinco minutos, de modo
-que las afirmaciones operativas de la Sección V-I se leen sobre los horizontes
+que las afirmaciones operativas de la Sección V-G se leen sobre los horizontes
 de cinco y diez. Conservar el de un minuto es lo que permite situar a los otros
 tres: sin él no se observa dónde cambia de dueño el veredicto ni desde dónde se
-profundiza la compresión que mide la Sección V-C. El vector no tiene longitud
+profundiza la compresión que mide la Sección V-B. El vector no tiene longitud
 fija, porque $N$ varía minuto a minuto. El modelo emite entonces una
 salida de longitud fija y el error se computa solo sobre las posiciones donde hay
 bus. **El objetivo que se minimiza es el error cuadrático**, promediado sobre esas
@@ -399,7 +399,7 @@ $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los umbrales que resultan
 de aplicar $\rho$ al vector observado y al vector predicho. El denominador de Yu y
 colaboradores no tiene esa propiedad: es observado, de modo que no se mueve con la
-predicción. Eso no lo pone a salvo, y la Sección V-H mide cuánto de la diferencia
+predicción. Eso no lo pone a salvo, y la Sección V-G mide cuánto de la diferencia
 le corresponde. Las Figuras 1 y 2 lo muestran con el mismo headway de dos minutos.
 
 ![Corredor irregular](figuras/bunching/with_bunching.png)
@@ -586,9 +586,8 @@ corredor: en E2, el sentido de ida cubre 57.8 % y el de vuelta 70.5 %.
 ### B. Métodos comparados
 
 Se comparan cuatro métodos sobre las mismas muestras, y cada uno cumple un papel
-distinto. El método bajo estudio es una red recurrente (**LSTM**); la Sección V-A
-contrasta esa elección contra dos arquitecturas que modelan la relación entre
-posiciones vecinas del vector. Un conjunto de árboles con refuerzo de gradiente
+distinto. El método bajo estudio es una red recurrente (**LSTM**), elegida contra dos
+arquitecturas que modelan la relación entre posiciones vecinas del vector. Un conjunto de árboles con refuerzo de gradiente
 (**XGBoost**) [@chen2016] actúa como **control de arquitectura**: si reproduce el patrón del LSTM, ese patrón
 no proviene del aprendizaje profundo sino del objetivo de la Ecuación (2). Los dos
 restantes no ajustan parámetros y fijan el error de referencia. La **persistencia**
@@ -629,6 +628,47 @@ minuto. Cuanto ordene ese perfil es la parte del ordenamiento que la posición
 explica por sí sola. Se ajusta sobre el período de prueba del origen 2 y se
 aplica al del origen 3, los mismos dos períodos que la Sección IV-D usa para el
 umbral y por la misma razón.
+
+La elección de esa red se resolvió antes de fijar el protocolo de esta sección,
+de modo que sus cifras se leen unas contra otras y no contra las del resto del
+documento. Las dos arquitecturas contrastadas modelan la relación entre
+posiciones vecinas: una convolución que combina cada posición con sus dos
+contiguas, y una atención que pondera todas las posiciones entre sí. Esa
+relación es la estructura que una predicción vectorial podría aprovechar.
+
+Las tres quedaron dentro de un rango de 0.017 a 0.074 minutos en las doce celdas,
+y ninguna quedó primera en las doce. La Tabla 1 las recoge. Modelar la relación
+entre posiciones vecinas no movió el error escalar, de modo que el trabajo
+continuó con la más simple de las tres.
+
+Ese resultado nulo tiene compañía, aunque ninguno de los precedentes mide la
+relación entre posiciones de un mismo vector. Rodrigues
+reporta que un modelo de patrón semanal con regresión lineal iguala a métodos
+de aprendizaje profundo espacio-temporales y supera a varios basados en redes de
+grafos [@rodrigues2022]. Advierte a la vez que la correlación espacial no debe
+descartarse, sobre todo a horizontes cortos. Boudabbous y colaboradores encuentran
+que una red recurrente supera a dos transformadores entre 18 y 52 % con 275 veces
+menos parámetros, sobre la red de Montreal y contra arquitecturas que operan sobre
+el tiempo [@boudabbous2026]. Ninguno de los dos releva a la Tabla 1 de su propia
+
+**Tabla 1.** Error absoluto medio de las tres arquitecturas contrastadas antes de
+fijar el protocolo de esta sección. La última columna es la diferencia entre la
+mayor y la menor de cada fila.
+
+| Corredor | h | LSTM | SpatialConvLSTM | SpatialTransformer | Rango |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| E2 | 1 | 4.464 | 4.464 | 4.482 | 0.018 |
+| E2 | 3 | 4.916 | 4.916 | 4.936 | 0.020 |
+| E2 | 5 | 5.040 | 5.037 | 5.075 | 0.038 |
+| E2 | 10 | 5.128 | 5.123 | 5.142 | 0.019 |
+| E4 | 1 | 3.774 | 3.811 | 3.833 | 0.059 |
+| E4 | 3 | 4.679 | 4.698 | 4.754 | 0.074 |
+| E4 | 5 | 5.014 | 5.054 | 5.086 | 0.072 |
+| E4 | 10 | 5.348 | 5.367 | 5.380 | 0.032 |
+| E59 | 1 | 3.334 | 3.329 | 3.350 | 0.021 |
+| E59 | 3 | 3.847 | 3.847 | 3.883 | 0.036 |
+| E59 | 5 | 4.029 | 4.037 | 4.051 | 0.022 |
+| E59 | 10 | 4.224 | 4.239 | 4.222 | 0.017 |
 
 ### C. Protocolo de evaluación
 
@@ -795,63 +835,17 @@ sin ningún trigger no recibe intervalo: no hay precisión que acotar.
 
 ## V. Resultados y discusión
 
-Esta sección contrasta primero las tres arquitecturas ensayadas y reporta
-después el error escalar del vector y la frontera de régimen que lo acota: el
-punto a partir del cual el LSTM pasa a ganar. Mide luego la dispersión
-transversal de lo predicho, la detección con el umbral del evento observado y el
-comportamiento del factor entre los tres orígenes. Sigue con la detección
-puntuada sin umbral y con el umbral recalibrado, los ensayos de robustez frente
-al origen y a la definición del evento, y el contraste entre tres reglas del
-evento. Cierra con las implicaciones operativas.
+Esta sección reporta primero el error escalar del vector y la frontera de régimen
+que lo acota. Mide después la dispersión transversal de lo predicho y la
+detección que resulta de trasladar a esa dispersión el umbral del evento
+observado. Sigue con la detección puntuada sin umbral, con el piso que acota ese
+puntaje y con los ensayos de robustez frente al origen y a la definición del
+evento. Cierra contrastando tres reglas del evento y las implicaciones
+operativas de ese contraste.
 
-### A. Selección de la arquitectura
+### A. Error escalar de referencia
 
-Antes de fijar el protocolo de la Sección IV, tres arquitecturas se contrastaron
-entre sí sobre los mismos datos. Por eso sus cifras se leen unas contra otras y no
-contra las del resto de la Sección V. La primera es el LSTM que este trabajo
-lleva, que recibe el vector aplanado. Las otras dos modelan la relación entre
-posiciones vecinas: una convolución que combina cada posición con sus dos
-contiguas, y una atención que pondera todas las posiciones entre sí. Esa relación
-es la estructura que una predicción vectorial podría aprovechar.
-
-Las tres quedaron dentro de un rango de 0.017 a 0.074 minutos en las doce celdas,
-y ninguna quedó primera en las doce. La Tabla 1 las recoge. Modelar la relación
-entre posiciones vecinas no movió el error escalar, de modo que el trabajo
-continuó con la más simple de las tres.
-
-Ese resultado nulo tiene compañía, aunque ninguno de los precedentes mide la
-relación entre posiciones de un mismo vector. Rodrigues
-reporta que un modelo de patrón semanal con regresión lineal iguala a métodos
-de aprendizaje profundo espacio-temporales y supera a varios basados en redes de
-grafos [@rodrigues2022]. Advierte a la vez que la correlación espacial no debe
-descartarse, sobre todo a horizontes cortos. Boudabbous y colaboradores encuentran
-que una red recurrente supera a dos transformadores entre 18 y 52 % con 275 veces
-menos parámetros, sobre la red de Montreal y contra arquitecturas que operan sobre
-el tiempo [@boudabbous2026]. Ninguno de los dos releva a la Tabla 1 de su propia
-limitación, que la Sección VI declara.
-
-**Tabla 1.** Error absoluto medio de las tres arquitecturas contrastadas antes de
-fijar el protocolo de la Sección IV. La última columna es la diferencia entre la
-mayor y la menor de cada fila.
-
-| Corredor | h | LSTM | SpatialConvLSTM | SpatialTransformer | Rango |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| E2 | 1 | 4.464 | 4.464 | 4.482 | 0.018 |
-| E2 | 3 | 4.916 | 4.916 | 4.936 | 0.020 |
-| E2 | 5 | 5.040 | 5.037 | 5.075 | 0.038 |
-| E2 | 10 | 5.128 | 5.123 | 5.142 | 0.019 |
-| E4 | 1 | 3.774 | 3.811 | 3.833 | 0.059 |
-| E4 | 3 | 4.679 | 4.698 | 4.754 | 0.074 |
-| E4 | 5 | 5.014 | 5.054 | 5.086 | 0.072 |
-| E4 | 10 | 5.348 | 5.367 | 5.380 | 0.032 |
-| E59 | 1 | 3.334 | 3.329 | 3.350 | 0.021 |
-| E59 | 3 | 3.847 | 3.847 | 3.883 | 0.036 |
-| E59 | 5 | 4.029 | 4.037 | 4.051 | 0.022 |
-| E59 | 10 | 4.224 | 4.239 | 4.222 | 0.017 |
-
-### B. Error escalar y su frontera de régimen
-
-Con la arquitectura de la Sección V-A ya fijada, el error escalar del vector sitúa
+Con la arquitectura de la Sección IV-B ya fijada, el error escalar del vector sitúa
 a ese modelo contra la persistencia. A diez minutos de anticipación, el LSTM
 predijo el headway entre buses
 mejor que la persistencia. El error absoluto medio bajó 1.47 minutos en E2, 1.38
@@ -879,9 +873,9 @@ estrechó entonces a medida que el horizonte crecía. En E2 el LSTM le ganó por
 de las doce celdas donde el promedio histórico ganó, y es la razón de que a
 horizonte largo el competidor exigente sea él y no la persistencia.
 
-### C. Compresión de la dispersión transversal
+### B. Compresión de la dispersión transversal
 
-El error escalar de la Sección V-B no dice nada sobre la forma del vector. El
+El error escalar de la Sección V-A no dice nada sobre la forma del vector. El
 coeficiente de variación de la Ecuación (10) sí. Medido sobre lo observado, fue de
 0.79 en E2. Medido sobre lo que el modelo predijo para el mismo instante y el mismo
 corredor a diez minutos, fue de
@@ -893,15 +887,11 @@ negativo —lo predicho siempre más regular que la realidad— en
 ordenada a medida que se alarga el horizonte: en E2 pasó de −0.42 a un minuto a
 −0.63 a diez. No hubo una sola excepción en los tres corredores.
 
-Dos comparaciones acotan de qué depende el efecto. La primera identifica la causa
-por descarte: la persistencia no comprimió nada. Su sesgo se mantuvo dentro de
-±0.022 en las doce celdas y los tres orígenes, porque propaga el vector observado y
-hereda su dispersión sin traducción. Es el control del experimento, y sitúa el
-efecto en el acto de **emitir una predicción puntual**, no en los datos ni en el
-corredor. La segunda
-descarta la arquitectura: el XGBoost comprimió igual que la red en E2, y
-las dos curvas se superponen. En los otros dos corredores comprimió **más** que
-ella, con un sesgo de −0.46 contra −0.35 en E59 a diez minutos.
+La persistencia identifica la causa por descarte: no comprimió nada. Su sesgo se
+mantuvo dentro de ±0.022 en las doce celdas y los tres orígenes, porque propaga el
+vector observado y hereda su dispersión sin traducción. Es el control del
+experimento, y sitúa el efecto en el acto de **emitir una predicción puntual**, no
+en los datos ni en el corredor.
 
 La descomposición de la varianza ata ese efecto a una sola cantidad. Medida entre
 las posiciones de un mismo vector, la dispersión observada se reparte entre la que
@@ -909,9 +899,12 @@ sobrevive, el error de predicción y la covarianza de ambos. Sin ese último
 término, la fracción que sobrevive queda fijada por el tamaño del error respecto
 de la dispersión observada. La razón medida sigue a esa predicción con una
 correlación de 0.993 sobre las doce celdas, cuyas razones van de 0.05 a 0.55. El
-mismo reparto entrega la otra lectura de la medición: la parte de la dispersión
-dentro del vector que el modelo reproduce cae de 49.5 % en E4 a un minuto hasta
-1.3 % en E2 a diez.
+XGBoost quedó sobre esa misma relación y sobre esos mismos vectores, con una correlación
+de 0.996 y una fracción superviviente de hasta 0.040: dos arquitecturas sin sesgo
+inductivo en común, un solo objetivo de ajuste. El mismo reparto entrega la otra
+lectura de la medición: la
+parte de la dispersión dentro del vector que el modelo reproduce cae de 49.5 % en
+E4 a un minuto hasta 1.3 % en E2 a diez.
 
 La consecuencia práctica se aprecia al leer esas cifras contra la escala de nivel
 de servicio del TCQSM [@tcqsm2003]. El manual indexa sus bandas
@@ -936,7 +929,7 @@ y sirve de control. Los dos modelos ajustados la comprimen.
 cero; los dos modelos ajustados descienden de forma monótona. La compresión escala con la
 distancia que se pide anticipar.
 
-### D. Colapso de la detección al trasladar el umbral
+### C. Colapso de la detección al trasladar el umbral
 
 La regla de la Sección III-C, aplicada a lo observado, marcó 15 245 eventos en E2
 a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo umbral,
@@ -947,13 +940,13 @@ exactamente cero en tres de las doce celdas: ahí no emitió ninguno. La Tabla 2
 recoge las doce celdas.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
-fenómeno que se le pidió anticipar. Hay tres motivos para desconfiar de esa
+fenómeno que se le pidió anticipar. Hay cuatro motivos para desconfiar de esa
 lectura. El primero es que el ganador declarado tampoco detectó bien. El detector
 trivial de la Sección IV-D superó a la
 persistencia en 5 de las doce celdas, y en 15 de las 36 combinaciones de celda y
 origen.
 
-El segundo es el mecanismo de la Sección V-C. El umbral se mide contra el promedio
+El segundo es el mecanismo de la Sección V-B. El umbral se mide contra el promedio
 del propio vector evaluado. Si el vector predicho es más regular que la realidad, sus
 headways se apartan menos de su propio promedio, y el umbral deja de alcanzarse
 casi siempre. La regla registra entonces una dispersión insuficiente para alcanzar
@@ -966,6 +959,20 @@ de precisión contra una tasa base de 30 %. El intervalo de la Sección IV-E va 
 no un valor. Las celdas con más triggers lo estrechan. A diez minutos el modelo
 acertó 776 de 1 572 triggers en E59, con precisión entre 47 % y 52 % contra una
 tasa base de 21 %. En E4 acertó 75 de 150, entre 42 % y 58 % contra 18 %.
+
+El cuarto es que el factor no se sostiene al cambiar el origen. Si midiera una
+capacidad del modelo, debería ser aproximadamente estable entre ellos. En diez de las doce
+celdas lo es: entre el primer origen y el tercero varía entre 0.90 y 1.58. Las
+dos excepciones están en E2. A cinco minutos el factor valió **126** en el primer
+origen, **58** en el segundo y **36** en el tercero. A diez minutos valió
+**2 299**, **817** y **253**.
+
+Esas dos son las celdas donde el umbral trasplantado dejó al detector casi sin
+triggers: su F1 cayó a 0.011 y 0.001 en la Tabla 2. Un cociente cuyo denominador
+se acerca a cero no mide una capacidad del sistema evaluado, sino la interacción
+entre el umbral y la distribución sobre la que cayó. La observación no depende de
+qué modelo se use ni de cuál de los tres orígenes se mida. Depende de que el umbral
+se haya trasladado entre dos distribuciones con dispersión distinta.
 
 ![Tasa de trigger contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
@@ -994,23 +1001,7 @@ relativo le queda en la cola.
 
 † La regla vacía —un trigger en toda posición— supera al ganador declarado en estas celdas.
 
-### E. Estabilidad del factor entre orígenes
-
-Si el factor de 253 de la Sección V-D midiera una capacidad del modelo, debería
-ser aproximadamente estable al cambiar el origen de evaluación. En diez de las doce
-celdas lo es: entre el primer origen y el tercero varía entre 0.90 y 1.58. Las
-dos excepciones están en E2. A cinco minutos el factor valió **126** en el primer
-origen, **58** en el segundo y **36** en el tercero. A diez minutos valió
-**2 299**, **817** y **253**.
-
-Esas dos son las celdas donde el umbral trasplantado dejó al detector casi sin
-triggers: su F1 cayó a 0.011 y 0.001 en la Tabla 2. Un cociente cuyo denominador
-se acerca a cero no mide una capacidad del sistema evaluado, sino la interacción
-entre el umbral y la distribución sobre la que cayó. La observación no depende de
-qué modelo se use ni de cuál de los tres orígenes se mida. Depende de que el umbral
-se haya trasladado entre dos distribuciones con dispersión distinta.
-
-### F. Detección sin umbral y con umbral recalibrado
+### D. Detección sin umbral
 
 Si el problema es el umbral, recalibrarlo debería bastar. Se aplicó
 entonces la recalibración de la Sección IV-D, sin tocar el modelo. Elegir el MCC y
@@ -1026,22 +1017,19 @@ combinaciones de corredor y origen a diez minutos**, y en 6 de las 12 celdas del
 origen 3. Las nueve diferencias de diez minutos sobrevivieron su intervalo, y van
 de 0.033 a 0.061. De las seis celdas restantes del origen 3, dos no lo
 sobrevivieron: E59 a tres minutos y E4 a cinco, cuyos intervalos en la Tabla 3
-contienen al cero. Recalibrar el umbral en lugar de eliminarlo lo mueve menos: con el
-MCC recalibrado el LSTM ganó en 5 de las 12 celdas, entre ellas las tres de diez
-minutos, si bien la de E4 no resiste su propio intervalo. La persistencia conservó
-la ventaja en el horizonte de un minuto, donde el error escalar también la
-favorecía en E4 y E59, y esa ventaja sobrevivió su intervalo en los tres
-corredores y los tres orígenes.
+contienen al cero. Recalibrar el umbral en lugar de eliminarlo lo mueve menos: el LSTM ganó en 5 de
+las 12 celdas, entre ellas las tres de diez minutos, si bien la de E4
+no resiste su propio intervalo. La persistencia conservó la ventaja a un minuto,
+donde el error escalar también la favorecía, en los tres corredores y los tres
+orígenes.
 
-Recalibrar el umbral tampoco pone a los dos métodos por encima del piso del
-detector trivial que la Tabla 2 exige. Medido con el F1 sobre el punto de
-operación ya reajustado, el LSTM supera ese piso en 9 de las 12 celdas y la
-persistencia en 7. Las que ninguno de los dos supera son las tres de E2 desde los
-tres minutos en adelante, y la razón es la tasa base: con el 30 % de las
-posiciones marcadas, marcarlas todas alcanza un F1 de 0.46, que ninguno de los
-dos detectores calibrados iguala. El piso no distingue entre ellos, de modo que
-no invierte ningún veredicto de la Tabla 3; lo que acota es hasta dónde llega el
-punto de operación recalibrado en el corredor de mayor prevalencia.
+Recalibrar tampoco pone a los dos métodos por encima del piso del detector
+trivial que la Tabla 2 exige. Con el F1 sobre el punto de operación reajustado,
+el LSTM supera ese piso en 9 de las 12 celdas y la
+persistencia en 7. Las tres que ninguno supera son las de E2 desde los tres
+minutos, y la razón es la tasa base: con el 30 % de las posiciones marcadas,
+marcarlas todas alcanza un F1 de 0.46. El piso no distingue entre ellos, de modo
+que no invierte ningún veredicto de la Tabla 3.
 
 El AUC no es la única forma de puntuar sin umbral. El lift de la Sección IV-D
 recorre el mismo ordenamiento, pero pesa más su cabeza, donde caen las posiciones
@@ -1069,7 +1057,7 @@ arquitectura. Entre las dos figuras cambió el umbral de la Ecuación (5). La
 Figura 7 lo hereda de lo observado y la Figura 8 lo elimina; la columna del MCC
 recalibrado de la Tabla 3 lo reajusta contra lo predicho. Como ninguna otra cosa
 varió, ninguna otra cosa explica el cambio de conteo, y el umbral queda
-identificado como la variable que producía el veredicto. La Sección V-I recoge lo
+identificado como la variable que producía el veredicto. La Sección V-G recoge lo
 que sigue de esto para quien opera.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
@@ -1082,29 +1070,6 @@ cualquier reescalado monótono de lo predicho y por lo tanto inmune al artefacto
 Las dos fronteras de régimen coinciden. El piso que acota esas dos series no es
 0.5 sino el perfil posicional de la Sección IV-B, que la Tabla 3 recoge celda por
 celda.
-
-Un AUC por encima de 0.5 no basta, sin embargo, para atribuirle el ordenamiento
-a la anticipación. El perfil posicional de la Sección IV-B lo acota, y su
-respuesta no es la misma en los tres corredores. En E4 y en E59 queda
-indistinguible del azar —entre 0.486 y 0.523 en las ocho celdas—, de modo que el
-ordenamiento del LSTM en esos dos corredores no proviene de la posición: lo
-supera por entre 0.08 y 0.29, y las ocho diferencias sobreviven su intervalo. En
-E2 el piso sube a 0.58 y no se mueve con el horizonte, señal de que ese corredor
-sí lleva una estructura posicional estable.
-
-**A diez minutos en E2 el LSTM queda por debajo de ese piso, 0.565 contra
-0.579.** La diferencia vale -0.013 [-0.023, -0.003] y sobrevive su intervalo, de
-modo que ahí la ventaja sin umbral no se sostiene contra un método que no lee la
-ventana de entrada. Es la única de las doce celdas donde ocurre, y es la que la
-Sección V-D usa para exhibir el artefacto del umbral. El piso también supera a la
-persistencia en E2 a cinco y a diez minutos, de modo que acota a los dos métodos
-comparados.
-
-Los dos puntajes sin umbral se separan en esa celda. El lift del LSTM valió 1.19
-contra 1.16 del piso, y ese orden es el contrario del que da el área. El piso
-ordena mejor el conjunto y el modelo ordena mejor la cabeza, que es la parte que
-un detector recorre primero. El acuerdo entre los dos puntajes vale entonces para
-el par de la Tabla 3 y no se extiende al piso.
 
 **Tabla 3.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra,
 con el piso del perfil posicional al lado del AUC que acota.
@@ -1132,9 +1097,34 @@ donde la ventaja del LSTM no resiste su intervalo aunque sí resista la del AUC.
 § El piso posicional supera a la persistencia en estas celdas, y al LSTM en la
 de diez minutos. La negrita compara los dos métodos entre sí y no contra el piso.
 
-### G. Robustez frente al origen y a la definición del evento
+### E. El piso posicional y su excepción
 
-El veredicto sin umbral de la Sección V-F no depende del origen calendario. Los
+El AUC de la Sección V-D no basta por sí solo para atribuirle el ordenamiento
+a la anticipación. El perfil posicional de la Sección IV-B lo acota, y su
+respuesta no es la misma en los tres corredores. En E4 y en E59 queda
+indistinguible del azar —entre 0.486 y 0.523 en las ocho celdas—, de modo que el
+ordenamiento del LSTM en esos dos corredores no proviene de la posición: lo
+supera por entre 0.08 y 0.29, y las ocho diferencias sobreviven su intervalo. En
+E2 el piso sube a 0.58 y no se mueve con el horizonte, señal de que ese corredor
+sí lleva una estructura posicional estable.
+
+**A diez minutos en E2 el LSTM queda por debajo de ese piso, 0.565 contra
+0.579.** La diferencia vale -0.013 [-0.023, -0.003] y sobrevive su intervalo, de
+modo que ahí la ventaja sin umbral no se sostiene contra un método que no lee la
+ventana de entrada. Es la única de las doce celdas donde ocurre, y es la que la
+Sección V-C usa para exhibir el artefacto del umbral. El piso también supera a la
+persistencia en E2 a cinco y a diez minutos, de modo que acota a los dos métodos
+comparados.
+
+Los dos puntajes sin umbral se separan en esa celda. El lift del LSTM valió 1.19
+contra 1.16 del piso, y ese orden es el contrario del que da el área. El piso
+ordena mejor el conjunto y el modelo ordena mejor la cabeza, que es la parte que
+un detector recorre primero. El acuerdo entre los dos puntajes vale entonces para
+el par de la Tabla 3 y no se extiende al piso.
+
+### F. Robustez frente al origen y a la definición del evento
+
+El veredicto sin umbral de la Sección V-D no depende del origen calendario. Los
 tres orígenes coincidieron en 11 de las 12 celdas, y a diez minutos coincidieron
 en las nueve combinaciones de corredor y origen. El primero de los tres cubre del
 23 de diciembre al 13 de enero. Ese acuerdo incluye entonces el período de
@@ -1153,7 +1143,7 @@ de las doce celdas, y en las otras dos no emitió ninguno.
 El mismo ensayo acota una afirmación anterior. Bajo el umbral absoluto la
 capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0.60, y en
 E2 a diez minutos llegó a 0.49, indistinguible del azar. Esa celda ya había
-fallado bajo el evento relativo, contra el perfil posicional de la Sección V-F.
+fallado bajo el evento relativo, contra el perfil posicional de la Sección V-E.
 Las dos definiciones del evento coinciden entonces en ella. La afirmación de que
 el LSTM no es ciego se sostiene fuera de esa celda y no dentro. La Tabla 4 recoge
 los tres orígenes y ese ensayo.
@@ -1178,9 +1168,9 @@ absoluto en minutos.
 
 ‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y es también la celda que el perfil posicional gana en la Tabla 3.
 
-### H. Contraste de tres reglas del evento
+### G. Qué propiedad de la regla deja pasar la compresión
 
-El ensayo de la Sección V-G cambió el umbral y no cambió el resultado, de modo
+El ensayo de la Sección V-F cambió el umbral y no cambió el resultado, de modo
 que queda sin responder qué propiedad de la regla deja pasar la compresión. La
 regla de la Sección III-C divide por el promedio del vector predicho, que se mueve
 con la predicción. Se la contrastó con otras dos sobre la misma población y el
@@ -1212,11 +1202,11 @@ Bajo la regla de cuota el mismo par valió 2.76 y 6.82 minutos. La regla sin
 denominador sube su propio umbral hasta donde quedó la distribución comprimida, y
 la distancia que sube crece con el horizonte en los tres corredores. Un umbral en
 minutos no puede seguirla, porque su valor no depende de la escala de lo que
-evalúa. La compresión de la Sección V-C alcanza entonces a toda regla que nombre
+evalúa. La compresión de la Sección V-B alcanza entonces a toda regla que nombre
 una cantidad de minutos, y no queda contenida en la que divide por lo predicho.
 
 La consecuencia está en el veredicto. Las mismas residuales dan un veredicto sin
-umbral en la Sección V-F, y las tres reglas se contrastan contra él. La regla de
+umbral en la Sección V-D, y las tres reglas se contrastan contra él. La regla de
 cuota lo reproduce en **once** de las doce celdas; la de denominador observado en
 siete y la de la Sección III-C en seis. Bajo esta última la persistencia ganó las
 doce, que es lo que hizo leer el colapso como ceguera del modelo. La única celda
@@ -1225,7 +1215,7 @@ tres reglas con sus medianas y ese conteo de coincidencias.
 
 La regla de cuota no convierte al modelo en mejor detector. Su MCC tuvo mediana
 **0.199** contra **0.100** bajo la regla de la Sección III-C, y la superó en las
-doce celdas. Esa mediana iguala a la del umbral recalibrado de la Sección V-F, que
+doce celdas. Esa mediana iguala a la del umbral recalibrado de la Sección V-D, que
 vale 0.198, y la regla de cuota no ajusta ningún parámetro sobre una ventana
 anterior. Aun así **sigue por debajo de la persistencia** en siete de las doce.
 Las cinco que gana son las tres de E2 desde los tres minutos, y las de diez
@@ -1251,11 +1241,10 @@ horizonte.
 
 ‡ Vale uno por construcción y no por medición: la cantidad de posiciones marcadas queda fijada antes de leer los valores.
 
-### I. Implicaciones operativas
-
-El resultado operativo no es que el modelo detecte mejor. Es que **emitió pocos
+Reparar la regla cambia también lo que el resultado ofrece a quien opera. Ese
+resultado no es que el modelo detecte mejor. Es que **emitió pocos
 triggers y acertó en ellos**, y el F1 de la Ecuación (11) combina esas dos
-propiedades en un solo número. La Sección V-D reporta los conteos: catorce en E2 a diez
+propiedades en un solo número. La Sección V-C reporta los conteos: catorce en E2 a diez
 minutos, y en ese horizonte la precisión quedó por encima de la tasa base en los
 tres corredores, con su intervalo al lado. Esa lectura describe el umbral
 trasplantado, y recalibrarlo deshace su primera mitad: el detector recalibrado
@@ -1284,7 +1273,7 @@ afirmación de detección es entonces el evento así definido, y sobre las posic
 que resolvieron: la tasa base que se reporta no admite comparación directa con
 tasas de bunching medidas sobre registros sin enmascarar.
 
-La compresión de la Sección V-C admite una lectura que apunta al ruido de medición
+La compresión de la Sección V-B admite una lectura que apunta al ruido de medición
 y no a la predicción. El eje del corredor se estima de los registros y el sentido
 de marcha se infiere del signo del arco. Un error de medición entra entonces en el
 error de predicción y agranda la compresión, sin decir nada sobre la predicción
@@ -1310,7 +1299,7 @@ hereda la suya en dos de los tres corredores. Eso acota una comparación y solo
 una: donde el LSTM queda por detrás del XGBoost, la diferencia no es atribuible a
 la clase de modelo. Los otros dos métodos no ajustan nada, de modo que el error de
 referencia que fijan no depende de esa asimetría. El contraste de arquitecturas
-de la Sección V-A tampoco está nivelado con el resto, porque precede al protocolo
+de la Sección IV-B tampoco está nivelado con el resto, porque precede al protocolo
 de la Sección IV y no se rehízo después.
 
 La elección de métricas tiene además una disputa abierta. Chicco y Jurman
