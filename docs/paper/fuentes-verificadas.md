@@ -822,3 +822,24 @@ COLTRANE, arXiv:`1909.11048`) **no contienen ni una vez** `bus`, `transit`,
 2. **No reclamar «primeros en calcular headway desde GPS».** Byon et al. dicen
    *"raw GPS"* en su resumen. El reclamo necesita los calificadores de
    **geometría desconocida** y **predicción**.
+
+## 9. Fuentes verificadas el 2026-09-19 — el pipeline del Apéndice A
+
+Las cuatro leídas de primera mano desde sus PDF en `docs/paper/papers/`,
+descargados y verificados ese día (título y primera página cotejados contra el
+archivo). Habilitan la reescritura del Apéndice A, sección A al formato
+decisión → razón → cita.
+
+### 9.1 Citas nuevas habilitadas
+
+| Fuente | ID | Estado | Qué establece |
+|---|---|---|---|
+| **Byon, Cortés, Jeong, Martínez, Munizaga & Zúñiga (2017)**, *Bunching and Headway Adherence Approach to Public Transport with GPS*, Int J Civ Eng | doi:`10.1007/s40999-017-0153-3` | `[TEXTO COMPLETO]` — `byon2017.pdf` | **La forma del pipeline tiene precedente en journal.** Resumen: *"conducts current-status analysis on distributions of headways throughout a route in Santiago by processing extensive raw GPS data from transit vehicles"*; §5: *"The focus of this paper is to propose a methodology of how raw GPS data from buses can be processed and utilized for transit performance monitoring"*. **Lo que los separa de nosotros:** §8.1 usa las paradas como sensores (*"bus stops that are finely distributed along routes [200–500 m] can act as good sensors"*) y el evento se define contra el **headway programado** de Transantiago (*"transit buses operate based on scheduled headways"*); monitorean una semana de una ruta y **no predicen**. Citarlos solo por la forma; nunca como «seguimos su método» |
+| **Pilachowski (2009)**, *An Approach to Reducing Bus Bunching*, tesis doctoral, UC Berkeley | eScholarship `6zc5j8xg` | `[TEXTO COMPLETO]` — `pilachowski2009.pdf` | **El origen de nuestra definición de headway** (Andres & Nair dicen *"defined similar to Pilachowski (2009)"*). §3.1: la posición es *"the distance measured along the route in the direction of travel from a predefined point"*, obtenible *"at near real time with GPS devices installed in the buses"* (delega el cómo en Greenfeld 2002); el headway es *"the time that has passed since bus n⊖1 was at the location in question"*. Es un modelo de **control** (ajusta velocidades); no construye geometría ni predice |
+| **Biagioni & Eriksson (2012)**, *Inferring Road Maps from Global Positioning System Traces: Survey and Comparative Evaluation*, TRR 2291:61–71 | doi:`10.3141/2291-08` | `[TEXTO COMPLETO]` — `biagioni2012.pdf` | **Ajustar la geometría desde las trazas es una subdisciplina con survey.** *"The baseline requirement of a map inference algorithm is to automatically turn raw GPS traces into a directed and annotated graph that represents the connectivity and geometry of the underlying road network"*; la ventaja es *"when no existing road map data are present"* — exactamente nuestra condición. Cubre redes viales completas; nuestro paso 1 es la instancia degenerada de un solo corredor |
+
+### 9.2 Verificada, en reserva (no citada)
+
+| Fuente | ID | Estado | Para qué sirve |
+|---|---|---|---|
+| **Ahmed, Karagiorgou, Pfoser & Wenk (2015)**, *A Comparison and Evaluation of Map Construction Algorithms Using Vehicle Tracking Data*, GeoInformatica 19(3):601–632 | arXiv:`1402.5138` | `[TEXTO COMPLETO]` — `ahmed2015.pdf` | Compañera cuantitativa del survey de Biagioni & Eriksson. Se cita solo si un revisor pide evaluación comparativa de los algoritmos de inferencia de mapas |

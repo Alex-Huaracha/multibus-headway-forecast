@@ -83,7 +83,7 @@ comparados y el protocolo de partición quedan en el Apéndice A.
 ### A. Formulación de la tarea de predicción
 
 Lo que predecimos es el **vector de headways** del corredor: un headway por cada
-par de buses consecutivos que circulan en el mismo sentido. La Apéndice A lo
+par de buses consecutivos que circulan en el mismo sentido. El Apéndice A lo
 construye desde los registros GPS, que son la única entrada disponible. Se predice
 el vector completo: no un headway suelto ni un
 promedio del corredor, sino todas sus posiciones a la vez. Dado el historial de
@@ -125,7 +125,7 @@ donde $\mathcal{L}$ es la pérdida que el ajuste minimiza, $\mathcal{V}$ es el
 conjunto de posiciones del vector con bus asignado en el instante objetivo, y
 $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$ y $h_i$ son el valor
 predicho y el observado en la posición $i$, expresados en la escala tipificada
-por sentido que fija la Apéndice A, sección B y no en minutos.
+por sentido que fija el Apéndice A, sección B y no en minutos.
 
 ### B. Compresión de la dispersión bajo error cuadrático medio
 
@@ -393,7 +393,7 @@ la probabilidad de que una posición de bunching reciba un puntaje mayor que una
 sin bunching [@handtill2001], y vale 0.5 cuando la predicción no ordena.
 
 Ese 0.5 es el piso de una predicción sin ninguna información, y no el de una
-predicción sin información **temporal**. El perfil posicional de la Apéndice A, sección B
+predicción sin información **temporal**. El perfil posicional del Apéndice A, sección B
 fija el segundo: es lo que alcanza el AUC cuando solo se conoce qué posición del
 vector suele llevar el headway más corto. Cumple para el AUC la misma función
 que el detector trivial cumple para el F1, y por eso acompaña a todo AUC
@@ -424,7 +424,7 @@ observado. Cierra con la detección puntuada sin umbral y con el piso que acota
 ese puntaje, que juntos establecen que el colapso no proviene del ordenamiento
 que el modelo emite.
 
-Con la arquitectura de la Apéndice A, sección B ya fijada, el error escalar del vector sitúa
+Con la arquitectura del Apéndice A, sección B ya fijada, el error escalar del vector sitúa
 a ese modelo contra la persistencia. A diez minutos de anticipación, el LSTM
 predijo el headway entre buses
 mejor que la persistencia. El error absoluto medio bajó 1.47 minutos en E2, 1.38
@@ -437,7 +437,7 @@ Tres precisiones acotan ese resultado. La frontera de régimen no es una propied
 del aprendizaje profundo: el XGBoost la reprodujo entera, y a diez minutos
 aventajó a la persistencia por 1.59 minutos en E2, 1.09 en E4 y 0.79 en E59.
 Tampoco está en el horizonte sino en la dispersión de la ventana de entrada:
-medida con los tercios de dispersión de la Apéndice A, sección C, la ventaja del
+medida con los tercios de dispersión del Apéndice A, sección C, la ventaja del
 LSTM creció del tercio tranquilo al volátil en 11 de las 12 celdas. Y el promedio
 histórico por franja horaria no se movió con el horizonte, entre 4.7 y 5.7
 minutos en los tres corredores, de modo que a horizonte largo el competidor
@@ -519,7 +519,7 @@ vector predicho es más regular que la realidad, sus headways se apartan menos d
 su propio promedio, y un umbral calibrado sobre otra distribución deja de
 alcanzarse. Y el modelo acertó en las pocas ocasiones en que emitió: de los
 catorce triggers de E2, diez correspondieron a eventos reales, 71 % de precisión
-contra una tasa base de 30 %, con el intervalo de la Apéndice B entre 42 % y
+contra una tasa base de 30 %, con el intervalo del Apéndice B entre 42 % y
 92 %. Las celdas con más triggers estrechan ese intervalo: 776 de 1 572 en E59,
 entre 47 % y 52 % contra 21 %, y 75 de 150 en E4, entre 42 % y 58 % contra 18 %.
 
@@ -618,7 +618,7 @@ escala corre por el lado izquierdo. Las dos series que se leen por el lado
 derecho son el área bajo la curva de detección de cada método, invariante a
 cualquier reescalado monótono de lo predicho y por lo tanto inmune al artefacto.
 Las dos fronteras de régimen coinciden. El piso que acota esas dos series no es
-0.5 sino el perfil posicional de la Apéndice A, sección B, que la Tabla 2 recoge celda por
+0.5 sino el perfil posicional del Apéndice A, sección B, que la Tabla 2 recoge celda por
 celda.
 
 **Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra,
@@ -648,7 +648,7 @@ donde la ventaja del LSTM no resiste su intervalo aunque sí resista la del AUC.
 de diez minutos. La negrita compara los dos métodos entre sí y no contra el piso.
 
 Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
-y el perfil posicional de la Apéndice A, sección B lo acota. En E4 y E59 el piso
+y el perfil posicional del Apéndice A, sección B lo acota. En E4 y E59 el piso
 queda indistinguible del azar, entre 0.486 y 0.523 en las ocho celdas, de modo
 que el ordenamiento del LSTM ahí no proviene de la posición: lo supera por entre
 0.08 y 0.29, y las ocho diferencias sobreviven su intervalo. En E2 el piso sube a
@@ -860,13 +860,13 @@ los días de Carnaval, cuya composición no se caracterizó, de modo que la
 comparación incluye días atípicos sin identificarlos.
 
 Los dos métodos que ajustan parámetros no reciben el mismo presupuesto de
-búsqueda. Como declara la Apéndice A, sección B, el XGBoost elige veinticuatro
+búsqueda. Como declara el Apéndice A, sección B, el XGBoost elige veinticuatro
 configuraciones por celda sobre las muestras definitivas, mientras que el LSTM
 hereda la suya en dos de los tres corredores. Eso acota una comparación y solo
 una: donde el LSTM queda por detrás del XGBoost, la diferencia no es atribuible a
 la clase de modelo. Los otros dos métodos no ajustan nada, de modo que el error de
 referencia que fijan no depende de esa asimetría. El contraste de arquitecturas
-de la Apéndice A, sección B tampoco está nivelado con el resto, porque precede al protocolo
+del Apéndice A, sección B tampoco está nivelado con el resto, porque precede al protocolo
 de la Sección II y no se rehízo después.
 
 La elección de métricas tiene además una disputa abierta: Chicco y Jurman
@@ -965,148 +965,96 @@ esté dominado por una sola dirección: la varianza de las coordenadas a lo larg
 esa dirección supera cuatro veces la lateral. La segunda es que circulen al menos
 cinco buses a la vez, sin lo cual un vector de headways no describe nada.
 
-El headway de la Sección I se construye aquí desde la coordenada de los buses, y la
-Figura 6 lo ilustra. La forma habitual de medirlo es en una parada, con la lista
-de paradas de la ruta y los horarios de paso. Estos registros no traen ninguna de
-las dos, ni horario publicado ni archivo GTFS: cada bus emite su identificador,
-el instante y su coordenada, y ese
-**registro GPS** es la única entrada disponible. Para llegar al headway desde
-esos registros se aplica la secuencia de seis pasos que sigue.
+El headway de la Sección I se construye aquí desde la coordenada de los buses.
+La forma habitual lo mide en una parada, con la lista de
+paradas y los horarios de paso; estos registros no traen ninguna de las dos:
+cada bus emite su identificador, el instante y su coordenada, y ese **registro
+GPS** es la única entrada. Andres y Nair resuelven la misma construcción —de
+registros GPS a headways— en un apéndice de pasos secuenciales, cada paso con su
+umbral [@andres2017]. Esta sección sigue esa forma con una diferencia: ellos
+proyectan contra la geometría GTFS que su ciudad publica, y aquí el eje se
+ajusta de los propios registros. La secuencia tiene seis pasos.
 
-**1) El eje.** El eje es la línea que los buses siguen a lo largo del corredor.
-No existe una geometría publicada de la ruta, de modo que el eje se estima de los
-propios registros GPS. Por análisis de componentes principales se obtiene la
-dirección de máxima varianza de las coordenadas, que es la orientación del
-corredor. El recorrido se divide en tramos a lo largo de esa dirección y en cada
-tramo se toma la mediana de la coordenada transversal, lo que descarta las
-excursiones laterales de buses aislados. La secuencia de medianas se suaviza y
-queda ordenada de un extremo del corredor al otro. Solo entran los registros de
-buses que superan los 10 km/h: un bus detenido emite muchos registros en un mismo
-punto, y los terminales y los semáforos desplazarían el eje hacia donde los buses
-esperan. Ajustar el eje desde la nube de registros tiene precedente: Quek y
-colaboradores trazan la ruta con una línea suavizada sobre las coordenadas
-dispersas, y la usan para pasar de dos dimensiones a una [@quek2020]. Ese trabajo
-marca las paradas a mano y simula estrategias de control, de modo que no llega a
-predecir nada.
+1. **El eje.** No existe una geometría publicada de la ruta, de modo que el eje
+   —la línea que los buses siguen a lo largo del corredor— se ajusta de los
+   propios registros [@quek2020] [@biagioni2012]: componentes principales para
+   la orientación, mediana de la coordenada transversal en 50 tramos y promedio
+   móvil de cinco tramos como suavizado. Solo entran registros a más de
+   10 km/h.
 
-**2) La proyección a una dimensión.** Un par de coordenadas no ordena a los
-buses: con latitud y longitud no hay respuesta a cuál de dos va por delante, y el
-resto de la construcción exige ese orden. La proyección reemplaza cada coordenada
-por un solo número sobre el eje. Cada coordenada se lleva a metros con una
-aproximación plana local, válida a la escala de un corredor urbano, y se proyecta
-ortogonalmente sobre el segmento del eje que le queda más cerca. Es la operación
-que la norma ISO 19148 [@iso19148] especifica para referenciar coordenadas contra
-un objeto unidimensional:
+2. **La proyección al eje.** Cada coordenada se lleva a metros con una
+   aproximación plana local y se proyecta al punto más cercano del eje, la
+   referenciación lineal de la norma ISO 19148 [@iso19148]. Quedan la
+   **coordenada de arco** $s$ —los metros recorridos sobre el eje— y el
+   **desvío lateral**, la distancia al eje; el registro se descarta si el
+   desvío pasa de 300 m.
 
-$$s \;=\; \Lambda_{k^{*}} + u^{*}\,\ell_{k^{*}},
-\qquad d \;=\; \lVert\, \mathbf{p} - \mathbf{e}_{k^{*}}(u^{*}) \,\rVert, \tag{10}$$
+3. **El sentido de marcha.** El sentido es el signo del cambio de la
+   coordenada de arco, promediado sobre los cinco últimos registros; con
+   promedio nulo, el bus queda fuera de los pares de ese minuto.
 
-donde $\mathbf{p}$ es la coordenada del bus en metros; $\mathbf{e}_{k}(u)$ recorre
-el segmento $k$ del eje con $u \in [0.1]$; $k^{*}$ y $u^{*}$ son el segmento y la
-posición dentro de él que minimizan la distancia a $\mathbf{p}$; $\Lambda_{k^{*}}$
-es la longitud del eje acumulada hasta el inicio de ese segmento; $\ell_{k^{*}}$
-es la longitud de ese segmento; $s$ es la **coordenada de arco**, los metros
-recorridos sobre el eje desde el inicio del corredor; y $d$ es el **desvío
-lateral**, la distancia del bus al eje. El registro se conserva solo si $d$ no
-pasa de 300 m. Un umbral más ancho admitiría los registros de calles paralelas y
-de depósitos, que no pertenecen al corredor.
+4. **El eje por sentido.** En dos de los tres corredores la ida y la vuelta
+   circulan por calles paralelas, la dificultad que Andres y Nair señalan para
+   asignar el antecesor usando solo GPS [@andres2017]. Los pasos 1 y 2 se
+   repiten una vez por sentido, ya con el sentido asignado.
 
-**3) El sentido de marcha.** Sobre ese mismo eje circulan los buses de ida y los
-de vuelta, y el registro GPS no distingue unos de otros. El sentido se asigna como
-el signo del cambio de la coordenada de arco: se promedia ese cambio sobre los
-cinco últimos registros y se toma su signo, de modo que un error aislado no
-invierta el sentido. El signo toma tres valores, porque ese cambio promediado
-puede ser nulo: un bus con sentido indeterminado queda fuera de los pares de ese
-minuto. Ese signo es la única fuente del sentido en los tres corredores. La
-elección es forzada: uno de los tres no reporta rumbo, de modo que ningún método
-apoyado en ese campo cubriría los tres. Los otros dos sí traen el campo, y ahí
-sirve para comprobar el signo y nunca para corregirlo.
+5. **La rejilla común.** La coordenada de arco se interpola entre los dos
+   registros vecinos sobre una **rejilla** de sesenta segundos —tres registros
+   por bus y minuto—, y cada minuto queda descrito por un **snapshot**: la
+   coordenada de todos los buses del corredor en ese minuto.
 
-**4) El eje por sentido.** En dos de los tres corredores los buses de ida y los de
-vuelta circulan por calles paralelas. Andres y Nair señalan esa configuración como
-una dificultad para asignar a cada bus su antecesor usando solo los registros GPS,
-porque los buses de una misma ruta pueden operar sobre recorridos distintos
-[@andres2017]. Un eje único ajustado sobre los dos sentidos
-cae entre ambas calles, y entonces la coordenada de arco y el desvío lateral se
-miden contra una línea por la que ningún bus circula. En esos dos corredores se
-repiten los pasos 1 y 2 una vez por sentido, ya con el sentido asignado, y la
-coordenada de arco y el desvío lateral de la Ecuación (10) se recalculan contra el
-eje que corresponde. El orden de los cuatro
-primeros pasos es forzado: el eje por sentido necesita el sentido, y el sentido
-necesita una primera proyección contra el eje único.
-
-**5) La rejilla común.** Cada bus emite sus registros GPS cada pocos segundos,
-cada uno por su cuenta, de modo que dos buses casi nunca tienen un registro en el
-mismo momento. Compararlos exige un momento común. Todo se lleva entonces a una
-**rejilla** de sesenta segundos, y la coordenada de cada bus en cada minuto se
-interpola entre sus dos registros vecinos. Cada minuto queda así descrito por un
-**snapshot** del corredor: la coordenada de todos sus buses en ese minuto.
-
-**6) El headway.** Sobre ese snapshot, para un par de buses consecutivos en el
-mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
+6. **El headway.** Sobre ese snapshot, para un par de buses consecutivos en el
+   mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
-\qquad h = T - t_{c}, \tag{11}$$
+\qquad h = T - t_{c}, \tag{10}$$
 
-donde $T$ es el instante evaluado, y $s_{L}$ y $s_{F}$ son las coordenadas de arco
-del bus de adelante y del de atrás. El instante $t_{c}$ es el último en que el de
-adelante pasó por la coordenada que el de atrás ocupa en $T$, y $h$ es el headway
-resultante. Es un cruce por coordenada y no por parada, lo que permite prescindir de
-la tabla de paradas. Esa cantidad ya está definida: Andres y Nair evalúan el
-headway en la coordenada que el bus de atrás ocupa en cada instante [@andres2017].
-Su trabajo proyecta contra un eje que su ciudad publica; aquí el eje se ajusta de
-los propios registros. El cruce se
-resuelve sobre los registros GPS originales del
-bus de adelante y no sobre la rejilla: la rejilla fija el instante $T$ y el orden
-de los buses, no la trayectoria sobre la que se busca $t_{c}$. Si no existe tal
-$t_{c}$, o si $h$ supera los treinta minutos, se emite «sin valor». El tope acota
-lo que dos calles paralelas proyectadas sobre un mismo eje pueden producir: sin él,
-el cruce hallado puede corresponder a un paso de horas antes.
+donde $s_{L}$ y $s_{F}$ son las coordenadas de arco del bus de adelante y del de
+atrás. El instante $t_{c}$ es el último en que el de adelante pasó por la
+coordenada que el de atrás ocupa en $T$, y $h$ es el headway resultante. Es un
+cruce por coordenada y no por parada, lo que permite prescindir de la tabla de
+paradas: la definición es la de Pilachowski [@pilachowski2009], que Andres y
+Nair evalúan en la coordenada del bus de atrás [@andres2017]. El cruce se
+resuelve sobre los registros originales del bus de adelante; la rejilla solo
+fija el instante $T$ y el orden de los buses. Si no existe tal $t_{c}$, o si
+$h$ supera los treinta minutos, se emite «sin valor»: sin ese tope, dos calles
+paralelas proyectadas sobre un mismo eje producen cruces de horas antes.
 
-![Definición del headway](figuras/headway/headway.png)
+El filtro de 10 km/h del paso 1 existe porque un bus detenido emite muchos
+registros en un mismo punto y desplazaría el eje hacia donde los buses esperan.
+Esa velocidad se calcula del desplazamiento entre registros: el campo de
+velocidad del proveedor reporta cero en dos corredores en movimiento. La
+proyección del paso 2 reemplaza la latitud y la longitud, que no responden cuál
+de dos buses va por delante; su descarte a 300 m deja fuera los registros de
+calles paralelas y de depósitos. El signo del paso 3 es la única fuente del
+sentido: un corredor no reporta rumbo, y donde el campo existe solo comprueba el
+signo, nunca lo corrige. El eje por sentido del paso 4 evita que un eje único
+ajustado sobre los dos sentidos caiga entre ambas calles, y su orden es forzado:
+el eje por sentido necesita el sentido, y el sentido una primera proyección
+contra el eje único.
 
-**Fig. 6.** El headway en un punto fijo del corredor: el bus de adelante —el $L$ de
-la Ecuación (11)— pasa por p₂ a las 12:30 y el de atrás —el $F$— a las 12:35, de
-modo que el headway en p₂ es de cinco minutos. La separación espacial entre los dos
-buses no interviene. Esquema ilustrativo, no datos reales.
+La Ecuación (10) entrega tiempo entre pasadas. La distancia en metros entre dos
+buses queda fuera porque mide separación espacial, y dividir esa separación por
+la velocidad del bus de atrás también: la división supone que la velocidad se
+mantiene, e introduce una estimación dentro de la cantidad que se busca estimar.
+Ese headway describe un solo par: en cada snapshot, los buses de un mismo
+sentido se ordenan por su coordenada de arco, y con $N$ buses quedan $N-1$
+pares, el vector de headways ordenado desde el frente. Ese orden numera las
+posiciones del vector —la primera es la del par que va más adelante—, y un par
+sin headway válido conserva su posición con «sin valor», para que el orden no
+dependa de cuántos pares resolvieron.
 
-La Ecuación (11) entrega tiempo entre pasadas. La distancia en metros entre dos
-buses consecutivos es la alternativa inmediata, y queda fuera porque mide
-separación espacial. Tampoco se proyecta ese tiempo hacia adelante dividiendo la
-separación por la velocidad del bus de atrás: esa división supone que la
-velocidad actual se mantiene, e introduce una estimación dentro de la cantidad
-que se busca estimar.
-
-Ese headway describe un solo par. En cada
-snapshot, los buses de un mismo sentido se ordenan por su coordenada de arco, y
-cada bus con uno delante forma un par con él. Con $N$ buses circulando quedan
-$N-1$ pares, de modo que el corredor queda descrito por un vector de $N-1$
-headways ordenados desde el frente. Ese orden numera las posiciones del vector:
-la primera es la del par que va más adelante. Un par sin headway válido conserva
-su posición y se emite «sin valor», para que el orden no dependa de cuántos pares
-resolvieron.
-
-Los seis pasos descansan sobre la cadencia de los registros. La rejilla de sesenta
-segundos del paso 5 reúne tres registros por bus en cada minuto. El registro trae además
-un campo de velocidad que el trabajo no usa: en dos corredores reporta cero
-mientras el bus se desplaza. Toda velocidad —incluido el umbral de 10 km/h del
-paso 1— se calcula del desplazamiento entre registros consecutivos.
-
-La construcción del headway desde los registros GPS no siempre produce un valor.
-Dos condiciones dejan un par de buses sin headway: que la Ecuación (11) no
-encuentre el cruce, o que el headway supere los treinta minutos. La cobertura —la
-fracción de pares evaluados con headway válido— es del 63.5 % en E2, del 64.8 % en
-E4 y del 77.1 % en E59: 3 938 174 pares con headway válido sobre 5 601 738
-evaluados. Una posición del vector sin headway válido se enmascara.
-
-Los huecos que deja ese enmascaramiento no se distribuyen al azar. Casi todo el
-faltante viene de una sola de las dos condiciones: el cruce existe, pero quedó
-más de treinta minutos atrás. Esa condición recorta por el extremo alto, de
-modo que los descartados son los intervalos más largos. La que no encuentra cruce
-explica menos de un punto porcentual en cada corredor. La cobertura tampoco es
-uniforme entre corredores: entre el mejor y el peor medido hay 13.6 puntos
-porcentuales. La diferencia se repite entre los dos sentidos de un mismo
-corredor: en E2, el sentido de ida cubre 57.8 % y el de vuelta 70.5 %.
+La construcción no siempre produce un valor. Dos condiciones dejan un par sin
+headway: que la Ecuación (10) no encuentre el cruce, o que el headway supere los
+treinta minutos. La cobertura —la fracción de pares evaluados con headway
+válido— es del 63.5 % en E2, del 64.8 % en E4 y del 77.1 % en E59:
+3 938 174 pares con headway válido sobre 5 601 738 evaluados, y una posición sin
+headway válido se enmascara. Los huecos no se distribuyen al azar: casi todo el
+faltante viene del tope de treinta minutos —el cruce existe, pero quedó atrás—,
+que recorta los intervalos más largos, y la condición sin cruce explica menos de
+un punto porcentual en cada corredor. La cobertura tampoco es uniforme: entre el
+mejor y el peor corredor medido hay 13.6 puntos porcentuales, y en E2 el sentido
+de ida cubre 57.8 % y el de vuelta 70.5 %.
 
 ### B. Métodos comparados
 
@@ -1175,6 +1123,7 @@ descartarse, sobre todo a horizontes cortos. Boudabbous y colaboradores encuentr
 que una red recurrente supera a dos transformadores entre 18 y 52 % con 275 veces
 menos parámetros, sobre la red de Montreal y contra arquitecturas que operan sobre
 el tiempo [@boudabbous2026]. Ninguno de los dos releva a la Tabla 5 de su propia
+limitación, que la Sección V-B declara.
 
 **Tabla 5.** Error absoluto medio de las tres arquitecturas contrastadas antes de
 fijar el protocolo de esta sección. La última columna es la diferencia entre la
@@ -1208,11 +1157,11 @@ entrena hasta el 22 de diciembre y prueba del 14 de enero al 4 de febrero. El
 tercero entrena hasta el 15 de enero, valida hasta el 7 de febrero y prueba del 8
 al 29 de febrero de 2024. Como los entrenamientos están
 anidados, esto establece estabilidad frente a la elección del período de prueba y
-no réplica independiente. La Figura 7 muestra el esquema.
+no réplica independiente. La Figura 6 muestra el esquema.
 
 ![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.es.png)
 
-**Fig. 7.** La partición por tiempo y los tres orígenes de evaluación. Los tres
+**Fig. 6.** La partición por tiempo y los tres orígenes de evaluación. Los tres
 comienzan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
 solapan.
 
