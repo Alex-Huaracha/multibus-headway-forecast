@@ -672,71 +672,71 @@ para el par de la Tabla 2 y no se extiende al piso.
 
 ## IV. Qué propiedad de la regla deja pasar la compresión
 
-La Sección III dejó establecido que el colapso no proviene del ordenamiento que
-el modelo emite, y que recalibrar el valor del umbral lo corrige solo en parte.
-Queda sin responder entonces qué propiedad de la regla lo deja pasar.
+Recalibrar el valor del umbral corrigió el colapso solo en parte. Queda sin
+responder qué propiedad de la regla lo deja pasar.
 
 ### A. Tres denominadores del mismo evento
 
-La regla de la Sección II-C divide por el promedio del vector predicho, que se mueve
-con la predicción. Se la contrastó con otras dos sobre la misma población y el
-mismo origen. La primera divide por el promedio del último vector observado: se
-recalcula en cada instante y sigue al corredor, pero es el mismo número para lo
-observado y para lo predicho. Se la llama aquí **la regla de denominador
-observado**. La segunda no divide por nada. Marca las posiciones más cortas de
-cada vector, y cuántas marca queda fijado por la longitud del vector antes de
-leer los valores. Se la llama aquí **la regla de cuota**. Esa cantidad es un
-entero y los vectores llevan entre tres y seis posiciones, de modo que el
+La regla de la Sección II-C divide por el promedio del vector predicho, que se
+mueve con la predicción. Se la contrastó con otras dos sobre la misma población
+y el mismo origen. La primera divide por el promedio del último vector
+observado: se recalcula en cada instante y sigue al corredor, pero es el mismo
+número para lo observado y para lo predicho. Se la llama aquí **la regla de
+denominador observado**. La segunda no divide por nada. Marca las posiciones más
+cortas de cada vector, y cuántas marca queda fijado por la longitud del vector
+antes de leer los valores. Se la llama aquí **la regla de cuota**. Esa cantidad
+es un entero y los vectores llevan entre tres y seis posiciones, de modo que el
 redondeo levanta la frecuencia del evento hasta 8.9 puntos en E4, donde los
-vectores son más cortos. La regla de cuota no marca entonces exactamente el mismo
-evento que las otras dos.
+vectores son más cortos. La regla de cuota no marca entonces exactamente el
+mismo evento que las otras dos.
 
 ### B. El umbral en minutos es lo que la compresión alcanza
 
-Las dos reglas con denominador colapsaron; la de cuota no podía hacerlo. La razón
-entre la tasa de trigger del LSTM y la tasa real del evento tuvo mediana **0.079**
-bajo la regla de la Sección II-C y **0.153** bajo la regla de denominador
-observado. Quitar la auto-referencia duplicó el disparo y lo dejó un orden de
-magnitud por debajo de la frecuencia del evento. Bajo la regla de cuota esa razón
-valió **1.000** en las doce celdas, y no es una medición: la cantidad de
-posiciones marcadas queda fijada antes de leer los valores, de modo que lo
-predicho y lo observado marcan la misma cantidad por construcción. La persistencia
-no colapsó bajo ninguna de las tres, con medianas de 1.011, 0.980 y 1.000.
+Las dos reglas con denominador colapsaron; la de cuota no podía hacerlo. La
+razón entre la tasa de trigger del LSTM y la tasa real del evento tuvo mediana
+**0.079** bajo la regla de la Sección II-C y **0.153** bajo la regla de
+denominador observado. Quitar la auto-referencia duplicó el disparo y lo dejó un
+orden de magnitud por debajo de la frecuencia del evento. Bajo la regla de cuota
+esa razón valió **1.000** en las doce celdas por construcción: la cuota marca la
+misma cantidad en lo predicho y en lo observado. La persistencia no colapsó bajo
+ninguna de las tres, con medianas de 1.011, 0.980 y 1.000.
 
 El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
-minutos. En E2 a diez minutos, bajo la regla de la Sección II-C, ese umbral valió
-3.89 minutos sobre lo observado y 3.92 sobre lo predicho: se quedó donde estaba.
-Bajo la regla de cuota el mismo par valió 2.76 y 6.82 minutos. La regla sin
-denominador sube su propio umbral hasta donde quedó la distribución comprimida, y
-la distancia que sube crece con el horizonte en los tres corredores. Un umbral en
-minutos no puede seguirla, porque su valor no depende de la escala de lo que
-evalúa. La compresión de la Sección III-A alcanza entonces a toda regla que nombre
-una cantidad de minutos, y no queda contenida en la que divide por lo predicho.
+minutos. En E2 a diez minutos, bajo la regla de la Sección II-C, ese umbral
+valió 3.89 minutos sobre lo observado y 3.92 sobre lo predicho: se quedó donde
+estaba. Bajo la regla de cuota el mismo par valió 2.76 y 6.82 minutos. La regla
+sin denominador sube su propio umbral hasta donde quedó la distribución
+comprimida, y la distancia que sube crece con el horizonte en los tres
+corredores. Un umbral en minutos no puede seguirla, porque su valor no depende
+de la escala de lo que evalúa. La compresión de la Sección III-A alcanza
+entonces a toda regla que nombre una cantidad de minutos, y no queda contenida
+en la que divide por lo predicho.
 
 ### C. Qué recupera la regla de cuota
 
 La consecuencia está en el veredicto. Las mismas residuales dan un veredicto sin
-umbral en la Sección III-C, y las tres reglas se contrastan contra él. La regla de
-cuota lo reproduce en **once** de las doce celdas; la de denominador observado en
-siete y la de la Sección II-C en seis. Bajo esta última la persistencia ganó las
-doce, que es lo que hizo leer el colapso como ceguera del modelo. La única celda
-donde la regla de cuota discrepa es E59 a cinco minutos. La Tabla 3 recoge las
-tres reglas con sus medianas y ese conteo de coincidencias.
+umbral en la Sección III-C, y las tres reglas se contrastan contra él. La regla
+de cuota lo reproduce en **once** de las doce celdas; la de denominador
+observado en siete y la de la Sección II-C en seis. Bajo esta última la
+persistencia ganó las doce, que es lo que hizo leer el colapso como ceguera del
+modelo. La única celda donde la regla de cuota discrepa es E59 a cinco minutos.
+La Tabla 3 recoge las tres reglas con sus medianas y ese conteo de
+coincidencias.
 
 La regla de cuota no convierte al modelo en mejor detector. Su MCC tuvo mediana
 **0.199** contra **0.100** bajo la regla de la Sección II-C, y la superó en las
-doce celdas. Esa mediana iguala a la del umbral recalibrado de la Sección III-C, que
-vale 0.198, y la regla de cuota no ajusta ningún parámetro sobre una ventana
+doce celdas. Esa mediana iguala a la del umbral recalibrado de la Sección III-C,
+que vale 0.198, y la regla de cuota no ajusta ningún parámetro sobre una ventana
 anterior. Aun así **sigue por debajo de la persistencia** en siete de las doce.
 Las cinco que gana son las tres de E2 desde los tres minutos, y las de diez
-minutos en E4 y E59. Reparar la regla recupera discriminación y no cambia de dueño
-el veredicto a un minuto en ninguno de los tres corredores.
+minutos en E4 y E59. Reparar la regla recupera discriminación y no cambia de
+dueño el veredicto a un minuto en ninguno de los tres corredores.
 
 Las tres reglas tampoco marcan el mismo evento sobre lo observado. El índice de
 Jaccard, las posiciones que dos reglas marcan a la vez entre las que marca al
 menos una, tuvo mediana 1.000, 0.710 y 0.580 contra la regla de la Sección II-C.
-El solape no explica entonces la diferencia: la regla de denominador observado es
-la que más se le parece, y es la que colapsa con ella.
+El solape no explica entonces la diferencia: la regla de denominador observado
+es la que más se le parece, y es la que colapsa con ella.
 
 **Tabla 3.** Las tres reglas del evento sobre la misma población y el mismo
 origen. Cada celda es la mediana de las doce combinaciones de corredor y
@@ -748,19 +748,20 @@ horizonte.
 | Denominador observado | promedio del último vector observado | 0.153 | 0.980 | 0.143 | 0.710 | 7 de 12 |
 | Cuota | ninguno | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.199 | 0.580 | **11 de 12** |
 
-‡ Vale uno por construcción y no por medición: la cantidad de posiciones marcadas queda fijada antes de leer los valores.
+‡ Vale uno por construcción y no por medición: la cantidad de posiciones
+marcadas queda fijada antes de leer los valores.
 
 Reparar la regla cambia también lo que el resultado ofrece a quien opera. Con el
 umbral trasplantado el detector **emitió pocos triggers y acertó en ellos**
-—catorce en E2 a diez minutos, con la precisión por encima de la tasa base en los
-tres corredores según la Sección III-B—, y eso no es una alarma sino un **filtro
-de prioridad**: un aviso poco frecuente y más informativo que el azar, que sirve
-para ordenar la atención de un despachador. Recalibrar deshace la primera mitad
-de esa lectura: el detector recalibrado emitió un trigger en el 26.98 % de las
-posiciones de E2 a diez minutos, contra el 0.03 % del trasplantado. La
-consecuencia para quien evalúa es que **el punto de operación se recalibra contra
-la distribución de lo predicho, no se hereda de las observaciones**, y requiere
-recalcular un escalar y no reentrenar nada.
+—catorce en E2 a diez minutos, con la precisión por encima de la tasa base en
+los tres corredores según la Sección III-B—, y eso no es una alarma sino un
+**filtro de prioridad**: un aviso poco frecuente y más informativo que el azar,
+que sirve para ordenar la atención de un despachador. Recalibrar deshace la
+primera mitad de esa lectura: el detector recalibrado emitió un trigger en el
+26.98 % de las posiciones de E2 a diez minutos, contra el 0.03 % del
+trasplantado. La consecuencia para quien evalúa es que **el punto de operación
+se recalibra contra la distribución de lo predicho, no se hereda de las
+observaciones**, y requiere recalcular un escalar y no reentrenar nada.
 
 ---
 
