@@ -9,7 +9,7 @@ _(pendiente — se escribe al final)_
 ## I. Introducción
 
 El headway es el tiempo que separa el paso de dos buses consecutivos por un mismo
-punto de una ruta. El bunching es la circulación, conjunta de dos buses que ese
+punto de una ruta. El bunching es la circulación conjunta de dos buses que ese
 tiempo debería mantener separados, y desiguala la espera entre los pasajeros de
 esa ruta. Rezazada y colaboradores lo atribuyen a la congestión, a la demanda
 atípica, a la acumulación de pasajeros y al comportamiento del conductor
@@ -41,20 +41,16 @@ delimita cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestr
 contribuciones son cuatro:
 
 - Medimos la compresión sobre el vector de headways, como dispersión entre buses
-  en un mismo instante. La cantidad no es nueva fuera del transporte —la
-  predicción meteorológica la mide sobre el campo espacial y le da nombre—, pero
-  no se había medido sobre el vector de headways de un corredor, y aquí se la
-  aísla con la persistencia como control de compresión nula.
+  en un mismo instante, y la aislamos con la persistencia como control de
+  compresión nula. La cantidad tiene precedente fuera del transporte; no se había
+  medido sobre este vector.
 - Invertimos la fórmula de calidad de servicio del *Transit Capacity and Quality
   of Service Manual* (TCQSM) y la aplicamos a lo predicho en lugar de a lo
   observado.
 - Atamos esa fórmula a una regla de evento **relativa pero no preservadora de
-  tasa**, donde la compresión mueve el numerador y el denominador a la vez. La
-  distinción es la que la Sección II-D desarrolla: un evento definido sobre un
-  cuantil conserva su frecuencia bajo cualquier compresión monótona, y uno
-  definido sobre una fracción del promedio no, porque la compresión encoge la
-  separación entre posiciones respecto de ese promedio. Los umbrales que la
-  literatura recalibra se fijan una vez sobre un período anterior; este se
+  tasa**: la compresión mueve el numerador y el denominador a la vez y la tasa
+  del evento cae, la distinción que la Sección II-D desarrolla. Los umbrales que
+  la literatura recalibra se fijan una vez sobre un período anterior; este se
   recalcula con cada vector que evalúa.
 - Contrastamos tres denominadores del mismo evento sobre la misma población. El
   daño alcanza a toda regla que fije el evento en una cantidad de minutos, y no
@@ -170,16 +166,12 @@ que la Sección II-C plantea.
 
 ### C. Definición del evento de bunching
 
-El bunching es el fenómeno en que dos o más buses que deberían circular espaciados
-terminan viajando casi juntos y dejan un intervalo largo detrás de ellos. Su costo
-recae sobre quien espera en ese intervalo: la espera que enfrenta es la que el
-intervalo mide, y no el headway promedio del corredor. Sus causas son
-heterogéneas, entre ellas la congestión, un día de demanda atípica, la acumulación
-de pasajeros en el bus adelantado o el comportamiento del conductor
-[@rezazada2024]. Este trabajo no observa ninguna de ellas: los registros GPS no
-traen pasajeros, ocupación ni estado del tránsito. Por eso el evento se define sobre la
-geometría del vector de headways, que sí es observable, y no sobre lo que la
-produjo.
+El bunching de la Sección I deja un intervalo largo detrás de los buses
+agrupados, y su costo recae sobre quien espera en ese intervalo: la espera que
+enfrenta es la que el intervalo mide, y no el headway promedio del corredor. Sus
+causas no son observables en estos registros GPS, que no traen pasajeros,
+ocupación ni estado del tránsito, de modo que el evento se define sobre la
+geometría del vector de headways y no sobre lo que la produjo.
 
 Dos rasgos del fenómeno gobiernan cómo se lo define aquí. Es una propiedad del
 patrón colectivo y no de un bus: cada bus puede estar donde le corresponde y
@@ -260,21 +252,18 @@ donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los umbrales que resulta
 de aplicar $\rho$ al vector observado y al vector predicho. El denominador de Yu y
 colaboradores no tiene esa propiedad: es observado, de modo que no se mueve con la
 predicción. Eso no lo pone a salvo, y la Sección IV mide cuánto de la diferencia
-le corresponde. Las Figuras 1 y 2 lo muestran con el mismo headway de dos minutos.
+le corresponde. La Figura 1 lo muestra con el mismo headway de dos minutos.
 
-![Corredor irregular](figuras/bunching/with_bunching.png)
+![El mismo headway bajo dos umbrales](figuras/bunching-umbral.es.png)
 
-**Fig. 1.** Corredor irregular. El vector es [9.5 · 1.2 · 11.0 · 2.0], su promedio
-5.9 min y el umbral 3.0 min. Los headways de 2.0 y 1.2 quedan debajo del umbral:
-**los dos son bunching.** Esquema ilustrativo, no datos reales.
+**Fig. 1.** El mismo headway de 2.0 min bajo el umbral relativo. Cada barra es
+una posición del vector y la línea discontinua es el umbral τ = promedio/2 de ese
+panel. (a) En el corredor irregular el promedio es 5.9 min y el umbral 3.0 min:
+los headways de 2.0 y 1.2 quedan debajo y **los dos son bunching**. (b) En el
+corredor regular el promedio es 3.1 min y el umbral 1.6 min: el mismo headway de
+2.0 min queda encima y **no es bunching**. Valores ilustrativos, no datos reales.
 
-![Corredor regular](figuras/bunching/without_bunching.png)
-
-**Fig. 2.** Corredor regular. El vector es [3.5 · 2.0 · 4.0 · 3.0], su promedio
-3.1 min y el umbral 1.6 min. El mismo headway de 2.0 min queda ahora encima del
-umbral: **no es bunching.** Esquema ilustrativo, no datos reales.
-
-Dos minutos entre buses es el mismo hecho físico en las dos figuras, y la regla lo
+Dos minutos entre buses es el mismo hecho físico en los dos paneles, y la regla lo
 clasifica al revés porque el umbral se movió con el vector. La Sección III mide qué
 ocurre cuando esa diferencia se ignora sobre datos reales.
 
@@ -411,14 +400,12 @@ que el detector trivial cumple para el F1, y por eso acompaña a todo AUC
 reportado.
 
 Sobre esas cantidades se construyen tres cocientes. La tasa de trigger de un
-método es la fracción de sus posiciones con $\hat{b}_i = 1$. El factor entre dos
-métodos es el cociente de sus F1, y mide cuántas veces mejor aparece uno de ellos
-bajo el mismo umbral. El tercero exige una cantidad más. La precisión promedio
+método es la fracción de sus posiciones con $\hat{b}_i = 1$, y el factor entre
+dos métodos es el cociente de sus F1 bajo el mismo umbral. La precisión promedio
 también prescinde del umbral: recorre el ordenamiento que el AUC puntúa, de mayor
 a menor, y promedia la precisión de la Ecuación (9) sobre las posiciones de
-bunching. Una predicción que no ordena alcanza una precisión promedio igual a la
-tasa base. El lift es entonces la precisión promedio dividida por la tasa base, y
-vale 1 cuando la predicción no ordena mejor que el azar.
+bunching. El lift la divide por la tasa base, que es la precisión promedio de una
+predicción que no ordena, de modo que vale 1 en ese caso.
 
 El umbral no se hereda de lo observado. Se ajusta maximizando el MCC sobre el
 período de prueba del origen 2 y se aplica sin cambios al del origen 3. Los
@@ -499,17 +486,17 @@ como nivel A —«service provided like clockwork»— según lo predicho y como
 —«most vehicles bunched»— según lo observado. La cantidad que estas medidas
 capturan es la dispersión **entre buses en un mismo instante**, y no la
 variabilidad de una serie a lo largo del tiempo que la Sección II-D delimita como
-previa. Las Figuras 4 y 5 muestran el efecto y su dependencia del horizonte.
+previa. Las Figuras 2 y 3 muestran el efecto y su dependencia del horizonte.
 
 ![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
 
-**Fig. 4.** Dispersión observada frente a dispersión predicha, horizonte de diez
+**Fig. 2.** Dispersión observada frente a dispersión predicha, horizonte de diez
 minutos. La barra de la persistencia iguala a la observada: hereda el vector real
 y sirve de control. Los dos modelos ajustados la comprimen.
 
 ![Sesgo de dispersión contra horizonte](figuras/compresion-vs-horizonte.es.png)
 
-**Fig. 5.** El mismo sesgo contra el horizonte. La persistencia no se despega de
+**Fig. 3.** El mismo sesgo contra el horizonte. La persistencia no se despega de
 cero; los dos modelos ajustados descienden de forma monótona. La compresión escala con la
 distancia que se pide anticipar.
 
@@ -520,7 +507,7 @@ a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo umbral,
 emitió **catorce triggers**. La persistencia emitió 15 083. Puntuada con
 el F1 de la Sección II-E, la persistencia apareció 253 veces mejor que el LSTM. En
 las otras celdas el factor va de 1.5 a 36. El XGBoost obtuvo un F1
-exactamente cero en tres de las doce celdas: ahí no emitió ninguno. La Tabla 2
+exactamente cero en tres de las doce celdas: ahí no emitió ninguno. La Tabla 1
 recoge las doce celdas.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
@@ -542,19 +529,19 @@ y en diez de las doce celdas lo es: entre el primer origen y el tercero varía
 entre 0.90 y 1.58. Las dos excepciones están en E2: a cinco minutos el factor
 valió **126**, **58** y **36** en los tres orígenes, y a diez minutos **2 299**,
 **817** y **253**. Esas dos son las celdas donde el umbral trasplantado dejó al
-detector casi sin triggers, con el F1 en 0.011 y 0.001 en la Tabla 2. Un cociente
+detector casi sin triggers, con el F1 en 0.011 y 0.001 en la Tabla 1. Un cociente
 cuyo denominador se acerca a cero no mide una capacidad del sistema evaluado,
 sino la interacción entre el umbral y la distribución sobre la que cayó.
 
 ![Tasa de trigger contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 6.** Fracción de posiciones con trigger de cada método, contra la tasa
+**Fig. 4.** Fracción de posiciones con trigger de cada método, contra la tasa
 real del evento (punteada). La persistencia propaga el vector observado, hereda su
 dispersión y el umbral cae donde fue diseñado: emite casi con la misma frecuencia
 con que ocurre el evento. La predicción puntual es un vector comprimido, y el mismo umbral
 relativo le queda en la cola.
 
-**Tabla 2.** Detección con el umbral del evento observado aplicado sin cambios a lo predicho, con el piso del detector trivial al lado.
+**Tabla 1.** Detección con el umbral del evento observado aplicado sin cambios a lo predicho, con el piso del detector trivial al lado.
 
 | Corredor | h | Tasa base | Piso trivial | F1 persistencia | F1 LSTM | Factor |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -579,15 +566,15 @@ Si el problema es el umbral, recalibrarlo debería bastar. Se aplicó entonces l
 recalibración de la Sección II-E sin tocar el modelo, con el MCC como objetivo
 porque el F1 degenera en este corpus: sobre la persistencia en E2, de tres
 minutos en adelante, el umbral que optimiza el F1 emitió un trigger entre el
-99.9 % y el 100 % de las posiciones, esto es, la regla vacía de la Tabla 2.
+99.9 % y el 100 % de las posiciones, esto es, la regla vacía de la Tabla 1.
 
-El umbral trasplantado de la Tabla 2 dejaba a la persistencia por delante en las
-doce celdas. Los dos instrumentos que la Tabla 3 reúne mueven ese conteo en
+El umbral trasplantado de la Tabla 1 dejaba a la persistencia por delante en las
+doce celdas. Los dos instrumentos que la Tabla 2 reúne mueven ese conteo en
 distinta medida. Puntuado sin umbral, mediante el AUC, **el LSTM ganó en las nueve
 combinaciones de corredor y origen a diez minutos**, y en 6 de las 12 celdas del
 origen 3. Las nueve diferencias de diez minutos sobrevivieron su intervalo, y van
 de 0.033 a 0.061. De las seis celdas restantes del origen 3, dos no lo
-sobrevivieron: E59 a tres minutos y E4 a cinco, cuyos intervalos en la Tabla 3
+sobrevivieron: E59 a tres minutos y E4 a cinco, cuyos intervalos en la Tabla 2
 contienen al cero. Recalibrar el umbral en lugar de eliminarlo lo mueve menos: el LSTM ganó en 5 de
 las 12 celdas, entre ellas las tres de diez minutos, si bien la de E4
 no resiste su propio intervalo. La persistencia conservó la ventaja a un minuto,
@@ -595,12 +582,12 @@ donde el error escalar también la favorecía, en los tres corredores y los tres
 orígenes.
 
 Recalibrar tampoco pone a los dos métodos por encima del piso del detector
-trivial que la Tabla 2 exige. Con el F1 sobre el punto de operación reajustado,
+trivial que la Tabla 1 exige. Con el F1 sobre el punto de operación reajustado,
 el LSTM supera ese piso en 9 de las 12 celdas y la
 persistencia en 7. Las tres que ninguno supera son las de E2 desde los tres
 minutos, y la razón es la tasa base: con el 30 % de las posiciones marcadas,
 marcarlas todas alcanza un F1 de 0.46. El piso no distingue entre ellos, de modo
-que no invierte ningún veredicto de la Tabla 3.
+que no invierte ningún veredicto de la Tabla 2.
 
 El lift de la Sección II-E recorre el mismo ordenamiento pesando su cabeza, y
 coincidió con el AUC en las doce celdas, de modo que el veredicto entre estos dos
@@ -614,27 +601,27 @@ entre tres y cinco en E59 y entre cinco y diez en E4, uno o dos escalones más
 tarde en esos dos corredores, y en ninguna de las dos volvió la ventaja a la
 persistencia al alargar el horizonte.
 
-El cambio de veredicto no requirió tocar el modelo. El AUC de la Figura 7 se
-calculó sobre las mismas predicciones que la Figura 6 puntúa con el umbral
+El cambio de veredicto no requirió tocar el modelo. El AUC de la Figura 5 se
+calculó sobre las mismas predicciones que la Figura 4 puntúa con el umbral
 trasplantado: entre las dos figuras cambió solo el umbral de la Ecuación (5), que
 la primera hereda de lo observado, la segunda elimina y la columna del MCC
-recalibrado de la Tabla 3 reajusta contra lo predicho. Como ninguna otra cosa
+recalibrado de la Tabla 2 reajusta contra lo predicho. Como ninguna otra cosa
 varió, el umbral queda identificado como la variable que producía el veredicto, y
-la disociación que el error escalar y la Tabla 2 parecían mostrar, con el LSTM
+la disociación que el error escalar y la Tabla 1 parecían mostrar, con el LSTM
 ganando en error y perdiendo en detección, la producía él.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
-**Fig. 7.** Las mismas predicciones puntuadas sin umbral, un panel por corredor.
+**Fig. 5.** Las mismas predicciones puntuadas sin umbral, un panel por corredor.
 La serie azul mide cuánto error absoluto le gana el LSTM a la persistencia, y su
 escala corre por el lado izquierdo. Las dos series que se leen por el lado
 derecho son el área bajo la curva de detección de cada método, invariante a
 cualquier reescalado monótono de lo predicho y por lo tanto inmune al artefacto.
 Las dos fronteras de régimen coinciden. El piso que acota esas dos series no es
-0.5 sino el perfil posicional de la Apéndice A, sección B, que la Tabla 3 recoge celda por
+0.5 sino el perfil posicional de la Apéndice A, sección B, que la Tabla 2 recoge celda por
 celda.
 
-**Tabla 3.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra,
+**Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra,
 con el piso del perfil posicional al lado del AUC que acota.
 
 | Corredor | h | AUC LSTM | AUC persist. | Piso posicional | Δ AUC [IC 95 %] | MCC recal. LSTM | MCC recal. persist. | Δ MCC [IC 95 %] |
@@ -679,7 +666,7 @@ Los dos puntajes sin umbral se separan en esa celda. El lift del LSTM valió 1.1
 contra 1.16 del piso, y ese orden es el contrario del que da el área. El piso
 ordena mejor el conjunto y el modelo ordena mejor la cabeza, que es la parte que
 un detector recorre primero. El acuerdo entre los dos puntajes vale entonces para
-el par de la Tabla 3 y no se extiende al piso.
+el par de la Tabla 2 y no se extiende al piso.
 
 ### D. Alcance del colapso
 
@@ -745,7 +732,7 @@ umbral en la Sección III-C, y las tres reglas se contrastan contra él. La regl
 cuota lo reproduce en **once** de las doce celdas; la de denominador observado en
 siete y la de la Sección II-C en seis. Bajo esta última la persistencia ganó las
 doce, que es lo que hizo leer el colapso como ceguera del modelo. La única celda
-donde la regla de cuota discrepa es E59 a cinco minutos. La Tabla 4 recoge las
+donde la regla de cuota discrepa es E59 a cinco minutos. La Tabla 3 recoge las
 tres reglas con sus medianas y ese conteo de coincidencias.
 
 La regla de cuota no convierte al modelo en mejor detector. Su MCC tuvo mediana
@@ -763,7 +750,7 @@ menos una, tuvo mediana 1.000, 0.710 y 0.580 contra la regla de la Sección II-C
 El solape no explica entonces la diferencia: la regla de denominador observado es
 la que más se le parece, y es la que colapsa con ella.
 
-**Tabla 4.** Las tres reglas del evento sobre la misma población y el mismo
+**Tabla 3.** Las tres reglas del evento sobre la misma población y el mismo
 origen. Cada celda es la mediana de las doce combinaciones de corredor y
 horizonte.
 
@@ -819,10 +806,10 @@ capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0.60, 
 E2 a diez minutos llegó a 0.49, indistinguible del azar. Esa celda ya había
 fallado bajo el evento relativo, contra el perfil posicional de la Sección III-C.
 Las dos definiciones del evento coinciden entonces en ella. La afirmación de que
-el LSTM no es ciego se sostiene fuera de esa celda y no dentro. La Tabla 5 recoge
+el LSTM no es ciego se sostiene fuera de esa celda y no dentro. La Tabla 4 recoge
 los tres orígenes y ese ensayo.
 
-**Tabla 5.** Robustez: los tres orígenes de evaluación y el ensayo con un umbral
+**Tabla 4.** Robustez: los tres orígenes de evaluación y el ensayo con un umbral
 absoluto en minutos.
 
 | Corredor | h | Origen 1 | Origen 2 | Origen 3 | Coinciden | AUC, umbral absoluto |
@@ -840,7 +827,7 @@ absoluto en minutos.
 | E59 | 5 | LSTM | LSTM | LSTM | sí | 0.637 |
 | E59 | 10 | LSTM | LSTM | LSTM | sí | 0.616 |
 
-‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y es también la celda que el perfil posicional gana en la Tabla 3.
+‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y es también la celda que el perfil posicional gana en la Tabla 2.
 
 ### B. Amenazas a la validez
 
@@ -979,7 +966,7 @@ esa dirección supera cuatro veces la lateral. La segunda es que circulen al men
 cinco buses a la vez, sin lo cual un vector de headways no describe nada.
 
 El headway de la Sección I se construye aquí desde la coordenada de los buses, y la
-Figura 8 lo ilustra. La forma habitual de medirlo es en una parada, con la lista
+Figura 6 lo ilustra. La forma habitual de medirlo es en una parada, con la lista
 de paradas de la ruta y los horarios de paso. Estos registros no traen ninguna de
 las dos, ni horario publicado ni archivo GTFS: cada bus emite su identificador,
 el instante y su coordenada, y ese
@@ -1078,7 +1065,7 @@ el cruce hallado puede corresponder a un paso de horas antes.
 
 ![Definición del headway](figuras/headway/headway.png)
 
-**Fig. 8.** El headway en un punto fijo del corredor: el bus de adelante —el $L$ de
+**Fig. 6.** El headway en un punto fijo del corredor: el bus de adelante —el $L$ de
 la Ecuación (11)— pasa por p₂ a las 12:30 y el de atrás —el $F$— a las 12:35, de
 modo que el headway en p₂ es de cinco minutos. La separación espacial entre los dos
 buses no interviene. Esquema ilustrativo, no datos reales.
@@ -1175,7 +1162,7 @@ contiguas, y una atención que pondera todas las posiciones entre sí. Esa
 relación es la estructura que una predicción vectorial podría aprovechar.
 
 Las tres quedaron dentro de un rango de 0.017 a 0.074 minutos en las doce celdas,
-y ninguna quedó primera en las doce. La Tabla 1 las recoge. Modelar la relación
+y ninguna quedó primera en las doce. La Tabla 5 las recoge. Modelar la relación
 entre posiciones vecinas no movió el error escalar, de modo que el trabajo
 continuó con la más simple de las tres.
 
@@ -1187,9 +1174,9 @@ grafos [@rodrigues2022]. Advierte a la vez que la correlación espacial no debe
 descartarse, sobre todo a horizontes cortos. Boudabbous y colaboradores encuentran
 que una red recurrente supera a dos transformadores entre 18 y 52 % con 275 veces
 menos parámetros, sobre la red de Montreal y contra arquitecturas que operan sobre
-el tiempo [@boudabbous2026]. Ninguno de los dos releva a la Tabla 1 de su propia
+el tiempo [@boudabbous2026]. Ninguno de los dos releva a la Tabla 5 de su propia
 
-**Tabla 1.** Error absoluto medio de las tres arquitecturas contrastadas antes de
+**Tabla 5.** Error absoluto medio de las tres arquitecturas contrastadas antes de
 fijar el protocolo de esta sección. La última columna es la diferencia entre la
 mayor y la menor de cada fila.
 
@@ -1221,11 +1208,11 @@ entrena hasta el 22 de diciembre y prueba del 14 de enero al 4 de febrero. El
 tercero entrena hasta el 15 de enero, valida hasta el 7 de febrero y prueba del 8
 al 29 de febrero de 2024. Como los entrenamientos están
 anidados, esto establece estabilidad frente a la elección del período de prueba y
-no réplica independiente. La Figura 3 muestra el esquema.
+no réplica independiente. La Figura 7 muestra el esquema.
 
 ![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.es.png)
 
-**Fig. 3.** La partición por tiempo y los tres orígenes de evaluación. Los tres
+**Fig. 7.** La partición por tiempo y los tres orígenes de evaluación. Los tres
 comienzan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
 solapan.
 
