@@ -72,51 +72,38 @@ partición; el Apéndice B, las pruebas estadísticas.
 
 ## II. Antecedentes y método
 
-Esta sección reúne lo que el resto del documento da por establecido. Formula
-primero la tarea de predicción sobre el vector de headways y recoge la propiedad
-de dispersión que arrastra el objetivo con que se la ajusta. Define después la
-regla que convierte ese vector en un evento de bunching. Reúne luego los trabajos previos
-y delimita cuánto del caso que este documento mide ya estaba publicado, y cierra
-con las métricas que las dos secciones siguientes leen. Los datos, los métodos
-comparados y el protocolo de partición quedan en el Apéndice A.
+Los datos, los métodos comparados y el protocolo de partición quedan en el
+Apéndice A.
 
 ### A. Formulación de la tarea de predicción
 
 Lo que predecimos es el **vector de headways** del corredor: un headway por cada
-par de buses consecutivos que circulan en el mismo sentido. El Apéndice A lo
-construye desde los registros GPS, que son la única entrada disponible. Se predice
-el vector completo: no un headway suelto ni un
-promedio del corredor, sino todas sus posiciones a la vez. Dado el historial de
-los últimos $T$ minutos y un contexto de calendario, se busca el vector del
-corredor $H$ minutos más adelante:
+par de buses consecutivos que circulan en el mismo sentido, todas sus posiciones
+a la vez y no un promedio. El Apéndice A lo construye desde los registros GPS,
+que son la única entrada disponible. Dado el historial de los últimos $T$
+minutos y un contexto de calendario, se busca el vector del corredor $H$ minutos
+más adelante:
 
 $$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\;
 c(t-T+1), \dots, c(t)\big), \qquad T = 12, \tag{1}$$
 
 donde $\mathbf{h}(t)$ es el vector de headways del corredor en el minuto $t$ y
-$\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante.
-El término $c(t)$ reúne cuatro variables de calendario del minuto $t$: el seno y
-el coseno de la hora, y el seno y el coseno del día de la semana. El modelo
-recibe ese conjunto en cada uno de los $T$ minutos de la ventana de entrada, y no
-solo en el último. Aquí $f$ es el modelo ajustado y $T$ es la cantidad de minutos de
+$\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante. El
+término $c(t)$ reúne cuatro variables de calendario del minuto $t$: el seno y el
+coseno de la hora, y el seno y el coseno del día de la semana. El modelo recibe
+ese conjunto en cada uno de los $T$ minutos de la ventana de entrada, y no solo
+en el último. Aquí $f$ es el modelo ajustado y $T$ es la cantidad de minutos de
 historia que recibe.
 
 Se predice a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
-ajustado por separado para cada uno: no hay recursión, cada horizonte se predice
-de forma directa. Los cuatro no cumplen la misma función. A un minuto la
-predicción no deja margen de intervención, porque retener un bus en un terminal
-o adelantar a otro no se resuelve en ese plazo; ese horizonte entra como
-referencia del régimen donde repetir el último vector observado es difícil de
-superar, y es la condición que Manibardo, Laña y Del Ser describen
-[@manibardo2022]. El margen de maniobra empieza hacia los cinco minutos, de modo
-que las afirmaciones operativas de la Sección IV se leen sobre los horizontes
-de cinco y diez. Conservar el de un minuto es lo que permite situar a los otros
-tres: sin él no se observa dónde cambia de dueño el veredicto ni desde dónde se
-profundiza la compresión que mide la Sección III-A. El vector no tiene longitud
-fija, porque $N$ varía minuto a minuto. El modelo emite entonces una
-salida de longitud fija y el error se computa solo sobre las posiciones donde hay
-bus. **El objetivo que se minimiza es el error cuadrático**, promediado sobre esas
-posiciones válidas:
+ajustado por separado para cada uno, sin recursión. A un minuto la predicción no
+deja margen de intervención, y es el régimen donde repetir el último vector
+observado es difícil de superar [@manibardo2022]; ese horizonte queda como
+referencia, y las afirmaciones operativas de la Sección IV se leen sobre los de
+cinco y diez. El vector no tiene longitud fija, porque $N$ varía minuto a
+minuto. El modelo emite entonces una salida de longitud fija y el error se
+computa solo sobre las posiciones donde hay bus. **El objetivo que se minimiza
+es el error cuadrático**, promediado sobre esas posiciones válidas:
 
 $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 \big(\hat{h}_i - h_i\big)^{2}, \tag{2}$$
@@ -133,86 +120,63 @@ La primera etapa de esa receta arrastra una propiedad conocida: una predicción
 ajustada para minimizar el error cuadrático sale menos dispersa que la cantidad
 que predice. La propiedad es un teorema y no una regularidad empírica. Una
 predicción que minimiza error cuadrático tiende a la media condicional
-[@gneiting2011], y Patton y Timmermann descomponen la varianza del objetivo en la
-de la predicción óptima más el error cuadrático esperado, con una compresión que
-crece al alargar el horizonte por construcción y no por una falla del ajuste
-[@patton2012]. Mayer y Yang la miden sobre irradiancia solar, donde sus
-predicciones capturan menos del 75 % de la varianza observada, y señalan la
-consecuencia sobre la comparación entre métodos: la raíz del error cuadrático
-medio premia a la predicción de menor dispersión, de modo que evaluar con ella
-sobrevalora al más comprimido [@mayer2023].
+[@gneiting2011], y la varianza del objetivo se descompone en la de esa
+predicción óptima más el error cuadrático esperado, con una compresión que crece
+al alargar el horizonte por construcción y no por una falla del ajuste
+[@patton2012]. Está medida sobre la varianza temporal de una serie escalar
+[@patton2012], sobre conjuntos de instancias en seis dominios, entre ellos el
+tráfico [@green2026], sobre la dispersión transversal de un campo espacial
+[@bonavita2024] y sobre irradiancia solar, donde además la raíz del error
+cuadrático medio premia a la predicción menos dispersa [@mayer2023].
 
-La propiedad está documentada sobre tres objetos. El Corolario 2 de Patton y
-Timmermann recae sobre la varianza temporal de una serie escalar [@patton2012].
-Green, Abdallah y Silva Filho la miden sobre conjuntos de instancias y reportan
-la varianza de lo predicho por debajo de la del objetivo en seis dominios, entre
-ellos el tráfico, sin conectarla con ninguna regla de umbral [@green2026]. Y
-Bonavita la reporta sobre la dispersión transversal de un campo espacial: sus
-modelos ajustados con error cuadrático emiten campos con energía espectral
-deficiente [@bonavita2024]. La cantidad que la Sección III-A mide sobre el vector
-de headways tiene entonces precedente como cantidad. Lo que no encontramos es esa
-medición sobre el vector de headways de un corredor, ni un control que separe la
-compresión del resto del procedimiento; la Sección III-A usa la persistencia para
-eso.
-
-El daño sobre una regla de umbral también está documentado. Petetin y
-colaboradores encuentran que el método con mejor error cuadrático y mejor
-correlación es el que peor detecta los episodios altos de ozono, porque subestima
-la variabilidad, y todas sus métricas categóricas se degradan al alargar el
-horizonte [@petetin2022]. La Ecuación (2) ata esa propiedad a lo que aquí se
-ajusta: el objetivo del ajuste es una media y la decisión que se toma después es
-un evento por umbral, y qué le hace a la decisión la media que se emitió es lo
-que la Sección II-C plantea.
+El daño sobre una regla de umbral también está documentado: el método con mejor
+error cuadrático es el que peor detecta los episodios altos de ozono, porque
+subestima la variabilidad [@petetin2022]. Lo que no encontramos es esa medición
+sobre el vector de headways de un corredor, ni un control que separe la
+compresión del resto del procedimiento; la Sección III-A usa la persistencia
+para eso.
 
 ### C. Definición del evento de bunching
 
 El bunching de la Sección I deja un intervalo largo detrás de los buses
-agrupados, y su costo recae sobre quien espera en ese intervalo: la espera que
-enfrenta es la que el intervalo mide, y no el headway promedio del corredor. Sus
-causas no son observables en estos registros GPS, que no traen pasajeros,
-ocupación ni estado del tránsito, de modo que el evento se define sobre la
-geometría del vector de headways y no sobre lo que la produjo.
+agrupados, y su costo recae sobre quien espera en ese intervalo. Sus causas no
+son observables en estos registros GPS, que no traen pasajeros, ocupación ni
+estado del tránsito, de modo que el evento se define sobre la geometría del
+vector de headways y no sobre lo que la produjo. Es una propiedad del patrón
+colectivo y no de un bus, y se manifiesta en posiciones del vector de la Sección
+II-A: un mismo instante puede llevar varias posiciones afectadas a la vez.
 
-Dos rasgos del fenómeno gobiernan cómo se lo define aquí. Es una propiedad del
-patrón colectivo y no de un bus: cada bus puede estar donde le corresponde y
-el corredor presentar bunching igual. Y se manifiesta en posiciones del vector de
-la Sección II-A, de modo que un mismo instante puede llevar varias posiciones
-afectadas a la vez.
-
-Resta decidir cuándo un headway cuenta como bunching. La convención del campo es
-una fracción del headway programado: un cuarto en las formulaciones más citadas
-[@moreiramatias2016], y la mitad en el TCQSM [@tcqsm2003]. Estos corredores no
-tienen programación, y sustituir ese denominador por uno observado en el propio
-corredor es práctica establecida: Yu y colaboradores usan el headway de la
-primera parada del mismo viaje [@yu2016], y Jiao y colaboradores fijan su umbral
-en un cuarto de ese mismo valor [@jiao2023]. Aquí el denominador se sustituye por
+La convención del campo marca el evento con una fracción del headway programado:
+un cuarto en las formulaciones más citadas [@moreiramatias2016], y la mitad en
+el TCQSM [@tcqsm2003]. Estos corredores no tienen programación, y sustituir ese
+denominador por uno observado en el propio corredor es práctica establecida: Yu
+y colaboradores usan el headway de la primera parada del mismo viaje [@yu2016] y
+Jiao y colaboradores heredan ese denominador [@jiao2023]. Aquí se sustituye por
 el promedio del propio vector en ese instante. **Un headway cuenta como bunching
 si cae por debajo de la mitad de ese promedio.** Ese valor es el umbral relativo
 del evento: una fracción del promedio vigente y no un número fijo de minutos, de
 modo que se mueve con cada vector.
 
-La sustitución del denominador es nuestra y la fracción es heredada del TCQSM. El
-promedio del vector cumple la función de la programación, fijar la separación
-normal en ese corredor en ese instante, y un umbral fijo en minutos no la cumple
-porque no es comparable entre corredores que operan a frecuencias distintas. La
-fracción de la media observada no aparece como definición de evento en la
-literatura consultada; la cantidad sí, con otro uso, como objetivo de una
-estrategia que retiene buses ante la ausencia de horario [@he2020]. La elección
-de la fracción tampoco es neutral: el rango de umbrales publicados no señala un
-único valor aceptado [@rezazada2024].
+La sustitución del denominador es nuestra y la fracción es heredada del TCQSM.
+El promedio del vector cumple la función de la programación —fijar la separación
+normal del corredor en ese instante—, que un umbral fijo en minutos no cumple
+entre corredores de frecuencias distintas. La fracción de la media observada no
+aparece como definición de evento en la literatura consultada; la cantidad sí,
+con otro uso, como objetivo de una estrategia que retiene buses ante la ausencia
+de horario [@he2020].
 
-El vector de la Sección II-A se escribe por componentes como
-$\mathbf{h}(t) = (h_1, \dots, h_m)$. Su promedio y el umbral del evento son
+El vector de la Sección II-A se escribe por componentes como $\mathbf{h}(t) =
+(h_1, \dots, h_m)$. Su promedio y el umbral del evento son
 
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
 \qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}, \tag{3}$$
 
 donde $m$ es la cantidad de posiciones con headway resuelto y $h_j(t)$ es el
 headway de la posición $j$. El promedio del vector es $\bar{h}(t)$, el umbral
-relativo del evento es $\tau(t)$ y $\rho$ es la fracción del promedio que lo fija.
-Con $N$ buses en circulación el vector tiene $N-1$ posiciones, pero las que la
-Apéndice A emite «sin valor» no entran ni en el promedio ni en $m$. El umbral
-se calcula entonces sobre lo resuelto. La condición de los treinta minutos
+relativo del evento es $\tau(t)$ y $\rho$ es la fracción del promedio que lo
+fija. Con $N$ buses en circulación el vector tiene $N-1$ posiciones, pero las
+que el Apéndice A emite «sin valor» no entran ni en el promedio ni en $m$: el
+umbral se calcula sobre lo resuelto, y la condición de los treinta minutos
 descarta los headways más largos, de modo que ese promedio queda por debajo del
 que daría el vector completo. La posición $i$ cuenta como bunching cuando cae
 por debajo de ese umbral:
@@ -221,25 +185,25 @@ $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
 \qquad \text{definido solo si } m \ge 3, \tag{4}$$
 
 donde $b_i(t)$ vale 1 si la posición $i$ cuenta como bunching y 0 si no, y
-$\mathbb{1}[\cdot]$ es la función indicadora. Cada posición con $b_i(t) = 1$ es un
-evento, y se dice que la regla la **marca**. La condición $m \ge 3$ descarta los
-vectores más cortos y exige al menos tres posiciones resueltas, y por lo tanto
-cuatro buses en circulación o más. Con dos
-headways cualquier medida de irregularidad se reduce a la diferencia entre ellos,
-y no describe un patrón.
+$\mathbb{1}[\cdot]$ es la función indicadora. Cada posición con $b_i(t) = 1$ es
+un evento, y se dice que la regla la **marca**. La condición $m \ge 3$ exige al
+menos tres posiciones resueltas —cuatro buses en circulación o más—, porque con
+dos headways cualquier medida de irregularidad se reduce a la diferencia entre
+ellos y no describe un patrón.
 
-El detector que este trabajo evalúa es esa misma regla aplicada al vector predicho
-de la Ecuación (1), con el promedio de ese mismo vector fijando el umbral:
+El detector que este trabajo evalúa es esa misma regla aplicada al vector
+predicho de la Ecuación (1), con el promedio de ese mismo vector fijando el
+umbral:
 
 $$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
 \,\right], \tag{5}$$
 
 donde $\hat{b}_i(t)$ es la detección emitida sobre la posición $i$ del vector
 predicho y $\bar{\hat{h}}(t)$ es el promedio de ese mismo vector predicho. Cada
-posición con $\hat{b}_i(t) = 1$ es un **trigger**: la señal que el detector emite
-sobre esa posición, y lo único que un operador vería. El
-umbral sale del vector predicho y no del observado porque quien opera un corredor
-no dispone del observado al momento de decidir.
+posición con $\hat{b}_i(t) = 1$ es un **trigger**: la señal que el detector
+emite sobre esa posición, y lo único que un operador vería. El umbral sale del
+vector predicho y no del observado porque quien opera un corredor no dispone del
+observado al momento de decidir.
 
 Como $\tau$ es función del propio vector que se evalúa, y no un número fijo de
 minutos, las Ecuaciones (4) y (5) no comparan contra el mismo umbral:
@@ -248,11 +212,12 @@ $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 \;\neq\; \rho\,\bar{h} \;=\; \tau(\mathbf{h})
 \qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{6}$$
 
-donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los umbrales que resultan
-de aplicar $\rho$ al vector observado y al vector predicho. El denominador de Yu y
-colaboradores no tiene esa propiedad: es observado, de modo que no se mueve con la
-predicción. Eso no lo pone a salvo, y la Sección IV mide cuánto de la diferencia
-le corresponde. La Figura 1 lo muestra con el mismo headway de dos minutos.
+donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ son los umbrales que
+resultan de aplicar $\rho$ al vector observado y al vector predicho. El
+denominador de Yu y colaboradores no tiene esa propiedad: es observado, de modo
+que no se mueve con la predicción. Eso no lo pone a salvo, y la Sección IV mide
+cuánto de la diferencia le corresponde. La Figura 1 lo muestra con el mismo
+headway de dos minutos.
 
 ![El mismo headway bajo dos umbrales](figuras/bunching-umbral.es.png)
 
@@ -263,95 +228,79 @@ los headways de 2.0 y 1.2 quedan debajo y **los dos son bunching**. (b) En el
 corredor regular el promedio es 3.1 min y el umbral 1.6 min: el mismo headway de
 2.0 min queda encima y **no es bunching**. Valores ilustrativos, no datos reales.
 
-Dos minutos entre buses es el mismo hecho físico en los dos paneles, y la regla lo
-clasifica al revés porque el umbral se movió con el vector. La Sección III mide qué
-ocurre cuando esa diferencia se ignora sobre datos reales.
+Dos minutos entre buses es el mismo hecho físico en los dos paneles, y la regla
+lo clasifica al revés porque el umbral se movió con el vector. La Sección III
+mide qué ocurre cuando esa diferencia se ignora sobre datos reales.
 
 ### D. Trabajos previos y su delimitación
 
 El bunching se predice en dos etapas: la primera estima el headway que separará
-a dos buses en un instante futuro y minimiza un error en minutos, y la segunda lo
-compara contra un umbral y decide una clase. Yu y colaboradores dan la
-formulación canónica sobre datos de tarjeta inteligente de dos rutas de Pekín sin
-horario fijo, con el headway de la primera parada del mismo viaje como
-denominador y un cuarto como fracción [@yu2016]. Jiao, Shen y Zhang repiten esa
-secuencia sobre una ruta de Xiangyang y heredan esa misma regla, de modo que las
-dos formulaciones son un linaje y no dos precedentes independientes; su pérdida
-suma al error cuadrático un término de clasificación, porque advierten que una
-pérdida atenta solo al error de regresión lleva al modelo a tratar como ruido los
-casos que la regla marca como evento [@jiao2023].
-
-La segunda etapa se evalúa en un punto de operación único. Yu y colaboradores
-reportan exactitud, sensibilidad y especificidad [@yu2016], y ninguna de las ocho
-filas de la tabla con que Santos y colaboradores resumen el subcampo registra una
-medida que puntúe el ordenamiento de la predicción sin fijar antes un umbral
-[@santos2022].
-
-La primera etapa tiene además un margen angosto donde más importa. Manibardo, Laña
-y Del Ser equiparan la persistencia con repetir el último valor observado, y
-reportan que su desempeño a horizontes cortos deja poco espacio de mejora a los
-modelos entrenados [@manibardo2022]. Su afirmación sobre el horizonte es que todos
-los modelos se degradan al alargarlo, y no que la relación entre ellos se
-invierta.
+a dos buses en un instante futuro y minimiza un error en minutos, y la segunda
+lo compara contra un umbral y decide una clase. Yu y colaboradores dan la
+formulación canónica, con el headway de la primera parada del mismo viaje como
+denominador y un cuarto como fracción [@yu2016]. Jiao, Shen y Zhang heredan esa
+misma regla —las dos formulaciones son un linaje y no dos precedentes
+independientes—, y su pérdida suma un término de clasificación, porque una
+pérdida atenta solo al error de regresión trata como ruido los casos que la
+regla marca [@jiao2023]. La segunda etapa se evalúa en un punto de operación
+único: ninguna de las ocho filas con que Santos y colaboradores resumen el
+subcampo registra una medida que puntúe el ordenamiento sin fijar antes un
+umbral [@santos2022]. Y sobre la primera etapa, la persistencia deja poco
+espacio de mejora a horizontes cortos [@manibardo2022]: lo reportado es que
+todos los modelos se degradan al alargar el horizonte, no que la relación entre
+ellos se invierta.
 
 El efecto de la compresión sobre una regla de umbral tiene dos remedios
 publicados fuera del transporte, y se distinguen por qué objeto tocan. Hoffmann,
-Menz y Spekat mueven el umbral: localizan el percentil que su valor fijo ocupa en
-los datos observados y recalculan el indicador con el valor de ese percentil en
-cada simulación, sin tocar los datos del modelo [@hoffmann2018]. Petetin y
-colaboradores mueven la predicción, porque sus umbrales de ozono son normativos y
-no admiten ajuste: su mapeo de cuantiles lleva la distribución de lo predicho a
-la de lo observado [@petetin2022]. Hay una tercera práctica, operativa: el
-*Extreme Forecast Index* del Centro Europeo de Predicción Meteorológica a Plazo
-Medio decide si una situación es extrema comparando el pronóstico vigente contra
-la climatología **del propio modelo**, fijada sobre los veinte años anteriores
-[@ecmwffug]; el índice se introdujo en 2003 [@lalaurette2003]. Referir el umbral
-a lo que el modelo mismo produce no es entonces nuevo.
+Menz y Spekat mueven el umbral: recalculan el indicador con el valor que ocupa,
+en cada simulación, el percentil que el umbral fijo ocupa en lo observado
+[@hoffmann2018]. Petetin y colaboradores mueven la predicción, porque sus
+umbrales de ozono son normativos: su mapeo de cuantiles lleva la distribución de
+lo predicho a la de lo observado [@petetin2022]. Y el *Extreme Forecast Index*
+del Centro Europeo de Predicción Meteorológica a Plazo Medio decide si una
+situación es extrema comparando el pronóstico vigente contra la climatología
+**del propio modelo** [@ecmwffug]: referir el umbral a lo que el modelo mismo
+produce no es entonces nuevo.
 
 Lo que ninguna de las tres prácticas enfrenta es un umbral que se mueva **dentro
-de la instancia que evalúa**. Hay además una propiedad que separa a esos umbrales
-del nuestro. Hoffmann y colaboradores observan que un indicador definido sobre un
-cuantil queda libre de sesgo por construcción [@hoffmann2018], y la razón es que
-un cuantil **conserva la frecuencia del evento** bajo cualquier transformación
-monótona de lo predicho. Una fracción del promedio no la conserva: la compresión
-encoge la separación entre posiciones respecto de ese promedio, de modo que el
-umbral y el valor comparado se mueven a la vez y la tasa del evento cae. Ese es
-el caso que este trabajo mide, y es relativo sin ser preservador de tasa. La
-delimitación queda entonces en dos mitades: los cinco trabajos de la Sección II-B
-establecen la compresión y su daño sobre una regla de umbral, y ninguno la mide
-sobre el vector de headways de un corredor; las tres prácticas anteriores
-recalibran un umbral, y ninguna sobre uno que se recalcule con cada instancia
-evaluada.
+de la instancia que evalúa**. Hay además una propiedad que separa a esos
+umbrales del nuestro: un umbral definido sobre un cuantil queda libre de sesgo
+por construcción [@hoffmann2018], porque un cuantil **conserva la frecuencia del
+evento** bajo cualquier transformación monótona de lo predicho. Una fracción del
+promedio no la conserva: la compresión encoge la separación entre posiciones
+respecto de ese promedio, de modo que el umbral y el valor comparado se mueven a
+la vez y la tasa del evento cae. Ese es el caso que este trabajo mide, y es
+relativo sin ser preservador de tasa. La delimitación queda entonces en dos
+mitades: los trabajos de la Sección II-B establecen la compresión y su daño
+sobre una regla de umbral, y ninguno la mide sobre el vector de headways de un
+corredor; las tres prácticas anteriores recalibran un umbral, y ninguna sobre
+uno que se recalcule con cada instancia evaluada.
 
-Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura
-[@sun2021]. Diagnostican que el paradigma de predecir y umbralizar falla, y
-reportan el área bajo la curva para su clasificador probabilístico; los métodos
-basados en headway entregan un valor exacto, quedan como un punto y no como una
-curva, y construir las curvas que los compararían queda como su trabajo futuro.
-Dos rasgos separan ese trabajo del nuestro. Su etiqueta es un umbral absoluto de
-un minuto y no una regla relativa al propio vector, de modo que la compresión
-alcanza al valor comparado y no al umbral. Y su diseño no declara ninguna ventana
-anterior disjunta sobre la cual su corte se ajuste.
-
-El umbral de Jiao y colaboradores es relativo pero se ancla en una observación
-fija, de modo que la compresión alcanza solo al valor comparado, y su reparación
-cambia el objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la
-Ecuación (6) hace explícito, y es donde este documento interviene: recalibra ese
-umbral sobre un período anterior disjunto, sin reentrenar ni cambiar el objetivo.
+Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
+diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
+bajo la curva para su clasificador probabilístico [@sun2021]. Dos rasgos separan
+ese trabajo del nuestro. Su etiqueta es un umbral absoluto de un minuto y no una
+regla relativa al propio vector, de modo que la compresión alcanza al valor
+comparado y no al umbral. Y su diseño no declara ninguna ventana anterior
+disjunta sobre la cual su corte se ajuste. El umbral de Jiao y colaboradores es
+relativo pero se ancla en una observación fija, y su reparación cambia el
+objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la Ecuación (6)
+hace explícito, y es donde este documento interviene: recalibra ese umbral sobre
+un período anterior disjunto, sin reentrenar ni cambiar el objetivo.
 
 ### E. Métricas
 
-El modelo entrega un vector de headways que la regla de la Sección II-C convierte
-en un indicador binario de bunching, y la evaluación mide esos dos objetos en
-cadena. El error del vector es el error absoluto medio (MAE) sobre las posiciones
-válidas que define la Ecuación (2):
+El modelo entrega un vector de headways que la regla de la Sección II-C
+convierte en un indicador binario de bunching, y la evaluación mide esos dos
+objetos en cadena. El error del vector es el error absoluto medio (MAE) sobre
+las posiciones válidas que define la Ecuación (2):
 
 $$\mathrm{MAE} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 \big|\hat{h}_i - h_i\big|, \tag{7}$$
 
 donde $\mathcal{V}$, $|\mathcal{V}|$, $\hat{h}_i$ y $h_i$ conservan el
-significado de la Ecuación (2). Se reporta el MAE y no el error cuadrático porque
-expresa el resultado en minutos de headway.
+significado de la Ecuación (2). Se reporta el MAE y no el error cuadrático
+porque expresa el resultado en minutos de headway.
 
 El MAE no describe la forma del vector. El coeficiente de variación (CV) es su
 desviación estándar muestral dividida por su promedio:
@@ -360,16 +309,18 @@ $$\mathrm{CV}(\mathbf{h}) \;=\; \frac{1}{\bar{h}}
 \sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\big(h_j - \bar{h}\big)^{2}}, \tag{8}$$
 
 donde $m$, $h_j$ y $\bar{h}$ conservan el significado de la Ecuación (3). Se
-calcula sobre los vectores de tres posiciones o más que exige la Ecuación (4). Se
-reporta porque es adimensional, de modo que corredores de frecuencias distintas
-quedan sobre la misma escala. Su sesgo es el CV de lo predicho menos el de lo
-observado, y un valor negativo dice que lo predicho es más regular que la realidad.
+calcula sobre los vectores de tres posiciones o más que exige la Ecuación (4).
+Se reporta porque es adimensional, de modo que corredores de frecuencias
+distintas quedan sobre la misma escala. Su sesgo es el CV de lo predicho menos
+el de lo observado, y un valor negativo dice que lo predicho es más regular que
+la realidad.
 
-El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto dependen
-del umbral, sobre la matriz de confusión entre el indicador observado de la
-Ecuación (4) y el detector de la Ecuación (5). Sean TP las posiciones con $b_i = \hat{b}_i = 1$, FP
-las que tienen $\hat{b}_i = 1$ y $b_i = 0$, FN las que tienen $b_i = 1$ y
-$\hat{b}_i = 0$, y TN las restantes. La precisión, el recall y el F1 son entonces
+El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto
+dependen del umbral, sobre la matriz de confusión entre el indicador observado
+de la Ecuación (4) y el detector de la Ecuación (5). Sean TP las posiciones con
+$b_i = \hat{b}_i = 1$, FP las que tienen $\hat{b}_i = 1$ y $b_i = 0$, FN las que
+tienen $b_i = 1$ y $\hat{b}_i = 0$, y TN las restantes. La precisión, el recall
+y el F1 son entonces
 
 $$\mathrm{F}_1 \;=\; \frac{2PR}{P+R}, \qquad
 P \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}, \qquad
@@ -378,38 +329,38 @@ R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{9}$$
 donde $P$ es la precisión y $R$ el recall.
 
 El F1 no usa TN [@chicco2020], y premia por eso al detector que emite un trigger
-en toda posición: maximizar el F1 sobre una predicción sin información conduce
-a ese detector con independencia de la tasa base [@lipton2014]. La tasa base de
+en toda posición: maximizar el F1 sobre una predicción sin información conduce a
+ese detector con independencia de la tasa base [@lipton2014]. La tasa base de
 una celda es la fracción de sus posiciones donde el indicador observado vale 1.
 Ese detector alcanza recall 1 y precisión igual a la tasa base [@flach2015], así
 que su F1 queda fijado por ella y acompaña como piso a todo F1 reportado. El
 coeficiente de correlación de Matthews (MCC) usa los cuatro conteos. Para ese
 detector su cociente queda indeterminado, porque numerador y denominador se
-anulan a la vez, y se le asigna cero por extensión por continuidad [@chicco2020].
-El área bajo la curva ROC (AUC) prescinde del umbral —el punto de operación del
-detector— y puntúa el ordenamiento del puntaje continuo
+anulan a la vez, y se le asigna cero por extensión por continuidad
+[@chicco2020]. El área bajo la curva ROC (AUC) prescinde del umbral —el punto de
+operación del detector— y puntúa el ordenamiento del puntaje continuo
 $-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (5) es el umbral en $-\rho$. Es
 la probabilidad de que una posición de bunching reciba un puntaje mayor que una
 sin bunching [@handtill2001], y vale 0.5 cuando la predicción no ordena.
 
 Ese 0.5 es el piso de una predicción sin ninguna información, y no el de una
-predicción sin información **temporal**. El perfil posicional del Apéndice A, sección B
-fija el segundo: es lo que alcanza el AUC cuando solo se conoce qué posición del
-vector suele llevar el headway más corto. Cumple para el AUC la misma función
-que el detector trivial cumple para el F1, y por eso acompaña a todo AUC
-reportado.
+predicción sin información **temporal**. El perfil posicional del Apéndice A,
+sección B fija el segundo: es lo que alcanza el AUC cuando solo se conoce qué
+posición del vector suele llevar el headway más corto. Cumple para el AUC la
+misma función que el detector trivial cumple para el F1, y por eso acompaña a
+todo AUC reportado.
 
 Sobre esas cantidades se construyen tres cocientes. La tasa de trigger de un
 método es la fracción de sus posiciones con $\hat{b}_i = 1$, y el factor entre
 dos métodos es el cociente de sus F1 bajo el mismo umbral. La precisión promedio
-también prescinde del umbral: recorre el ordenamiento que el AUC puntúa, de mayor
-a menor, y promedia la precisión de la Ecuación (9) sobre las posiciones de
-bunching. El lift la divide por la tasa base, que es la precisión promedio de una
-predicción que no ordena, de modo que vale 1 en ese caso.
+también prescinde del umbral: recorre el ordenamiento que el AUC puntúa, de
+mayor a menor, y promedia la precisión de la Ecuación (9) sobre las posiciones
+de bunching. El lift la divide por la tasa base, que es la precisión promedio de
+una predicción que no ordena, de modo que vale 1 en ese caso.
 
 El umbral no se hereda de lo observado. Se ajusta maximizando el MCC sobre el
-período de prueba del origen 2 y se aplica sin cambios al del origen 3. Los
-dos períodos son disjuntos y provienen de modelos entrenados por separado, de modo
+período de prueba del origen 2 y se aplica sin cambios al del origen 3. Los dos
+períodos son disjuntos y provienen de modelos entrenados por separado, de modo
 que el período publicado no informa su propio umbral.
 
 ---
@@ -1249,11 +1200,6 @@ International Organization for Standardization, Geneva, Switzerland, 2021.
 Prediction Using LSTM with Attention," in *2023 IEEE 8th International Conference
 on Intelligent Transportation Engineering (ICITE)*, 2023, pp. 451–458,
 doi: 10.1109/ICITE59717.2023.10733869.
-
-`[@lalaurette2003]` F. Lalaurette, "Early detection of abnormal weather
-conditions using a probabilistic extreme forecast index," *Quarterly Journal of
-the Royal Meteorological Society*, vol. 129, no. 594, pp. 3037–3057, 2003,
-doi: 10.1256/qj.02.152.
 
 `[@lipton2014]` Z. C. Lipton, C. Elkan, and B. Naryanaswamy, "Optimal
 Thresholding of Classifiers to Maximize F1 Measure," in *ECML PKDD 2014*, Lecture
