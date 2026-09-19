@@ -872,25 +872,22 @@ falso, y esa función depende de la operación de cada empresa.
 Este trabajo predice el vector de headways de tres corredores de Arequipa con un
 LSTM, y convierte lo predicho en un indicador de bunching mediante una regla
 relativa al promedio del propio vector. La dispersión transversal de lo predicho
-queda por debajo de la observada en las doce celdas y los tres orígenes de evaluación,
-y la brecha se profundiza al alargar el horizonte. Con el umbral del evento
-observado trasladado sin cambios, el detector emite catorce triggers sobre los
-15 245 eventos que la regla marca en E2 a diez minutos. La persistencia lo supera
-ahí por un factor de 253 en el F1.
+queda por debajo de la observada en las doce celdas y los tres orígenes de
+evaluación, y la brecha se profundiza al alargar el horizonte. Con el umbral del
+evento observado trasladado sin cambios, el detector emite catorce triggers
+sobre los 15 245 eventos que la regla marca en E2 a diez minutos. La
+persistencia lo supera ahí por un factor de 253 en el F1.
 
 Ese colapso no mide la capacidad del modelo sino el punto de operación en el que
 se lo evalúa. Puntuada sin fijar un umbral, mediante el AUC, la predicción del
 LSTM ordena mejor que la persistencia en las nueve combinaciones de corredor y
 origen a diez minutos. Esa ventaja se sostiene contra un perfil que solo conoce
-la posición en E4 y en E59. En E59 a diez minutos el área vale 0.632 contra 0.571
-de la persistencia, y las dos quedan por encima del 0.486 de ese perfil; el
-margen del modelo sobre él vale 0.146 y sobrevive su intervalo. Recalibrar el
-umbral sobre un período anterior disjunto recupera parte de esa ventaja sin
-reentrenar. El punto de operación se calcula entonces contra la distribución de
-lo predicho, y no se hereda de las observaciones. Definir el evento por una cuota
-de posiciones, y no por una cantidad de minutos, alcanza esa misma discriminación
-sin ajustar ningún parámetro, y reproduce el veredicto sin umbral en once de las
-doce celdas.
+la posición en E4 y en E59. Recalibrar el umbral sobre un período anterior
+disjunto recupera parte de esa ventaja sin reentrenar. El punto de operación se
+calcula entonces contra la distribución de lo predicho, y no se hereda de las
+observaciones. Definir el evento por una cuota de posiciones, y no por una
+cantidad de minutos, alcanza esa misma discriminación sin ajustar ningún
+parámetro, y reproduce el veredicto sin umbral en once de las doce celdas.
 
 El mismo perfil acota hasta dónde llega la afirmación. En E2 a diez minutos
 ordena mejor que el modelo, y esa es la celda de la que sale el factor de 253:
@@ -900,9 +897,9 @@ capacidad de anticipación que quedaría al retirarlo.
 Tres extensiones quedan abiertas. La primera liga la detección a una función de
 costo que pondere el aviso perdido contra el aviso falso, que la Sección V-B
 declara ausente. La segunda emite una predicción probabilística en lugar de
-puntual, de modo que la dispersión no se pierda en el acto de predecir. La tercera
-valida la regla del evento contra un registro de incidentes, que estos corredores
-todavía no producen.
+puntual, de modo que la dispersión no se pierda en el acto de predecir. La
+tercera valida la regla del evento contra un registro de incidentes, que estos
+corredores todavía no producen.
 
 ---
 
