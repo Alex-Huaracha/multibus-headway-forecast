@@ -133,57 +133,40 @@ por sentido que fija la Apéndice A, sección B y no en minutos.
 
 ### B. Compresión de la dispersión bajo error cuadrático medio
 
-La primera etapa de esa receta arrastra una propiedad conocida. Una predicción
-ajustada para minimizar el error cuadrático sale menos disperso que la cantidad
-que predice. Mayer y Yang lo miden sobre irradiancia solar: sus predicciones
-optimizadas de ese modo capturan menos del 75 % de la varianza observada
-[@mayer2023]. Y señalan la consecuencia sobre la comparación entre métodos: como
-la raíz del error cuadrático medio premia justamente a la predicción de menor
-dispersión, evaluar con ella sobrevalora al más comprimido.
+La primera etapa de esa receta arrastra una propiedad conocida: una predicción
+ajustada para minimizar el error cuadrático sale menos dispersa que la cantidad
+que predice. La propiedad es un teorema y no una regularidad empírica. Una
+predicción que minimiza error cuadrático tiende a la media condicional
+[@gneiting2011], y Patton y Timmermann descomponen la varianza del objetivo en la
+de la predicción óptima más el error cuadrático esperado, con una compresión que
+crece al alargar el horizonte por construcción y no por una falla del ajuste
+[@patton2012]. Mayer y Yang la miden sobre irradiancia solar, donde sus
+predicciones capturan menos del 75 % de la varianza observada, y señalan la
+consecuencia sobre la comparación entre métodos: la raíz del error cuadrático
+medio premia a la predicción de menor dispersión, de modo que evaluar con ella
+sobrevalora al más comprimido [@mayer2023].
 
-La propiedad es un teorema y no una regularidad empírica. Patton y Timmermann
-descomponen la varianza del objetivo en la de la predicción óptima más el error
-cuadrático esperado, y su Corolario 2 ordena esas varianzas por horizonte: la de
-la predicción a horizonte corto es mayor o igual que la de la predicción a
-horizonte largo [@patton2012]. La compresión crece entonces al alargar el horizonte, por
-construcción y no por una falla del ajuste. Ese resultado recae sobre la varianza
-temporal de una serie escalar.
+La propiedad está documentada sobre tres objetos. El Corolario 2 de Patton y
+Timmermann recae sobre la varianza temporal de una serie escalar [@patton2012].
+Green, Abdallah y Silva Filho la miden sobre conjuntos de instancias y reportan
+la varianza de lo predicho por debajo de la del objetivo en seis dominios, entre
+ellos el tráfico, sin conectarla con ninguna regla de umbral [@green2026]. Y
+Bonavita la reporta sobre la dispersión transversal de un campo espacial: sus
+modelos ajustados con error cuadrático emiten campos con energía espectral
+deficiente [@bonavita2024]. La cantidad que la Sección III-A mide sobre el vector
+de headways tiene entonces precedente como cantidad. Lo que no encontramos es esa
+medición sobre el vector de headways de un corredor, ni un control que separe la
+compresión del resto del procedimiento; la Sección III-A usa la persistencia para
+eso.
 
-Green, Abdallah y Silva Filho miden esa propiedad sobre un conjunto de instancias
-en lugar de sobre una serie. Reportan que la varianza de lo predicho queda por
-debajo de la del objetivo en seis dominios, entre ellos el tráfico [@green2026].
-Su trabajo no conecta esa compresión con ninguna regla de umbral, de modo que el
-daño sobre la decisión queda fuera de su alcance.
-
-La versión transversal de la misma propiedad —la dispersión medida entre unidades
-de un conjunto en un mismo instante, y no a lo largo del tiempo— también está
-documentada, y fuera del transporte es un resultado conocido. Bonavita compara
-modelos de predicción meteorológica ajustados con error cuadrático contra el
-análisis que los entrena, y reporta que sus campos salen con energía espectral
-deficiente: *«they consistently show reduced forecast variability at smaller
-(sub-synoptic, mesoscale) spatial scales»* [@bonavita2024]. El eje de la
-dispersión ahí es el espacio y no el tiempo, de modo que la cantidad que la
-Sección III-A mide sobre el vector de headways tiene precedente como cantidad. Lo
-que no encontramos es esa medición sobre el vector de headways de un corredor, ni
-un control que separe la compresión del resto del procedimiento; la Sección III-A
-usa la persistencia para eso.
-
-El daño de esa compresión sobre una regla de umbral ya se documentó fuera del
-transporte. Petetin y colaboradores corrigen predicciones de ozono y encuentran
-que el método con mejor error cuadrático y mejor correlación es el que peor
-detecta los episodios altos, porque subestima la variabilidad [@petetin2022].
-Todas sus métricas categóricas se degradan además al alargar el horizonte, de
-modo que el efecto sobre la decisión sigue al efecto sobre la dispersión.
-
-La Ecuación (2) ata esa propiedad a lo que aquí se ajusta. Una predicción que
-minimiza error cuadrático tiende a la media condicional, y Gneiting formaliza de
-qué depende esa elección: la predicción puntual óptima queda determinada por la
-función de pérdida, de modo que el error cuadrático pide la media y el error
-absoluto pide la mediana, y evaluar una predicción con una función que no
-corresponde al objetivo con que se la ajustó *«can lead to grossly misguided
-inferences»* [@gneiting2011]. Aquí el objetivo del ajuste es una media y la
-decisión que se toma después es un evento por umbral, y ese segundo paso —qué le
-hace a la decisión la media que se emitió— es lo que la Sección II-C plantea.
+El daño sobre una regla de umbral también está documentado. Petetin y
+colaboradores encuentran que el método con mejor error cuadrático y mejor
+correlación es el que peor detecta los episodios altos de ozono, porque subestima
+la variabilidad, y todas sus métricas categóricas se degradan al alargar el
+horizonte [@petetin2022]. La Ecuación (2) ata esa propiedad a lo que aquí se
+ajusta: el objetivo del ajuste es una media y la decisión que se toma después es
+un evento por umbral, y qué le hace a la decisión la media que se emitió es lo
+que la Sección II-C plantea.
 
 ### C. Definición del evento de bunching
 
@@ -297,22 +280,17 @@ ocurre cuando esa diferencia se ignora sobre datos reales.
 
 ### D. Trabajos previos y su delimitación
 
-El bunching se predice en dos etapas. La primera estima el headway que separará a
-dos buses en un instante futuro. La segunda compara ese valor contra un
-umbral y emite un indicador binario del evento. Yu y colaboradores dan la
-formulación canónica de esa secuencia sobre datos de tarjeta inteligente de dos
-rutas de Pekín. Ese sistema no publica un horario fijo, de modo que sustituyen el
-horario ausente por el headway observado en la primera parada del mismo viaje y
-fijan el umbral en un cuarto de ese valor [@yu2016]. Las dos etapas optimizan
-objetivos distintos, porque la primera minimiza un error en minutos y la segunda
-decide una clase.
-
-Jiao, Shen y Zhang repiten esa secuencia sobre una ruta de Xiangyang y heredan de
-Yu y colaboradores esa misma regla del cuarto sobre la primera parada, de modo
-que las dos formulaciones son un linaje y no dos precedentes independientes
-[@jiao2023]. Su pérdida suma al error cuadrático un término de clasificación,
-porque advierten que una pérdida atenta solo al error de regresión lleva al
-modelo a tratar como ruido los casos que la regla marca como evento.
+El bunching se predice en dos etapas: la primera estima el headway que separará
+a dos buses en un instante futuro y minimiza un error en minutos, y la segunda lo
+compara contra un umbral y decide una clase. Yu y colaboradores dan la
+formulación canónica sobre datos de tarjeta inteligente de dos rutas de Pekín sin
+horario fijo, con el headway de la primera parada del mismo viaje como
+denominador y un cuarto como fracción [@yu2016]. Jiao, Shen y Zhang repiten esa
+secuencia sobre una ruta de Xiangyang y heredan esa misma regla, de modo que las
+dos formulaciones son un linaje y no dos precedentes independientes; su pérdida
+suma al error cuadrático un término de clasificación, porque advierten que una
+pérdida atenta solo al error de regresión lleva al modelo a tratar como ruido los
+casos que la regla marca como evento [@jiao2023].
 
 La segunda etapa se evalúa en un punto de operación único. Yu y colaboradores
 reportan exactitud, sensibilidad y especificidad [@yu2016], y ninguna de las ocho
@@ -597,12 +575,11 @@ relativo le queda en la cola.
 
 ### C. Detección sin umbral y el piso posicional
 
-Si el problema es el umbral, recalibrarlo debería bastar. Se aplicó
-entonces la recalibración de la Sección II-E, sin tocar el modelo. Elegir el MCC y
-no el F1 como objetivo responde a que en este corpus el F1 degenera. Sobre la
-persistencia en E2, de tres minutos en adelante, el umbral que optimiza el F1
-emitió un trigger entre el 99.9 % y el 100 % de las posiciones, esto es, la regla vacía de
-la Tabla 2.
+Si el problema es el umbral, recalibrarlo debería bastar. Se aplicó entonces la
+recalibración de la Sección II-E sin tocar el modelo, con el MCC como objetivo
+porque el F1 degenera en este corpus: sobre la persistencia en E2, de tres
+minutos en adelante, el umbral que optimiza el F1 emitió un trigger entre el
+99.9 % y el 100 % de las posiciones, esto es, la regla vacía de la Tabla 2.
 
 El umbral trasplantado de la Tabla 2 dejaba a la persistencia por delante en las
 doce celdas. Los dos instrumentos que la Tabla 3 reúne mueven ese conteo en
@@ -631,24 +608,20 @@ métodos no depende del puntaje elegido. Con el MCC recalibrado el acuerdo baja 
 once de doce; la excepción es E59 a cinco minutos, donde el LSTM gana el AUC y
 pierde la correlación recalibrada.
 
-Las dos fronteras de régimen coinciden. Medido por el signo de la diferencia, el
-error escalar pasó a favor del LSTM entre uno y tres minutos en los tres
-corredores. El AUC pasó a su favor entre uno y tres minutos en E2, entre tres y
-cinco en E59, y entre cinco y diez en E4. La detección cambió de régimen entonces
-uno o dos escalones de horizonte más tarde que el error en dos de los tres
-corredores. En ninguna de las dos volvió la ventaja a la persistencia al alargar
-el horizonte. La disociación que el error
-escalar y la Tabla 2 parecían mostrar, con el LSTM ganando en error y perdiendo en
-detección, la producía el umbral.
+Las dos fronteras de régimen coinciden. El error escalar pasó a favor del LSTM
+entre uno y tres minutos en los tres corredores; el AUC, entre uno y tres en E2,
+entre tres y cinco en E59 y entre cinco y diez en E4, uno o dos escalones más
+tarde en esos dos corredores, y en ninguna de las dos volvió la ventaja a la
+persistencia al alargar el horizonte.
 
 El cambio de veredicto no requirió tocar el modelo. El AUC de la Figura 7 se
 calculó sobre las mismas predicciones que la Figura 6 puntúa con el umbral
-trasplantado. No se reentrenó, no se agregó información y no se modificó ninguna
-arquitectura. Entre las dos figuras cambió el umbral de la Ecuación (5). La
-Figura 6 lo hereda de lo observado y la Figura 7 lo elimina; la columna del MCC
-recalibrado de la Tabla 3 lo reajusta contra lo predicho. Como ninguna otra cosa
-varió, ninguna otra cosa explica el cambio de conteo, y el umbral queda
-identificado como la variable que producía el veredicto.
+trasplantado: entre las dos figuras cambió solo el umbral de la Ecuación (5), que
+la primera hereda de lo observado, la segunda elimina y la columna del MCC
+recalibrado de la Tabla 3 reajusta contra lo predicho. Como ninguna otra cosa
+varió, el umbral queda identificado como la variable que producía el veredicto, y
+la disociación que el error escalar y la Tabla 2 parecían mostrar, con el LSTM
+ganando en error y perdiendo en detección, la producía él.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
@@ -687,14 +660,12 @@ donde la ventaja del LSTM no resiste su intervalo aunque sí resista la del AUC.
 § El piso posicional supera a la persistencia en estas celdas, y al LSTM en la
 de diez minutos. La negrita compara los dos métodos entre sí y no contra el piso.
 
-Ese AUC no basta por sí solo para atribuirle el ordenamiento
-a la anticipación. El perfil posicional de la Apéndice A, sección B lo acota, y su
-respuesta no es la misma en los tres corredores. En E4 y en E59 queda
-indistinguible del azar —entre 0.486 y 0.523 en las ocho celdas—, de modo que el
-ordenamiento del LSTM en esos dos corredores no proviene de la posición: lo
-supera por entre 0.08 y 0.29, y las ocho diferencias sobreviven su intervalo. En
-E2 el piso sube a 0.58 y no se mueve con el horizonte, señal de que ese corredor
-sí lleva una estructura posicional estable.
+Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
+y el perfil posicional de la Apéndice A, sección B lo acota. En E4 y E59 el piso
+queda indistinguible del azar, entre 0.486 y 0.523 en las ocho celdas, de modo
+que el ordenamiento del LSTM ahí no proviene de la posición: lo supera por entre
+0.08 y 0.29, y las ocho diferencias sobreviven su intervalo. En E2 el piso sube a
+0.58 y no se mueve con el horizonte, señal de una estructura posicional estable.
 
 **A diez minutos en E2 el LSTM queda por debajo de ese piso, 0.565 contra
 0.579.** La diferencia vale -0.013 [-0.023, -0.003] y sobrevive su intervalo, de
@@ -787,11 +758,10 @@ minutos en E4 y E59. Reparar la regla recupera discriminación y no cambia de du
 el veredicto a un minuto en ninguno de los tres corredores.
 
 Las tres reglas tampoco marcan el mismo evento sobre lo observado. El índice de
-Jaccard divide las posiciones que dos reglas marcan a la vez entre las que marca
-al menos una. Medido entre lo que marca cada regla y lo que marca la de la Sección
-II-C, tuvo mediana 1.000, 0.710 y 0.580. El solape no explica entonces la
-diferencia entre las tres. La regla de denominador observado es la que más se
-parece a la de la Sección II-C, y es la que colapsa con ella.
+Jaccard, las posiciones que dos reglas marcan a la vez entre las que marca al
+menos una, tuvo mediana 1.000, 0.710 y 0.580 contra la regla de la Sección II-C.
+El solape no explica entonces la diferencia: la regla de denominador observado es
+la que más se le parece, y es la que colapsa con ella.
 
 **Tabla 4.** Las tres reglas del evento sobre la misma población y el mismo
 origen. Cada celda es la mediana de las doce combinaciones de corredor y
@@ -805,24 +775,17 @@ horizonte.
 
 ‡ Vale uno por construcción y no por medición: la cantidad de posiciones marcadas queda fijada antes de leer los valores.
 
-Reparar la regla cambia también lo que el resultado ofrece a quien opera. Ese
-resultado no es que el modelo detecte mejor. Es que **emitió pocos
-triggers y acertó en ellos**, y el F1 de la Ecuación (9) combina esas dos
-propiedades en un solo número. La Sección III-B reporta los conteos: catorce en E2 a diez
-minutos, y en ese horizonte la precisión quedó por encima de la tasa base en los
-tres corredores, con su intervalo al lado. Esa lectura describe el umbral
-trasplantado, y recalibrarlo deshace su primera mitad: el detector recalibrado
-emitió un trigger en el 26.98 % de las posiciones de E2 a diez minutos, contra el 0.03 % del
-trasplantado.
-
-Eso no es una alarma. Una alarma tiene que sonar cuando ocurre el evento, y con el
-umbral trasplantado el detector se queda callado la mayoría de las veces. Lo que
-queda es un **filtro de prioridad**: un aviso poco frecuente y más informativo que
-el azar, que sirve para ordenar la atención de un despachador y no para
-reclamarla. La consecuencia para quien evalúa una predicción de este tipo es
-distinta. **El punto de operación se recalibra contra la distribución de lo
-predicho, no se hereda de las observaciones.** Requiere recalcular un escalar y no
-reentrenar nada.
+Reparar la regla cambia también lo que el resultado ofrece a quien opera. Con el
+umbral trasplantado el detector **emitió pocos triggers y acertó en ellos**
+—catorce en E2 a diez minutos, con la precisión por encima de la tasa base en los
+tres corredores según la Sección III-B—, y eso no es una alarma sino un **filtro
+de prioridad**: un aviso poco frecuente y más informativo que el azar, que sirve
+para ordenar la atención de un despachador. Recalibrar deshace la primera mitad
+de esa lectura: el detector recalibrado emitió un trigger en el 26.98 % de las
+posiciones de E2 a diez minutos, contra el 0.03 % del trasplantado. La
+consecuencia para quien evalúa es que **el punto de operación se recalibra contra
+la distribución de lo predicho, no se hereda de las observaciones**, y requiere
+recalcular un escalar y no reentrenar nada.
 
 ---
 
@@ -926,14 +889,12 @@ Sección II-E reporta ambos: el AUC mide el ordenamiento sin fijar umbral y el M
 resume el punto de operación ya elegido, de modo que responden preguntas
 distintas.
 
-El piso posicional que acota ese AUC tiene dos límites propios. Se ajusta sobre un
-solo origen anterior, mientras que los veredictos entre métodos se replican sobre
-tres, de modo que su margen descansa en una ventana y no en tres. Y no carece de
-información: puntuar divide por el promedio del vector evaluado, de manera que el
-piso lee qué posiciones ocupó el corredor en ese minuto. Lo que no lee es la
-ventana de entrada, y eso es lo que lo vuelve incapaz de anticipar. Los dos
-métodos que acota leen esa misma composición, de modo que la comparación no le
-concede nada a ninguno.
+El piso posicional que acota ese AUC tiene dos límites propios. Se ajusta sobre
+un solo origen anterior, mientras que los veredictos entre métodos se replican
+sobre tres. Y no carece de información: puntuar divide por el promedio del vector
+evaluado, así que el piso lee qué posiciones ocupó el corredor en ese minuto; lo
+que no lee es la ventana de entrada, y los dos métodos que acota leen esa misma
+composición, de modo que la comparación no le concede nada a ninguno.
 
 Las métricas de la Sección II-E son genéricas y comparables entre corredores, y
 ninguna liga un error de predicción a una decisión de intervención. Un despacho
