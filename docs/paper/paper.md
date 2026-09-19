@@ -1103,35 +1103,26 @@ explica por sí sola. Se ajusta sobre el período de prueba del origen 2 y se
 aplica al del origen 3, los mismos dos períodos que la Sección II-E usa para el
 umbral y por la misma razón.
 
-
 ### C. Protocolo de evaluación
 
-La partición es **por fecha y nunca al azar**, porque un operador solo dispone del
-pasado. El período se divide en 107 días de entrenamiento, 23 de validación y 22
-de prueba. Todo el protocolo se repite después sobre tres orígenes de evaluación,
-numerados aquí 1, 2 y 3. Los tres comienzan el mismo día y
-alargan el entrenamiento a 61, 83 y 107 días. Sus períodos de prueba no se solapan
-entre sí, y el del origen 3 es el que se publica. El primero entrena hasta el 30
-de noviembre de 2023 y prueba del 23 de diciembre al 13 de enero. El segundo
-entrena hasta el 22 de diciembre y prueba del 14 de enero al 4 de febrero. El
-tercero entrena hasta el 15 de enero, valida hasta el 7 de febrero y prueba del 8
-al 29 de febrero de 2024. Como los entrenamientos están
-anidados, esto establece estabilidad frente a la elección del período de prueba y
-no réplica independiente. La Figura 6 muestra el esquema.
-
-![Partición temporal y los tres orígenes](figuras/esquema-particion-temporal.es.png)
-
-**Fig. 6.** La partición por tiempo y los tres orígenes de evaluación. Los tres
-comienzan el mismo día y alargan el entrenamiento; sus períodos de prueba no se
-solapan.
+La partición es **por fecha y nunca al azar**, porque un operador solo dispone
+del pasado. El protocolo completo se evalúa sobre tres orígenes, numerados aquí
+1, 2 y 3: los tres comienzan el mismo día, alargan el entrenamiento a 61, 83 y
+107 días, y sus períodos de prueba no se solapan entre sí. El primero entrena
+hasta el 30 de noviembre de 2023 y prueba del 23 de diciembre al 13 de enero. El
+segundo entrena hasta el 22 de diciembre y prueba del 14 de enero al 4 de
+febrero. El tercero —el que se publica, con 107 días de entrenamiento, 23 de
+validación y 22 de prueba— entrena hasta el 15 de enero, valida hasta el 7 de
+febrero y prueba del 8 al 29 de febrero de 2024. Como los entrenamientos están
+anidados, esto establece estabilidad frente a la elección del período de prueba
+y no réplica independiente.
 
 La comparación exige además tres condiciones, cada una sobre una fuente distinta
-de fuga: el tiempo, la población evaluada y los valores extremos. La primera es la
-continuidad estricta: una muestra es válida solo si sus minutos son consecutivos.
-Sin ella la ventana de entrada puede atravesar un hueco de señal, y el horizonte
-mediría un
-intervalo mayor que el declarado. La regla retiene entre el 81.9 % y el 90.2 % de
-los snapshots del período de prueba.
+de fuga: el tiempo, la población evaluada y los valores extremos. La primera es
+la continuidad estricta: una muestra es válida solo si sus minutos son
+consecutivos. Sin ella la ventana de entrada puede atravesar un hueco de señal,
+y el horizonte mediría un intervalo mayor que el declarado. La regla retiene
+entre el 81.9 % y el 90.2 % de los snapshots del período de prueba.
 
 La segunda es la población compartida: los cuatro métodos se puntúan sobre
 exactamente las mismas filas. El trabajo de entrenamiento recalcula la lista de
@@ -1139,17 +1130,17 @@ muestras, compara su resumen SHA-256 contra el registrado y aborta antes de usar
 la GPU si no coincide. La verificación evita comparar métodos puntuados sobre
 poblaciones distintas. La tercera es el tope al percentil 99 del headway de
 entrenamiento, aplicado como techo a las tres particiones. Calcularlo por
-partición dejaría entrar información del período de prueba. El techo afecta entre
-el 0.78 % y el 1.11 % de los objetivos, y las posiciones sin headway válido siguen
-enmascaradas.
+partición dejaría entrar información del período de prueba. El techo afecta
+entre el 0.78 % y el 1.11 % de los objetivos, y las posiciones sin headway
+válido siguen enmascaradas.
 
 Sobre esa misma población, los resultados se desglosan además por régimen de
-dispersión. La dispersión se mide sobre cada posición del vector por separado: es
-la desviación estándar muestral de los headways que esa posición registró a lo
-largo de la ventana de entrada, en minutos. Cada celda se parte en tercios por esa
-cantidad, con los dos umbrales fijados sobre
-entrenamiento y validación y aplicados sin cambios a prueba. Calibrarlos sobre
-prueba dejaría que la estratificación conociera el período que evalúa.
+dispersión. La dispersión se mide sobre cada posición del vector por separado:
+es la desviación estándar muestral de los headways que esa posición registró a
+lo largo de la ventana de entrada, en minutos. Cada celda se parte en tercios
+por esa cantidad, con los dos umbrales fijados sobre entrenamiento y validación
+y aplicados sin cambios a prueba. Calibrarlos sobre prueba dejaría que la
+estratificación conociera el período que evalúa.
 
 ---
 
