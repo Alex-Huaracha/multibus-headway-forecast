@@ -207,27 +207,24 @@ afectadas a la vez.
 Resta decidir cuándo un headway cuenta como bunching. La convención del campo es
 una fracción del headway programado: un cuarto en las formulaciones más citadas
 [@moreiramatias2016], y la mitad en el TCQSM [@tcqsm2003]. Estos corredores no
-tienen programación contra la cual comparar. Sustituir ese denominador por uno
-que se observe en el propio corredor es práctica establecida. Yu y colaboradores reemplazan
-el horario ausente de su corredor por el headway observado en la primera parada
-del mismo viaje [@yu2016]. Jiao y colaboradores fijan su umbral en un cuarto de
-ese mismo headway [@jiao2023]. Aquí el denominador se sustituye por el promedio
-del propio vector en ese instante. **Un headway cuenta como bunching si cae por
-debajo de la mitad de ese promedio.** Ese valor es el umbral relativo del evento: se lo llama
-relativo porque es una fracción del promedio vigente y no un número fijo de
-minutos, de modo que se mueve con cada vector.
+tienen programación, y sustituir ese denominador por uno observado en el propio
+corredor es práctica establecida: Yu y colaboradores usan el headway de la
+primera parada del mismo viaje [@yu2016], y Jiao y colaboradores fijan su umbral
+en un cuarto de ese mismo valor [@jiao2023]. Aquí el denominador se sustituye por
+el promedio del propio vector en ese instante. **Un headway cuenta como bunching
+si cae por debajo de la mitad de ese promedio.** Ese valor es el umbral relativo
+del evento: una fracción del promedio vigente y no un número fijo de minutos, de
+modo que se mueve con cada vector.
 
-La sustitución del denominador es
-nuestra y no una herencia: la fracción de la media observada no aparece como
-definición de evento en la literatura consultada. La cantidad sí aparece, con otro
-uso. He toma el promedio de los headways de la flota en un instante como objetivo
-de una estrategia que retiene buses en las paradas, y lo justifica por la ausencia
-de horario y de headway prefijado [@he2020]. La fracción también es heredada, y es
-la del TCQSM. El promedio del vector cumple la función de la programación: fijar
-la separación normal en ese corredor en ese instante. Un umbral absoluto, fijo en
-minutos, no la cumple, porque no es comparable entre corredores que operan a
-frecuencias distintas. La elección de $\rho$ tampoco es neutral: el rango de
-umbrales publicados no señala un único valor aceptado [@rezazada2024].
+La sustitución del denominador es nuestra y la fracción es heredada del TCQSM. El
+promedio del vector cumple la función de la programación, fijar la separación
+normal en ese corredor en ese instante, y un umbral fijo en minutos no la cumple
+porque no es comparable entre corredores que operan a frecuencias distintas. La
+fracción de la media observada no aparece como definición de evento en la
+literatura consultada; la cantidad sí, con otro uso, como objetivo de una
+estrategia que retiene buses ante la ausencia de horario [@he2020]. La elección
+de la fracción tampoco es neutral: el rango de umbrales publicados no señala un
+único valor aceptado [@rezazada2024].
 
 El vector de la Sección II-A se escribe por componentes como
 $\mathbf{h}(t) = (h_1, \dots, h_m)$. Su promedio y el umbral del evento son
@@ -311,22 +308,17 @@ objetivos distintos, porque la primera minimiza un error en minutos y la segunda
 decide una clase.
 
 Jiao, Shen y Zhang repiten esa secuencia sobre una ruta de Xiangyang y heredan de
-Yu y colaboradores esa misma regla del cuarto sobre la primera parada
-[@jiao2023]. Las dos formulaciones son entonces un linaje y no dos precedentes
-independientes. Su
-modelo no minimiza solo el error en minutos: la pérdida suma al error cuadrático
-un término de clasificación, y el entrenamiento sobremuestrea la clase del
-evento, que reúne el 6.1 % de las muestras. Justifican ese diseño advirtiendo que
-una pérdida atenta solo al error de regresión lleva al modelo a tratar como ruido
-los casos que la regla marca como evento.
+Yu y colaboradores esa misma regla del cuarto sobre la primera parada, de modo
+que las dos formulaciones son un linaje y no dos precedentes independientes
+[@jiao2023]. Su pérdida suma al error cuadrático un término de clasificación,
+porque advierten que una pérdida atenta solo al error de regresión lleva al
+modelo a tratar como ruido los casos que la regla marca como evento.
 
 La segunda etapa se evalúa en un punto de operación único. Yu y colaboradores
-reportan exactitud, sensibilidad y especificidad [@yu2016]. Santos y colaboradores
-resumen siete trabajos previos del subcampo en una tabla y agregan el suyo
-[@santos2022]. Las medidas que esa tabla registra son de dos clases: errores
-continuos, como el error cuadrático medio, y conteos sobre la clasificación, como
-la exactitud, la precisión y el recall. Ninguna de sus ocho filas registra una
-medida que puntúe el ordenamiento de la predicción sin fijar antes un umbral.
+reportan exactitud, sensibilidad y especificidad [@yu2016], y ninguna de las ocho
+filas de la tabla con que Santos y colaboradores resumen el subcampo registra una
+medida que puntúe el ordenamiento de la predicción sin fijar antes un umbral
+[@santos2022].
 
 La primera etapa tiene además un margen angosto donde más importa. Manibardo, Laña
 y Del Ser equiparan la persistencia con repetir el último valor observado, y
@@ -336,77 +328,49 @@ los modelos se degradan al alargarlo, y no que la relación entre ellos se
 invierta.
 
 El efecto de la compresión sobre una regla de umbral tiene dos remedios
-publicados fuera del transporte, y se distinguen por qué objeto tocan. El primero
-mueve el umbral. Hoffmann, Menz y Spekat trabajan con indicadores climáticos
-definidos por un valor fijo, como los días con temperatura máxima sobre 30 °C.
-Cada modelo climático reproduce ese indicador con un sesgo propio. Su
-procedimiento localiza el percentil que ese valor ocupa
-en los datos observados, calcula el valor de ese mismo percentil en cada
-simulación y recalcula el indicador con el umbral así ajustado, sin tocar los
-datos del modelo [@hoffmann2018].
-
-El segundo mueve la predicción. Petetin y colaboradores corrigen predicciones de
-ozono cuyos umbrales están fijados por normativa y no admiten ajuste. Su mapeo de
-cuantiles lleva la distribución de lo predicho a la de lo observado
-[@petetin2022]. Los dos remedios piden insumos distintos. El mapeo de cuantiles
-necesita una distribución de observaciones. Recalibrar el umbral
-necesita solo un período anterior de la propia predicción.
-
-Hay una tercera práctica, y es operativa. El *Extreme Forecast Index* del Centro
-Europeo de Predicción Meteorológica a Plazo Medio decide si una situación es
-extrema comparando la distribución del pronóstico vigente contra la climatología
-**del propio modelo** y no contra observaciones: *«The Extreme Forecast Index is
-computed from the difference between Cumulative Distribution Function curves of
-the M-climate and the forecast distribution of the current ensemble»*
-[@ecmwffug]. Esa climatología se construye volviendo a correr un conjunto de once
-miembros sobre las mismas fechas de calendario de los últimos veinte años
-[@ecmwffug], y el índice que la usa se introdujo en 2003 [@lalaurette2003]. De
-modo que referir el umbral a lo que el modelo mismo produce no es nuevo.
+publicados fuera del transporte, y se distinguen por qué objeto tocan. Hoffmann,
+Menz y Spekat mueven el umbral: localizan el percentil que su valor fijo ocupa en
+los datos observados y recalculan el indicador con el valor de ese percentil en
+cada simulación, sin tocar los datos del modelo [@hoffmann2018]. Petetin y
+colaboradores mueven la predicción, porque sus umbrales de ozono son normativos y
+no admiten ajuste: su mapeo de cuantiles lleva la distribución de lo predicho a
+la de lo observado [@petetin2022]. Hay una tercera práctica, operativa: el
+*Extreme Forecast Index* del Centro Europeo de Predicción Meteorológica a Plazo
+Medio decide si una situación es extrema comparando el pronóstico vigente contra
+la climatología **del propio modelo**, fijada sobre los veinte años anteriores
+[@ecmwffug]; el índice se introdujo en 2003 [@lalaurette2003]. Referir el umbral
+a lo que el modelo mismo produce no es entonces nuevo.
 
 Lo que ninguna de las tres prácticas enfrenta es un umbral que se mueva **dentro
-de la instancia que evalúa**. El de Hoffmann y colaboradores es un valor fijo, el
-de Petetin y colaboradores es regulatorio, y la climatología del *Extreme
-Forecast Index* se fija sobre veinte años anteriores y no cambia con el
-pronóstico que se puntúa. Hay además una propiedad que separa a esos umbrales del
-nuestro. Hoffmann y colaboradores observan que un indicador definido sobre un
+de la instancia que evalúa**. Hay además una propiedad que separa a esos umbrales
+del nuestro. Hoffmann y colaboradores observan que un indicador definido sobre un
 cuantil queda libre de sesgo por construcción [@hoffmann2018], y la razón es que
 un cuantil **conserva la frecuencia del evento** bajo cualquier transformación
 monótona de lo predicho. Una fracción del promedio no la conserva: la compresión
 encoge la separación entre posiciones respecto de ese promedio, de modo que el
 umbral y el valor comparado se mueven a la vez y la tasa del evento cae. Ese es
-el caso que este trabajo mide, y es relativo sin ser preservador de tasa.
-
-Ningún trabajo consultado cubre el caso que este documento define, y conviene
-decir con precisión cuánto sí está cubierto. Los cinco de la Sección II-B
-establecen la compresión y su daño sobre una regla de umbral, uno de ellos sobre
-un campo espacial; ninguno la mide sobre el vector de headways de un corredor.
-Las tres prácticas anteriores recalibran un umbral, y una de ellas lo
-refiere a la distribución del propio modelo; ninguna se aplica sobre un umbral
-que se recalcule con cada instancia evaluada.
+el caso que este trabajo mide, y es relativo sin ser preservador de tasa. La
+delimitación queda entonces en dos mitades: los cinco trabajos de la Sección II-B
+establecen la compresión y su daño sobre una regla de umbral, y ninguno la mide
+sobre el vector de headways de un corredor; las tres prácticas anteriores
+recalibran un umbral, y ninguna sobre uno que se recalcule con cada instancia
+evaluada.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura
-[@sun2021], y llega más lejos de lo que su resumen deja ver. Diagnostican que el
-paradigma de predecir y umbralizar falla, y reportan el área bajo la curva —de
-0.99 a 0.93 entre una y quince paradas de anticipación— para su clasificador
-probabilístico. Los métodos basados en headway no reciben esa área. Cada uno
-entrega un valor exacto, de modo que queda como un punto y no como una curva, y
-esos autores dejan como trabajo futuro construir las curvas que los compararían.
-Eligen además el punto de operación: toman el corte que minimiza los falsos
-positivos y negativos ponderados, con dos juegos de pesos que representan la
-actitud del operador ante el bunching. Dos rasgos separan ese trabajo del
-nuestro. Su etiqueta es un umbral absoluto de un minuto y no una regla relativa
-al propio vector, de modo que la compresión alcanza al valor comparado y no al
-umbral. Y su diseño no declara ninguna ventana anterior disjunta sobre la cual
-ese corte se ajuste.
+[@sun2021]. Diagnostican que el paradigma de predecir y umbralizar falla, y
+reportan el área bajo la curva para su clasificador probabilístico; los métodos
+basados en headway entregan un valor exacto, quedan como un punto y no como una
+curva, y construir las curvas que los compararían queda como su trabajo futuro.
+Dos rasgos separan ese trabajo del nuestro. Su etiqueta es un umbral absoluto de
+un minuto y no una regla relativa al propio vector, de modo que la compresión
+alcanza al valor comparado y no al umbral. Y su diseño no declara ninguna ventana
+anterior disjunta sobre la cual su corte se ajuste.
 
-Ninguno de ellos mide un umbral relativo que no preserve la tasa del evento,
-donde la compresión de lo predicho mueve el umbral y el valor comparado a la vez.
 El umbral de Jiao y colaboradores es relativo pero se ancla en una observación
-fija, de modo que la compresión alcanza solo al valor comparado. Su
-reparación agrega un término de clasificación a la pérdida, es decir, cambia el
-objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la Ecuación
-(6) hace explícito, y es donde este documento interviene: recalibra ese umbral
-sobre un período anterior disjunto, sin reentrenar ni cambiar el objetivo.
+fija, de modo que la compresión alcanza solo al valor comparado, y su reparación
+cambia el objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la
+Ecuación (6) hace explícito, y es donde este documento interviene: recalibra ese
+umbral sobre un período anterior disjunto, sin reentrenar ni cambiar el objetivo.
 
 ### E. Métricas
 
@@ -504,24 +468,16 @@ relación se invirtió y la persistencia ganó, por 0.46 minutos en E4 y 0.33 en
 En E2 la diferencia fue de 0.07 minutos y no resistió la prueba estadística al
 agrupar las observaciones por día de servicio.
 
-Tres precisiones acotan ese resultado. La primera es que la frontera de régimen no
-es una propiedad del aprendizaje profundo: el XGBoost la reprodujo entera, y a
-diez minutos aventajó a la persistencia por 1.59 minutos en E2, 1.09 en E4 y 0.79
-en E59. La segunda es que esa frontera no está en el horizonte sino en la dispersión
-de la ventana de entrada. Medida con los tercios de dispersión de la
-Apéndice A, sección C, la ventaja del LSTM creció de forma ordenada del tercio tranquilo al
-volátil en 11 de las 12 celdas.
-Alargar el horizonte no cambió quién ganaba: movió la ventaja hacia tercios cada
-vez más tranquilos.
-
-La tercera es que el promedio histórico por franja horaria cumplió el papel que la
-Apéndice A, sección B le asignaba. Su error no se movió con el horizonte: se quedó entre
-4.7 y 5.7 minutos en los tres corredores. La ventaja del LSTM sobre él se
-estrechó entonces a medida que el horizonte crecía. En E2 el LSTM le ganó por
-0.99 minutos a un horizonte de un minuto y le perdió por 0.07 a diez. Esa fue la
-única
-de las doce celdas donde el promedio histórico ganó, y es la razón de que a
-horizonte largo el competidor exigente sea él y no la persistencia.
+Tres precisiones acotan ese resultado. La frontera de régimen no es una propiedad
+del aprendizaje profundo: el XGBoost la reprodujo entera, y a diez minutos
+aventajó a la persistencia por 1.59 minutos en E2, 1.09 en E4 y 0.79 en E59.
+Tampoco está en el horizonte sino en la dispersión de la ventana de entrada:
+medida con los tercios de dispersión de la Apéndice A, sección C, la ventaja del
+LSTM creció del tercio tranquilo al volátil en 11 de las 12 celdas. Y el promedio
+histórico por franja horaria no se movió con el horizonte, entre 4.7 y 5.7
+minutos en los tres corredores, de modo que a horizonte largo el competidor
+exigente es él: en E2 a diez minutos le ganó al LSTM por 0.07 minutos, la única
+de las doce celdas donde ocurrió.
 
 ### A. Compresión de la dispersión transversal
 
@@ -590,39 +546,27 @@ exactamente cero en tres de las doce celdas: ahí no emitió ninguno. La Tabla 2
 recoge las doce celdas.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
-fenómeno que se le pidió anticipar. Hay cuatro motivos para desconfiar de esa
-lectura. El primero es que el ganador declarado tampoco detectó bien. El detector
-trivial de la Sección II-E superó a la
-persistencia en 5 de las doce celdas, y en 15 de las 36 combinaciones de celda y
-origen.
+fenómeno que se le pidió anticipar. Esa lectura no sobrevive a cuatro
+observaciones. El ganador declarado tampoco detectó bien: el detector trivial de
+la Sección II-E superó a la persistencia en 5 de las doce celdas, y en 15 de las
+36 combinaciones de celda y origen. El mecanismo es el de la Sección III-A: si el
+vector predicho es más regular que la realidad, sus headways se apartan menos de
+su propio promedio, y un umbral calibrado sobre otra distribución deja de
+alcanzarse. Y el modelo acertó en las pocas ocasiones en que emitió: de los
+catorce triggers de E2, diez correspondieron a eventos reales, 71 % de precisión
+contra una tasa base de 30 %, con el intervalo de la Apéndice B entre 42 % y
+92 %. Las celdas con más triggers estrechan ese intervalo: 776 de 1 572 en E59,
+entre 47 % y 52 % contra 21 %, y 75 de 150 en E4, entre 42 % y 58 % contra 18 %.
 
-El segundo es el mecanismo de la Sección III-A. El umbral se mide contra el promedio
-del propio vector evaluado. Si el vector predicho es más regular que la realidad, sus
-headways se apartan menos de su propio promedio, y el umbral deja de alcanzarse
-casi siempre. La regla registra entonces una dispersión insuficiente para alcanzar
-un umbral calibrado sobre otra distribución.
-
-El tercero es el acierto del modelo en las pocas ocasiones en que emitió. De
-los catorce triggers de E2, diez correspondieron a eventos de bunching reales: 71 %
-de precisión contra una tasa base de 30 %. El intervalo de la Apéndice B va de
-42 % a 92 % sobre esos catorce triggers, de modo que la cifra señala un régimen y
-no un valor. Las celdas con más triggers lo estrechan. A diez minutos el modelo
-acertó 776 de 1 572 triggers en E59, con precisión entre 47 % y 52 % contra una
-tasa base de 21 %. En E4 acertó 75 de 150, entre 42 % y 58 % contra 18 %.
-
-El cuarto es que el factor no se sostiene al cambiar el origen. Si midiera una
-capacidad del modelo, debería ser aproximadamente estable entre ellos. En diez de las doce
-celdas lo es: entre el primer origen y el tercero varía entre 0.90 y 1.58. Las
-dos excepciones están en E2. A cinco minutos el factor valió **126** en el primer
-origen, **58** en el segundo y **36** en el tercero. A diez minutos valió
-**2 299**, **817** y **253**.
-
-Esas dos son las celdas donde el umbral trasplantado dejó al detector casi sin
-triggers: su F1 cayó a 0.011 y 0.001 en la Tabla 2. Un cociente cuyo denominador
-se acerca a cero no mide una capacidad del sistema evaluado, sino la interacción
-entre el umbral y la distribución sobre la que cayó. La observación no depende de
-qué modelo se use ni de cuál de los tres orígenes se mida. Depende de que el umbral
-se haya trasladado entre dos distribuciones con dispersión distinta.
+La cuarta observación es que el factor no se sostiene al cambiar el origen. Si
+midiera una capacidad del modelo debería ser aproximadamente estable entre ellos,
+y en diez de las doce celdas lo es: entre el primer origen y el tercero varía
+entre 0.90 y 1.58. Las dos excepciones están en E2: a cinco minutos el factor
+valió **126**, **58** y **36** en los tres orígenes, y a diez minutos **2 299**,
+**817** y **253**. Esas dos son las celdas donde el umbral trasplantado dejó al
+detector casi sin triggers, con el F1 en 0.011 y 0.001 en la Tabla 2. Un cociente
+cuyo denominador se acerca a cero no mide una capacidad del sistema evaluado,
+sino la interacción entre el umbral y la distribución sobre la que cayó.
 
 ![Tasa de trigger contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
@@ -681,14 +625,11 @@ minutos, y la razón es la tasa base: con el 30 % de las posiciones marcadas,
 marcarlas todas alcanza un F1 de 0.46. El piso no distingue entre ellos, de modo
 que no invierte ningún veredicto de la Tabla 3.
 
-El AUC no es la única forma de puntuar sin umbral. El lift de la Sección II-E
-recorre el mismo ordenamiento, pero pesa más su cabeza, donde caen las posiciones
-que un detector señalaría primero. Los dos coincidieron en las doce celdas: en cada
-una ganó el mismo método. A diez minutos el lift del LSTM valió 1.19 en E2, 1.45
-en E4 y 1.48 en E59, contra 1.08, 1.24 y 1.26 de la persistencia. El veredicto
-entre esos dos métodos no depende entonces de cuál de los dos puntajes se use. Con el MCC
-recalibrado el acuerdo baja a once de doce. La excepción es E59 a cinco minutos,
-donde el LSTM gana el AUC y pierde la correlación recalibrada.
+El lift de la Sección II-E recorre el mismo ordenamiento pesando su cabeza, y
+coincidió con el AUC en las doce celdas, de modo que el veredicto entre estos dos
+métodos no depende del puntaje elegido. Con el MCC recalibrado el acuerdo baja a
+once de doce; la excepción es E59 a cinco minutos, donde el LSTM gana el AUC y
+pierde la correlación recalibrada.
 
 Las dos fronteras de régimen coinciden. Medido por el signo de la diferencia, el
 error escalar pasó a favor del LSTM entre uno y tres minutos en los tres
@@ -707,8 +648,7 @@ arquitectura. Entre las dos figuras cambió el umbral de la Ecuación (5). La
 Figura 6 lo hereda de lo observado y la Figura 7 lo elimina; la columna del MCC
 recalibrado de la Tabla 3 lo reajusta contra lo predicho. Como ninguna otra cosa
 varió, ninguna otra cosa explica el cambio de conteo, y el umbral queda
-identificado como la variable que producía el veredicto. La Sección IV recoge lo
-que sigue de esto para quien opera.
+identificado como la variable que producía el veredicto.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
@@ -979,13 +919,12 @@ referencia que fijan no depende de esa asimetría. El contraste de arquitecturas
 de la Apéndice A, sección B tampoco está nivelado con el resto, porque precede al protocolo
 de la Sección II y no se rehízo después.
 
-La elección de métricas tiene además una disputa abierta. Chicco y Jurman
+La elección de métricas tiene además una disputa abierta: Chicco y Jurman
 sostienen que el MCC debe reemplazar al AUC como medida estándar de clasificación
-binaria, porque el AUC no informa sobre la precisión ni sobre el valor predictivo
-negativo [@chicco2023]. Esa afirmación alcanza a quien reporta solo el AUC. La
-Sección II-E reporta los tres: el AUC y la precisión promedio miden el
-ordenamiento sin fijar umbral, y el MCC resume el punto de operación ya elegido,
-de modo que responden preguntas distintas y ninguno sustituye al otro.
+binaria [@chicco2023]. Esa afirmación alcanza a quien reporta solo el AUC. La
+Sección II-E reporta ambos: el AUC mide el ordenamiento sin fijar umbral y el MCC
+resume el punto de operación ya elegido, de modo que responden preguntas
+distintas.
 
 El piso posicional que acota ese AUC tiene dos límites propios. Se ajusta sobre un
 solo origen anterior, mientras que los veredictos entre métodos se replican sobre
