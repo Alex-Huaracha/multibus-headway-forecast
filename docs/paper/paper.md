@@ -970,8 +970,8 @@ La forma habitual lo mide en una parada, con la lista de
 paradas y los horarios de paso; estos registros no traen ninguna de las dos:
 cada bus emite su identificador, el instante y su coordenada, y ese **registro
 GPS** es la única entrada. Andres y Nair resuelven la misma construcción —de
-registros GPS a headways— en un apéndice de pasos secuenciales, cada paso con su
-umbral [@andres2017]. Esta sección sigue esa forma con una diferencia: ellos
+registros GPS a headways— con una secuencia de pasos, cada uno con su umbral
+[@andres2017]. Esta sección sigue esa forma con una diferencia: ellos
 proyectan contra la geometría GTFS que su ciudad publica, y aquí el eje se
 ajusta de los propios registros. La secuencia tiene seis pasos.
 
@@ -1011,38 +1011,29 @@ $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
 
 donde $s_{L}$ y $s_{F}$ son las coordenadas de arco del bus de adelante y del de
 atrás. El instante $t_{c}$ es el último en que el de adelante pasó por la
-coordenada que el de atrás ocupa en $T$, y $h$ es el headway resultante. Es un
-cruce por coordenada y no por parada, lo que permite prescindir de la tabla de
-paradas: la definición es la de Pilachowski [@pilachowski2009], que Andres y
-Nair evalúan en la coordenada del bus de atrás [@andres2017]. El cruce se
-resuelve sobre los registros originales del bus de adelante; la rejilla solo
-fija el instante $T$ y el orden de los buses. Si no existe tal $t_{c}$, o si
-$h$ supera los treinta minutos, se emite «sin valor»: sin ese tope, dos calles
-paralelas proyectadas sobre un mismo eje producen cruces de horas antes.
+coordenada que el de atrás ocupa en $T$, y $h$ es el headway resultante. La
+definición es la de Pilachowski [@pilachowski2009], que Andres y Nair evalúan
+en la coordenada del bus de atrás [@andres2017]. El cruce se resuelve sobre los
+registros originales del bus de adelante; la rejilla solo fija el instante $T$
+y el orden de los buses. Si no existe tal $t_{c}$, o si $h$ supera los treinta
+minutos, se emite «sin valor».
 
-El filtro de 10 km/h del paso 1 existe porque un bus detenido emite muchos
-registros en un mismo punto y desplazaría el eje hacia donde los buses esperan.
-Esa velocidad se calcula del desplazamiento entre registros: el campo de
-velocidad del proveedor reporta cero en dos corredores en movimiento. La
-proyección del paso 2 reemplaza la latitud y la longitud, que no responden cuál
-de dos buses va por delante; su descarte a 300 m deja fuera los registros de
-calles paralelas y de depósitos. El signo del paso 3 es la única fuente del
-sentido: un corredor no reporta rumbo, y donde el campo existe solo comprueba el
-signo, nunca lo corrige. El eje por sentido del paso 4 evita que un eje único
-ajustado sobre los dos sentidos caiga entre ambas calles, y su orden es forzado:
-el eje por sentido necesita el sentido, y el sentido una primera proyección
-contra el eje único.
-
-La Ecuación (10) entrega tiempo entre pasadas. La distancia en metros entre dos
-buses queda fuera porque mide separación espacial, y dividir esa separación por
-la velocidad del bus de atrás también: la división supone que la velocidad se
-mantiene, e introduce una estimación dentro de la cantidad que se busca estimar.
-Ese headway describe un solo par: en cada snapshot, los buses de un mismo
+Ese headway describe un solo par. En cada snapshot, los buses de un mismo
 sentido se ordenan por su coordenada de arco, y con $N$ buses quedan $N-1$
-pares, el vector de headways ordenado desde el frente. Ese orden numera las
+pares: el vector de headways ordenado desde el frente. Ese orden numera las
 posiciones del vector —la primera es la del par que va más adelante—, y un par
 sin headway válido conserva su posición con «sin valor», para que el orden no
 dependa de cuántos pares resolvieron.
+
+La velocidad del paso 1 se calcula del desplazamiento entre registros y no del
+campo del proveedor, que reporta cero en dos corredores en movimiento. El signo
+del paso 3 es la única fuente del sentido: un corredor no reporta rumbo, y donde
+el campo existe solo comprueba el signo, nunca lo corrige. El orden de los pasos
+es forzado: el eje por sentido del paso 4 necesita el sentido, y el sentido una
+primera proyección contra el eje único que los pasos 1 y 2 ajustan sobre los dos
+sentidos juntos. El tope de treinta minutos del paso 6
+existe porque, sin él, dos calles paralelas proyectadas sobre un mismo eje
+producen cruces de horas antes.
 
 La construcción no siempre produce un valor. Dos condiciones dejan un par sin
 headway: que la Ecuación (10) no encuentre el cruce, o que el headway supere los
