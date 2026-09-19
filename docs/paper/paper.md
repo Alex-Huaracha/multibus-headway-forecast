@@ -1050,35 +1050,45 @@ de ida cubre 57.8 % y el de vuelta 70.5 %.
 ### B. Métodos comparados
 
 Se comparan cuatro métodos sobre las mismas muestras, y cada uno cumple un papel
-distinto. El método bajo estudio es una red recurrente (**LSTM**), elegida contra dos
-arquitecturas que modelan la relación entre posiciones vecinas del vector. Un conjunto de árboles con refuerzo de gradiente
-(**XGBoost**) [@chen2016] actúa como **control de arquitectura**: si reproduce el patrón del LSTM, ese patrón
-no proviene del aprendizaje profundo sino del objetivo de la Ecuación (2). Los dos
-restantes no ajustan parámetros y fijan el error de referencia. La **persistencia**
-repite el último vector observado, así que su error crece con el horizonte. El
-**promedio histórico por franja horaria** responde con el valor típico de esa hora
-del día, calculado sobre entrenamiento por corredor y sentido; no lee la ventana de
-entrada, de modo que su error no depende del horizonte.
+distinto. El método bajo estudio es una red recurrente (**LSTM**). Un conjunto
+de árboles con refuerzo de gradiente (**XGBoost**) [@chen2016] actúa como
+**control de arquitectura**: si reproduce el patrón del LSTM, ese patrón no
+proviene del aprendizaje profundo sino del objetivo de la Ecuación (2). Los dos
+restantes no ajustan parámetros y fijan el error de referencia. La
+**persistencia** repite el último vector observado, así que su error crece con
+el horizonte. El **promedio histórico por franja horaria** responde con el valor
+típico de esa hora del día, calculado sobre entrenamiento por corredor y
+sentido; no lee la ventana de entrada, de modo que su error no depende del
+horizonte.
 
 El conjunto excluye tres métodos estadísticos. La media del período de
 entrenamiento, la media móvil causal de tres minutos y el suavizado exponencial
-simple de factor 0.3 no combinan las dos entradas de la Ecuación (1), el historial
-reciente y el calendario. Los tres repiten información que la persistencia o el
-promedio histórico ya aportan.
+simple de factor 0.3 no combinan las dos entradas de la Ecuación (1), el
+historial reciente y el calendario. Los tres repiten información que la
+persistencia o el promedio histórico ya aportan.
 
 De los cuatro métodos retenidos, solo el LSTM y el XGBoost ajustan parámetros.
 Ambos se ajustan por corredor y por horizonte, y cada combinación de corredor y
-horizonte se denomina aquí **celda**: hay doce. Los dos sentidos comparten el modelo de su
-corredor y entran juntos al entrenamiento. Lo que se separa por sentido son los
-estadísticos de estandarización, de modo que lo predicho se devuelve a minutos con
-los del sentido que le corresponde. El LSTM usa 32 unidades ocultas, una o dos
-capas según la celda, paso 5 × 10⁻⁴, lotes de 128 y semilla fija en 42. El XGBoost
-usa hasta 400 rondas con parada temprana tras 30 sin mejora, y la misma semilla. Los presupuestos de
-búsqueda no son iguales: el XGBoost eligió veinticuatro configuraciones por celda
-sobre las muestras definitivas, mientras que el LSTM heredó la suya de una
+horizonte se denomina aquí **celda**: hay doce. Los dos sentidos comparten el
+modelo de su corredor y entran juntos al entrenamiento. Lo que se separa por
+sentido son los estadísticos de estandarización, de modo que lo predicho se
+devuelve a minutos con los del sentido que le corresponde. El LSTM usa 32
+unidades ocultas, una o dos capas según la celda, tasa de aprendizaje de
+5 × 10⁻⁴, lotes de 128 y semilla fija en 42. El XGBoost usa hasta 400 rondas con
+parada temprana tras 30 sin mejora, y la misma semilla. Los presupuestos de
+búsqueda no son iguales: el XGBoost eligió veinticuatro configuraciones por
+celda sobre las muestras definitivas, mientras que el LSTM heredó la suya de una
 búsqueda previa que no se rehízo sobre esas muestras, en dos de los tres
 corredores. La Sección V-B acota qué afirmaciones no se sostienen con esa
 diferencia.
+
+La elección del LSTM se resolvió antes de fijar el protocolo del Apéndice A,
+sección C, contra dos arquitecturas que modelan la relación entre posiciones
+vecinas del vector: una convolución sobre las posiciones contiguas y una
+atención entre todas. Las tres quedaron dentro de un rango de 0.017 a 0.074
+minutos de MAE en las doce celdas, y ninguna quedó primera en las doce, de modo
+que el trabajo continuó con la más simple. Ese contraste precede al protocolo y
+no se rehízo, y la Sección V-B declara esa limitación.
 
 A los cuatro se agrega un quinto método que no compite con ellos y cumple otra
 función: fijar un piso. El **perfil posicional** responde con el headway
@@ -1088,52 +1098,11 @@ entrada, de modo que no puede anticipar nada. Existe porque las posiciones del
 vector no son intercambiables: las de más adelante llevan headways
 sistemáticamente más cortos, así que algunas caen por debajo de la mitad del
 promedio de su vector por la posición que ocupan y no por lo que ocurrió ese
-minuto. Cuanto ordene ese perfil es la parte del ordenamiento que la posición
+minuto. Lo que ese perfil ordena es la parte del ordenamiento que la posición
 explica por sí sola. Se ajusta sobre el período de prueba del origen 2 y se
 aplica al del origen 3, los mismos dos períodos que la Sección II-E usa para el
 umbral y por la misma razón.
 
-La elección de esa red se resolvió antes de fijar el protocolo de esta sección,
-de modo que sus cifras se leen unas contra otras y no contra las del resto del
-documento. Las dos arquitecturas contrastadas modelan la relación entre
-posiciones vecinas: una convolución que combina cada posición con sus dos
-contiguas, y una atención que pondera todas las posiciones entre sí. Esa
-relación es la estructura que una predicción vectorial podría aprovechar.
-
-Las tres quedaron dentro de un rango de 0.017 a 0.074 minutos en las doce celdas,
-y ninguna quedó primera en las doce. La Tabla 5 las recoge. Modelar la relación
-entre posiciones vecinas no movió el error escalar, de modo que el trabajo
-continuó con la más simple de las tres.
-
-Ese resultado nulo tiene compañía, aunque ninguno de los precedentes mide la
-relación entre posiciones de un mismo vector. Rodrigues
-reporta que un modelo de patrón semanal con regresión lineal iguala a métodos
-de aprendizaje profundo espacio-temporales y supera a varios basados en redes de
-grafos [@rodrigues2022]. Advierte a la vez que la correlación espacial no debe
-descartarse, sobre todo a horizontes cortos. Boudabbous y colaboradores encuentran
-que una red recurrente supera a dos transformadores entre 18 y 52 % con 275 veces
-menos parámetros, sobre la red de Montreal y contra arquitecturas que operan sobre
-el tiempo [@boudabbous2026]. Ninguno de los dos releva a la Tabla 5 de su propia
-limitación, que la Sección V-B declara.
-
-**Tabla 5.** Error absoluto medio de las tres arquitecturas contrastadas antes de
-fijar el protocolo de esta sección. La última columna es la diferencia entre la
-mayor y la menor de cada fila.
-
-| Corredor | h | LSTM | SpatialConvLSTM | SpatialTransformer | Rango |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| E2 | 1 | 4.464 | 4.464 | 4.482 | 0.018 |
-| E2 | 3 | 4.916 | 4.916 | 4.936 | 0.020 |
-| E2 | 5 | 5.040 | 5.037 | 5.075 | 0.038 |
-| E2 | 10 | 5.128 | 5.123 | 5.142 | 0.019 |
-| E4 | 1 | 3.774 | 3.811 | 3.833 | 0.059 |
-| E4 | 3 | 4.679 | 4.698 | 4.754 | 0.074 |
-| E4 | 5 | 5.014 | 5.054 | 5.086 | 0.072 |
-| E4 | 10 | 5.348 | 5.367 | 5.380 | 0.032 |
-| E59 | 1 | 3.334 | 3.329 | 3.350 | 0.021 |
-| E59 | 3 | 3.847 | 3.847 | 3.883 | 0.036 |
-| E59 | 5 | 4.029 | 4.037 | 4.051 | 0.022 |
-| E59 | 10 | 4.224 | 4.239 | 4.222 | 0.017 |
 
 ### C. Protocolo de evaluación
 
