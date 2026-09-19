@@ -767,19 +767,14 @@ observaciones**, y requiere recalcular un escalar y no reentrenar nada.
 
 ## V. Discusión y amenazas a la validez
 
-Esta sección somete el resultado a dos clases de objeción. La primera pregunta si
-depende del período evaluado o de la definición del evento, y se responde
-repitiendo la medición sobre otros orígenes y con otro umbral. La segunda reúne
-lo que el diseño no puede descartar.
-
 ### A. Robustez frente al origen y a la definición del evento
 
-El veredicto sin umbral de la Sección III-C no depende del origen calendario. Los
-tres orígenes coincidieron en 11 de las 12 celdas, y a diez minutos coincidieron
-en las nueve combinaciones de corredor y origen. El primero de los tres cubre del
-23 de diciembre al 13 de enero. Ese acuerdo incluye entonces el período de
-fiestas, cuando la frecuencia del servicio y la demanda no se parecen a las de un
-mes ordinario.
+El veredicto sin umbral de la Sección III-C no depende del origen calendario.
+Los tres orígenes coincidieron en 11 de las 12 celdas, y a diez minutos
+coincidieron en las nueve combinaciones de corredor y origen. El primero de los
+tres cubre del 23 de diciembre al 13 de enero. Ese acuerdo incluye entonces el
+período de fiestas, cuando la frecuencia del servicio y la demanda no se parecen
+a las de un mes ordinario.
 
 Tampoco depende de la definición del evento. El umbral relativo de la Sección
 II-C podría estar produciendo el efecto por sí solo, y un umbral absoluto en
@@ -787,16 +782,16 @@ minutos —como el de un minuto de Sun, Schmöcker y Nakamura [@sun2021]— podr
 disolverlo. Se probó con uno fijo en la cuarta parte del headway mediano
 observado de cada corredor y sentido. Queda entre 1.4 y 2.4 minutos, se calibró
 sobre el origen 2 y se aplicó sin cambios al origen 3. **No se atenuó:
-empeoró.** La tasa de trigger del modelo cayó por un factor de mediana 138 en diez
-de las doce celdas, y en las otras dos no emitió ninguno.
+empeoró.** La tasa de trigger del modelo cayó por un factor de mediana 138 en
+diez de las doce celdas, y en las otras dos no emitió ninguno.
 
 El mismo ensayo acota una afirmación anterior. Bajo el umbral absoluto la
-capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0.60, y en
-E2 a diez minutos llegó a 0.49, indistinguible del azar. Esa celda ya había
-fallado bajo el evento relativo, contra el perfil posicional de la Sección III-D.
-Las dos definiciones del evento coinciden entonces en ella. La afirmación de que
-el LSTM no es ciego se sostiene fuera de esa celda y no dentro. La Tabla 4 recoge
-los tres orígenes y ese ensayo.
+capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0.60, y
+en E2 a diez minutos llegó a 0.49, indistinguible del azar. Esa celda ya había
+fallado bajo el evento relativo, contra el perfil posicional de la Sección
+III-D. Las dos definiciones del evento coinciden entonces en ella. La afirmación
+de que el LSTM no es ciego se sostiene fuera de esa celda y no dentro. La Tabla
+4 recoge los tres orígenes y ese ensayo.
 
 **Tabla 4.** Robustez: los tres orígenes de evaluación y el ensayo con un umbral
 absoluto en minutos.
@@ -816,67 +811,59 @@ absoluto en minutos.
 | E59 | 5 | LSTM | LSTM | LSTM | sí | 0.637 |
 | E59 | 10 | LSTM | LSTM | LSTM | sí | 0.616 |
 
-‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene bajo la convención del campo, y es también la celda que el perfil posicional gana en la Tabla 2.
+‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene
+bajo la convención del campo, y es también la celda que el perfil posicional
+gana en la Tabla 2.
 
 ### B. Amenazas a la validez
 
-El umbral del evento es la fracción del promedio que usa la convención del campo,
-y no proviene de un registro de eventos observados. Esa elección lo hace
-comparable con los trabajos que la Sección II-C cita, y deja sin verificar que la
-fracción marque lo que un operador llamaría bunching. Validarla exigiría un
-registro de incidentes que estos corredores no producen. El alcance de toda
-afirmación de detección es entonces el evento así definido, y sobre las posiciones
-que resolvieron: la tasa base que se reporta no admite comparación directa con
-tasas de bunching medidas sobre registros sin enmascarar.
+El umbral del evento es la fracción del promedio que usa la convención del
+campo, y no proviene de un registro de eventos observados. Queda sin verificar
+que la fracción marque lo que un operador llamaría bunching, y validarla
+exigiría un registro de incidentes que estos corredores no producen. El alcance de toda
+afirmación de detección es entonces el evento así definido, y sobre las
+posiciones que resolvieron: la tasa base que se reporta no admite comparación
+directa con tasas de bunching medidas sobre registros sin enmascarar.
 
-La compresión de la Sección III-A admite una lectura que apunta al ruido de medición
-y no a la predicción. El eje del corredor se estima de los registros y el sentido
-de marcha se infiere del signo del arco. Un error de medición entra entonces en el
-error de predicción y agranda la compresión, sin decir nada sobre la predicción
-misma. La descomposición de esa sección acota esa lectura sin eliminarla. La razón
-medida sigue al término de error con una correlación de 0.993, de modo que la
-compresión no queda libre de tomar el valor que el corpus le imponga. Lo que sí
-depende del corpus es su tamaño: un corredor con geometría publicada y sentido
-declarado tendría un error menor y una compresión menor, en la proporción que esa
-descomposición fija.
+La compresión de la Sección III-A admite una lectura que apunta al ruido de
+medición y no a la predicción. El eje del corredor se estima de los registros y
+el sentido de marcha se infiere del signo del arco. Un error de medición entra
+entonces en el error de predicción y agranda la compresión, sin decir nada sobre
+la predicción misma. La descomposición de esa sección acota esa lectura sin
+eliminarla: la razón medida sigue al término de error con una correlación de
+0.993. Del corpus depende el tamaño del efecto, no su existencia: un corredor
+con geometría publicada y sentido declarado tendría un error menor y una
+compresión menor, en la proporción que esa descomposición fija.
 
 El corpus acota dos cosas más. Un vector reúne entre 3.8 y 5.9 headways en
-promedio, de modo que la dispersión transversal reposa sobre pocas observaciones.
-Que el efecto se repita en los tres corredores y en los tres orígenes lo hace poco
-atribuible a esa longitud. Cada cifra individual es menos estable en E2 y en E4,
-que tienen el vector más corto, que en E59. El período de prueba contiene además
-los días de Carnaval, cuya composición no se caracterizó, de modo que la
-comparación incluye días atípicos sin identificarlos.
+promedio, de modo que la dispersión transversal reposa sobre pocas
+observaciones. Que el efecto se repita en los tres corredores y en los tres
+orígenes lo hace poco atribuible a esa longitud. Cada cifra individual es menos
+estable en E2 y en E4, que tienen el vector más corto, que en E59. El período de
+prueba contiene además los días de Carnaval, cuya composición no se caracterizó,
+de modo que la comparación incluye días atípicos sin identificarlos.
 
 Los dos métodos que ajustan parámetros no reciben el mismo presupuesto de
-búsqueda. Como declara el Apéndice A, sección B, el XGBoost elige veinticuatro
-configuraciones por celda sobre las muestras definitivas, mientras que el LSTM
-hereda la suya en dos de los tres corredores. Eso acota una comparación y solo
-una: donde el LSTM queda por detrás del XGBoost, la diferencia no es atribuible a
-la clase de modelo. Los otros dos métodos no ajustan nada, de modo que el error de
-referencia que fijan no depende de esa asimetría. El contraste de arquitecturas
-del Apéndice A, sección B tampoco está nivelado con el resto, porque precede al protocolo
-de la Sección II y no se rehízo después.
+búsqueda: el XGBoost elige veinticuatro configuraciones por celda sobre las
+muestras definitivas, mientras que el LSTM hereda la suya en dos de los tres
+corredores. Eso acota una comparación y solo
+una: donde el LSTM queda por detrás del XGBoost, la diferencia no es atribuible
+a la clase de modelo. Los otros dos métodos no ajustan nada, de modo que el
+error de referencia que fijan no depende de esa asimetría. El contraste de
+arquitecturas del Apéndice A, sección B tampoco está nivelado con el resto,
+porque precede al protocolo del Apéndice A, sección C y no se rehízo después.
 
-La elección de métricas tiene además una disputa abierta: Chicco y Jurman
-sostienen que el MCC debe reemplazar al AUC como medida estándar de clasificación
-binaria [@chicco2023]. Esa afirmación alcanza a quien reporta solo el AUC. La
-Sección II-E reporta ambos: el AUC mide el ordenamiento sin fijar umbral y el MCC
-resume el punto de operación ya elegido, de modo que responden preguntas
-distintas.
-
-El piso posicional que acota ese AUC tiene dos límites propios. Se ajusta sobre
+El piso posicional que acota el AUC tiene dos límites propios. Se ajusta sobre
 un solo origen anterior, mientras que los veredictos entre métodos se replican
-sobre tres. Y no carece de información: puntuar divide por el promedio del vector
-evaluado, así que el piso lee qué posiciones ocupó el corredor en ese minuto; lo
-que no lee es la ventana de entrada, y los dos métodos que acota leen esa misma
-composición, de modo que la comparación no le concede nada a ninguno.
+sobre tres. Y no carece de información: el piso lee qué posiciones ocupó el
+corredor en ese minuto, aunque no la ventana de entrada; los dos métodos que
+acota leen esa misma composición, de modo que la comparación no le concede nada
+a ninguno.
 
 Las métricas de la Sección II-E son genéricas y comparables entre corredores, y
 ninguna liga un error de predicción a una decisión de intervención. Un despacho
 necesitaría una función de costo que pondere el aviso perdido contra el aviso
-falso, y esa función depende de la operación de cada empresa. Construirla y
-evaluar el modelo contra ella queda para trabajo futuro.
+falso, y esa función depende de la operación de cada empresa.
 
 ---
 
@@ -1187,6 +1174,10 @@ esta lista no es todavía el definitivo.)_
 bus bunching," *Transportation Research Part B: Methodological*, vol. 104,
 pp. 123–148, 2017, doi: 10.1016/j.trb.2017.06.013.
 
+`[@biagioni2012]` J. Biagioni and J. Eriksson, "Inferring Road Maps from Global
+Positioning System Traces: Survey and Comparative Evaluation," *Transportation
+Research Record*, vol. 2291, no. 1, pp. 61–71, 2012, doi: 10.3141/2291-08.
+
 `[@bonavita2024]` M. Bonavita, "On some limitations of data-driven weather
 forecasting models," arXiv:2309.08473, 2023. Las citas literales de la Sección
 II-B provienen de este preprint, que examina un solo modelo; la versión publicada
@@ -1194,10 +1185,6 @@ II-B provienen de este preprint, que examina un solo modelo; la versión publica
 *Geophysical Research Letters*, vol. 51, no. 12, art. e2023GL107377, 2024,
 doi: 10.1029/2023GL107377— lleva otro título y examina tres, de modo que no se le
 atribuye texto.
-
-`[@boudabbous2026]` E. Boudabbous, M. Karaa, L. Sboui, J. Montecinos, and O. Alam,
-"Scalable Transit Delay Prediction at City Scale: A Systematic Approach with
-Multi-Resolution Feature Engineering and Deep Learning," arXiv:2601.18521, 2026.
 
 `[@chen2016]` T. Chen and C. Guestrin, "XGBoost: A Scalable Tree Boosting System,"
 in *Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
@@ -1208,11 +1195,6 @@ doi: 10.1145/2939672.2939785.
 correlation coefficient (MCC) over F1 score and accuracy in binary classification
 evaluation," *BMC Genomics*, vol. 21, no. 1, art. 6, 2020,
 doi: 10.1186/s12864-019-6413-7.
-
-`[@chicco2023]` D. Chicco and G. Jurman, "The Matthews correlation coefficient
-(MCC) should replace the ROC AUC as the standard metric for assessing binary
-classification," *BioData Mining*, vol. 16, art. 4, 2023,
-doi: 10.1186/s13040-023-00322-4.
 
 `[@clopper1934]` C. J. Clopper and E. S. Pearson, "The use of confidence or
 fiducial limits illustrated in the case of the binomial," *Biometrika*, vol. 26,
@@ -1307,8 +1289,9 @@ pp. 11603–11630, 2022, doi: 10.5194/acp-22-11603-2022.
 on Multi-Horizon Bounds," *Journal of Business & Economic Statistics*, vol. 30,
 no. 1, pp. 1–17, 2012, doi: 10.1080/07350015.2012.634337.
 
-`[@rodrigues2022]` F. Rodrigues, "On the importance of stationarity, strong
-baselines and benchmarks in transport prediction problems," arXiv:2203.02954, 2022.
+`[@pilachowski2009]` J. M. Pilachowski, "An Approach to Reducing Bus Bunching,"
+Ph.D. dissertation, Univ. of California, Berkeley, CA, USA, 2009. [Online].
+Available: https://escholarship.org/uc/item/6zc5j8xg
 
 `[@quek2020]` W. L. Quek, N. N. Chung, V.-L. Saw, and L. Y. Chew, "Analysis and
 simulation of intervention strategies against bus bunching by means of an
