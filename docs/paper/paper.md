@@ -58,17 +58,6 @@ contribuciones son cuatro:
   una cantidad fija de las posiciones más cortas del vector reproduce el veredicto
   sin umbral sin ajustar ningún parámetro.
 
-El resto del documento se organiza como sigue. La Sección II reúne los
-antecedentes: la propiedad de dispersión y los trabajos previos. La Sección
-III define la tarea, el evento y las métricas. La Sección IV presenta las dos
-reparaciones: la recalibración del punto de operación y las reglas
-alternativas del evento. La Sección V mide la compresión, el colapso de la
-detección que arrastra y lo que cada reparación recupera. La Sección VI
-discute los resultados y acota las amenazas a la validez, y la Sección VII
-concluye. El Apéndice A reúne los datos, la construcción del headway desde
-los registros GPS, los métodos comparados y el protocolo de partición; el
-Apéndice B, las pruebas estadísticas.
-
 ---
 
 ## II. Antecedentes
@@ -827,9 +816,7 @@ contenido final.
 ### A. Datos y construcción del headway
 
 El trabajo usa los registros GPS de empresas del Sistema Integrado de
-Transporte de Arequipa. Cada bus emite su coordenada **cada 20 segundos**, y
-la cadencia es regular: la mediana y el percentil 95 del tiempo entre registros
-coinciden, de modo que no llegan a ráfagas.
+Transporte de Arequipa. Cada bus emite su coordenada **cada 20 segundos**.
 Se cubren tres corredores —identificados aquí como E2, E4 y E59, uno por empresa
 operadora— durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de
 2024, sin huecos de calendario. Son 90 buses en total. Una empresa entra como
@@ -898,27 +885,16 @@ posiciones del vector —la primera es la del par que va más adelante—, y un 
 sin headway válido conserva su posición con «sin valor», para que el orden no
 dependa de cuántos pares resolvieron.
 
-La velocidad del paso 1 se calcula del desplazamiento entre registros y no del
-campo del proveedor, que reporta cero en dos corredores en movimiento. El signo
-del paso 3 es la única fuente del sentido: un corredor no reporta rumbo, y donde
-el campo existe solo comprueba el signo, nunca lo corrige. El orden de los pasos
-es forzado: el eje por sentido del paso 4 necesita el sentido, y el sentido una
-primera proyección contra el eje único que los pasos 1 y 2 ajustan sobre los dos
-sentidos juntos. El tope de treinta minutos del paso 6
-existe porque, sin él, dos calles paralelas proyectadas sobre un mismo eje
-producen cruces de horas antes.
-
-La construcción no siempre produce un valor. Dos condiciones dejan un par sin
-headway: que la Ecuación (9) no encuentre el cruce, o que el headway supere los
-treinta minutos. La cobertura —la fracción de pares evaluados con headway
+El signo del paso 3 es la única fuente del sentido de marcha. El tope de
+treinta minutos del paso 6 existe porque, sin él, dos calles paralelas
+proyectadas sobre un mismo eje producen cruces de horas antes. La
+cobertura —la fracción de pares evaluados con headway
 válido— es del 63.5 % en E2, del 64.8 % en E4 y del 77.1 % en E59:
 3 938 174 pares con headway válido sobre 5 601 738 evaluados, y una posición sin
 headway válido se enmascara. Los huecos no se distribuyen al azar: casi todo el
 faltante viene del tope de treinta minutos —el cruce existe, pero quedó atrás—,
 que recorta los intervalos más largos, y la condición sin cruce explica menos de
-un punto porcentual en cada corredor. La cobertura tampoco es uniforme: entre el
-mejor y el peor corredor medido hay 13.6 puntos porcentuales, y en E2 el sentido
-de ida cubre 57.8 % y el de vuelta 70.5 %.
+un punto porcentual en cada corredor.
 
 ### B. Métodos comparados
 
@@ -933,12 +909,6 @@ el horizonte. El **promedio histórico por franja horaria** responde con el valo
 típico de esa hora del día, calculado sobre entrenamiento por corredor y
 sentido; no lee la ventana de entrada, de modo que su error no depende del
 horizonte.
-
-El conjunto excluye tres métodos estadísticos. La media del período de
-entrenamiento, la media móvil causal de tres minutos y el suavizado exponencial
-simple de factor 0.3 no combinan las dos entradas de la Ecuación (1), el
-historial reciente y el calendario. Los tres repiten información que la
-persistencia o el promedio histórico ya aportan.
 
 De los cuatro métodos retenidos, solo el LSTM y el XGBoost ajustan parámetros.
 Ambos se ajustan por corredor y por horizonte, y cada combinación de corredor y
@@ -1007,14 +977,6 @@ partición dejaría entrar información del período de prueba. El techo afecta
 entre el 0.78 % y el 1.11 % de los objetivos, y las posiciones sin headway
 válido siguen enmascaradas.
 
-Sobre esa misma población, los resultados se desglosan además por régimen de
-dispersión. La dispersión se mide sobre cada posición del vector por separado:
-es la desviación estándar muestral de los headways que esa posición registró a
-lo largo de la ventana de entrada, en minutos. Cada celda se parte en tercios
-por esa cantidad, con los dos umbrales fijados sobre entrenamiento y validación
-y aplicados sin cambios a prueba. Calibrarlos sobre prueba dejaría que la
-estratificación conociera el período que evalúa.
-
 ---
 
 ## Apéndice B. Pruebas estadísticas
@@ -1044,10 +1006,7 @@ diferencia de cualquiera de los dos entre dos métodos se acota remuestreando d�
 de servicio con reemplazo. Se recalculan ambas cantidades sobre cada remuestreo y
 se toma el intervalo percentil al 95 %, con dos mil remuestreos y semilla fija.
 El agrupamiento es el mismo del diferencial de pérdida y responde a la misma
-razón. El contraste habitual entre dos AUC calculados sobre las mismas muestras
-es la prueba de DeLong [@delong1988]. Admite la correlación entre las dos curvas,
-pero no la que hay entre observaciones, y las de un mismo día no son
-independientes.
+razón.
 
 La precisión de la Ecuación (8) admite su propia acotación, porque puede
 descansar sobre muy pocos triggers. Se acota con el intervalo exacto de
@@ -1097,11 +1056,6 @@ doi: 10.1186/s12864-019-6413-7.
 `[@clopper1934]` C. J. Clopper and E. S. Pearson, "The use of confidence or
 fiducial limits illustrated in the case of the binomial," *Biometrika*, vol. 26,
 no. 4, pp. 404–413, 1934, doi: 10.1093/biomet/26.4.404.
-
-`[@delong1988]` E. R. DeLong, D. M. DeLong, and D. L. Clarke-Pearson, "Comparing
-the areas under two or more correlated receiver operating characteristic curves:
-a nonparametric approach," *Biometrics*, vol. 44, no. 3, pp. 837–845, 1988,
-doi: 10.2307/2531595.
 
 `[@diebold1995]` F. X. Diebold and R. S. Mariano, "Comparing Predictive Accuracy,"
 *Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995,
