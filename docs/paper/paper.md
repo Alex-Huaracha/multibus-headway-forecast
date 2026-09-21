@@ -36,7 +36,7 @@ Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta e
 punto de operación. Predice el vector completo de headways de un corredor —los
 buses de una empresa que circulan sobre una misma ruta— con una red recurrente.
 La regla de la Sección III-B convierte lo predicho en un indicador de
-bunching, y la evaluación puntúa esa detección con y sin umbral. La Sección II-B
+bunching, y la evaluación puntúa esa detección con y sin umbral. La Sección II-C
 delimita cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestras
 contribuciones son cuatro:
 
@@ -49,7 +49,7 @@ contribuciones son cuatro:
   observado.
 - Atamos esa fórmula a una regla de evento **relativa pero no preservadora de
   tasa**: la compresión mueve el numerador y el denominador a la vez y la tasa
-  del evento cae, la distinción que la Sección II-B desarrolla. Los umbrales que
+  del evento cae, la distinción que la Sección II-C desarrolla. Los umbrales que
   la literatura recalibra se fijan una vez sobre un período anterior; este se
   recalcula con cada vector que evalúa.
 - Contrastamos tres denominadores del mismo evento sobre la misma población. El
@@ -81,11 +81,10 @@ predicción que minimiza error cuadrático tiende a la media condicional
 [@gneiting2011], y la varianza del objetivo se descompone en la de esa
 predicción óptima más el error cuadrático esperado, con una compresión que crece
 al alargar el horizonte por construcción y no por una falla del ajuste
-[@patton2012]. Está medida sobre la varianza temporal de una serie escalar
-[@patton2012], sobre conjuntos de instancias en seis dominios, entre ellos el
-tráfico [@green2026], sobre la dispersión transversal de un campo espacial
-[@bonavita2024] y sobre irradiancia solar, donde además la raíz del error
-cuadrático medio premia a la predicción menos dispersa [@mayer2023].
+[@patton2012]. Está medida sobre la varianza temporal de una serie escalar,
+sobre conjuntos de instancias en seis dominios, entre ellos el tráfico
+[@green2026], y sobre la dispersión transversal de un campo espacial
+[@bonavita2024].
 
 El daño sobre una regla de umbral también está documentado: el método con mejor
 error cuadrático es el que peor detecta los episodios altos de ozono, porque
@@ -94,28 +93,26 @@ sobre el vector de headways de un corredor, ni un control que separe la
 compresión del resto del procedimiento; la Sección III-E usa la persistencia
 para eso.
 
-### B. Trabajos previos y su delimitación
+### B. Predicción de bunching en dos etapas
 
 El bunching se predice en dos etapas: la primera estima el headway que separará
 a dos buses en un instante futuro y minimiza un error en minutos, y la segunda
 lo compara contra un umbral y decide una clase. Yu y colaboradores dan la
 formulación canónica, con el headway de la primera parada del mismo viaje como
 denominador y un cuarto como fracción [@yu2016]. Jiao, Shen y Zhang heredan esa
-misma regla —las dos formulaciones son un linaje y no dos precedentes
-independientes—, y su pérdida suma un término de clasificación, porque una
+misma regla, y su pérdida suma un término de clasificación, porque una
 pérdida atenta solo al error de regresión trata como ruido los casos que la
 regla marca [@jiao2023]. La segunda etapa se evalúa en un punto de operación
 único: ninguna de las ocho filas con que Santos y colaboradores resumen el
 subcampo registra una medida que puntúe el ordenamiento sin fijar antes un
-umbral [@santos2022]. Y sobre la primera etapa, la persistencia deja poco
-espacio de mejora a horizontes cortos [@manibardo2022]: lo reportado es que
-todos los modelos se degradan al alargar el horizonte, no que la relación entre
-ellos se invierta.
+umbral [@santos2022].
+
+### C. Remedios del umbral y delimitación
 
 El efecto de la compresión sobre una regla de umbral tiene dos remedios
 publicados fuera del transporte, y se distinguen por qué objeto tocan. Hoffmann,
 Menz y Spekat mueven el umbral: recalculan el indicador con el valor que ocupa,
-en cada simulación, el percentil que el umbral fijo ocupa en lo observado
+en lo predicho, el percentil que el umbral fijo ocupa en lo observado
 [@hoffmann2018]. Petetin y colaboradores mueven la predicción, porque sus
 umbrales de ozono son normativos: su mapeo de cuantiles lleva la distribución de
 lo predicho a la de lo observado [@petetin2022]. Y el *Extreme Forecast Index*
@@ -132,11 +129,7 @@ evento** bajo cualquier transformación monótona de lo predicho. Una fracción 
 promedio no la conserva: la compresión encoge la separación entre posiciones
 respecto de ese promedio, de modo que el umbral y el valor comparado se mueven a
 la vez y la tasa del evento cae. Ese es el caso que este trabajo mide, y es
-relativo sin ser preservador de tasa. La delimitación queda entonces en dos
-mitades: los trabajos de la Sección II-A establecen la compresión y su daño
-sobre una regla de umbral, y ninguno la mide sobre el vector de headways de un
-corredor; las tres prácticas anteriores recalibran un umbral, y ninguna sobre
-uno que se recalcule con cada instancia evaluada.
+relativo sin ser preservador de tasa.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
 diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
@@ -148,8 +141,8 @@ disjunta sobre la cual su corte se ajuste. El umbral de Jiao y colaboradores es
 relativo pero se ancla en una observación fija, y su reparación cambia el
 objetivo que el modelo optimiza [@jiao2023]. Esa distinción entre el umbral
 anclado y el que se mueve con el vector es la que la Sección III-B formaliza.
-Ahí interviene este documento: recalibra ese umbral sobre un período anterior
-disjunto, sin reentrenar ni cambiar el objetivo.
+Ahí interviene este documento: recalibra el punto de operación sobre un período
+anterior disjunto, sin reentrenar ni cambiar el objetivo.
 
 ---
 
@@ -205,7 +198,7 @@ son observables en estos registros GPS, que no traen pasajeros, ocupación ni
 estado del tránsito, de modo que el evento se define sobre la geometría del
 vector de headways y no sobre lo que la produjo. Es una propiedad del patrón
 colectivo y no de un bus, y se manifiesta en posiciones del vector de la Sección
-II-A: un mismo instante puede llevar varias posiciones afectadas a la vez.
+III-A: un mismo instante puede llevar varias posiciones afectadas a la vez.
 
 La convención del campo marca el evento con una fracción del headway programado:
 un cuarto en las formulaciones más citadas [@moreiramatias2016], y la mitad en
@@ -431,7 +424,7 @@ Ecuación (8). Con esa sustitución, el mismo corredor en el mismo instante
 calificó como nivel A —«service provided like clockwork»— según lo predicho y
 como nivel F —«most vehicles bunched»— según lo observado. La cantidad que estas
 medidas capturan es la dispersión **entre buses en un mismo instante**, y no la
-variabilidad de una serie a lo largo del tiempo que la Sección II-B delimita
+variabilidad de una serie a lo largo del tiempo que la Sección II-A delimita
 como previa. Las Figuras 2 y 3 muestran el efecto y su dependencia del
 horizonte.
 
@@ -731,7 +724,7 @@ período de fiestas, cuando la frecuencia del servicio y la demanda no se parece
 a las de un mes ordinario.
 
 Tampoco depende de la definición del evento. El umbral relativo de la Sección
-II-C podría estar produciendo el efecto por sí solo, y un umbral absoluto en
+III-B podría estar produciendo el efecto por sí solo, y un umbral absoluto en
 minutos —como el de un minuto de Sun, Schmöcker y Nakamura [@sun2021]— podría
 disolverlo. Se probó con uno fijo en la cuarta parte del headway mediano
 observado de cada corredor y sentido. Queda entre 1.4 y 2.4 minutos, se calibró
@@ -743,7 +736,7 @@ El mismo ensayo acota una afirmación anterior. Bajo el umbral absoluto la
 capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0.60, y
 en E2 a diez minutos llegó a 0.49, indistinguible del azar. Esa celda ya había
 fallado bajo el evento relativo, contra el perfil posicional de la Sección
-III-D. Las dos definiciones del evento coinciden entonces en ella. La afirmación
+III-H. Las dos definiciones del evento coinciden entonces en ella. La afirmación
 de que el LSTM no es ciego se sostiene fuera de esa celda y no dentro. La Tabla
 4 recoge los tres orígenes y ese ensayo.
 
@@ -1130,8 +1123,8 @@ Positioning System Traces: Survey and Comparative Evaluation," *Transportation
 Research Record*, vol. 2291, no. 1, pp. 61–71, 2012, doi: 10.3141/2291-08.
 
 `[@bonavita2024]` M. Bonavita, "On some limitations of data-driven weather
-forecasting models," arXiv:2309.08473, 2023. Las citas literales de la Sección
-II-B provienen de este preprint, que examina un solo modelo; la versión publicada
+forecasting models," arXiv:2309.08473, 2023. La afirmación de la Sección
+II-A proviene de este preprint, que examina un solo modelo; la versión publicada
 —"On Some Limitations of Current Machine Learning Weather Prediction Models,"
 *Geophysical Research Letters*, vol. 51, no. 12, art. e2023GL107377, 2024,
 doi: 10.1029/2023GL107377— lleva otro título y examina tres, de modo que no se le
@@ -1213,11 +1206,6 @@ doi: 10.1007/978-3-662-44851-9_15.
 Road Traffic Forecasting: Does it Make a Difference?," *IEEE Transactions on
 Intelligent Transportation Systems*, vol. 23, no. 7, pp. 6164–6188, 2022,
 doi: 10.1109/TITS.2021.3083957.
-
-`[@mayer2023]` M. J. Mayer and D. Yang, "Calibration of deterministic NWP
-forecasts and its impact on verification," *International Journal of
-Forecasting*, vol. 39, no. 2, pp. 981–991, 2023,
-doi: 10.1016/j.ijforecast.2022.03.008.
 
 `[@moreiramatias2016]` L. Moreira-Matias, O. Cats, J. Gama, J. Mendes-Moreira, and
 J. Freire de Sousa, "An online learning approach to eliminate Bus Bunching in
