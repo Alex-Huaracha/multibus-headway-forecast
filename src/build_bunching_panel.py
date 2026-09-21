@@ -7,7 +7,7 @@ a two-panel bar chart in the same matplotlib style as the data figures: one bar
 per vector position, the dashed line of the relative threshold tau = mean/2 in
 each panel, and the 2.0-minute bar present in both. The reader sees the bar
 keep its height while the line moves — which is the whole mechanism of
-Section II-C — instead of computing it from the caption.
+Section III-B — instead of computing it from the caption.
 
 The vectors are the illustrative examples the caption already prints, not data:
 (a) irregular corridor [9.5, 1.2, 11.0, 2.0], (b) regular corridor

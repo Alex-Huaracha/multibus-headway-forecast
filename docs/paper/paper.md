@@ -35,8 +35,8 @@ la decisión de la segunda.
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta el
 punto de operación. Predice el vector completo de headways de un corredor —los
 buses de una empresa que circulan sobre una misma ruta— con una red recurrente.
-La regla de la Sección II-C convierte lo predicho en un indicador de
-bunching, y la evaluación puntúa esa detección con y sin umbral. La Sección II-D
+La regla de la Sección III-B convierte lo predicho en un indicador de
+bunching, y la evaluación puntúa esa detección con y sin umbral. La Sección II-B
 delimita cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestras
 contribuciones son cuatro:
 
@@ -49,7 +49,7 @@ contribuciones son cuatro:
   observado.
 - Atamos esa fórmula a una regla de evento **relativa pero no preservadora de
   tasa**: la compresión mueve el numerador y el denominador a la vez y la tasa
-  del evento cae, la distinción que la Sección II-D desarrolla. Los umbrales que
+  del evento cae, la distinción que la Sección II-B desarrolla. Los umbrales que
   la literatura recalibra se fijan una vez sobre un período anterior; este se
   recalcula con cada vector que evalúa.
 - Contrastamos tres denominadores del mismo evento sobre la misma población. El
@@ -59,18 +59,101 @@ contribuciones son cuatro:
   sin umbral sin ajustar ningún parámetro.
 
 El resto del documento se organiza como sigue. La Sección II reúne los
-antecedentes: la tarea de predicción, la propiedad de dispersión, la regla del
-evento, los trabajos previos y las métricas. La Sección III mide la compresión
-y el colapso de la detección que arrastra. La
-Sección IV contrasta tres reglas del evento y aísla la propiedad que deja pasar
-ese colapso. La Sección V discute los resultados y acota las amenazas a la
-validez, y la Sección VI concluye. El Apéndice A reúne los datos, la construcción
-del headway desde los registros GPS, los métodos comparados y el protocolo de
-partición; el Apéndice B, las pruebas estadísticas.
+antecedentes: la propiedad de dispersión y los trabajos previos. La Sección III
+define la tarea, el evento y las métricas, y mide la compresión y el colapso de
+la detección que arrastra. La Sección IV contrasta tres reglas del evento y
+aísla la propiedad que deja pasar ese colapso. La Sección V discute los
+resultados y acota las amenazas a la validez, y la Sección VI concluye. El
+Apéndice A reúne los datos, la construcción del headway desde los registros
+GPS, los métodos comparados y el protocolo de partición; el Apéndice B, las
+pruebas estadísticas.
 
 ---
 
-## II. Antecedentes y método
+## II. Antecedentes
+
+### A. Compresión de la dispersión bajo error cuadrático medio
+
+La primera etapa de esa receta arrastra una propiedad conocida: una predicción
+ajustada para minimizar el error cuadrático sale menos dispersa que la cantidad
+que predice. La propiedad es un teorema y no una regularidad empírica. Una
+predicción que minimiza error cuadrático tiende a la media condicional
+[@gneiting2011], y la varianza del objetivo se descompone en la de esa
+predicción óptima más el error cuadrático esperado, con una compresión que crece
+al alargar el horizonte por construcción y no por una falla del ajuste
+[@patton2012]. Está medida sobre la varianza temporal de una serie escalar
+[@patton2012], sobre conjuntos de instancias en seis dominios, entre ellos el
+tráfico [@green2026], sobre la dispersión transversal de un campo espacial
+[@bonavita2024] y sobre irradiancia solar, donde además la raíz del error
+cuadrático medio premia a la predicción menos dispersa [@mayer2023].
+
+El daño sobre una regla de umbral también está documentado: el método con mejor
+error cuadrático es el que peor detecta los episodios altos de ozono, porque
+subestima la variabilidad [@petetin2022]. Lo que no encontramos es esa medición
+sobre el vector de headways de un corredor, ni un control que separe la
+compresión del resto del procedimiento; la Sección III-E usa la persistencia
+para eso.
+
+### B. Trabajos previos y su delimitación
+
+El bunching se predice en dos etapas: la primera estima el headway que separará
+a dos buses en un instante futuro y minimiza un error en minutos, y la segunda
+lo compara contra un umbral y decide una clase. Yu y colaboradores dan la
+formulación canónica, con el headway de la primera parada del mismo viaje como
+denominador y un cuarto como fracción [@yu2016]. Jiao, Shen y Zhang heredan esa
+misma regla —las dos formulaciones son un linaje y no dos precedentes
+independientes—, y su pérdida suma un término de clasificación, porque una
+pérdida atenta solo al error de regresión trata como ruido los casos que la
+regla marca [@jiao2023]. La segunda etapa se evalúa en un punto de operación
+único: ninguna de las ocho filas con que Santos y colaboradores resumen el
+subcampo registra una medida que puntúe el ordenamiento sin fijar antes un
+umbral [@santos2022]. Y sobre la primera etapa, la persistencia deja poco
+espacio de mejora a horizontes cortos [@manibardo2022]: lo reportado es que
+todos los modelos se degradan al alargar el horizonte, no que la relación entre
+ellos se invierta.
+
+El efecto de la compresión sobre una regla de umbral tiene dos remedios
+publicados fuera del transporte, y se distinguen por qué objeto tocan. Hoffmann,
+Menz y Spekat mueven el umbral: recalculan el indicador con el valor que ocupa,
+en cada simulación, el percentil que el umbral fijo ocupa en lo observado
+[@hoffmann2018]. Petetin y colaboradores mueven la predicción, porque sus
+umbrales de ozono son normativos: su mapeo de cuantiles lleva la distribución de
+lo predicho a la de lo observado [@petetin2022]. Y el *Extreme Forecast Index*
+del Centro Europeo de Predicción Meteorológica a Plazo Medio decide si una
+situación es extrema comparando el pronóstico vigente contra la climatología
+**del propio modelo** [@ecmwffug]: referir el umbral a lo que el modelo mismo
+produce no es entonces nuevo.
+
+Lo que ninguna de las tres prácticas enfrenta es un umbral que se mueva **dentro
+de la instancia que evalúa**. Hay además una propiedad que separa a esos
+umbrales del nuestro: un umbral definido sobre un cuantil queda libre de sesgo
+por construcción [@hoffmann2018], porque un cuantil **conserva la frecuencia del
+evento** bajo cualquier transformación monótona de lo predicho. Una fracción del
+promedio no la conserva: la compresión encoge la separación entre posiciones
+respecto de ese promedio, de modo que el umbral y el valor comparado se mueven a
+la vez y la tasa del evento cae. Ese es el caso que este trabajo mide, y es
+relativo sin ser preservador de tasa. La delimitación queda entonces en dos
+mitades: los trabajos de la Sección II-A establecen la compresión y su daño
+sobre una regla de umbral, y ninguno la mide sobre el vector de headways de un
+corredor; las tres prácticas anteriores recalibran un umbral, y ninguna sobre
+uno que se recalcule con cada instancia evaluada.
+
+Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
+diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
+bajo la curva para su clasificador probabilístico [@sun2021]. Dos rasgos separan
+ese trabajo del nuestro. Su etiqueta es un umbral absoluto de un minuto y no una
+regla relativa al propio vector, de modo que la compresión alcanza al valor
+comparado y no al umbral. Y su diseño no declara ninguna ventana anterior
+disjunta sobre la cual su corte se ajuste. El umbral de Jiao y colaboradores es
+relativo pero se ancla en una observación fija, y su reparación cambia el
+objetivo que el modelo optimiza [@jiao2023]. Esa distinción entre el umbral
+anclado y el que se mueve con el vector es la que la Sección III-B formaliza.
+Ahí interviene este documento: recalibra ese umbral sobre un período anterior
+disjunto, sin reentrenar ni cambiar el objetivo.
+
+---
+
+## III. El colapso de la detección bajo compresión
 
 Los datos, los métodos comparados y el protocolo de partición quedan en el
 Apéndice A.
@@ -114,29 +197,7 @@ $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$ y $h_i$ son el valor
 predicho y el observado en la posición $i$, expresados en la escala tipificada
 por sentido que fija el Apéndice A, sección B y no en minutos.
 
-### B. Compresión de la dispersión bajo error cuadrático medio
-
-La primera etapa de esa receta arrastra una propiedad conocida: una predicción
-ajustada para minimizar el error cuadrático sale menos dispersa que la cantidad
-que predice. La propiedad es un teorema y no una regularidad empírica. Una
-predicción que minimiza error cuadrático tiende a la media condicional
-[@gneiting2011], y la varianza del objetivo se descompone en la de esa
-predicción óptima más el error cuadrático esperado, con una compresión que crece
-al alargar el horizonte por construcción y no por una falla del ajuste
-[@patton2012]. Está medida sobre la varianza temporal de una serie escalar
-[@patton2012], sobre conjuntos de instancias en seis dominios, entre ellos el
-tráfico [@green2026], sobre la dispersión transversal de un campo espacial
-[@bonavita2024] y sobre irradiancia solar, donde además la raíz del error
-cuadrático medio premia a la predicción menos dispersa [@mayer2023].
-
-El daño sobre una regla de umbral también está documentado: el método con mejor
-error cuadrático es el que peor detecta los episodios altos de ozono, porque
-subestima la variabilidad [@petetin2022]. Lo que no encontramos es esa medición
-sobre el vector de headways de un corredor, ni un control que separe la
-compresión del resto del procedimiento; la Sección III-A usa la persistencia
-para eso.
-
-### C. Definición del evento de bunching
+### B. Definición del evento de bunching
 
 El bunching de la Sección I deja un intervalo largo detrás de los buses
 agrupados, y su costo recae sobre quien espera en ese intervalo. Sus causas no
@@ -165,7 +226,7 @@ aparece como definición de evento en la literatura consultada; la cantidad sí,
 con otro uso, como objetivo de una estrategia que retiene buses ante la ausencia
 de horario [@he2020].
 
-El vector de la Sección II-A se escribe por componentes como $\mathbf{h}(t) =
+El vector de la Sección III-A se escribe por componentes como $\mathbf{h}(t) =
 (h_1, \dots, h_m)$. Su promedio y el umbral del evento son
 
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
@@ -229,68 +290,12 @@ corredor regular el promedio es 3.1 min y el umbral 1.6 min: el mismo headway de
 2.0 min queda encima y **no es bunching**. Valores ilustrativos, no datos reales.
 
 Dos minutos entre buses es el mismo hecho físico en los dos paneles, y la regla
-lo clasifica al revés porque el umbral se movió con el vector. La Sección III
+lo clasifica al revés porque el umbral se movió con el vector. La Sección III-F
 mide qué ocurre cuando esa diferencia se ignora sobre datos reales.
 
-### D. Trabajos previos y su delimitación
+### C. Métricas
 
-El bunching se predice en dos etapas: la primera estima el headway que separará
-a dos buses en un instante futuro y minimiza un error en minutos, y la segunda
-lo compara contra un umbral y decide una clase. Yu y colaboradores dan la
-formulación canónica, con el headway de la primera parada del mismo viaje como
-denominador y un cuarto como fracción [@yu2016]. Jiao, Shen y Zhang heredan esa
-misma regla —las dos formulaciones son un linaje y no dos precedentes
-independientes—, y su pérdida suma un término de clasificación, porque una
-pérdida atenta solo al error de regresión trata como ruido los casos que la
-regla marca [@jiao2023]. La segunda etapa se evalúa en un punto de operación
-único: ninguna de las ocho filas con que Santos y colaboradores resumen el
-subcampo registra una medida que puntúe el ordenamiento sin fijar antes un
-umbral [@santos2022]. Y sobre la primera etapa, la persistencia deja poco
-espacio de mejora a horizontes cortos [@manibardo2022]: lo reportado es que
-todos los modelos se degradan al alargar el horizonte, no que la relación entre
-ellos se invierta.
-
-El efecto de la compresión sobre una regla de umbral tiene dos remedios
-publicados fuera del transporte, y se distinguen por qué objeto tocan. Hoffmann,
-Menz y Spekat mueven el umbral: recalculan el indicador con el valor que ocupa,
-en cada simulación, el percentil que el umbral fijo ocupa en lo observado
-[@hoffmann2018]. Petetin y colaboradores mueven la predicción, porque sus
-umbrales de ozono son normativos: su mapeo de cuantiles lleva la distribución de
-lo predicho a la de lo observado [@petetin2022]. Y el *Extreme Forecast Index*
-del Centro Europeo de Predicción Meteorológica a Plazo Medio decide si una
-situación es extrema comparando el pronóstico vigente contra la climatología
-**del propio modelo** [@ecmwffug]: referir el umbral a lo que el modelo mismo
-produce no es entonces nuevo.
-
-Lo que ninguna de las tres prácticas enfrenta es un umbral que se mueva **dentro
-de la instancia que evalúa**. Hay además una propiedad que separa a esos
-umbrales del nuestro: un umbral definido sobre un cuantil queda libre de sesgo
-por construcción [@hoffmann2018], porque un cuantil **conserva la frecuencia del
-evento** bajo cualquier transformación monótona de lo predicho. Una fracción del
-promedio no la conserva: la compresión encoge la separación entre posiciones
-respecto de ese promedio, de modo que el umbral y el valor comparado se mueven a
-la vez y la tasa del evento cae. Ese es el caso que este trabajo mide, y es
-relativo sin ser preservador de tasa. La delimitación queda entonces en dos
-mitades: los trabajos de la Sección II-B establecen la compresión y su daño
-sobre una regla de umbral, y ninguno la mide sobre el vector de headways de un
-corredor; las tres prácticas anteriores recalibran un umbral, y ninguna sobre
-uno que se recalcule con cada instancia evaluada.
-
-Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
-diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
-bajo la curva para su clasificador probabilístico [@sun2021]. Dos rasgos separan
-ese trabajo del nuestro. Su etiqueta es un umbral absoluto de un minuto y no una
-regla relativa al propio vector, de modo que la compresión alcanza al valor
-comparado y no al umbral. Y su diseño no declara ninguna ventana anterior
-disjunta sobre la cual su corte se ajuste. El umbral de Jiao y colaboradores es
-relativo pero se ancla en una observación fija, y su reparación cambia el
-objetivo que el modelo optimiza [@jiao2023]. Ese es el caso que la Ecuación (6)
-hace explícito, y es donde este documento interviene: recalibra ese umbral sobre
-un período anterior disjunto, sin reentrenar ni cambiar el objetivo.
-
-### E. Métricas
-
-El modelo entrega un vector de headways que la regla de la Sección II-C
+El modelo entrega un vector de headways que la regla de la Sección III-B
 convierte en un indicador binario de bunching, y la evaluación mide esos dos
 objetos en cadena. El error del vector es el error absoluto medio (MAE) sobre
 las posiciones válidas que define la Ecuación (2):
@@ -363,9 +368,7 @@ período de prueba del origen 2 y se aplica sin cambios al del origen 3. Los dos
 períodos son disjuntos y provienen de modelos entrenados por separado, de modo
 que el período publicado no informa su propio umbral.
 
----
-
-## III. El colapso de la detección bajo compresión
+### D. El error escalar del vector
 
 Con la arquitectura del Apéndice A, sección B ya fijada, el error escalar del
 vector sitúa a ese modelo contra la persistencia. A diez minutos de
@@ -387,7 +390,7 @@ Y el promedio histórico por franja horaria no se movió con el horizonte, entre
 competidor exigente es él: en E2 a diez minutos le ganó al LSTM por 0.07
 minutos, la única de las doce celdas donde ocurrió.
 
-### A. Compresión de la dispersión transversal
+### E. Compresión de la dispersión transversal
 
 Ese error escalar no dice nada sobre la forma del vector. El coeficiente de
 variación de la Ecuación (8) sí. Medido sobre lo observado, fue de 0.79 en E2.
@@ -428,7 +431,7 @@ Ecuación (8). Con esa sustitución, el mismo corredor en el mismo instante
 calificó como nivel A —«service provided like clockwork»— según lo predicho y
 como nivel F —«most vehicles bunched»— según lo observado. La cantidad que estas
 medidas capturan es la dispersión **entre buses en un mismo instante**, y no la
-variabilidad de una serie a lo largo del tiempo que la Sección II-D delimita
+variabilidad de una serie a lo largo del tiempo que la Sección II-B delimita
 como previa. Las Figuras 2 y 3 muestran el efecto y su dependencia del
 horizonte.
 
@@ -444,24 +447,24 @@ real y sirve de control. Los dos modelos ajustados la comprimen.
 cero; los dos modelos ajustados descienden de forma monótona. La compresión
 escala con la distancia que se pide anticipar.
 
-### B. Colapso de la detección al trasladar el umbral
+### F. Colapso de la detección al trasladar el umbral
 
-La regla de la Sección II-C, aplicada a lo observado, marcó 15 245 eventos en E2
-a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo umbral, emitió
-**catorce triggers**. La persistencia emitió 15 083. Puntuada con el F1 de la
-Sección II-E, la persistencia apareció 253 veces mejor que el LSTM. En las otras
-celdas el factor va de 1.5 a 36. El XGBoost obtuvo un F1 exactamente cero en
-tres de las doce celdas: ahí no emitió ninguno. La Tabla 1 recoge las doce
-celdas.
+La regla de la Sección III-B, aplicada a lo observado, marcó 15 245 eventos en
+E2 a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo umbral,
+emitió **catorce triggers**. La persistencia emitió 15 083. Puntuada con el F1
+de la Sección III-C, la persistencia apareció 253 veces mejor que el LSTM. En
+las otras celdas el factor va de 1.5 a 36. El XGBoost obtuvo un F1 exactamente
+cero en tres de las doce celdas: ahí no emitió ninguno. La Tabla 1 recoge las
+doce celdas.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
 fenómeno que se le pidió anticipar. Esa lectura no sobrevive a cuatro
 observaciones. El ganador declarado tampoco detectó bien: el detector trivial de
-la Sección II-E superó a la persistencia en 5 de las doce celdas, y en 15 de las
-36 combinaciones de celda y origen. El mecanismo es el de la Sección III-A: si
-el vector predicho es más regular que la realidad, sus headways se apartan menos
-de su propio promedio, y un umbral calibrado sobre otra distribución deja de
-alcanzarse. Y el modelo acertó en las pocas ocasiones en que emitió: de los
+la Sección III-C superó a la persistencia en 5 de las doce celdas, y en 15 de
+las 36 combinaciones de celda y origen. El mecanismo es el de la Sección III-E:
+si el vector predicho es más regular que la realidad, sus headways se apartan
+menos de su propio promedio, y un umbral calibrado sobre otra distribución deja
+de alcanzarse. Y el modelo acertó en las pocas ocasiones en que emitió: de los
 catorce triggers de E2, diez correspondieron a eventos reales, 71 % de precisión
 contra una tasa base de 30 %, con el intervalo del Apéndice B entre 42 % y 92 %.
 Las celdas con más triggers estrechan ese intervalo: 776 de 1 572 en E59, entre
@@ -507,10 +510,10 @@ lo predicho, con el piso del detector trivial al lado.
 † La regla vacía —un trigger en toda posición— supera al ganador declarado en
 estas celdas.
 
-### C. Detección sin umbral
+### G. Detección sin umbral
 
 Si el problema es el umbral, recalibrarlo debería bastar. Se aplicó entonces la
-recalibración de la Sección II-E sin tocar el modelo, con el MCC como objetivo
+recalibración de la Sección III-C sin tocar el modelo, con el MCC como objetivo
 porque el F1 degenera en este corpus: sobre la persistencia en E2, de tres
 minutos en adelante, el umbral que optimiza el F1 emitió un trigger entre el
 99.9 % y el 100 % de las posiciones, esto es, la regla vacía de la Tabla 1.
@@ -536,7 +539,7 @@ base: con el 30 % de las posiciones marcadas, marcarlas todas alcanza un F1 de
 0.46. El piso no distingue entre ellos, de modo que no invierte ningún veredicto
 de la Tabla 2.
 
-El lift de la Sección II-E recorre el mismo ordenamiento pesando su cabeza, y
+El lift de la Sección III-C recorre el mismo ordenamiento pesando su cabeza, y
 coincidió con el AUC en las doce celdas, de modo que el veredicto entre estos
 dos métodos no depende del puntaje elegido. Con el MCC recalibrado el acuerdo
 baja a once de doce; la excepción es E59 a cinco minutos, donde el LSTM gana el
@@ -595,7 +598,7 @@ donde la ventaja del LSTM no resiste su intervalo aunque sí resista la del AUC.
 de diez minutos. La negrita compara los dos métodos entre sí y no contra el
 piso.
 
-### D. El piso posicional acota el ordenamiento
+### H. El piso posicional acota el ordenamiento
 
 Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
 y el perfil posicional del Apéndice A, sección B lo acota. En E4 y E59 el piso
@@ -609,7 +612,7 @@ estable.
 0.579.** La diferencia vale -0.013 [-0.023, -0.003] y sobrevive su intervalo, de
 modo que ahí la ventaja sin umbral no se sostiene contra un método que no lee la
 ventana de entrada. Es la única de las doce celdas donde ocurre, y es la que la
-Sección III-B usa para exhibir el artefacto del umbral. El piso también supera a
+Sección III-F usa para exhibir el artefacto del umbral. El piso también supera a
 la persistencia en E2 a cinco y a diez minutos, de modo que acota a los dos
 métodos comparados.
 
@@ -628,7 +631,7 @@ responder qué propiedad de la regla lo deja pasar.
 
 ### A. Tres denominadores del mismo evento
 
-La regla de la Sección II-C divide por el promedio del vector predicho, que se
+La regla de la Sección III-B divide por el promedio del vector predicho, que se
 mueve con la predicción. Se la contrastó con otras dos sobre la misma población
 y el mismo origen. La primera divide por el promedio del último vector
 observado: se recalcula en cada instante y sigue al corredor, pero es el mismo
@@ -645,7 +648,7 @@ mismo evento que las otras dos.
 
 Las dos reglas con denominador colapsaron; la de cuota no podía hacerlo. La
 razón entre la tasa de trigger del LSTM y la tasa real del evento tuvo mediana
-**0.079** bajo la regla de la Sección II-C y **0.153** bajo la regla de
+**0.079** bajo la regla de la Sección III-B y **0.153** bajo la regla de
 denominador observado. Quitar la auto-referencia duplicó el disparo y lo dejó un
 orden de magnitud por debajo de la frecuencia del evento. Bajo la regla de cuota
 esa razón valió **1.000** en las doce celdas por construcción: la cuota marca la
@@ -653,30 +656,30 @@ misma cantidad en lo predicho y en lo observado. La persistencia no colapsó baj
 ninguna de las tres, con medianas de 1.011, 0.980 y 1.000.
 
 El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
-minutos. En E2 a diez minutos, bajo la regla de la Sección II-C, ese umbral
+minutos. En E2 a diez minutos, bajo la regla de la Sección III-B, ese umbral
 valió 3.89 minutos sobre lo observado y 3.92 sobre lo predicho: se quedó donde
 estaba. Bajo la regla de cuota el mismo par valió 2.76 y 6.82 minutos. La regla
 sin denominador sube su propio umbral hasta donde quedó la distribución
 comprimida, y la distancia que sube crece con el horizonte en los tres
 corredores. Un umbral en minutos no puede seguirla, porque su valor no depende
-de la escala de lo que evalúa. La compresión de la Sección III-A alcanza
+de la escala de lo que evalúa. La compresión de la Sección III-E alcanza
 entonces a toda regla que nombre una cantidad de minutos, y no queda contenida
 en la que divide por lo predicho.
 
 ### C. Qué recupera la regla de cuota
 
 La consecuencia está en el veredicto. Las mismas residuales dan un veredicto sin
-umbral en la Sección III-C, y las tres reglas se contrastan contra él. La regla
+umbral en la Sección III-G, y las tres reglas se contrastan contra él. La regla
 de cuota lo reproduce en **once** de las doce celdas; la de denominador
-observado en siete y la de la Sección II-C en seis. Bajo esta última la
+observado en siete y la de la Sección III-B en seis. Bajo esta última la
 persistencia ganó las doce, que es lo que hizo leer el colapso como ceguera del
 modelo. La única celda donde la regla de cuota discrepa es E59 a cinco minutos.
 La Tabla 3 recoge las tres reglas con sus medianas y ese conteo de
 coincidencias.
 
 La regla de cuota no convierte al modelo en mejor detector. Su MCC tuvo mediana
-**0.199** contra **0.100** bajo la regla de la Sección II-C, y la superó en las
-doce celdas. Esa mediana iguala a la del umbral recalibrado de la Sección III-C,
+**0.199** contra **0.100** bajo la regla de la Sección III-B, y la superó en las
+doce celdas. Esa mediana iguala a la del umbral recalibrado de la Sección III-G,
 que vale 0.198, y la regla de cuota no ajusta ningún parámetro sobre una ventana
 anterior. Aun así **sigue por debajo de la persistencia** en siete de las doce.
 Las cinco que gana son las tres de E2 desde los tres minutos, y las de diez
@@ -685,17 +688,17 @@ dueño el veredicto a un minuto en ninguno de los tres corredores.
 
 Las tres reglas tampoco marcan el mismo evento sobre lo observado. El índice de
 Jaccard, las posiciones que dos reglas marcan a la vez entre las que marca al
-menos una, tuvo mediana 1.000, 0.710 y 0.580 contra la regla de la Sección II-C.
-El solape no explica entonces la diferencia: la regla de denominador observado
-es la que más se le parece, y es la que colapsa con ella.
+menos una, tuvo mediana 1.000, 0.710 y 0.580 contra la regla de la Sección
+III-B. El solape no explica entonces la diferencia: la regla de denominador
+observado es la que más se le parece, y es la que colapsa con ella.
 
 **Tabla 3.** Las tres reglas del evento sobre la misma población y el mismo
 origen. Cada celda es la mediana de las doce combinaciones de corredor y
 horizonte.
 
-| Regla | Denominador | Trigger/evento, LSTM | Trigger/evento, persistencia | MCC del LSTM | Solape con la regla de la Sección II-C | Coincide con el veredicto sin umbral |
+| Regla | Denominador | Trigger/evento, LSTM | Trigger/evento, persistencia | MCC del LSTM | Solape con la regla de la Sección III-B | Coincide con el veredicto sin umbral |
 | :--- | :--- | ---: | ---: | ---: | ---: | :---: |
-| Sección II-C | promedio del vector predicho | 0.079 | 1.011 | 0.100 | 1.000 | 6 de 12 |
+| Sección III-B | promedio del vector predicho | 0.079 | 1.011 | 0.100 | 1.000 | 6 de 12 |
 | Denominador observado | promedio del último vector observado | 0.153 | 0.980 | 0.143 | 0.710 | 7 de 12 |
 | Cuota | ninguno | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.199 | 0.580 | **11 de 12** |
 
@@ -705,7 +708,7 @@ marcadas queda fijada antes de leer los valores.
 Reparar la regla cambia también lo que el resultado ofrece a quien opera. Con el
 umbral trasplantado el detector **emitió pocos triggers y acertó en ellos**
 —catorce en E2 a diez minutos, con la precisión por encima de la tasa base en
-los tres corredores según la Sección III-B—, y eso no es una alarma sino un
+los tres corredores según la Sección III-F—, y eso no es una alarma sino un
 **filtro de prioridad**: un aviso poco frecuente y más informativo que el azar,
 que sirve para ordenar la atención de un despachador. Recalibrar deshace la
 primera mitad de esa lectura: el detector recalibrado emitió un trigger en el
@@ -720,7 +723,7 @@ observaciones**, y requiere recalcular un escalar y no reentrenar nada.
 
 ### A. Robustez frente al origen y a la definición del evento
 
-El veredicto sin umbral de la Sección III-C no depende del origen calendario.
+El veredicto sin umbral de la Sección III-G no depende del origen calendario.
 Los tres orígenes coincidieron en 11 de las 12 celdas, y a diez minutos
 coincidieron en las nueve combinaciones de corredor y origen. El primero de los
 tres cubre del 23 de diciembre al 13 de enero. Ese acuerdo incluye entonces el
@@ -776,7 +779,7 @@ afirmación de detección es entonces el evento así definido, y sobre las
 posiciones que resolvieron: la tasa base que se reporta no admite comparación
 directa con tasas de bunching medidas sobre registros sin enmascarar.
 
-La compresión de la Sección III-A admite una lectura que apunta al ruido de
+La compresión de la Sección III-E admite una lectura que apunta al ruido de
 medición y no a la predicción. El eje del corredor se estima de los registros y
 el sentido de marcha se infiere del signo del arco. Un error de medición entra
 entonces en el error de predicción y agranda la compresión, sin decir nada sobre
@@ -811,7 +814,7 @@ corredor en ese minuto, aunque no la ventana de entrada; los dos métodos que
 acota leen esa misma composición, de modo que la comparación no le concede nada
 a ninguno.
 
-Las métricas de la Sección II-E son genéricas y comparables entre corredores, y
+Las métricas de la Sección III-C son genéricas y comparables entre corredores, y
 ninguna liga un error de predicción a una decisión de intervención. Un despacho
 necesitaría una función de costo que pondere el aviso perdido contra el aviso
 falso, y esa función depende de la operación de cada empresa.
@@ -1024,7 +1027,7 @@ sistemáticamente más cortos, así que algunas caen por debajo de la mitad del
 promedio de su vector por la posición que ocupan y no por lo que ocurrió ese
 minuto. Lo que ese perfil ordena es la parte del ordenamiento que la posición
 explica por sí sola. Se ajusta sobre el período de prueba del origen 2 y se
-aplica al del origen 3, los mismos dos períodos que la Sección II-E usa para el
+aplica al del origen 3, los mismos dos períodos que la Sección III-C usa para el
 umbral y por la misma razón.
 
 ### C. Protocolo de evaluación
@@ -1070,7 +1073,7 @@ estratificación conociera el período que evalúa.
 
 ## Apéndice B. Pruebas estadísticas
 
-La Sección II-E define las métricas, y compararlas entre dos métodos exige
+La Sección III-C define las métricas, y compararlas entre dos métodos exige
 declarar qué cuenta como resultado de esa comparación. Un veredicto es la
 comparación de dos métodos sobre las mismas muestras bajo una métrica declarada,
 y consta de tres partes: cuál de los dos gana, por cuánto y si la diferencia
