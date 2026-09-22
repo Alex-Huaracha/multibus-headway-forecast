@@ -32,30 +32,36 @@ pendiente construir la curva que compararía a los métodos basados en headway
 sin fijar un punto de operación [@sun2021]. Queda sin medir qué le hace el
 error de la primera etapa a la decisión de la segunda.
 
+La primera etapa introduce el defecto que la segunda hereda. Un modelo
+entrenado con error cuadrático medio tiende al promedio condicional, y la
+dispersión entre los buses de un mismo instante —la cantidad que el bunching
+altera— sale comprimida. Un umbral trasladado sin cambios a esa distribución
+encogida encuentra pocos valores que lo crucen: el detector casi deja de
+emitir avisos aunque el error en minutos mejore. La regla de este trabajo
+divide por el promedio del propio vector predicho: es relativa, y aun así la
+tasa del evento cae.
+
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta
 el punto de operación. Predice el vector completo de headways de un corredor
 —los buses de una empresa que circulan sobre una misma ruta— con una red
 recurrente. La regla de la Sección III-B convierte lo predicho en un indicador
-de bunching, y la evaluación puntúa esa detección con y sin umbral. La
-Sección II-C delimita cuánto del mecanismo que este trabajo mide ya estaba
-publicado. Nuestras contribuciones son cuatro:
+de bunching, y la evaluación puntúa esa detección con y sin umbral. Las dos
+puntuaciones se contradicen: con el umbral del evento observado trasladado sin
+cambios, la persistencia llega a superar a la red por un factor de 253 en el
+F1. Sin umbral, la misma predicción ordena mejor que la persistencia en las
+nueve combinaciones de corredor y origen a diez minutos. La Sección II-C
+delimita cuánto del mecanismo que este trabajo mide ya estaba publicado.
+Nuestras contribuciones son cuatro:
 
-- Medimos la compresión sobre el vector de headways, como dispersión entre
-  buses en un mismo instante, y la aislamos con la persistencia como control
-  de compresión nula. La cantidad tiene precedente fuera del transporte; no se
-  había medido sobre este vector.
+- Medimos esa compresión sobre el vector de headways y la aislamos con la
+  persistencia como control de compresión nula.
 - Invertimos la fórmula de calidad de servicio del *Transit Capacity and Quality
   of Service Manual* (TCQSM) y la aplicamos a lo predicho en lugar de a lo
   observado.
 - Atamos esa fórmula a una regla de evento **relativa pero no preservadora de
-  tasa**: la compresión mueve el numerador y el denominador a la vez y la tasa
-  del evento cae, la distinción que la Sección II-C desarrolla. Los umbrales que
-  la literatura recalibra se fijan una vez sobre un período anterior; este se
-  recalcula con cada vector que evalúa.
-- Contrastamos tres denominadores del mismo evento sobre la misma población.
-  El daño alcanza a toda regla que fije el evento en una cantidad de minutos,
-  y no queda contenido en la que divide por lo predicho. Una regla que en
-  cambio marque una cantidad fija de las posiciones más cortas del vector
+  tasa**, que se recalcula con cada vector que evalúa.
+- Mostramos que el daño alcanza a toda regla que nombre una cantidad de
+  minutos, y proponemos una regla de cuota sobre las posiciones más cortas que
   reproduce el veredicto sin umbral sin ajustar ningún parámetro.
 
 ---
