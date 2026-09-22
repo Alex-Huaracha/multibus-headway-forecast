@@ -323,11 +323,14 @@ una predicción que no ordena, de modo que vale 1 en ese caso.
 ### A. Recalibración fuera de muestra
 
 La primera reparación deja intacta la regla del evento y mueve el umbral del
-detector de la Ecuación (5), su punto de operación. Ese umbral no se hereda de
-lo observado: se ajusta maximizando el MCC sobre el período de prueba del
-origen 2 y se aplica sin cambios al del origen 3. Los dos períodos son
-disjuntos y provienen de modelos entrenados por separado, de modo que el
-período publicado no informa su propio umbral.
+detector de la Ecuación (5), su punto de operación. Toda la evaluación se
+repite sobre tres **orígenes de evaluación** (*rolling origin*): tres fechas
+de fin de entrenamiento, cada una con su propio período de prueba, que el
+Apéndice A, sección C detalla. Ese umbral no se hereda de lo observado: se
+ajusta maximizando el MCC sobre el período de prueba del origen 2 y se aplica
+sin cambios al del origen 3. Los dos períodos son disjuntos y provienen de
+modelos entrenados por separado, de modo que el período publicado no informa
+su propio umbral.
 
 ### B. La regla de denominador observado y la regla de cuota
 
