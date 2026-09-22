@@ -8,42 +8,42 @@ _(pendiente — se escribe al final)_
 
 ## I. Introducción
 
-El headway es el tiempo que separa el paso de dos buses consecutivos por un mismo
-punto de una ruta. El bunching es la circulación conjunta de dos buses que ese
-tiempo debería mantener separados, y desiguala la espera entre los pasajeros de
-esa ruta. Rezazada y colaboradores lo atribuyen a la congestión, a la demanda
-atípica, a la acumulación de pasajeros y al comportamiento del conductor
-[@rezazada2024]. Trompet, Liu y Graham comparan doce empresas de bus urbano, y las
-que publican un indicador de servicio lo definen sobre la regularidad agregada del
-recorrido y no sobre un headway aislado [@trompet2011].
+El headway es el tiempo que separa el paso de dos buses consecutivos por un
+mismo punto de una ruta. El bunching es la circulación conjunta de dos buses
+que ese tiempo debería mantener separados, y desiguala la espera entre los
+pasajeros de esa ruta. Rezazada y colaboradores lo atribuyen a la congestión,
+a la demanda atípica, a la acumulación de pasajeros y al comportamiento del
+conductor [@rezazada2024]. Trompet, Liu y Graham comparan doce empresas de bus
+urbano, y las que publican un indicador de servicio lo definen sobre la
+regularidad agregada del recorrido y no sobre un headway aislado [@trompet2011].
 
-La predicción de ese evento sigue una receta de dos etapas: primero se estima el
-headway futuro, y después se lo compara contra un umbral que decide si hay
-evento. Yu y colaboradores fijan su formulación canónica [@yu2016], y la
-literatura la repite sobre corredores y modelos distintos [@jiao2023]. Su segunda
-etapa no tiene un valor acordado: los umbrales publicados van desde veinte
-segundos hasta un cuarto del headway programado [@rezazada2024].
+La predicción de ese evento sigue un procedimiento de dos etapas: primero se
+estima el headway futuro, y después se lo compara contra un umbral que decide
+si hay evento. Yu y colaboradores fijan su formulación canónica [@yu2016], y la
+literatura la repite sobre corredores y modelos distintos [@jiao2023]. Su
+segunda etapa no tiene un valor acordado: los umbrales publicados van desde
+veinte segundos hasta un cuarto del headway programado [@rezazada2024].
 
-Esa receta deja dos huecos. Usama y Koutsopoulos predicen el vector completo de
-headways de una línea de metro con una red profunda, y reportan solo el error en
-minutos, sin convertir lo predicho en un indicador de evento [@usama2025]. Sun,
-Schmöcker y Nakamura sí llegan a la detección, y dejan pendiente construir la
-curva que compararía a los métodos basados en headway sin fijar un punto de
-operación [@sun2021]. Queda sin medir qué le hace el error de la primera etapa a
-la decisión de la segunda.
+Ese procedimiento deja dos huecos. Usama y Koutsopoulos predicen el vector
+completo de headways de una línea de metro con una red profunda, y reportan
+solo el error en minutos, sin convertir lo predicho en un indicador de evento
+[@usama2025]. Sun, Schmöcker y Nakamura sí llegan a la detección, y dejan
+pendiente construir la curva que compararía a los métodos basados en headway
+sin fijar un punto de operación [@sun2021]. Queda sin medir qué le hace el
+error de la primera etapa a la decisión de la segunda.
 
-Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta el
-punto de operación. Predice el vector completo de headways de un corredor —los
-buses de una empresa que circulan sobre una misma ruta— con una red recurrente.
-La regla de la Sección III-B convierte lo predicho en un indicador de
-bunching, y la evaluación puntúa esa detección con y sin umbral. La Sección II-C
-delimita cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestras
-contribuciones son cuatro:
+Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta
+el punto de operación. Predice el vector completo de headways de un corredor
+—los buses de una empresa que circulan sobre una misma ruta— con una red
+recurrente. La regla de la Sección III-B convierte lo predicho en un indicador
+de bunching, y la evaluación puntúa esa detección con y sin umbral. La
+Sección II-C delimita cuánto del mecanismo que este trabajo mide ya estaba
+publicado. Nuestras contribuciones son cuatro:
 
-- Medimos la compresión sobre el vector de headways, como dispersión entre buses
-  en un mismo instante, y la aislamos con la persistencia como control de
-  compresión nula. La cantidad tiene precedente fuera del transporte; no se había
-  medido sobre este vector.
+- Medimos la compresión sobre el vector de headways, como dispersión entre
+  buses en un mismo instante, y la aislamos con la persistencia como control
+  de compresión nula. La cantidad tiene precedente fuera del transporte; no se
+  había medido sobre este vector.
 - Invertimos la fórmula de calidad de servicio del *Transit Capacity and Quality
   of Service Manual* (TCQSM) y la aplicamos a lo predicho en lugar de a lo
   observado.
@@ -52,38 +52,17 @@ contribuciones son cuatro:
   del evento cae, la distinción que la Sección II-C desarrolla. Los umbrales que
   la literatura recalibra se fijan una vez sobre un período anterior; este se
   recalcula con cada vector que evalúa.
-- Contrastamos tres denominadores del mismo evento sobre la misma población. El
-  daño alcanza a toda regla que fije el evento en una cantidad de minutos, y no
-  queda contenido en la que divide por lo predicho. Una regla que en cambio marque
-  una cantidad fija de las posiciones más cortas del vector reproduce el veredicto
-  sin umbral sin ajustar ningún parámetro.
+- Contrastamos tres denominadores del mismo evento sobre la misma población.
+  El daño alcanza a toda regla que fije el evento en una cantidad de minutos,
+  y no queda contenido en la que divide por lo predicho. Una regla que en
+  cambio marque una cantidad fija de las posiciones más cortas del vector
+  reproduce el veredicto sin umbral sin ajustar ningún parámetro.
 
 ---
 
 ## II. Antecedentes
 
-### A. Compresión de la dispersión bajo error cuadrático medio
-
-La primera etapa de esa receta arrastra una propiedad conocida: una predicción
-ajustada para minimizar el error cuadrático sale menos dispersa que la cantidad
-que predice. La propiedad es un teorema y no una regularidad empírica. Una
-predicción que minimiza error cuadrático tiende a la media condicional
-[@gneiting2011], y la varianza del objetivo se descompone en la de esa
-predicción óptima más el error cuadrático esperado, con una compresión que crece
-al alargar el horizonte por construcción y no por una falla del ajuste
-[@patton2012]. Está medida sobre la varianza temporal de una serie escalar,
-sobre conjuntos de instancias en seis dominios, entre ellos el tráfico
-[@green2026], y sobre la dispersión transversal de un campo espacial
-[@bonavita2024].
-
-El daño sobre una regla de umbral también está documentado: el método con mejor
-error cuadrático es el que peor detecta los episodios altos de ozono, porque
-subestima la variabilidad [@petetin2022]. Lo que no encontramos es esa medición
-sobre el vector de headways de un corredor, ni un control que separe la
-compresión del resto del procedimiento; la Sección V-B usa la persistencia
-para eso.
-
-### B. Predicción de bunching en dos etapas
+### A. Predicción de bunching en dos etapas
 
 El bunching se predice en dos etapas: la primera estima el headway que separará
 a dos buses en un instante futuro y minimiza un error en minutos, y la segunda
@@ -95,31 +74,50 @@ pérdida atenta solo al error de regresión trata como ruido los casos que la
 regla marca [@jiao2023]. La segunda etapa se evalúa en un punto de operación
 único: ninguna de las ocho filas con que Santos y colaboradores resumen el
 subcampo registra una medida que puntúe el ordenamiento sin fijar antes un
-umbral [@santos2022].
+umbral [@santos2022]. La excepción es el clasificador probabilístico de Sun,
+Schmöcker y Nakamura [@sun2021], que la Sección II-C delimita; este trabajo
+puntúa las mismas predicciones con el umbral y sin él, para aislar el punto de
+operación como la variable bajo prueba.
 
-### C. Remedios del umbral y delimitación
+### B. Compresión de la dispersión bajo error cuadrático medio
 
-El efecto de la compresión sobre una regla de umbral tiene dos remedios
-publicados fuera del transporte, y se distinguen por qué objeto tocan. Hoffmann,
-Menz y Spekat mueven el umbral: recalculan el indicador con el valor que ocupa,
-en lo predicho, el percentil que el umbral fijo ocupa en lo observado
-[@hoffmann2018]. Petetin y colaboradores mueven la predicción, porque sus
-umbrales de ozono son normativos: su mapeo de cuantiles lleva la distribución de
-lo predicho a la de lo observado [@petetin2022]. Y el *Extreme Forecast Index*
-del Centro Europeo de Predicción Meteorológica a Plazo Medio decide si una
-situación es extrema comparando el pronóstico vigente contra la climatología
-**del propio modelo** [@ecmwffug]: referir el umbral a lo que el modelo mismo
-produce no es entonces nuevo.
+La primera etapa de ese procedimiento arrastra una propiedad conocida, y es un
+teorema y no una regularidad empírica: lo ajustado para minimizar el error
+cuadrático sale menos disperso que la cantidad que predice. La predicción
+óptima es la media condicional [@gneiting2011], y la varianza del objetivo se
+descompone en la de esa predicción más el error cuadrático esperado, con una
+compresión que crece al alargar el horizonte [@patton2012]. Esa compresión
+está medida sobre la varianza temporal de una serie escalar [@mayer2023],
+sobre conjuntos de instancias en seis dominios, entre ellos el tráfico
+[@green2026], y sobre la dispersión transversal de un campo espacial
+[@bonavita2024].
+
+El daño sobre una regla de umbral también está documentado: el método con mejor
+error cuadrático es el que peor detecta los episodios altos de ozono, porque
+subestima la variabilidad [@petetin2022]. Lo que no encontramos es esa medición
+sobre el vector de headways de un corredor, ni un control que separe la
+compresión del resto del procedimiento; la Sección V-B usa la persistencia
+para eso.
+
+### C. Correcciones del umbral y delimitación
+
+El efecto de la compresión sobre una regla de umbral tiene dos correcciones
+publicadas fuera del transporte, y ambas alinean cuantiles entre lo predicho y
+lo observado: uno reubica el umbral en el valor que su percentil ocupa dentro de
+lo predicho [@hoffmann2018], y el otro lleva la distribución de lo predicho a la
+de lo observado con el umbral quieto [@petetin2022]. El *Extreme Forecast Index*
+declara extremo un pronóstico comparándolo contra la climatología **del propio
+modelo** [@ecmwffug]: referir el umbral a lo que el modelo produce no es
+entonces nuevo.
 
 Lo que ninguna de las tres prácticas enfrenta es un umbral que se mueva **dentro
-de la instancia que evalúa**. Hay además una propiedad que separa a esos
-umbrales del nuestro: un umbral definido sobre un cuantil queda libre de sesgo
-por construcción [@hoffmann2018], porque un cuantil **conserva la frecuencia del
-evento** bajo cualquier transformación monótona de lo predicho. Una fracción del
-promedio no la conserva: la compresión encoge la separación entre posiciones
-respecto de ese promedio, de modo que el umbral y el valor comparado se mueven a
-la vez y la tasa del evento cae. Ese es el caso que este trabajo mide, y es
-relativo sin ser preservador de tasa.
+de la instancia que evalúa**. Esa alineación tiene además una propiedad que
+separa a esas correcciones de la nuestra: un umbral definido sobre un cuantil
+queda libre de sesgo por construcción [@hoffmann2018], porque un cuantil
+**conserva la frecuencia del evento** bajo cualquier transformación monótona
+de lo predicho. Una fracción del promedio no la conserva —la Sección III-B
+formaliza por qué—, y ese es el caso que este trabajo mide: relativo sin ser
+preservador de tasa.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
 diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
@@ -191,7 +189,7 @@ La convención del campo marca el evento con una fracción del headway programad
 un cuarto en las formulaciones más citadas [@moreiramatias2016], y la mitad en
 el TCQSM [@tcqsm2003]. Estos corredores no tienen programación, y sustituir ese
 denominador por uno observado en el propio corredor es la práctica que la
-Sección II-B recoge. Aquí se sustituye por el promedio del propio vector en ese
+Sección II-A recoge. Aquí se sustituye por el promedio del propio vector en ese
 instante: la fracción es heredada del TCQSM y la sustitución del denominador es
 nuestra. El promedio vigente cumple la función de la programación —fijar la
 separación normal del corredor—, que un umbral fijo en minutos no cumple entre
@@ -240,7 +238,7 @@ $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ resultan de aplicar $\rho$
 al vector observado y al predicho. Un denominador observado, como el de la
-Sección II-B, no tiene esa propiedad: no se mueve con la predicción. Eso no lo
+Sección II-A, no tiene esa propiedad: no se mueve con la predicción. Eso no lo
 pone a salvo, y la Sección V-F mide cuánto de la diferencia le corresponde. La
 Figura 1 lo muestra con el mismo headway de dos minutos, y la Sección V-C mide
 qué ocurre sobre datos reales cuando los dos umbrales de la Ecuación (6) se
@@ -1060,6 +1058,11 @@ doi: 10.1007/978-3-662-44851-9_15.
 Road Traffic Forecasting: Does it Make a Difference?," *IEEE Transactions on
 Intelligent Transportation Systems*, vol. 23, no. 7, pp. 6164–6188, 2022,
 doi: 10.1109/TITS.2021.3083957.
+
+`[@mayer2023]` M. J. Mayer and D. Yang, "Calibration of deterministic NWP
+forecasts and its impact on verification," *International Journal of
+Forecasting*, vol. 39, no. 2, pp. 981–991, 2023,
+doi: 10.1016/j.ijforecast.2022.03.008.
 
 `[@moreiramatias2016]` L. Moreira-Matias, O. Cats, J. Gama, J. Mendes-Moreira, and
 J. Freire de Sousa, "An online learning approach to eliminate Bus Bunching in
