@@ -35,7 +35,10 @@ from src.build_paper_tables import (
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PAPER = REPO_ROOT / "docs" / "paper" / "paper.md"
 
-TABLES = [("Tabla 1", tabla_1), ("Tabla 2", tabla_2), ("Tabla 3", tabla_3)]
+# tabla_3 (robustez) is no longer pasted: the manuscript replaced it with the
+# VI-A paragraph, so only its shape is checked below, not its paste.
+PASTED_TABLES = [("Tabla 1", tabla_1), ("Tabla 2", tabla_2)]
+ALL_TABLES = PASTED_TABLES + [("robustez", tabla_3)]
 
 
 @pytest.fixture(scope="module")
@@ -57,7 +60,7 @@ def _cells(row: str) -> list[str]:
 class TestTheManuscriptCarriesWhatTheBuilderEmits:
     """The paste is faithful, or the test names which table stopped being so."""
 
-    @pytest.mark.parametrize(("name", "builder"), TABLES)
+    @pytest.mark.parametrize(("name", "builder"), PASTED_TABLES)
     def test_every_emitted_row_appears_verbatim(self, name, builder, paper) -> None:
         missing = [row for row in _rows(builder()) if row not in paper]
         assert not missing, (
@@ -66,13 +69,13 @@ class TestTheManuscriptCarriesWhatTheBuilderEmits:
             f"Primera: {missing[0]}"
         )
 
-    @pytest.mark.parametrize(("name", "builder"), TABLES)
+    @pytest.mark.parametrize(("name", "builder"), PASTED_TABLES)
     def test_the_header_appears_verbatim(self, name, builder, paper) -> None:
         """A column added on one side only is the drift that already happened."""
         header = builder().splitlines()[0]
         assert header in paper, f"{name}: la cabecera pegada no es la que emite el builder"
 
-    @pytest.mark.parametrize(("name", "builder"), TABLES)
+    @pytest.mark.parametrize(("name", "builder"), ALL_TABLES)
     def test_each_table_carries_one_row_per_cell(self, name, builder) -> None:
         assert len(_rows(builder())) == len(CORRIDORS) * len(HORIZONS)
 

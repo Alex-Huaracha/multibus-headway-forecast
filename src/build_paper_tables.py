@@ -1,4 +1,4 @@
-"""The paper's three result tables, rendered as Markdown from the committed CSVs.
+"""The paper's result tables, rendered as Markdown from the committed CSVs.
 
 Same contract as ``build_contiguous_figures``: every cell traces to a CSV under
 ``docs/resultados/csv-multihorizon/``, so a table can never disagree with the
@@ -22,11 +22,13 @@ figure it sits next to, and no number in the paper is ever typed by hand.
                                               compared, on the two dimensions
                                               that decided the discards.
 
-Tables 1 to 3 are pasted into ``docs/paper/paper.md`` as numbered tables. Tables
-4 and 5 are not: Sections IV-A and III-A quote their figures in prose, and the
-files exist so those figures have a regenerable source instead of living only in
-the manuscript. Re-run this and re-paste when an upstream CSV changes; do not
-edit a number in the manuscript directly.
+Tables 1 and 2 are pasted into ``docs/paper/paper.md`` as numbered tables.
+Tables 3 to 5 are not: Section VI-A carries the robustness verdict in prose
+(the manuscript replaced the pasted table with a paragraph), Sections IV-A and
+III-A quote tables 4 and 5 in prose, and the files exist so those figures have
+a regenerable source instead of living only in the manuscript. Re-run this and
+re-paste when an upstream CSV changes; do not edit a number in the manuscript
+directly.
 
 Usage
 -----

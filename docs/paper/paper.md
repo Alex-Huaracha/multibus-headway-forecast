@@ -612,9 +612,11 @@ marcadas queda fijada antes de leer los valores.
 ### A. Robustez frente al origen y a la definición del evento
 
 El veredicto sin umbral de la Sección V-D no depende del origen calendario.
-Los tres orígenes coincidieron en 11 de las 12 celdas, y a diez minutos
-coincidieron en las nueve combinaciones de corredor y origen. El primero de los
-tres cubre del 23 de diciembre al 13 de enero. Ese acuerdo incluye entonces el
+Los tres orígenes coincidieron en 11 de las 12 celdas —la única discrepancia
+es E4 a cinco minutos, donde solo el origen 2 favoreció al LSTM— y a diez
+minutos coincidieron en las nueve combinaciones de corredor y origen. El
+primero de los tres cubre del 23 de diciembre al 13 de enero. Ese acuerdo
+incluye entonces el
 período de fiestas, cuando la frecuencia del servicio y la demanda no se parecen
 a las de un mes ordinario.
 
@@ -629,33 +631,10 @@ diez de las doce celdas, y en las otras dos no emitió ninguno.
 
 El mismo ensayo acota una afirmación anterior. Bajo el umbral absoluto la
 capacidad de discriminación del modelo cayó: la mediana del AUC bajó a 0.60, y
-en E2 a diez minutos llegó a 0.49, indistinguible del azar. Esa celda ya había
+en E2 a diez minutos llegó a 0.493, indistinguible del azar. Esa celda ya había
 fallado bajo el evento relativo, contra el perfil posicional de la Sección
 V-E. Las dos definiciones del evento coinciden entonces en ella. La afirmación
-de que el LSTM no es ciego se sostiene fuera de esa celda y no dentro. La Tabla
-4 recoge los tres orígenes y ese ensayo.
-
-**Tabla 4.** Robustez: los tres orígenes de evaluación y el ensayo con un umbral
-absoluto en minutos.
-
-| Corredor | h | Origen 1 | Origen 2 | Origen 3 | Coinciden | AUC, umbral absoluto |
-| :--- | ---: | :--- | :--- | :--- | :---: | ---: |
-| E2 | 1 | persist. | persist. | persist. | sí | 0.645 |
-| E2 | 3 | LSTM | LSTM | LSTM | sí | 0.582 |
-| E2 | 5 | LSTM | LSTM | LSTM | sí | 0.550 |
-| E2 | 10 | LSTM | LSTM | LSTM | sí | 0.493&nbsp;‡ |
-| E4 | 1 | persist. | persist. | persist. | sí | 0.728 |
-| E4 | 3 | persist. | persist. | persist. | sí | 0.576 |
-| E4 | 5 | persist. | LSTM | persist. | **no** | 0.566 |
-| E4 | 10 | LSTM | LSTM | LSTM | sí | 0.551 |
-| E59 | 1 | persist. | persist. | persist. | sí | 0.731 |
-| E59 | 3 | persist. | persist. | persist. | sí | 0.654 |
-| E59 | 5 | LSTM | LSTM | LSTM | sí | 0.637 |
-| E59 | 10 | LSTM | LSTM | LSTM | sí | 0.616 |
-
-‡ Indistinguible del azar. Es el único punto donde la afirmación no se sostiene
-bajo la convención del campo, y es también la celda que el perfil posicional
-gana en la Tabla 2.
+de que el LSTM no es ciego se sostiene fuera de esa celda y no dentro.
 
 ### B. Amenazas a la validez
 
