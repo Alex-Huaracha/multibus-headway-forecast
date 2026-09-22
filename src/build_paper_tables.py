@@ -208,8 +208,8 @@ def tabla_2() -> str:
     because it is what those areas have to clear. A rule that answers the mean
     headway of each position, reads no input window and therefore anticipates
     nothing still scores above chance wherever the positions of a vector are not
-    exchangeable. Where that floor beats both methods no winner is named at all:
-    bolding one of them would award a race that a no-information rule won.
+    exchangeable. Bold compares the two methods only; the floor is flagged, never
+    bolded, so the bold count agrees with the paired verdict the text reports.
     """
     det = _load("contiguous_detection_calibrated.csv")
     # The intervals decide every bold in this table. Two cells used to name a
@@ -245,22 +245,15 @@ def tabla_2() -> str:
                 )
             ]
 
-            # The floor is bold where it beats the learner and flagged where it
-            # beats persistence, so a reader sees which of the two it overtook.
+            # The floor is flagged where it beats persistence; the note names
+            # the cell where it also beats the learner.
             floor = _num(auc_floor)
-            if auc_floor is not None and auc_floor > auc_l:
-                floor = f"**{floor}**"
             if auc_floor is not None and auc_floor > auc_r:
                 floor += "&nbsp;§"
 
-            outranked = auc_floor is not None and auc_floor > max(auc_l, auc_r)
-
             rows.append([
                 corridor, str(horizon),
-                *_pair(
-                    auc_l, auc_r,
-                    decided=bool(_cell(ci, "auc_survives", **keys)) and not outranked,
-                ),
+                *_pair(auc_l, auc_r, decided=bool(_cell(ci, "auc_survives", **keys))),
                 floor,
                 bands[0],
                 *_pair(

@@ -283,6 +283,21 @@ sin programación esa dispersión es la Ecuación (7). Su sesgo es el CV de lo
 predicho menos el de lo observado, y un valor negativo dice que lo predicho es
 más regular que la realidad.
 
+El CV compara la forma de lo predicho con la de lo observado, pero no dice
+cuánto de esa diferencia se debe al error. La varianza entre las posiciones de
+un mismo vector la reparte:
+
+$$V_h \;=\; V_{\hat h} + V_e + 2\,C_{\hat h e}, \qquad
+r \;=\; \frac{V_{\hat h}}{V_h}, \qquad r_0 \;=\; 1 - \frac{V_e}{V_h}, \tag{8}$$
+
+donde $V_h$, $V_{\hat h}$ y $V_e$ son las varianzas entre posiciones del
+headway observado, del predicho y del error $e_i = h_i - \hat{h}_i$,
+promediadas sobre los vectores de la celda, y $C_{\hat h e}$ es la covarianza
+entre lo predicho y el error. La fracción $r$ es la parte de la dispersión
+observada que sobrevive en lo predicho. La fracción $r_0$ es la que el error
+deja explicada, y coincide con $r$ cuando el error no covaría con lo predicho,
+como ocurre con la media condicional de la Sección II-B.
+
 El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto
 dependen del umbral, sobre la matriz de confusión entre el indicador observado
 de la Ecuación (4) y el detector de la Ecuación (5). Sean TP las posiciones con
@@ -292,7 +307,7 @@ y el F1 son entonces
 
 $$\mathrm{F}_1 \;=\; \frac{2PR}{P+R}, \qquad
 P \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}, \qquad
-R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{8}$$
+R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{9}$$
 
 El F1 no usa TN [@chicco2020], y premia por eso al **detector trivial**: el que
 emite un trigger en toda posición. Maximizar el F1 sobre una predicción sin
@@ -380,23 +395,17 @@ y los tres orígenes de evaluación**. Y se profundizó de forma estrictamente
 ordenada a medida que se alarga el horizonte: en E2 pasó de −0.42 a un minuto a
 −0.63 a diez. No hubo una sola excepción en los tres corredores.
 
-La persistencia identifica la causa por descarte: no comprimió nada, con el
-sesgo dentro de ±0.022 en las doce celdas y los tres orígenes. El control sitúa
-el efecto en el acto de **emitir una predicción puntual**, no en los datos ni en
-el corredor.
+La persistencia acota la causa por descarte: no comprimió nada, con el sesgo
+dentro de ±0.022 en las doce celdas y los tres orígenes. El control sitúa el
+efecto en el **ajuste por error cuadrático**, que la persistencia no hace, y no
+en los datos ni en el corredor.
 
-La descomposición de la varianza ata ese efecto a una sola cantidad. Medida
-entre las posiciones de un mismo vector, la dispersión observada se reparte
-entre la que sobrevive, el error de predicción y la covarianza de ambos. Sin ese
-último término, la fracción que sobrevive queda fijada por el tamaño del error
-respecto de la dispersión observada. La razón medida sigue a esa predicción con
-una correlación de 0.993 sobre las doce celdas, cuyas razones van de 0.05 a
-0.55. El XGBoost quedó sobre esa misma relación y sobre esos mismos vectores,
-con una correlación de 0.996 y una fracción superviviente de hasta 0.040: dos
-arquitecturas sin sesgo inductivo en común, un solo objetivo de ajuste. El mismo
-reparto entrega la otra lectura de la medición: la parte de la dispersión dentro
-del vector que el modelo reproduce cae de 49.5 % en E4 a un minuto hasta 1.3 %
-en E2 a diez.
+La Ecuación (8) ata ese efecto a una sola cantidad. Sobre las doce celdas, $r$
+siguió a $r_0$ con una correlación de 0.993 en el LSTM, con $r$ entre 0.045 y
+0.552. El XGBoost quedó sobre la misma relación y sobre los mismos vectores,
+con una correlación de 0.996 y $r$ entre 0.040 y 0.547. Las dos arquitecturas
+no comparten sesgo inductivo y sí el objetivo de ajuste. La fracción $r_0$ del
+LSTM cae de 49.5 % en E4 a un minuto hasta 1.3 % en E2 a diez.
 
 Leídas contra la escala de nivel de servicio del TCQSM, según la convención de
 la Sección III-C, esas cifras dicen que el mismo corredor en el mismo instante
@@ -507,7 +516,7 @@ con el piso del perfil posicional al lado del AUC que acota.
 | E2 | 1 | 0.714 | **0.723** | 0.587 | -0.009 [-0.015, -0.004] | 0.310 | **0.401** | -0.091 [-0.106, -0.078] |
 | E2 | 3 | **0.629** | 0.598 | 0.580 | +0.031 [+0.025, +0.036] | **0.178** | 0.160 | +0.018 [+0.005, +0.028] |
 | E2 | 5 | **0.604** | 0.567 | 0.582&nbsp;§ | +0.037 [+0.031, +0.042] | **0.139** | 0.102 | +0.037 [+0.026, +0.046] |
-| E2 | 10 | 0.565 | 0.528 | **0.579**&nbsp;§ | +0.037 [+0.026, +0.047] | **0.085** | 0.027 | +0.058 [+0.039, +0.073] |
+| E2 | 10 | **0.565** | 0.528 | 0.579&nbsp;§ | +0.037 [+0.026, +0.047] | **0.085** | 0.027 | +0.058 [+0.039, +0.073] |
 | E4 | 1 | 0.811 | **0.833** | 0.523 | -0.022 [-0.027, -0.016] | 0.476 | **0.615** | -0.140 [-0.150, -0.130] |
 | E4 | 3 | 0.702 | **0.719** | 0.520 | -0.017 [-0.025, -0.009] | 0.269 | **0.375** | -0.106 [-0.122, -0.086] |
 | E4 | 5 | 0.648 | 0.649 | 0.519 | -0.001 [-0.010, +0.008] | 0.190 | **0.254** | -0.064 [-0.083, -0.043] |
@@ -653,9 +662,8 @@ La compresión de la Sección V-B admite una lectura que apunta al ruido de
 medición y no a la predicción. El eje del corredor se estima de los registros y
 el sentido de marcha se infiere del signo del arco. Un error de medición entra
 entonces en el error de predicción y agranda la compresión, sin decir nada sobre
-la predicción misma. La descomposición de esa sección acota esa lectura sin
-eliminarla: la razón medida sigue al término de error con una correlación de
-0.993. Del corpus depende el tamaño del efecto, no su existencia: un corredor
+la predicción misma. La descomposición de la Ecuación (8) acota esa lectura sin
+eliminarla: $r$ sigue a $r_0$ con una correlación de 0.993. Del corpus depende el tamaño del efecto, no su existencia: un corredor
 con geometría publicada y sentido declarado tendría un error menor y una
 compresión menor, en la proporción que esa descomposición fija.
 
@@ -725,7 +733,7 @@ capacidad de anticipación que quedaría al retirarlo.
 Tres extensiones quedan abiertas. La primera liga la detección a una función de
 costo que pondere el aviso perdido contra el aviso falso, que la Sección VI-B
 declara ausente. La segunda emite una predicción probabilística en lugar de
-puntual, de modo que la dispersión no se pierda en el acto de predecir. La
+puntual, de modo que el ajuste no reduzca lo predicho a la media condicional. La
 tercera valida la regla del evento contra un registro de incidentes, que estos
 corredores todavía no producen.
 
@@ -806,7 +814,7 @@ ajusta de los propios registros. La secuencia tiene seis pasos.
    mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
-\qquad h = T - t_{c}, \tag{9}$$
+\qquad h = T - t_{c}, \tag{10}$$
 
 donde $s_{L}$ y $s_{F}$ son las coordenadas de arco del bus de adelante y del de
 atrás. El instante $t_{c}$ es el último en que el de adelante pasó por la
@@ -924,7 +932,7 @@ y consta de tres partes: cuál de los dos gana, por cuánto y si la diferencia
 sobrevive su prueba. Exigir muestras idénticas es lo que lo distingue de la resta
 de dos métricas agregadas, que pueden haberse calculado sobre poblaciones
 distintas. Este trabajo emite veredictos sobre el MAE de la Sección III-C y
-sobre las cantidades de detección de la Ecuación (8), el MCC y el AUC. Un
+sobre las cantidades de detección de la Ecuación (9), el MCC y el AUC. Un
 veredicto sin umbral es el que usa el AUC, que no depende del punto de
 operación.
 
@@ -944,7 +952,7 @@ se toma el intervalo percentil al 95 %, con dos mil remuestreos y semilla fija.
 El agrupamiento es el mismo del diferencial de pérdida y responde a la misma
 razón.
 
-La precisión de la Ecuación (8) admite su propia acotación, porque puede
+La precisión de la Ecuación (9) admite su propia acotación, porque puede
 descansar sobre muy pocos triggers. Se acota con el intervalo exacto de
 Clopper–Pearson [@clopper1934] al 95 %, calculado sobre los conteos de TP y de
 FP de cada celda. Los conteos que necesitan acotarse aquí son los pequeños, y en
