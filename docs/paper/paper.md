@@ -272,9 +272,12 @@ $$\mathrm{CV}(\mathbf{h}) \;=\; \frac{1}{\bar{h}}
 donde $m$, $h_j$ y $\bar{h}$ conservan el significado de la Ecuación (3). Se
 calcula sobre los vectores de tres posiciones o más que exige la Ecuación (4).
 Se reporta porque es adimensional, de modo que corredores de frecuencias
-distintas quedan sobre la misma escala. Su sesgo es el CV de lo predicho menos
-el de lo observado, y un valor negativo dice que lo predicho es más regular que
-la realidad.
+distintas quedan sobre la misma escala, y porque es la cantidad con que se lee
+la escala de nivel de servicio del TCQSM [@tcqsm2003]: el manual indexa sus
+bandas por la dispersión del headway respecto del programado, y en un corredor
+sin programación esa dispersión es la Ecuación (7). Su sesgo es el CV de lo
+predicho menos el de lo observado, y un valor negativo dice que lo predicho es
+más regular que la realidad.
 
 El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto
 dependen del umbral, sobre la matriz de confusión entre el indicador observado
@@ -287,9 +290,10 @@ $$\mathrm{F}_1 \;=\; \frac{2PR}{P+R}, \qquad
 P \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}, \qquad
 R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{8}$$
 
-El F1 no usa TN [@chicco2020], y premia por eso al detector que emite un trigger
-en toda posición: maximizar el F1 sobre una predicción sin información conduce a
-ese detector con independencia de la tasa base [@lipton2014]. La tasa base de
+El F1 no usa TN [@chicco2020], y premia por eso al **detector trivial**: el que
+emite un trigger en toda posición. Maximizar el F1 sobre una predicción sin
+información conduce a ese detector con independencia de la tasa base
+[@lipton2014]. La tasa base de
 una celda es la fracción de sus posiciones donde el indicador observado vale 1.
 Ese detector alcanza recall 1 y precisión igual a la tasa base [@flach2015], así
 que su F1 queda fijado por ella y acompaña como piso a todo F1 reportado. El
@@ -356,8 +360,7 @@ El error absoluto medio bajó 1.47 minutos en E2, 1.38 en E4 y 1.17 en E59: entr
 21 % y 22 % en los tres corredores. A un minuto la relación se invirtió y la
 persistencia ganó, por 0.46 minutos en E4 y 0.33 en E59. En E2 la diferencia fue
 de 0.07 minutos y no resistió la prueba estadística al agrupar las observaciones
-por día de servicio. El horizonte donde la relación se invierte es la **frontera
-de régimen**.
+por día de servicio.
 
 ### B. Compresión de la dispersión transversal
 
@@ -373,11 +376,10 @@ y los tres orígenes de evaluación**. Y se profundizó de forma estrictamente
 ordenada a medida que se alarga el horizonte: en E2 pasó de −0.42 a un minuto a
 −0.63 a diez. No hubo una sola excepción en los tres corredores.
 
-La persistencia identifica la causa por descarte: no comprimió nada. Su sesgo se
-mantuvo dentro de ±0.022 en las doce celdas y los tres orígenes, porque propaga
-el vector observado y hereda su dispersión sin traducción. Es el control del
-experimento, y sitúa el efecto en el acto de **emitir una predicción puntual**,
-no en los datos ni en el corredor.
+La persistencia identifica la causa por descarte: no comprimió nada, con el
+sesgo dentro de ±0.022 en las doce celdas y los tres orígenes. El control sitúa
+el efecto en el acto de **emitir una predicción puntual**, no en los datos ni en
+el corredor.
 
 La descomposición de la varianza ata ese efecto a una sola cantidad. Medida
 entre las posiciones de un mismo vector, la dispersión observada se reparte
@@ -392,22 +394,16 @@ reparto entrega la otra lectura de la medición: la parte de la dispersión dent
 del vector que el modelo reproduce cae de 49.5 % en E4 a un minuto hasta 1.3 %
 en E2 a diez.
 
-La consecuencia práctica se aprecia al leer esas cifras contra la escala de
-nivel de servicio del TCQSM [@tcqsm2003]. El manual indexa sus bandas por la
-dispersión del headway respecto del programado. Estos corredores no tienen
-programación, así que la escala se lee con el coeficiente de variación de la
-Ecuación (7). Con esa sustitución, el mismo corredor en el mismo instante
+Leídas contra la escala de nivel de servicio del TCQSM, según la convención de
+la Sección III-C, esas cifras dicen que el mismo corredor en el mismo instante
 calificó como nivel A —«service provided like clockwork»— según lo predicho y
-como nivel F —«most vehicles bunched»— según lo observado. La cantidad que estas
-medidas capturan es la dispersión **entre buses en un mismo instante**, y no la
-variabilidad de una serie a lo largo del tiempo que la Sección II-A delimita
-como previa. La Figura 2 muestra el efecto.
+como nivel F —«most vehicles bunched»— según lo observado. La Figura 2 muestra
+el efecto.
 
 ![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
 
-**Fig. 2.** Dispersión observada frente a dispersión predicha, horizonte de diez
-minutos. La barra de la persistencia iguala a la observada: hereda el vector
-real y sirve de control. Los dos modelos ajustados la comprimen.
+**Fig. 2.** Dispersión observada frente a dispersión predicha por método,
+horizonte de diez minutos.
 
 ### C. Colapso de la detección al trasladar el umbral
 
@@ -445,9 +441,7 @@ cayó.
 ![Tasa de trigger contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
 **Fig. 3.** Fracción de posiciones con trigger de cada método, contra la tasa
-real del evento (punteada). La persistencia propaga el vector observado, hereda
-su dispersión y el umbral cae donde fue diseñado: emite casi con la misma
-frecuencia con que ocurre el evento.
+real del evento (punteada).
 
 **Tabla 1.** Detección con el umbral del evento observado aplicado sin cambios a
 lo predicho, con el piso del detector trivial al lado.
@@ -467,8 +461,7 @@ lo predicho, con el piso del detector trivial al lado.
 | E59 | 5 | 0.208 | 0.344 | 0.405 | 0.083 | 4.9× |
 | E59 | 10 | 0.208 | 0.344 | 0.303&nbsp;† | 0.034 | 8.8× |
 
-† La regla vacía —un trigger en toda posición— supera al ganador declarado en
-estas celdas.
+† El detector trivial supera al ganador declarado en estas celdas.
 
 ### D. Detección sin umbral
 
@@ -476,7 +469,7 @@ Si el problema es el umbral, recalibrarlo debería bastar. Se aplicó entonces l
 recalibración de la Sección IV-A sin tocar el modelo, con el MCC como objetivo
 porque el F1 degenera en este corpus: sobre la persistencia en E2, de tres
 minutos en adelante, el umbral que optimiza el F1 emitió un trigger entre el
-99.9 % y el 100 % de las posiciones, esto es, la regla vacía de la Tabla 1.
+99.9 % y el 100 % de las posiciones, esto es, el detector trivial de la Tabla 1.
 
 El umbral trasplantado de la Tabla 1 dejaba a la persistencia por delante en las
 doce celdas. Los dos instrumentos que la Tabla 2 reúne mueven ese conteo en
@@ -487,27 +480,20 @@ intervalo, y van de 0.033 a 0.061. Recalibrar el umbral en lugar de eliminarlo
 lo mueve menos: el LSTM ganó en 5 de las 12 celdas, entre ellas las tres de diez
 minutos, si bien la de E4 no resiste su propio intervalo. La persistencia
 conservó la ventaja a un minuto, donde el error escalar también la favorecía, en
-los tres corredores y los tres orígenes. La frontera de régimen del AUC llegó en
-el mismo escalón que la del error escalar en E2, y uno o dos escalones más tarde
-en E59 y E4. En ninguna de las dos métricas volvió la ventaja a la persistencia
+los tres corredores y los tres orígenes. La inversión del AUC llegó en el mismo
+escalón que la del error escalar en E2, y uno o dos escalones más tarde en E59 y
+E4. En ninguna de las dos métricas volvió la ventaja a la persistencia
 al alargar el horizonte.
 
-El cambio de veredicto no requirió tocar el modelo: entre la Figura 3 y la
-Figura 4 cambió solo el umbral de la Ecuación (5). La primera lo hereda de lo
-observado, la segunda lo elimina y la columna del MCC recalibrado de la Tabla 2
-lo reajusta contra lo predicho. El umbral queda entonces identificado como la
-variable que producía el veredicto: la disociación de la Tabla 1, con el LSTM
-ganando en error y perdiendo en detección, la producía él.
+Entre la Figura 3 y la Figura 4 cambió solo el umbral de la Ecuación (5): la
+primera lo hereda de lo observado, la segunda lo elimina y la columna del MCC
+recalibrado de la Tabla 2 lo reajusta contra lo predicho.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
-**Fig. 4.** Las mismas predicciones puntuadas sin umbral, un panel por corredor.
-La serie azul mide cuánto error absoluto le gana el LSTM a la persistencia, y su
-escala corre por el lado izquierdo. Las dos series que se leen por el lado
-derecho son el área bajo la curva de detección de cada método, invariante a
-cualquier reescalado monótono de lo predicho y por lo tanto inmune al artefacto.
-El piso que acota esas dos series no es 0.5 sino el perfil posicional del
-Apéndice A, sección B, que la Tabla 2 recoge celda por celda.
+**Fig. 4.** Ventaja de error absoluto del LSTM sobre la persistencia (escala
+izquierda) y AUC de detección de cada método (escala derecha), un panel por
+corredor.
 
 **Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra,
 con el piso del perfil posicional al lado del AUC que acota.
@@ -615,18 +601,6 @@ horizonte.
 ‡ Vale uno por construcción y no por medición: la cantidad de posiciones
 marcadas queda fijada antes de leer los valores.
 
-Reparar la regla cambia también lo que el resultado ofrece a quien opera. Con el
-umbral trasplantado el detector **emitió pocos triggers y acertó en ellos**
-—catorce en E2 a diez minutos, con la precisión por encima de la tasa base en
-los tres corredores según la Sección V-C—, y eso no es una alarma sino un
-**filtro de prioridad**: un aviso poco frecuente y más informativo que el azar,
-que sirve para ordenar la atención de un despachador. Recalibrar deshace la
-primera mitad de esa lectura: el detector recalibrado emitió un trigger en el
-26.98 % de las posiciones de E2 a diez minutos, contra el 0.03 % del
-trasplantado. La consecuencia para quien evalúa es que **el punto de operación
-se recalibra contra la distribución de lo predicho, no se hereda de las
-observaciones**, y requiere recalcular un escalar y no reentrenar nada.
-
 ---
 
 ## VI. Discusión y amenazas a la validez
@@ -728,9 +702,13 @@ acota leen esa misma composición, de modo que la comparación no le concede nad
 a ninguno.
 
 Las métricas de la Sección III-C son genéricas y comparables entre corredores, y
-ninguna liga un error de predicción a una decisión de intervención. Un despacho
-necesitaría una función de costo que pondere el aviso perdido contra el aviso
-falso, y esa función depende de la operación de cada empresa.
+ninguna liga un error de predicción a una decisión de intervención. Los dos
+puntos de operación de la Sección V ofrecen además avisos distintos: el
+trasplantado emitió un trigger en el 0.03 % de las posiciones de E2 a diez
+minutos, con la precisión por encima de la tasa base según la Sección V-C —un
+filtro de prioridad—, y el recalibrado en el 26.98 %. Elegir entre esos dos
+regímenes de aviso exige una función de costo que pondere el aviso perdido
+contra el aviso falso, y esa función depende de la operación de cada empresa.
 
 ---
 
