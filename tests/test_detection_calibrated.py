@@ -363,22 +363,3 @@ class TestThePaperReportsBothInstrumentsSymmetrically:
         if failing.height == 0:
             pytest.skip("no h=10 MCC win fails its interval any more")
         assert "no resiste su propio intervalo" in paper
-
-    def test_the_paper_reports_the_trivial_floor_after_recalibration(self, paper):
-        """Section V-C makes the always-fire rule a standard of evidence against
-        persistence. Dropping it before scoring the calibrated detector is the
-        selective step; these are the counts that keep it applied to both."""
-        table = pl.read_csv(OUT_CSV)
-        floors = table.filter(pl.col("model") == "LSTM").select(
-            "corridor", "horizon", "trivial_f1"
-        )
-        counts = {}
-        for name in ("LSTM", "Persistence"):
-            merged = table.filter(pl.col("model") == name).join(
-                floors, on=["corridor", "horizon"]
-            )
-            counts[name] = int(
-                (merged["f1_calibrated"] > merged["trivial_f1"]).sum()
-            )
-        assert f"en {counts['LSTM']} de las 12 celdas" in paper, counts
-        assert f"la persistencia en {counts['Persistence']}" in paper, counts

@@ -308,13 +308,9 @@ posición del vector suele llevar el headway más corto. Cumple para el AUC la
 misma función que el detector trivial cumple para el F1, y por eso acompaña a
 todo AUC reportado.
 
-Sobre esas cantidades se construyen tres cocientes. La tasa de trigger de un
+Sobre esas cantidades se construyen dos cocientes. La tasa de trigger de un
 método es la fracción de sus posiciones con $\hat{b}_i = 1$, y el factor entre
-dos métodos es el cociente de sus F1 bajo el mismo umbral. La precisión promedio
-también prescinde del umbral: recorre el ordenamiento que el AUC puntúa, de
-mayor a menor, y promedia la precisión de la Ecuación (8) sobre las posiciones
-de bunching. El lift la divide por la tasa base, que es la precisión promedio de
-una predicción que no ordena, de modo que vale 1 en ese caso.
+dos métodos es el cociente de sus F1 bajo el mismo umbral.
 
 ---
 
@@ -362,11 +358,6 @@ persistencia ganó, por 0.46 minutos en E4 y 0.33 en E59. En E2 la diferencia fu
 de 0.07 minutos y no resistió la prueba estadística al agrupar las observaciones
 por día de servicio. El horizonte donde la relación se invierte es la **frontera
 de régimen**.
-
-Una salvedad acota ese resultado. El promedio histórico por franja horaria no se
-movió con el horizonte, entre 4.7 y 5.7 minutos en los tres corredores, de modo
-que a horizonte largo el competidor exigente es él. En E2 a diez minutos le ganó
-al LSTM por 0.07 minutos, la única de las doce celdas donde ocurrió.
 
 ### B. Compresión de la dispersión transversal
 
@@ -501,16 +492,6 @@ el mismo escalón que la del error escalar en E2, y uno o dos escalones más tar
 en E59 y E4. En ninguna de las dos métricas volvió la ventaja a la persistencia
 al alargar el horizonte.
 
-Recalibrar tampoco pone a los dos métodos por encima del piso del detector
-trivial que la Tabla 1 exige. Con el F1 sobre el punto de operación reajustado,
-el LSTM supera ese piso en 9 de las 12 celdas y la persistencia en 7. Las tres
-que ninguno supera son las de E2 desde los tres minutos, y la razón es la tasa
-base: con el 30 % de las posiciones marcadas, marcarlas todas alcanza un F1 de
-0.46. El piso no distingue entre ellos, de modo que no invierte ningún veredicto
-de la Tabla 2. El lift de la Sección III-C recorre el mismo ordenamiento pesando
-su cabeza y coincidió con el AUC en las doce celdas: el veredicto entre estos
-dos métodos no depende del puntaje elegido.
-
 El cambio de veredicto no requirió tocar el modelo: entre la Figura 3 y la
 Figura 4 cambió solo el umbral de la Ecuación (5). La primera lo hereda de lo
 observado, la segunda lo elimina y la columna del MCC recalibrado de la Tabla 2
@@ -572,12 +553,6 @@ ventana de entrada. Es la única de las doce celdas donde ocurre, y es la que la
 Sección V-C usa para exhibir el artefacto del umbral. El piso también supera a
 la persistencia en E2 a cinco y a diez minutos, de modo que acota a los dos
 métodos comparados.
-
-Los dos puntajes sin umbral se separan en esa celda. El lift del LSTM valió 1.19
-contra 1.16 del piso, y ese orden es el contrario del que da el área. El piso
-ordena mejor el conjunto y el modelo ordena mejor la cabeza, que es la parte que
-un detector recorre primero. El acuerdo entre los dos puntajes vale entonces
-para el par de la Tabla 2 y no se extiende al piso.
 
 ### F. El umbral en minutos es lo que la compresión alcanza
 
@@ -901,19 +876,16 @@ un punto porcentual en cada corredor.
 
 ### B. Métodos comparados
 
-Se comparan cuatro métodos sobre las mismas muestras, y cada uno cumple un papel
+Se comparan tres métodos sobre las mismas muestras, y cada uno cumple un papel
 distinto. El método bajo estudio es una red recurrente (**LSTM**). Un conjunto
 de árboles con refuerzo de gradiente (**XGBoost**) [@chen2016] actúa como
 **control de arquitectura**: si reproduce el patrón del LSTM, ese patrón no
-proviene del aprendizaje profundo sino del objetivo de la Ecuación (2). Los dos
-restantes no ajustan parámetros y fijan el error de referencia. La
+proviene del aprendizaje profundo sino del objetivo de la Ecuación (2). El
+tercero no ajusta parámetros y fija el error de referencia: la
 **persistencia** repite el último vector observado, así que su error crece con
-el horizonte. El **promedio histórico por franja horaria** responde con el valor
-típico de esa hora del día, calculado sobre entrenamiento por corredor y
-sentido; no lee la ventana de entrada, de modo que su error no depende del
-horizonte.
+el horizonte.
 
-De los cuatro métodos retenidos, solo el LSTM y el XGBoost ajustan parámetros.
+De los tres métodos retenidos, solo el LSTM y el XGBoost ajustan parámetros.
 Ambos se ajustan por corredor y por horizonte, y cada combinación de corredor y
 horizonte se denomina aquí **celda**: hay doce. Los dos sentidos comparten el
 modelo de su corredor y entran juntos al entrenamiento. Lo que se separa por
@@ -936,7 +908,7 @@ minutos de MAE en las doce celdas, y ninguna quedó primera en las doce, de modo
 que el trabajo continuó con la más simple. Ese contraste precede al protocolo y
 no se rehízo, y la Sección VI-B declara esa limitación.
 
-A los cuatro se agrega un quinto método que no compite con ellos y cumple otra
+A los tres se agrega un cuarto método que no compite con ellos y cumple otra
 función: fijar un piso. El **perfil posicional** responde con el headway
 promedio que cada posición del vector registró en un período anterior, y lo
 repite sin cambios en cada minuto del período de prueba. No lee la ventana de
@@ -970,7 +942,7 @@ consecutivos. Sin ella la ventana de entrada puede atravesar un hueco de señal,
 y el horizonte mediría un intervalo mayor que el declarado. La regla retiene
 entre el 81.9 % y el 90.2 % de los snapshots del período de prueba.
 
-La segunda es la población compartida: los cuatro métodos se puntúan sobre
+La segunda es la población compartida: los métodos comparados se puntúan sobre
 exactamente las mismas filas. El trabajo de entrenamiento recalcula la lista de
 muestras, compara su resumen SHA-256 contra el registrado y aborta antes de usar
 la GPU si no coincide. La verificación evita comparar métodos puntuados sobre

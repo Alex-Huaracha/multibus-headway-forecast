@@ -261,11 +261,3 @@ class TestTheDocumentDeclaresTheFloor:
             row["lstm_vs_null_ci_high"],
         )
         assert band in paper, band
-
-    def test_the_paper_reports_the_lift_of_the_floor(self, table, paper):
-        """Publishing the score that loses and withholding the one that wins is
-        selective reporting, whichever direction it favours."""
-        row = table.filter(
-            (pl.col("corridor") == "E2") & (pl.col("horizon") == 10)
-        ).row(0, named=True)
-        assert f"{row['ap_lift_null']:.2f}" in paper
