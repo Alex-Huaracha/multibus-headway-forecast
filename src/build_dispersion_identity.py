@@ -1,6 +1,6 @@
-"""What the compression of Section V-B is made of.
+"""What the compression of Section V-A is made of.
 
-Section V-B measures that the predicted vector carries less dispersion than the
+Section V-A measures that the predicted vector carries less dispersion than the
 observed one, in the twelve cells and the three origins. That measurement alone
 does not say where the compression comes from, and a reviewer has a ready
 alternative: this corpus has no published geometry, the direction of travel is
@@ -34,7 +34,7 @@ scored over the intersection of their residual keys, so the two ratios of a cell
 are averages over the same vectors and the comparison is a paired one, as the
 manuscript's own contract for A-beats-B claims requires.
 
-The axis is the one Section V-B uses — across the buses of a corridor at one
+The axis is the one Section V-A uses — across the buses of a corridor at one
 instant — and not the temporal axis of Patton and Timmermann's corollary. The
 population is the same one Section IV-C fixes, so these columns are comparable
 with the rest of the table rather than with a separate corpus.
@@ -122,7 +122,7 @@ def variance_terms(frame: pl.DataFrame) -> pl.DataFrame:
     """The three terms of the decomposition, one row per vector.
 
     The variance is taken over the positions of a single vector and with the
-    population divisor, which is the quantity Section V-B's coefficient of
+    population divisor, which is the quantity Section V-A's coefficient of
     variation is built on. Vectors shorter than the minimum carry no dispersion
     worth decomposing and are dropped, as they are there.
     """

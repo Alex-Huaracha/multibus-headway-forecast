@@ -1,6 +1,6 @@
 """Confidence bounds on detection precision, per model x corridor x horizon.
 
-Section V-C reports that the learner's bunching detector collapsed in coverage
+Section V-B reports that the learner's bunching detector collapsed in coverage
 but not in precision, and the sharpest instance of that is also the thinnest:
 on E2 at ten minutes it fired fourteen times and hit ten real events. Seventy-one
 percent off fourteen trials is not a value, and quoting it bare invites the

@@ -207,7 +207,7 @@ class TestTheFloorIsBoundedLikeEveryOtherVerdict:
 class TestTheHeadOfTheRankingDisagreesWithTheArea:
     """Two threshold-free scores, and in the disputed cell they part ways.
 
-    Section V-E claims the AUC and the lift agree in all twelve cells. That
+    Section V-C claims the AUC and the lift agree in all twelve cells. That
     holds for the learner-persistence pair. Against the floor it fails in E2 at
     ten minutes, and the manuscript has to report the disagreement rather than
     the half of it that suits either side.

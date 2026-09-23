@@ -19,7 +19,7 @@ differences, LSTM minus persistence:
     onto the predicted vector.
 ``delta_mcc_calibrated``
     The operating point refitted on origin ``r2`` and applied forward, which is
-    the repair Section V-D reports. Only the published origin has one, because
+    the repair Section V-C reports. Only the published origin has one, because
     only it is scored against an earlier fit.
 
 The interval comes from resampling SERVICE DAYS with replacement, not rows —

@@ -96,7 +96,7 @@ El daño sobre una regla de umbral también está documentado: el método con me
 error cuadrático es el que peor detecta los episodios altos de ozono, porque
 subestima la variabilidad [@petetin2022]. Lo que no encontramos es esa medición
 sobre el vector de headways de un corredor, ni un control que separe la
-compresión del resto del procedimiento; la Sección V-B usa la persistencia para
+compresión del resto del procedimiento; la Sección V-A usa la persistencia para
 eso.
 
 ### C. Correcciones del umbral y delimitación
@@ -122,7 +122,7 @@ cantidad de posiciones que en lo observado.
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
 diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
 bajo la curva para su clasificador probabilístico [@sun2021]. Su etiqueta es un
-umbral absoluto de un minuto, y la Sección V-F muestra que, en nuestros datos,
+umbral absoluto de un minuto, y la Sección V-D muestra que, en nuestros datos,
 un umbral absoluto del mismo tipo también colapsa bajo la compresión. Su diseño
 no declara además ninguna ventana anterior disjunta sobre la cual su corte se
 ajuste. El umbral de Jiao y colaboradores es relativo pero se ancla en una
@@ -159,7 +159,7 @@ Se predice a cuatro horizontes —uno, tres, cinco y diez minutos— con un mode
 ajustado por separado para cada uno, sin recursión. A un minuto la predicción no
 deja margen de intervención, y es el régimen donde repetir el último vector
 observado es difícil de superar [@manibardo2022]; ese horizonte queda como
-referencia, y las afirmaciones operativas de la Sección V-G se leen sobre los de
+referencia, y las afirmaciones operativas de la Sección V-D se leen sobre los de
 cinco y diez. El vector no tiene longitud fija, porque $N$ varía minuto a
 minuto. El modelo emite entonces una salida de longitud fija y el error se
 computa solo sobre las posiciones donde hay bus. **El objetivo que se minimiza
@@ -237,8 +237,8 @@ $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ resultan de aplicar $\rho$
 al vector observado y al predicho. Un denominador observado, como el de la
 Sección II-A, no tiene esa propiedad: no se mueve con la predicción. Eso no lo
-pone a salvo, y la Sección V-F mide cuánto de la diferencia le corresponde. La
-Figura 1 lo muestra con el mismo headway de dos minutos, y la Sección V-C mide
+pone a salvo, y la Sección V-D mide cuánto de la diferencia le corresponde. La
+Figura 1 lo muestra con el mismo headway de dos minutos, y la Sección V-B mide
 qué ocurre sobre datos reales cuando los dos umbrales de la Ecuación (6) se
 tratan como uno.
 
@@ -365,86 +365,68 @@ evento que las otras dos.
 
 ## V. Resultados
 
-### A. El error escalar del vector
+### A. Error escalar y compresión de la dispersión
 
-Con la arquitectura del Apéndice A, sección B ya fijada, el error escalar del
-vector sitúa a ese modelo contra la persistencia. A diez minutos de
-anticipación, el LSTM predijo el headway entre buses mejor que la persistencia.
-El error absoluto medio bajó 1.47 minutos en E2, 1.38 en E4 y 1.17 en E59: entre
-21 % y 22 % en los tres corredores. A un minuto la relación se invirtió y la
-persistencia ganó, por 0.46 minutos en E4 y 0.33 en E59. En E2 la diferencia fue
-de 0.07 minutos y no resistió la prueba estadística al agrupar las observaciones
-por día de servicio.
+A diez minutos de anticipación, el LSTM predijo el headway mejor que la
+persistencia: el error absoluto medio bajó 1.47 minutos en E2, 1.38 en E4 y 1.17
+en E59, entre 21 % y 22 %. A un minuto ganó la persistencia, por 0.46 minutos en
+E4 y 0.33 en E59. En E2 la diferencia fue de 0.07 minutos y no resistió la
+prueba estadística al agrupar las observaciones por día de servicio.
 
-### B. Compresión de la dispersión transversal
+Ese error no dice nada sobre la forma del vector, y el coeficiente de variación
+de la Ecuación (7) sí. En E2 a diez minutos valió 0.79 sobre lo observado y 0.16
+sobre lo predicho para el mismo instante: el vector predicho describió un
+corredor casi cinco veces más regular que el real. Leídas contra la escala del
+TCQSM de la Sección III-C, esas cifras califican al mismo corredor como nivel A
+—«service provided like clockwork»— según lo predicho y como nivel F —«most
+vehicles bunched»— según lo observado.
 
-Ese error escalar no dice nada sobre la forma del vector. El coeficiente de
-variación de la Ecuación (7) sí. Medido sobre lo observado, fue de 0.79 en E2.
-Medido sobre lo que el modelo predijo para el mismo instante y el mismo corredor
-a diez minutos, fue de 0.16. El vector predicho describió un corredor casi cinco
-veces más regular que el real.
-
-Esa brecha no fue un caso aislado. El sesgo del coeficiente de variación resultó
-negativo —lo predicho siempre más regular que la realidad— en **las doce celdas
-y los tres orígenes de evaluación**. Y se profundizó de forma estrictamente
-ordenada a medida que se alarga el horizonte: en E2 pasó de −0.42 a un minuto a
-−0.63 a diez. No hubo una sola excepción en los tres corredores.
-
-La persistencia acota la causa por descarte: no comprimió nada, con el sesgo
-dentro de ±0.022 en las doce celdas y los tres orígenes. El control sitúa el
-efecto en el **ajuste por error cuadrático**, que la persistencia no hace, y no
-en los datos ni en el corredor.
+La brecha no fue un caso aislado. El sesgo del coeficiente de variación resultó
+negativo en **las doce celdas y los tres orígenes de evaluación**, y se
+profundizó sin excepción al alargar el horizonte: en E2 pasó de −0.42 a un
+minuto a −0.63 a diez. La persistencia no comprimió nada, con el sesgo dentro de
+±0.022. El control sitúa el efecto en el **ajuste por error cuadrático**, que la
+persistencia no hace, y no en los datos ni en el corredor.
 
 La Ecuación (8) ata ese efecto a una sola cantidad. Sobre las doce celdas, $r$
 siguió a $r_0$ con una correlación de 0.993 en el LSTM, con $r$ entre 0.045 y
-0.552. El XGBoost quedó sobre la misma relación y sobre los mismos vectores, con
-una correlación de 0.996 y $r$ entre 0.040 y 0.547. Las dos arquitecturas no
-comparten sesgo inductivo y sí el objetivo de ajuste. La fracción $r_0$ del LSTM
-cae de 49.5 % en E4 a un minuto hasta 1.3 % en E2 a diez.
-
-Leídas contra la escala de nivel de servicio del TCQSM, según la convención de
-la Sección III-C, esas cifras dicen que el mismo corredor en el mismo instante
-calificó como nivel A —«service provided like clockwork»— según lo predicho y
-como nivel F —«most vehicles bunched»— según lo observado. La Figura 2 muestra
-el efecto.
+0.552, y de 0.996 en el XGBoost, con $r$ entre 0.040 y 0.547. Las dos
+arquitecturas no comparten sesgo inductivo y sí el objetivo de ajuste. La
+fracción $r_0$ del LSTM cae de 49.5 % en E4 a un minuto hasta 1.3 % en E2 a
+diez. La Figura 2 muestra el efecto.
 
 ![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
 
 **Fig. 2.** Dispersión observada frente a dispersión predicha por método,
 horizonte de diez minutos.
 
-### C. Colapso de la detección al trasladar el umbral
+### B. Colapso de la detección al trasladar el umbral
 
 La regla de la Sección III-B, aplicada a lo observado, marcó 15 245 eventos en
 E2 a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo umbral,
-emitió **catorce triggers**. La persistencia emitió 15 083. Puntuada con el F1
-de la Sección III-C, la persistencia apareció 253 veces mejor que el LSTM. En
-las otras celdas el factor va de 1.5 a 36. El XGBoost obtuvo un F1 exactamente
-cero en tres de las doce celdas: ahí no emitió ninguno. La Tabla 1 recoge las
-doce celdas.
+emitió **catorce triggers**, y la persistencia emitió 15 083. Puntuada con el F1
+de la Sección III-C, la persistencia apareció 253 veces mejor que el LSTM, y en
+las otras celdas el factor va de 1.5 a 36. La Tabla 1 recoge las doce celdas, y
+la Figura 3 muestra el mismo colapso en la tasa de trigger.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
-fenómeno que se le pidió anticipar. Esa lectura no sobrevive a cuatro
-observaciones. El ganador declarado tampoco detectó bien: el detector trivial de
+fenómeno que se le pidió anticipar. Tres observaciones lo contradicen. La
+primera es que el ganador declarado tampoco detectó bien: el detector trivial de
 la Sección III-C superó a la persistencia en 5 de las doce celdas, y en 15 de
-las 36 combinaciones de celda y origen. El mecanismo es la compresión de la
-Sección V-B: el umbral calibrado sobre lo observado deja de alcanzarse en el
-vector comprimido. Y el modelo acertó en las pocas ocasiones en que emitió: de
-los catorce triggers de E2, diez correspondieron a eventos reales, 71 % de
-precisión contra una tasa base de 30 %, con el intervalo del Apéndice B entre 42
-% y 92 %. Las celdas con más triggers estrechan ese intervalo y mantienen la
-precisión por encima de su tasa base.
+las 36 combinaciones de celda y origen. La segunda es que el LSTM acertó en las
+pocas ocasiones en que emitió. De los catorce triggers de E2, diez
+correspondieron a eventos reales, 71 % de precisión contra una tasa base de 30
+%, con el intervalo del Apéndice B entre 42 % y 92 %. Las celdas con más
+triggers estrechan ese intervalo y mantienen la precisión por encima de su tasa
+base.
 
-La cuarta observación es que el factor no se sostiene al cambiar el origen. Si
-midiera una capacidad del modelo debería ser aproximadamente estable entre
-ellos, y en diez de las doce celdas lo es: entre el primer origen y el tercero
-varía entre 0.90 y 1.58. Las dos excepciones están en E2: a cinco minutos el
-factor valió **126**, **58** y **36** en los tres orígenes, y a diez minutos **2
-299**, **817** y **253**. Esas dos son las celdas donde el umbral trasplantado
-dejó al detector casi sin triggers, con el F1 en 0.011 y 0.001 en la Tabla 1. Un
-cociente cuyo denominador se acerca a cero no mide una capacidad del sistema
-evaluado, sino la interacción entre el umbral y la distribución sobre la que
-cayó.
+La tercera es que el factor no se sostiene al cambiar el origen. Entre el primer
+origen y el tercero varía entre 0.90 y 1.58 en diez de las doce celdas. En E2
+valió **126**, **58** y **36** a cinco minutos, y **2 299**, **817** y **253** a
+diez. Son las dos celdas donde el umbral trasladado dejó al detector casi sin
+triggers. Un cociente cuyo denominador se acerca a cero no mide una capacidad
+del modelo, sino la interacción entre el umbral y la distribución comprimida de
+la Sección V-A.
 
 ![Tasa de trigger contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
@@ -471,31 +453,37 @@ lo predicho, con el piso del detector trivial al lado.
 
 † El detector trivial supera al ganador declarado en estas celdas.
 
-### D. Detección sin umbral
+### C. Detección sin umbral, acotada por el piso posicional
 
-Si el problema es el umbral, recalibrarlo debería bastar. Se aplicó entonces la
-recalibración de la Sección IV-A sin tocar el modelo, con el MCC como objetivo
-porque el F1 degenera en este corpus: sobre la persistencia en E2, de tres
-minutos en adelante, el umbral que optimiza el F1 emitió un trigger entre el
-99.9 % y el 100 % de las posiciones, esto es, el detector trivial de la Tabla 1.
+Si el problema es el umbral, recalibrarlo debería bastar. Con el umbral
+trasladado de la Tabla 1, la persistencia ganaba las doce celdas. La
+recalibración de la Sección IV-A, que no toca el modelo, cambia poco ese conteo:
+el LSTM ganó en 5 de las 12 celdas, entre ellas las tres de diez minutos, si
+bien la de E4 no resiste su propio intervalo. Su objetivo es el MCC porque el F1
+degenera en este corpus: sobre la persistencia en E2, de tres minutos en
+adelante, el umbral que optimiza el F1 emitió un trigger entre el 99.9 % y el
+100 % de las posiciones, esto es, el detector trivial de la Tabla 1.
 
-El umbral trasplantado de la Tabla 1 dejaba a la persistencia por delante en las
-doce celdas. Los dos instrumentos que la Tabla 2 reúne mueven ese conteo en
-distinta medida. Puntuado sin umbral, mediante el AUC, **el LSTM ganó en las
-nueve combinaciones de corredor y origen a diez minutos**, y en 6 de las 12
-celdas del origen 3. Las nueve diferencias de diez minutos sobrevivieron su
-intervalo, y van de 0.033 a 0.061. Recalibrar el umbral en lugar de eliminarlo
-lo mueve menos: el LSTM ganó en 5 de las 12 celdas, entre ellas las tres de diez
-minutos, si bien la de E4 no resiste su propio intervalo. La persistencia
-conservó la ventaja a un minuto, donde el error escalar también la favorecía, en
-los tres corredores y los tres orígenes. La inversión del AUC llegó en el mismo
-escalón que la del error escalar en E2, y uno o dos escalones más tarde en E59 y
-E4. En ninguna de las dos métricas volvió la ventaja a la persistencia al
-alargar el horizonte.
+Eliminar el umbral mueve el veredicto más. Puntuado mediante el AUC, **el LSTM
+ganó en las nueve combinaciones de corredor y origen a diez minutos**, y en 6 de
+las 12 celdas del origen 3. Las nueve diferencias de diez minutos sobrevivieron
+su intervalo, y van de 0.033 a 0.061. La persistencia conservó la ventaja a un
+minuto en los tres corredores y los tres orígenes, donde el error escalar
+también la favorecía. La inversión del AUC llegó en el mismo escalón que la del
+error escalar en E2, y uno o dos escalones más tarde en E59 y E4, y en ninguna
+de las dos métricas la ventaja volvió a la persistencia al alargar el horizonte.
+La Tabla 2 reúne los dos instrumentos, y la Figura 4 pone la ventaja escalar
+junto al AUC.
 
-Entre la Figura 3 y la Figura 4 cambió solo el umbral de la Ecuación (5): la
-primera lo hereda de lo observado, la segunda lo elimina y la columna del MCC
-recalibrado de la Tabla 2 lo reajusta contra lo predicho.
+Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
+y el perfil posicional del Apéndice A, sección B lo acota. En E4 y E59 el piso
+queda indistinguible del azar, entre 0.486 y 0.523, y el LSTM lo supera por
+entre 0.08 y 0.29 en las ocho celdas, con las ocho diferencias fuera de su
+intervalo. En E2 el piso sube a 0.58 y no se mueve con el horizonte. **A diez
+minutos el LSTM queda por debajo de ese piso, 0.565 contra 0.579**, con una
+diferencia de -0.013 [-0.023, -0.003]: ahí la ventaja sin umbral no se sostiene
+contra un método que no lee la ventana de entrada. Es la única de las doce
+celdas donde ocurre, y es la que la Sección V-B usa para exhibir el colapso.
 
 ![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
 
@@ -530,82 +518,56 @@ donde la ventaja del LSTM no resiste su intervalo aunque sí resista la del AUC.
 de diez minutos. La negrita compara los dos métodos entre sí y no contra el
 piso.
 
-### E. El piso posicional acota el ordenamiento
+### D. El umbral en minutos y la regla de cuota
 
-Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
-y el perfil posicional del Apéndice A, sección B lo acota. En E4 y E59 el piso
-queda indistinguible del azar, entre 0.486 y 0.523 en las ocho celdas, de modo
-que el ordenamiento del LSTM ahí no proviene de la posición: lo supera por entre
-0.08 y 0.29, y las ocho diferencias sobreviven su intervalo. En E2 el piso sube
-a 0.58 y no se mueve con el horizonte, señal de una estructura posicional
-estable.
-
-**A diez minutos en E2 el LSTM queda por debajo de ese piso, 0.565 contra
-0.579.** La diferencia vale -0.013 [-0.023, -0.003] y sobrevive su intervalo, de
-modo que ahí la ventaja sin umbral no se sostiene contra un método que no lee la
-ventana de entrada. Es la única de las doce celdas donde ocurre, y es la que la
-Sección V-C usa para exhibir el artefacto del umbral. El piso también supera a
-la persistencia en E2 a cinco y a diez minutos, de modo que acota a los dos
-métodos comparados.
-
-### F. El umbral en minutos es lo que la compresión alcanza
-
-Las dos reglas con denominador colapsaron; la de cuota no podía hacerlo. La
-razón entre la tasa de trigger del LSTM y la tasa real del evento tuvo mediana
-**0.079** bajo la regla de la Sección III-B y **0.153** bajo la regla de
-denominador observado. Quitar la auto-referencia duplicó el disparo y lo dejó un
-orden de magnitud por debajo de la frecuencia del evento. Bajo la regla de cuota
-esa razón valió **1.000** en las doce celdas por construcción: la cuota marca la
-misma cantidad en lo predicho y en lo observado. La persistencia no colapsó bajo
-ninguna de las tres, con medianas de 1.011, 0.980 y 1.000.
+La Tabla 3 contrasta las tres reglas de la Sección IV-B sobre la misma
+población. Las dos con denominador colapsaron: la razón entre la tasa de trigger
+del LSTM y la tasa real del evento tuvo mediana **0.079** bajo la regla de la
+Sección III-B y **0.153** bajo la de denominador observado. Quitar la
+auto-referencia duplicó el disparo y lo dejó un orden de magnitud por debajo de
+la frecuencia del evento. La regla de cuota no puede colapsar, porque marca la
+misma cantidad en lo predicho y en lo observado, y la persistencia no colapsó
+bajo ninguna de las tres.
 
 El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
 minutos. En E2 a diez minutos, bajo la regla de la Sección III-B, ese umbral
 valió 3.89 minutos sobre lo observado y 3.92 sobre lo predicho: se quedó donde
-estaba. Bajo la regla de cuota el mismo par valió 2.76 y 6.82 minutos. La regla
-sin denominador sube su propio umbral hasta donde quedó la distribución
-comprimida, y la distancia que sube crece con el horizonte en los tres
-corredores. Un umbral en minutos no puede seguirla, porque su valor no depende
-de la escala de lo que evalúa. La compresión de la Sección V-B alcanza entonces
-a toda regla que nombre una cantidad de minutos, y no queda contenida en la que
-divide por lo predicho.
+estaba. Bajo la regla de cuota el mismo par valió 2.76 y 6.82 minutos. La cuota
+sube su propio umbral hasta donde quedó la distribución comprimida, y la
+distancia que sube crece con el horizonte en los tres corredores. Un umbral en
+minutos no puede seguirla, porque su valor no depende de la escala de lo que
+evalúa. La compresión de la Sección V-A alcanza entonces a toda regla que nombre
+una cantidad de minutos, y no solo a la que divide por lo predicho.
 
-Un umbral absoluto, sin denominador ni cuota, confirma esa lectura. Se fijó en
-la cuarta parte del headway mediano observado de cada corredor y sentido, entre
-1.4 y 2.4 minutos, a la manera del umbral de un minuto de Sun, Schmöcker y
-Nakamura [@sun2021]. Se calibró sobre el origen 2 y se aplicó sin cambios al
-origen 3. Frente a la regla de la Sección III-B, la tasa de trigger del LSTM
-cayó por un factor de mediana 138 en diez de las doce celdas, y en las otras dos
-no emitió ninguno. La mediana de su AUC bajó a 0.60, y en E2 a diez minutos
-llegó a 0.493, indistinguible del azar. Con la mitad del headway mediano, el
-factor fue de 2.0 y la mediana del AUC de 0.655: el umbral dispara menos que una
-regla ya colapsada.
+Un umbral absoluto, sin denominador ni cuota, lo confirma. Se fijó en la cuarta
+parte del headway mediano observado de cada corredor y sentido, entre 1.4 y 2.4
+minutos, a la manera del umbral de un minuto de Sun, Schmöcker y Nakamura
+[@sun2021]. Se calibró sobre el origen 2 y se aplicó sin cambios al origen 3.
+Frente a la regla de la Sección III-B, la tasa de trigger del LSTM cayó por un
+factor de mediana 138 en diez de las doce celdas, y en las otras dos no emitió
+ninguno. La mediana de su AUC bajó a 0.60, y en E2 a diez minutos llegó a 0.493,
+indistinguible del azar. Con la mitad del headway mediano, el factor fue de 2.0
+y la mediana del AUC de 0.655: el umbral dispara menos que una regla ya
+colapsada.
 
-### G. Qué recupera la regla de cuota
-
-La consecuencia está en el veredicto. Las mismas residuales dan un veredicto sin
-umbral en la Sección V-D, y las tres reglas se contrastan contra él. La regla de
-cuota lo reproduce en **once** de las doce celdas; la de denominador observado
-en siete y la de la Sección III-B en seis. Bajo esta última la persistencia ganó
-las doce, que es lo que hizo leer el colapso como ceguera del modelo. La única
-celda donde la regla de cuota discrepa es E59 a cinco minutos. La Tabla 3 recoge
-las tres reglas con sus medianas y ese conteo de coincidencias.
+La consecuencia está en el veredicto. La regla de cuota reproduce el veredicto
+sin umbral de la Sección V-C en **once** de las doce celdas; la de denominador
+observado en siete y la de la Sección III-B en seis. Bajo esta última la
+persistencia ganó las doce, que es lo que hizo leer el colapso como ceguera del
+modelo. La única celda donde la cuota discrepa es E59 a cinco minutos. El solape
+no explica esa diferencia: la regla de denominador observado es la que más se
+parece a la de la Sección III-B sobre lo observado, y es la que colapsa con
+ella.
 
 La regla de cuota no convierte al modelo en mejor detector. Su MCC tuvo mediana
-**0.210** contra **0.100** bajo la regla de la Sección III-B, y la superó en las
-doce celdas. El umbral recalibrado de la Sección V-D, que toma del mismo origen
-2 su única información previa, alcanzó una mediana de 0.198, puntuado contra el
-evento de la Sección III-B y no contra el de la cuota. Aun así **sigue por
-debajo de la persistencia** en siete de las doce. Las cinco que gana son las
-tres de E2 desde los tres minutos, y las de diez minutos en E4 y E59. Reparar la
-regla recupera discriminación y no cambia de dueño el veredicto a un minuto en
-ninguno de los tres corredores.
-
-Las tres reglas tampoco marcan el mismo evento sobre lo observado. El índice de
-Jaccard, las posiciones que dos reglas marcan a la vez entre las que marca al
-menos una, tuvo mediana 1.000, 0.710 y 0.580 contra la regla de la Sección
-III-B. El solape no explica entonces la diferencia: la regla de denominador
-observado es la que más se le parece, y es la que colapsa con ella.
+**0.210**, contra **0.100** bajo la regla de la Sección III-B, a la que superó
+en las doce celdas. El umbral recalibrado de la Sección V-C, que toma del mismo
+origen 2 su única información previa, alcanzó 0.198, puntuado contra el evento
+de la Sección III-B y no contra el de la cuota. Aun así, bajo la cuota el LSTM
+**sigue por debajo de la persistencia** en siete de las doce celdas. Las cinco
+que gana son las tres de E2 desde los tres minutos, y las de diez minutos en E4
+y E59. Reparar la regla recupera discriminación y no cambia de dueño el
+veredicto a un minuto en ninguno de los tres corredores.
 
 **Tabla 3.** Las tres reglas del evento sobre la misma población y el mismo
 origen. Cada celda es la mediana de las doce combinaciones de corredor y
@@ -626,7 +588,7 @@ marcadas queda fijada antes de leer los valores.
 
 ### A. Robustez frente al origen
 
-El veredicto sin umbral de la Sección V-D no depende del origen calendario. Los
+El veredicto sin umbral de la Sección V-C no depende del origen calendario. Los
 tres orígenes coincidieron en 11 de las 12 celdas —la única discrepancia es E4 a
 cinco minutos, donde solo el origen 2 favoreció al LSTM— y a diez minutos
 coincidieron en las nueve combinaciones de corredor y origen. El primero de los
@@ -647,7 +609,7 @@ umbral— queda por debajo del que daría el registro completo. La tasa base que
 reporta no admite entonces comparación directa con tasas de bunching medidas
 sobre registros sin enmascarar.
 
-La compresión de la Sección V-B admite una lectura que apunta al ruido de
+La compresión de la Sección V-A admite una lectura que apunta al ruido de
 medición y no a la predicción. El eje del corredor se estima de los registros y
 el sentido de marcha se infiere del signo del arco. Un error de medición entra
 entonces en el error de predicción y agranda la compresión, sin decir nada sobre
@@ -683,7 +645,7 @@ Las métricas de la Sección III-C son genéricas y comparables entre corredores
 ninguna liga un error de predicción a una decisión de intervención. Los dos
 puntos de operación de la Sección V ofrecen además avisos distintos: el
 trasplantado emitió un trigger en el 0.03 % de las posiciones de E2 a diez
-minutos, con la precisión por encima de la tasa base según la Sección V-C —un
+minutos, con la precisión por encima de la tasa base según la Sección V-B —un
 filtro de prioridad—, y el recalibrado en el 26.98 %. Elegir entre esos dos
 regímenes de aviso exige una función de costo que pondere el aviso perdido
 contra el aviso falso, y esa función depende de la operación de cada empresa.

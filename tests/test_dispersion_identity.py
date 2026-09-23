@@ -1,6 +1,6 @@
 """Is the compression the theorem, or is it this corpus's preprocessing?
 
-Section V-B reports that the predicted vector is less dispersed than the observed
+Section V-A reports that the predicted vector is less dispersed than the observed
 one in every cell. A reviewer can answer that with the corpus: this corridor has
 no published geometry, the direction of travel is inferred, and every measurement
 error inflates the prediction error. A noisier target produces a larger

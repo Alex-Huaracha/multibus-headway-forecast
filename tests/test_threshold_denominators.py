@@ -1,7 +1,7 @@
 """Which property of an event rule the compression reaches, and which it cannot.
 
-Section V-C reports that the rule of Section III-C, carried without change onto
-the forecast, stops firing. Section V-F closes one escape route: an absolute cut
+Section V-B reports that the rule of Section III-B, carried without change onto
+the forecast, stops firing. Section V-D closes one escape route: an absolute cut
 in minutes does not rescue it either. Neither answers the question underneath
 both — WHICH property of a rule decides whether the compression reaches it.
 
@@ -124,7 +124,7 @@ class TestRankRuleFlags:
         """The whole reason this arm is in the comparison.
 
         Shrinking every value toward its vector's mean is the transformation
-        Section V-B measures. It preserves order, so a rank cut cannot notice
+        Section V-A measures. It preserves order, so a rank cut cannot notice
         it, while a cut named in minutes must.
         """
         values = [2.0, 6.0, 10.0]
@@ -163,7 +163,7 @@ class TestTableShape:
         ).height == expected
 
     def test_it_is_scored_where_the_rest_of_the_verdicts_are(self):
-        """A different origin would make these columns incomparable with §V-C."""
+        """A different origin would make these columns incomparable with §V-B."""
         assert SCORING_ORIGIN == "main"
 
     def test_the_published_rule_is_the_first_one(self):
@@ -172,7 +172,7 @@ class TestTableShape:
 
 
 class TestItReproducesThePublishedRule:
-    """The ``pred_mean`` arm must be the table Section V-C already reports.
+    """The ``pred_mean`` arm must be the table Section V-B already reports.
 
     Without this the comparison could be running on a differently filtered
     population and crediting the difference to the denominator.
@@ -235,7 +235,7 @@ class TestTheLevelRulesCollapse:
 
     @pytest.mark.parametrize("rule", LEVEL_RULES)
     def test_the_collapse_is_deeper_at_ten_minutes_than_at_one(self, table, rule):
-        """Section V-B's compression deepens with the horizon; so does this.
+        """Section V-A's compression deepens with the horizon; so does this.
 
         The ends rather than every step: under ``obs_mean`` the E2 series turns
         back up at ten minutes, and pinning strict monotonicity would assert
@@ -325,7 +325,7 @@ class TestTheRankRulePreservesTheRate:
             assert row["cut_alarm_min"] > row["cut_truth_min"], row
 
     def test_the_cut_travels_farther_as_the_compression_deepens(self, table):
-        """Section V-B's compression deepens with the horizon, so the distance
+        """Section V-A's compression deepens with the horizon, so the distance
         the rank rule has to climb must grow with it."""
         cells = _lstm(table, "rank").with_columns(
             (pl.col("cut_alarm_min") - pl.col("cut_truth_min")).alias("_gap")

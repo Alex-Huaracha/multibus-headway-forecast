@@ -1,7 +1,7 @@
 """Which property of an event rule the compression reaches, and which it cannot.
 
-Section V-C reports that the rule of Section III-C, carried without change onto
-the forecast, stops firing. Section V-F closes one escape route: an absolute cut
+Section V-B reports that the rule of Section III-B, carried without change onto
+the forecast, stops firing. Section V-D closes one escape route: an absolute cut
 in minutes, calibrated on an earlier window, does not rescue it either. Between
 those two results sits a question neither answers. The published rule divides by
 the mean of the very vector it is thresholding, and a reader is entitled to
@@ -266,7 +266,7 @@ def build() -> pl.DataFrame:
             published_np = published.to_numpy()
             quota_rate = quota_rates[(corridor, horizon)]
 
-            # The verdict of Section V-E, carried alongside so each arm can be
+            # The verdict of Section V-C, carried alongside so each arm can be
             # asked the question that matters: does thresholding this way
             # reproduce what the same residuals say with no threshold at all?
             # Recomputed here rather than read from another table, so this

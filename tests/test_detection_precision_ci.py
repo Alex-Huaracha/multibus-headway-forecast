@@ -1,6 +1,6 @@
 """Contracts for the Clopper-Pearson interval on detection precision.
 
-Section V-C reports that the learner fired 14 times on E2 at ten minutes and hit
+Section V-B reports that the learner fired 14 times on E2 at ten minutes and hit
 10 real events. A point precision off 14 trials is not a finding, so the paper
 quotes an interval alongside it. That interval had no source of truth: this is
 it.
