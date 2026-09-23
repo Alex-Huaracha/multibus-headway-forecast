@@ -580,67 +580,60 @@ marcadas queda fijada antes de leer los valores.
 
 ### A. Robustez frente al origen
 
-El veredicto sin umbral de la Sección V-C no depende del origen calendario. Los
-tres orígenes coincidieron en 11 de las 12 celdas —la única discrepancia es E4 a
-cinco minutos, donde solo el origen 2 favoreció al LSTM— y a diez minutos
-coincidieron en las nueve combinaciones de corredor y origen. El primero de los
-tres cubre del 23 de diciembre al 13 de enero. Ese acuerdo incluye entonces el
-período de fiestas, cuando la frecuencia del servicio y la demanda no se parecen
-a las de un mes ordinario.
+El veredicto sin umbral de la Sección V-C no depende del origen. Los tres
+orígenes coincidieron en 11 de las 12 celdas —la excepción es E4 a cinco
+minutos, donde solo el origen 2 favoreció al LSTM— y en las nueve combinaciones
+de corredor y origen a diez minutos. El primer período de prueba, del 23 de
+diciembre al 13 de enero, incluye las fiestas, cuando la frecuencia y la demanda
+no se parecen a las de un mes ordinario.
 
 ### B. Amenazas a la validez
 
 El umbral del evento es la fracción del promedio que usa la convención del
-campo, y no proviene de un registro de eventos observados. Queda sin verificar
-que la fracción marque lo que un operador llamaría bunching, y validarla
-exigiría un registro de incidentes que estos corredores no producen. El alcance
-de toda afirmación de detección es entonces el evento así definido, y sobre las
-posiciones que resolvieron. El tope de los treinta minutos del Apéndice A
-recorta los headways más largos, de modo que el promedio del vector —y con él el
-umbral— queda por debajo del que daría el registro completo. La tasa base que se
-reporta no admite entonces comparación directa con tasas de bunching medidas
-sobre registros sin enmascarar.
+campo, no una calibración contra eventos observados, y validarla exigiría un
+registro de incidentes que estos corredores no producen. Toda afirmación de
+detección vale entonces para el evento así definido y sobre las posiciones que
+resolvieron. El tope de treinta minutos del Apéndice A recorta además los
+headways más largos y baja el promedio del vector y, con él, el umbral, de modo
+que la tasa base no es comparable con tasas medidas sobre registros sin
+enmascarar.
 
 La compresión de la Sección V-A admite una lectura que apunta al ruido de
-medición y no a la predicción. El eje del corredor se estima de los registros y
-el sentido de marcha se infiere del signo del arco. Un error de medición entra
-entonces en el error de predicción y agranda la compresión, sin decir nada sobre
-la predicción misma. La descomposición de la Ecuación (7) acota esa lectura sin
-eliminarla: $r$ sigue a $r_0$ con una correlación de 0.993. Del corpus depende
-el tamaño del efecto, no su existencia: un corredor con geometría publicada y
-sentido declarado tendría un error menor y una compresión menor, en la
-proporción que esa descomposición fija.
+medición: el eje del corredor se estima de los registros y el sentido de marcha
+se infiere del signo del arco, y ese error entra en el de predicción y agranda
+la compresión. La descomposición de la Ecuación (7) acota esa lectura sin
+eliminarla: $r$ sigue a $r_0$ con una correlación de 0.993. El corpus fija
+entonces el tamaño del efecto y no su existencia: un corredor con geometría
+publicada tendría un error menor y una compresión menor.
 
-El corpus acota dos cosas más. Un vector reúne entre 3.8 y 5.9 headways en
-promedio, de modo que la dispersión transversal reposa sobre pocas
-observaciones. Que el efecto se repita en los tres corredores y en los tres
-orígenes lo hace poco atribuible a esa longitud. Cada cifra individual es menos
-estable en E2 y en E4, que tienen el vector más corto, que en E59. El período de
-prueba contiene además los días de Carnaval, cuya composición no se caracterizó,
-de modo que la comparación incluye días atípicos sin identificarlos.
+Un vector reúne entre 3.8 y 5.9 headways en promedio, así que la dispersión
+transversal reposa sobre pocas observaciones. Que el efecto se repita en los
+tres corredores y los tres orígenes lo hace poco atribuible a esa longitud,
+aunque cada cifra es menos estable en E2 y E4, de vector más corto, que en E59.
+El período de prueba incluye además los días de Carnaval, que no se
+identificaron ni se trataron aparte.
 
-Los presupuestos de búsqueda del Apéndice A, sección B no son iguales, de modo
-que donde el LSTM queda por detrás del XGBoost la diferencia no es atribuible a
-la clase de modelo. Los otros dos métodos no ajustan nada, y el error de
-referencia que fijan no depende de esa asimetría. El contraste de arquitecturas
-de esa misma sección tampoco está nivelado, porque precede al protocolo del
-Apéndice A, sección C.
+El LSTM y el XGBoost se entrenaron con una sola semilla, de modo que ninguna
+cifra incluye la variación entre entrenamientos. Sus presupuestos de búsqueda
+del Apéndice A, sección B no son iguales: donde el LSTM queda por detrás del
+XGBoost, la diferencia no es atribuible a la clase de modelo. El contraste de
+arquitecturas de esa sección tampoco está nivelado, porque precede al protocolo.
+La persistencia no ajusta parámetros, y su error de referencia no depende de esa
+asimetría.
 
-El piso posicional que acota el AUC tiene dos límites propios. Se ajusta sobre
-un solo origen anterior, mientras que los veredictos entre métodos se replican
-sobre tres. Y no carece de información: el piso lee qué posiciones ocupó el
-corredor en ese minuto, aunque no la ventana de entrada; los dos métodos que
-acota leen esa misma composición, de modo que la comparación no le concede nada
-a ninguno.
+El piso posicional tiene dos límites propios. Se ajusta sobre un solo origen
+anterior, mientras que los veredictos entre métodos se replican sobre tres. Y no
+carece de información: lee qué posiciones ocupó el corredor en ese minuto,
+aunque no la ventana de entrada, y los métodos que acota leen esa misma
+composición, así que la comparación no favorece a ninguno.
 
-Las métricas de la Sección III-C son genéricas y comparables entre corredores, y
-ninguna liga un error de predicción a una decisión de intervención. Los dos
-puntos de operación de la Sección V ofrecen además avisos distintos: el
-trasladado emitió un trigger en el 0.03 % de las posiciones de E2 a diez
-minutos, con la precisión por encima de la tasa base según la Sección V-B —un
-filtro de prioridad—, y el recalibrado en el 26.98 %. Elegir entre esos dos
-regímenes de aviso exige una función de costo que pondere el aviso perdido
-contra el aviso falso, y esa función depende de la operación de cada empresa.
+Las métricas de la Sección III-C son genéricas, y ninguna liga un error de
+predicción a una decisión de intervención. Los dos puntos de operación de la
+Sección V dan además avisos distintos: en E2 a diez minutos, el trasladado marcó
+el 0.03 % de las posiciones, con la precisión por encima de la tasa base —un
+filtro de prioridad—, y el recalibrado el 26.98 %. Elegir entre ellos exige una
+función de costo que pondere el aviso perdido contra el aviso falso, y esa
+función depende de la operación de cada empresa.
 
 ---
 
