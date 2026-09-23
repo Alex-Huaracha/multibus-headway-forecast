@@ -699,15 +699,13 @@ dominado por una sola dirección: la varianza de las coordenadas a lo largo de
 esa dirección supera cuatro veces la lateral. La segunda es que circulen al
 menos cinco buses a la vez, sin lo cual un vector de headways no describe nada.
 
-El headway de la Sección I se construye aquí desde la coordenada de los buses.
-La forma habitual lo mide en una parada, con la lista de paradas y los horarios
-de paso; estos registros no traen ninguna de las dos: cada bus emite su
-identificador, el instante y su coordenada, y ese **registro GPS** es la única
-entrada. Andres y Nair resuelven la misma construcción —de registros GPS a
-headways— con una secuencia de pasos, cada uno con su umbral [@andres2017]. Esta
-sección sigue esa forma con una diferencia: ellos proyectan contra la geometría
-GTFS que su ciudad publica, y aquí el eje se ajusta de los propios registros. La
-secuencia tiene seis pasos.
+Estos registros no traen la lista de paradas ni los horarios de paso con que se
+mide habitualmente el headway: cada bus emite su identificador, el instante y su
+coordenada, y ese **registro GPS** es la única entrada. Andres y Nair construyen
+headways desde registros GPS con una secuencia de pasos, cada uno con su umbral
+[@andres2017]. Aquí se sigue esa forma, pero el eje se ajusta de los propios
+registros en lugar de la geometría GTFS que su ciudad publica. La secuencia
+tiene seis pasos.
 
 1. **El eje.** No existe una geometría publicada de la ruta, de modo que el eje
    —la línea que los buses siguen a lo largo del corredor— se ajusta de los
@@ -759,15 +757,13 @@ posiciones del vector —la primera es la del par que va más adelante—, y un 
 sin headway válido conserva su posición con «sin valor», para que el orden no
 dependa de cuántos pares resolvieron.
 
-El signo del paso 3 es la única fuente del sentido de marcha. El tope de treinta
-minutos del paso 6 existe porque, sin él, dos calles paralelas proyectadas sobre
-un mismo eje producen cruces de horas antes. La cobertura —la fracción de pares
-evaluados con headway válido— es del 63.5 % en E2, del 64.8 % en E4 y del 77.1 %
-en E59: 3 938 174 pares con headway válido sobre 5 601 738 evaluados, y una
-posición sin headway válido se enmascara. Los huecos no se distribuyen al azar:
-casi todo el faltante viene del tope de treinta minutos —el cruce existe, pero
-quedó atrás—, que recorta los intervalos más largos, y la condición sin cruce
-explica menos de un punto porcentual en cada corredor.
+El tope de treinta minutos del paso 6 existe porque, sin él, dos calles
+paralelas proyectadas sobre un mismo eje producen cruces de horas antes. La
+cobertura —la fracción de pares evaluados con headway válido— es del 63.5 % en
+E2, del 64.8 % en E4 y del 77.1 % en E59: 3 938 174 pares sobre 5 601 738
+evaluados. Casi todo el faltante viene de ese tope, que recorta los intervalos
+más largos, y la ausencia de cruce explica menos de un punto porcentual en cada
+corredor. Una posición sin headway válido se enmascara.
 
 ### B. Métodos comparados
 
@@ -776,25 +772,23 @@ patrón no proviene del aprendizaje profundo sino del objetivo de la Ecuación
 (2). La persistencia no ajusta parámetros y fija el error de referencia, que
 crece con el horizonte.
 
-De los tres métodos retenidos, solo el LSTM y el XGBoost ajustan parámetros.
-Ambos se ajustan por separado en cada celda. Los dos sentidos comparten el
-modelo de su corredor y entran juntos al entrenamiento. Lo que se separa por
-sentido son los estadísticos de estandarización, de modo que lo predicho se
-devuelve a minutos con los del sentido que le corresponde. El LSTM usa 32
-unidades ocultas, una o dos capas según la celda, tasa de aprendizaje de 5 ×
-10⁻⁴, lotes de 128 y semilla fija en 42. El XGBoost usa hasta 400 rondas con
+El LSTM y el XGBoost se ajustan por separado en cada celda. Los dos sentidos
+comparten el modelo de su corredor y entran juntos al entrenamiento. Lo que se
+separa por sentido son los estadísticos de estandarización, de modo que lo
+predicho se devuelve a minutos con los del sentido que le corresponde. El LSTM
+usa 32 unidades ocultas, una o dos capas según la celda, tasa de aprendizaje de
+5 × 10⁻⁴, lotes de 128 y semilla fija en 42. El XGBoost usa hasta 400 rondas con
 parada temprana tras 30 sin mejora, y la misma semilla. Los presupuestos de
 búsqueda no son iguales: el XGBoost eligió veinticuatro configuraciones por
 celda sobre las muestras definitivas, mientras que el LSTM heredó la suya de una
 búsqueda previa que no se rehízo sobre esas muestras, en dos de los tres
 corredores.
 
-La elección del LSTM se resolvió antes de fijar el protocolo del Apéndice A,
-sección C, contra dos arquitecturas que modelan la relación entre posiciones
-vecinas del vector: una convolución sobre las posiciones contiguas y una
-atención entre todas. Las tres quedaron dentro de un rango de 0.017 a 0.074
-minutos de MAE en las doce celdas, y ninguna quedó primera en las doce, de modo
-que el trabajo continuó con la más simple.
+El LSTM se eligió antes de fijar el protocolo de la sección C, frente a dos
+arquitecturas que modelan la relación entre posiciones del vector: una
+convolución sobre las contiguas y una atención entre todas. Las tres quedaron a
+entre 0.017 y 0.074 minutos de MAE en las doce celdas, ninguna ganó las doce, y
+se conservó la más simple.
 
 El **perfil posicional** no compite con los tres métodos: fija el piso de la
 Sección III-C. Responde con el headway promedio que cada posición del vector
@@ -827,15 +821,13 @@ consecutivos. Sin ella la ventana de entrada puede atravesar un hueco de señal,
 y el horizonte mediría un intervalo mayor que el declarado. La regla retiene
 entre el 81.9 % y el 90.2 % de los snapshots del período de prueba.
 
-La segunda es la población compartida: los métodos comparados se puntúan sobre
-exactamente las mismas filas. El trabajo de entrenamiento recalcula la lista de
-muestras, compara su resumen SHA-256 contra el registrado y aborta antes de usar
-la GPU si no coincide. La verificación evita comparar métodos puntuados sobre
-poblaciones distintas. La tercera es el tope al percentil 99 del headway de
-entrenamiento, aplicado como techo a las tres particiones. Calcularlo por
-partición dejaría entrar información del período de prueba. El techo afecta
-entre el 0.78 % y el 1.11 % de los objetivos, y las posiciones sin headway
-válido siguen enmascaradas.
+La segunda es la población compartida: los métodos se puntúan sobre exactamente
+las mismas filas, y el entrenamiento aborta si el resumen SHA-256 de su lista de
+muestras no coincide con el registrado. La tercera es el tope al percentil 99
+del headway de entrenamiento, aplicado como techo a las tres particiones.
+Calcularlo por partición dejaría entrar información del período de prueba. El
+techo afecta entre el 0.78 % y el 1.11 % de los objetivos, y las posiciones sin
+headway válido siguen enmascaradas.
 
 ---
 
