@@ -826,40 +826,33 @@ headway válido siguen enmascaradas.
 
 ## Apéndice B. Pruebas estadísticas
 
-La Sección III-C define las métricas, y compararlas entre dos métodos exige
-declarar qué cuenta como resultado de esa comparación. Un veredicto es la
-comparación de dos métodos sobre las mismas muestras bajo una métrica declarada,
-y consta de tres partes: cuál de los dos gana, por cuánto y si la diferencia
-sobrevive su prueba. Exigir muestras idénticas es lo que lo distingue de la
-resta de dos métricas agregadas, que pueden haberse calculado sobre poblaciones
-distintas. Este trabajo emite veredictos sobre el MAE de la Sección III-C y
-sobre las cantidades de detección de la Ecuación (8), el MCC y el AUC. Un
-veredicto sin umbral es el que usa el AUC, que no depende del punto de
-operación.
+Un veredicto compara dos métodos sobre las mismas muestras bajo una métrica
+declarada, y consta de tres partes: cuál de los dos gana, por cuánto y si la
+diferencia sobrevive su prueba. Exigir muestras idénticas lo distingue de restar
+dos métricas agregadas, que pueden venir de poblaciones distintas. Este trabajo
+emite veredictos sobre el MAE, el MCC y el AUC de la Sección III-C, y el que usa
+el AUC es sin umbral, porque no depende del punto de operación.
 
-Una diferencia de MAE entre dos métodos puede ser ruido del período de prueba.
-Se contrasta con la prueba de Diebold–Mariano [@diebold1995] sobre el
-diferencial de pérdida por muestra, con la corrección de muestra pequeña de
-Harvey–Leybourne–Newbold [@harvey1997]. La varianza se estima agrupando por día
-de servicio, porque las muestras de un mismo día comparten clima, incidentes y
-demanda. El agrupamiento lleva el tamaño efectivo de muestra de entre 75 747 y
-240 907 filas, según la celda, a los 22 días del período de prueba.
+Una diferencia de MAE puede ser ruido del período de prueba. Se contrasta con la
+prueba de Diebold–Mariano [@diebold1995] sobre el diferencial de pérdida por
+muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold
+[@harvey1997]. La varianza se estima agrupando por día de servicio, porque las
+muestras de un mismo día comparten clima, incidentes y demanda, y eso lleva el
+tamaño efectivo de entre 75 747 y 240 907 filas, según la celda, a los 22 días
+del período de prueba.
 
-El AUC y el MCC no admiten ninguna de esas dos pruebas: la primera contrasta un
-diferencial de pérdida por muestra y la segunda acota una proporción. La
-diferencia de cualquiera de los dos entre dos métodos se acota remuestreando
-días de servicio con reemplazo. Se recalculan ambas cantidades sobre cada
-remuestreo y se toma el intervalo percentil al 95 %, con dos mil remuestreos y
-semilla fija. El agrupamiento es el mismo del diferencial de pérdida y responde
-a la misma razón.
+El AUC y el MCC no se descomponen en una pérdida por muestra, así que esa prueba
+no les sirve. Su diferencia entre dos métodos se acota remuestreando días de
+servicio con reemplazo, por la misma razón: se recalculan ambas cantidades sobre
+cada uno de dos mil remuestreos, con semilla fija, y se toma el intervalo
+percentil al 95 %.
 
-La precisión de la Ecuación (8) admite su propia acotación, porque puede
-descansar sobre muy pocos triggers. Se acota con el intervalo exacto de
-Clopper–Pearson [@clopper1934] al 95 %, calculado sobre los conteos de TP y de
-FP de cada celda. Los conteos que necesitan acotarse aquí son los pequeños, y en
-ellos la aproximación normal deja parte de su intervalo fuera del rango válido
-de una proporción. Una celda sin ningún trigger no recibe intervalo: no hay
-precisión que acotar.
+La precisión de la Ecuación (8) puede descansar sobre muy pocos triggers, y con
+conteos pequeños la aproximación normal deja parte de su intervalo fuera del
+rango válido de una proporción. Se acota entonces con el intervalo exacto de
+Clopper–Pearson [@clopper1934] al 95 %, sobre los conteos de TP y de FP de cada
+celda. Una celda sin ningún trigger no recibe intervalo, porque no hay precisión
+que acotar.
 
 ---
 
