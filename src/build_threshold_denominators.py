@@ -27,7 +27,9 @@ and the same origin as the rest of Section V.
 
 ``rank``
     The shortest positions of each vector, as many of them as the published rule
-    marks on average in that cell. No denominator at all: the cut is an order
+    marked on average in that cell at :data:`CALIBRATION_ORIGIN`, the earlier
+    origin the recalibrated threshold is fitted on. No denominator at all: the
+    cut is an order
     statistic. Because the count is fixed before either vector is looked at, this
     arm fires exactly as often as the event occurs, on both sides, by
     construction. It is stated here as algebra rather than offered as a result —
@@ -87,6 +89,12 @@ OUT_DIR = REPO_ROOT / "docs" / "resultados" / "csv-multihorizon"
 OUT_CSV = OUT_DIR / "threshold_denominators.csv"
 
 SCORING_ORIGIN = "main"
+
+# The rank rule needs one number, the share of positions it marks, and it is
+# read from the origin the recalibrated threshold of Section IV-A is fitted on.
+# Read from the scored period instead, the quota would be set by the event rate
+# it is then graded against.
+CALIBRATION_ORIGIN = "r2"
 
 # The published rule first: the table reads as a ladder away from it.
 RULES: tuple[str, ...] = ("pred_mean", "obs_mean", "rank")
@@ -218,8 +226,30 @@ def _arm(
     )
 
 
+def _published_event(frame: pl.DataFrame) -> pl.Series:
+    """The event of Section III-B on the observed vector."""
+    return frame.select(
+        (pl.col(TRUTH) < BUNCHING_RATIO * pl.col(f"_mean_{TRUTH}")).alias("t")
+    ).get_column("t")
+
+
+def calibration_rates() -> dict[tuple[str, int], float]:
+    """Per cell, the published event rate on :data:`CALIBRATION_ORIGIN`."""
+    fit = prepared(CALIBRATION_ORIGIN)
+    rates: dict[tuple[str, int], float] = {}
+    for corridor in CORRIDORS:
+        for horizon in HORIZONS:
+            cell = fit.filter(
+                (pl.col("corridor") == corridor) & (pl.col("horizon") == horizon)
+            )
+            if cell.height:
+                rates[(corridor, horizon)] = float(_published_event(cell).mean())
+    return rates
+
+
 def build() -> pl.DataFrame:
     score = prepared(SCORING_ORIGIN)
+    quota_rates = calibration_rates()
     rows: list[dict] = []
 
     for corridor in CORRIDORS:
@@ -230,16 +260,11 @@ def build() -> pl.DataFrame:
             if cell.height == 0:
                 continue
 
-            # The published event, which fixes the rate every other arm is
-            # calibrated to. Without a shared rate the arms would differ in how
-            # often they fire for reasons that have nothing to do with scale.
-            published = cell.select(
-                (
-                    pl.col(TRUTH) < BUNCHING_RATIO * pl.col(f"_mean_{TRUTH}")
-                ).alias("t")
-            ).get_column("t")
-            base_rate = float(published.mean())
+            # The published event on the scored period: what every arm's
+            # overlap and the threshold-free verdict are measured against.
+            published = _published_event(cell)
             published_np = published.to_numpy()
+            quota_rate = quota_rates[(corridor, horizon)]
 
             # The verdict of Section V-E, carried alongside so each arm can be
             # asked the question that matters: does thresholding this way
@@ -256,7 +281,7 @@ def build() -> pl.DataFrame:
             for rule in RULES:
                 for name, value_col in MODELS:
                     truth, alarm, cut_truth, cut_alarm = _arm(
-                        cell, rule, value_col, base_rate
+                        cell, rule, value_col, quota_rate
                     )
                     truth_np = truth.to_numpy()
                     alarm_np = alarm.to_numpy()
@@ -270,6 +295,9 @@ def build() -> pl.DataFrame:
                             "model": name,
                             "n_cells": scores.n,
                             "base_rate": scores.true_rate,
+                            "quota_rate": (
+                                quota_rate if rule == "rank" else float("nan")
+                            ),
                             "fire_rate": scores.pred_rate,
                             "rate_ratio": (
                                 scores.pred_rate / scores.true_rate

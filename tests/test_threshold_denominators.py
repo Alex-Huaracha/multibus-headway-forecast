@@ -54,11 +54,14 @@ import pytest  # noqa: E402
 
 from src.build_contiguous_significance import CORRIDORS, HORIZONS  # noqa: E402
 from src.build_threshold_denominators import (  # noqa: E402
+    CALIBRATION_ORIGIN,
     MODELS,
     OUT_CSV,
     RULES,
     SCORING_ORIGIN,
     build,
+    calibration_rates,
+    prepared,
     rank_rule_flags,
     threshold_free_agreement,
 )
@@ -254,6 +257,44 @@ class TestTheLevelRulesCollapse:
                 assert abs(row["cut_alarm_min"] - row["cut_truth_min"]) < 0.5, row
 
 
+class TestTheQuotaRateIsFixedBeforeTheScoredPeriod:
+    """The one number the rank rule needs cannot come from the period it scores.
+
+    Taken from the scored cell, the quota would be set by the very event rate it
+    is then graded against, and its MCC could not be set beside the recalibrated
+    threshold's, which only ever saw the earlier origin. Both now read the same
+    earlier origin.
+    """
+
+    def test_it_is_the_origin_the_recalibrated_threshold_is_fitted_on(self):
+        from src.build_detection_calibrated import (
+            CALIBRATION_ORIGIN as RECALIBRATION_ORIGIN,
+        )
+
+        assert CALIBRATION_ORIGIN == RECALIBRATION_ORIGIN
+        assert CALIBRATION_ORIGIN != SCORING_ORIGIN
+
+    def test_each_rate_is_the_published_event_rate_of_the_earlier_origin(self):
+        rates = calibration_rates()
+        fit = prepared(CALIBRATION_ORIGIN)
+        assert len(rates) == N_CELLS
+        for (corridor, horizon), rate in rates.items():
+            cell = fit.filter(
+                (pl.col("corridor") == corridor) & (pl.col("horizon") == horizon)
+            )
+            expected = float(
+                (pl.Series(cell["y_true"] < 0.5 * cell["_mean_y_true"])).mean()
+            )
+            assert rate == pytest.approx(expected, abs=1e-12), (corridor, horizon)
+
+    def test_the_table_carries_the_rate_each_quota_used(self, table):
+        rates = calibration_rates()
+        for row in table.filter(pl.col("rule") == "rank").iter_rows(named=True):
+            assert row["quota_rate"] == pytest.approx(
+                rates[(row["corridor"], row["horizon"])], abs=1e-12
+            ), row
+
+
 class TestTheRankRulePreservesTheRate:
     """Stated as algebra, tested as algebra. This arm is the control."""
 
@@ -308,13 +349,20 @@ class TestTheThreeEventsOverlapOnObservedData:
     """
 
     def test_every_rule_overlaps_the_published_event(self, table):
+        """The floor is set by E4, not by the rule's design.
+
+        From three minutes on, E4's rate at the calibration origin falls just
+        under one sixth, so a three-position vector rounds its quota to zero and
+        marks nothing. The rank event there is sparser than the published one,
+        and its overlap drops to about 0.39.
+        """
         for rule in RULES:
             overlap = (
                 table.filter(pl.col("rule") == rule)
                 .get_column("jaccard_truth_vs_published")
                 .to_numpy()
             )
-            assert (overlap > 0.45).all(), (rule, overlap)
+            assert (overlap > 0.35).all(), (rule, overlap)
 
     def test_the_published_rule_agrees_with_itself(self, table):
         overlap = _lstm(table, "pred_mean").get_column(

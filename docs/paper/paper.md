@@ -51,18 +51,19 @@ cambios, la persistencia llega a superar a la red por un factor de 253 en el F1.
 Sin umbral, la misma predicción ordena mejor que la persistencia en las nueve
 combinaciones de corredor y origen a diez minutos. La Sección II-C delimita
 cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestras
-contribuciones son cuatro:
+contribuciones son tres:
 
-- Medimos esa compresión sobre el vector de headways y la aislamos con la
-  persistencia como control de compresión nula.
-- Invertimos la fórmula de calidad de servicio del *Transit Capacity and Quality
-  of Service Manual* (TCQSM) y la aplicamos a lo predicho en lugar de a lo
-  observado.
-- Atamos esa fórmula a una regla de evento **relativa pero no preservadora de
-  tasa**, que se recalcula con cada vector que evalúa.
-- Mostramos que el daño alcanza a toda regla que nombre una cantidad de
-  minutos, y proponemos una regla de cuota sobre las posiciones más cortas que
-  reproduce el veredicto sin umbral sin ajustar ningún parámetro.
+- Medimos esa compresión sobre el vector de headways, la aislamos con la
+  persistencia como control de compresión nula y la leemos en la escala de
+  nivel de servicio del *Transit Capacity and Quality of Service Manual*
+  (TCQSM), aplicada a lo predicho en lugar de a lo observado.
+- Mostramos que el umbral trasladado invierte el veredicto que las mismas
+  predicciones dan sin umbral, y acotamos ese veredicto con un perfil posicional
+  que no lee la ventana de entrada.
+- Mostramos que el colapso alcanza a toda regla que fije el umbral en minutos,
+  relativa o absoluta, y proponemos una regla de cuota sobre las posiciones más
+  cortas que reproduce el veredicto sin umbral con una sola tasa tomada de un
+  origen anterior.
 
 ---
 
@@ -355,12 +356,15 @@ y el mismo origen. La primera divide por el promedio del último vector
 observado: se recalcula en cada instante y sigue al corredor, pero es el mismo
 número para lo observado y para lo predicho. Se la llama aquí **la regla de
 denominador observado**. La segunda no divide por nada. Marca las posiciones más
-cortas de cada vector, y cuántas marca queda fijado por la longitud del vector
-antes de leer los valores. Se la llama aquí **la regla de cuota**. Esa cantidad
-es un entero y los vectores llevan entre tres y seis posiciones, de modo que el
-redondeo levanta la frecuencia del evento hasta 8.9 puntos en E4, donde los
-vectores son más cortos. La regla de cuota no marca entonces exactamente el
-mismo evento que las otras dos.
+cortas de cada vector, y cuántas marca queda fijado antes de leer los valores.
+Es la longitud del vector por la fracción de posiciones que la regla de la
+Sección III-B marcó en el origen 2, del que la Sección IV-A toma el umbral
+recalibrado. Se la llama aquí **la regla de cuota**. Esa cantidad es un entero y
+los vectores llevan entre tres y seis posiciones. En E4 esa fracción queda por
+debajo de un sexto desde los tres minutos, de modo que los vectores de tres
+posiciones no marcan ninguna, y el redondeo mueve la frecuencia del evento entre
+-5.0 y +7.0 puntos. La regla de cuota no marca entonces exactamente el mismo
+evento que las otras dos.
 
 ---
 
@@ -578,7 +582,9 @@ Nakamura [@sun2021]. Se calibró sobre el origen 2 y se aplicó sin cambios al
 origen 3. Frente a la regla de la Sección III-B, la tasa de trigger del LSTM
 cayó por un factor de mediana 138 en diez de las doce celdas, y en las otras dos
 no emitió ninguno. La mediana de su AUC bajó a 0.60, y en E2 a diez minutos
-llegó a 0.493, indistinguible del azar.
+llegó a 0.493, indistinguible del azar. Con la mitad del headway mediano, el
+factor fue de 2.0 y la mediana del AUC de 0.655: el umbral dispara menos que una
+regla ya colapsada.
 
 ### G. Qué recupera la regla de cuota
 
@@ -591,13 +597,14 @@ celda donde la regla de cuota discrepa es E59 a cinco minutos. La Tabla 3 recoge
 las tres reglas con sus medianas y ese conteo de coincidencias.
 
 La regla de cuota no convierte al modelo en mejor detector. Su MCC tuvo mediana
-**0.199** contra **0.100** bajo la regla de la Sección III-B, y la superó en las
-doce celdas. Esa mediana iguala a la del umbral recalibrado de la Sección V-D,
-que vale 0.198, y la regla de cuota no ajusta ningún parámetro sobre una ventana
-anterior. Aun así **sigue por debajo de la persistencia** en siete de las doce.
-Las cinco que gana son las tres de E2 desde los tres minutos, y las de diez
-minutos en E4 y E59. Reparar la regla recupera discriminación y no cambia de
-dueño el veredicto a un minuto en ninguno de los tres corredores.
+**0.210** contra **0.100** bajo la regla de la Sección III-B, y la superó en las
+doce celdas. El umbral recalibrado de la Sección V-D, que toma del mismo origen
+2 su única información previa, alcanzó una mediana de 0.198, puntuado contra el
+evento de la Sección III-B y no contra el de la cuota. Aun así **sigue por
+debajo de la persistencia** en siete de las doce. Las cinco que gana son las
+tres de E2 desde los tres minutos, y las de diez minutos en E4 y E59. Reparar la
+regla recupera discriminación y no cambia de dueño el veredicto a un minuto en
+ninguno de los tres corredores.
 
 Las tres reglas tampoco marcan el mismo evento sobre lo observado. El índice de
 Jaccard, las posiciones que dos reglas marcan a la vez entre las que marca al
@@ -613,7 +620,7 @@ horizonte.
 | :--- | :--- | ---: | ---: | ---: | ---: | :---: |
 | Sección III-B | promedio del vector predicho | 0.079 | 1.011 | 0.100 | 1.000 | 6 de 12 |
 | Denominador observado | promedio del último vector observado | 0.153 | 0.980 | 0.143 | 0.710 | 7 de 12 |
-| Cuota | ninguno | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.199 | 0.580 | **11 de 12** |
+| Cuota | ninguno | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | **11 de 12** |
 
 ‡ Vale uno por construcción y no por medición: la cantidad de posiciones
 marcadas queda fijada antes de leer los valores.
@@ -699,8 +706,9 @@ umbral, el LSTM ordena mejor que la persistencia en las nueve combinaciones de
 corredor y origen a diez minutos. El punto de operación se calcula entonces
 contra la distribución de lo predicho, y no se hereda de lo observado. Definir
 el evento por una cuota de posiciones reproduce ese veredicto en once de las
-doce celdas sin ajustar ningún parámetro. La excepción al alcance es E2 a diez
-minutos, donde el perfil posicional ordena mejor que el modelo.
+doce celdas con una sola tasa tomada del origen anterior. La excepción al
+alcance es E2 a diez minutos, donde el perfil posicional ordena mejor que el
+modelo.
 
 Quedan abiertas tres extensiones: ligar la detección a una función de costo que
 pondere el aviso perdido contra el aviso falso, emitir una predicción
