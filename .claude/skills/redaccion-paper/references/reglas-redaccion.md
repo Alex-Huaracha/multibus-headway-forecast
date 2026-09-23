@@ -1,4 +1,4 @@
-# Directivas de Redacción Científica (IEEE/IJACSA)
+# Directivas de Redacción Científica (IEEE)
 
 Esta norma gobierna **cómo se escribe** el manuscrito: integridad de las cifras,
 registro, voz, léxico, sintaxis y notación.

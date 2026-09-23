@@ -11,18 +11,15 @@ _(pendiente — se escribe al final)_
 El headway es el tiempo que separa el paso de dos buses consecutivos por un
 mismo punto de una ruta. El bunching es la circulación conjunta de dos buses que
 ese tiempo debería mantener separados, y desiguala la espera entre los pasajeros
-de esa ruta. Rezazada y colaboradores lo atribuyen a la congestión, a la demanda
-atípica, a la acumulación de pasajeros y al comportamiento del conductor
-[@rezazada2024]. Trompet, Liu y Graham comparan doce empresas de bus urbano, y
-las que publican un indicador de servicio lo definen sobre la regularidad
-agregada del recorrido y no sobre un headway aislado [@trompet2011].
+de esa ruta. Trompet, Liu y Graham comparan doce empresas de bus urbano, y las
+que publican un indicador de servicio lo definen sobre la regularidad agregada
+del recorrido y no sobre un headway aislado [@trompet2011].
 
 La predicción de ese evento sigue un procedimiento de dos etapas: primero se
 estima el headway futuro, y después se lo compara contra un umbral que decide si
-hay evento. Yu y colaboradores fijan su formulación canónica [@yu2016], y la
-literatura la repite sobre corredores y modelos distintos [@jiao2023]. Su
-segunda etapa no tiene un valor acordado: los umbrales publicados van desde
-veinte segundos hasta un cuarto del headway programado [@rezazada2024].
+hay evento [@yu2016] [@jiao2023]. Su segunda etapa no tiene un valor acordado:
+los umbrales publicados van desde veinte segundos hasta un cuarto del headway
+programado [@rezazada2024].
 
 Ese procedimiento deja dos huecos. Usama y Koutsopoulos predicen el vector
 completo de headways de una línea de metro con una red profunda, y reportan solo
@@ -113,27 +110,25 @@ declara extremo un pronóstico comparándolo contra la climatología **del propi
 modelo** [@ecmwffug]: referir el umbral a lo que el modelo produce no es
 entonces nuevo.
 
-Lo que ninguna de las tres prácticas enfrenta es un umbral que se mueva **dentro
-de la instancia que evalúa**. Esa alineación tiene además una propiedad que
-separa a esas correcciones de la nuestra: un umbral definido sobre un cuantil
-queda libre de sesgo por construcción [@hoffmann2018], porque un cuantil
-**conserva la frecuencia del evento** bajo cualquier transformación monótona de
-lo predicho. Una fracción del promedio no la conserva —la Sección III-B
-formaliza por qué—, y ese es el caso que este trabajo mide: relativo sin ser
-preservador de tasa.
+Hoffmann y colaboradores observan que un indicador definido sobre un cuantil
+queda libre de sesgo por definición [@hoffmann2018]. Eso ocurre porque un
+cuantil **conserva la frecuencia del evento** bajo cualquier transformación
+monótona de lo predicho. Ninguna de las tres prácticas lleva esa propiedad
+**dentro de la instancia que evalúa**, y ese es el paso que da este trabajo. La
+regla de cuota de la Sección IV-B marca en cada vector una fracción fija de sus
+posiciones, tomada de un origen anterior, y marca así en lo predicho la misma
+cantidad de posiciones que en lo observado.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
 diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
-bajo la curva para su clasificador probabilístico [@sun2021]. Dos rasgos separan
-ese trabajo del nuestro. Su etiqueta es un umbral absoluto de un minuto y no una
-regla relativa al propio vector, de modo que la compresión alcanza al valor
-comparado y no al umbral. Y su diseño no declara ninguna ventana anterior
-disjunta sobre la cual su corte se ajuste. El umbral de Jiao y colaboradores es
-relativo pero se ancla en una observación fija, y su reparación cambia el
-objetivo que el modelo optimiza [@jiao2023]. Esa distinción entre el umbral
-anclado y el que se mueve con el vector es la que la Sección III-B formaliza.
-Ahí interviene este documento: recalibra el punto de operación sobre un período
-anterior disjunto, sin reentrenar ni cambiar el objetivo.
+bajo la curva para su clasificador probabilístico [@sun2021]. Su etiqueta es un
+umbral absoluto de un minuto, y la Sección V-F muestra que, en nuestros datos,
+un umbral absoluto del mismo tipo también colapsa bajo la compresión. Su diseño
+no declara además ninguna ventana anterior disjunta sobre la cual su corte se
+ajuste. El umbral de Jiao y colaboradores es relativo pero se ancla en una
+observación fija, y su reparación cambia el objetivo que el modelo optimiza
+[@jiao2023]. Este trabajo repara la regla y no el modelo: no reentrena, no
+cambia el objetivo y fija su única tasa sobre un período anterior disjunto.
 
 ---
 
@@ -942,7 +937,7 @@ _(lista en construcción: solo las fuentes ya verificadas en
 `fuentes-verificadas.md` y ya llamadas desde el texto. Las llamadas usan claves
 con arroba y no números, de modo que insertar una fuente no obliga a renumerar ni
 a corregir llamadas. La numeración por orden de primera aparición se resuelve al
-convertir al formato IJACSA, sustituyendo cada clave por su número; el orden de
+convertir al formato final, sustituyendo cada clave por su número; el orden de
 esta lista no es todavía el definitivo.)_
 
 `[@andres2017]` M. Andres and R. Nair, "A predictive-control framework to address
