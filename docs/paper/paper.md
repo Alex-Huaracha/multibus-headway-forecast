@@ -78,20 +78,19 @@ ruido los casos que la regla marca [@jiao2023]. La segunda etapa se evalúa en u
 punto de operación único: ninguna de las ocho filas con que Santos y
 colaboradores resumen el subcampo registra una medida que puntúe el ordenamiento
 sin fijar antes un umbral [@santos2022]. Este trabajo puntúa las mismas
-predicciones con el umbral y sin él, para aislar el punto de operación como la
-variable bajo prueba.
+predicciones con el umbral y sin él, para aislar el punto de operación.
 
 ### B. Compresión de la dispersión bajo error cuadrático medio
 
-La primera etapa de ese procedimiento arrastra una propiedad conocida, y es un
-teorema y no una regularidad empírica: lo ajustado para minimizar el error
-cuadrático sale menos disperso que la cantidad que predice. La predicción óptima
-es la media condicional [@gneiting2011], y la varianza del objetivo se
-descompone en la de esa predicción más el error cuadrático esperado, con una
-compresión que crece al alargar el horizonte [@patton2012]. Esa compresión está
-medida sobre la varianza temporal de una serie escalar [@mayer2023], sobre
-conjuntos de instancias en seis dominios, entre ellos el tráfico [@green2026], y
-sobre la dispersión transversal de un campo espacial [@bonavita2024].
+La primera etapa arrastra una propiedad que es un teorema y no una regularidad
+empírica: lo ajustado para minimizar el error cuadrático sale menos disperso que
+la cantidad que predice. La predicción óptima es la media condicional
+[@gneiting2011], y la varianza del objetivo se descompone en la de esa
+predicción más el error cuadrático esperado, con una compresión que crece al
+alargar el horizonte [@patton2012]. Esa compresión está medida sobre la varianza
+temporal de una serie escalar [@mayer2023], sobre conjuntos de instancias en
+seis dominios, entre ellos el tráfico [@green2026], y sobre la dispersión
+transversal de un campo espacial [@bonavita2024].
 
 El daño sobre una regla de umbral también está documentado: el método con mejor
 error cuadrático es el que peor detecta los episodios altos de ozono, porque
@@ -108,28 +107,27 @@ lo observado: uno reubica el umbral en el valor que su percentil ocupa dentro de
 lo predicho [@hoffmann2018], y el otro lleva la distribución de lo predicho a la
 de lo observado con el umbral quieto [@petetin2022]. El *Extreme Forecast Index*
 declara extremo un pronóstico comparándolo contra la climatología **del propio
-modelo** [@ecmwffug]: referir el umbral a lo que el modelo produce no es
-entonces nuevo.
+modelo** [@ecmwffug], así que referir el umbral a lo que el modelo produce no es
+nuevo.
 
 Hoffmann y colaboradores observan que un indicador definido sobre un cuantil
 queda libre de sesgo por definición [@hoffmann2018]. Eso ocurre porque un
 cuantil **conserva la frecuencia del evento** bajo cualquier transformación
 monótona de lo predicho. Ninguna de las tres prácticas lleva esa propiedad
-**dentro de la instancia que evalúa**, y ese es el paso que da este trabajo. La
+**dentro de la instancia que evalúa**, y ese es el paso que da este trabajo: la
 regla de cuota de la Sección IV-B marca en cada vector una fracción fija de sus
-posiciones, tomada de un origen anterior, y marca así en lo predicho la misma
+posiciones, tomada de un origen anterior, y así marca en lo predicho la misma
 cantidad de posiciones que en lo observado.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
 diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
 bajo la curva para su clasificador probabilístico [@sun2021]. Su etiqueta es un
 umbral absoluto de un minuto, y la Sección V-D muestra que, en nuestros datos,
-un umbral absoluto del mismo tipo también colapsa bajo la compresión. Su diseño
-no declara además ninguna ventana anterior disjunta sobre la cual su corte se
-ajuste. El umbral de Jiao y colaboradores es relativo pero se ancla en una
-observación fija, y su reparación cambia el objetivo que el modelo optimiza
-[@jiao2023]. Este trabajo repara la regla y no el modelo: no reentrena, no
-cambia el objetivo y fija su única tasa sobre un período anterior disjunto.
+un umbral absoluto del mismo tipo también colapsa bajo la compresión. El umbral
+de Jiao y colaboradores es relativo pero se ancla en una observación fija, y su
+reparación cambia el objetivo que el modelo optimiza [@jiao2023]. Este trabajo
+repara la regla y no el modelo: no reentrena, no cambia el objetivo y fija su
+única tasa sobre un período anterior disjunto.
 
 ---
 
