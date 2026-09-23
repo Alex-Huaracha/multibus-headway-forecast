@@ -167,43 +167,38 @@ modelo ajustado.
 
 Se predice a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
 ajustado por separado para cada uno, sin recursión. A un minuto la predicción no
-deja margen de intervención, y es el régimen donde repetir el último vector
-observado es difícil de superar [@manibardo2022]; ese horizonte queda como
-referencia, y las afirmaciones operativas de la Sección V-D se leen sobre los de
-cinco y diez. El vector no tiene longitud fija, porque $N$ varía minuto a
-minuto. El modelo emite entonces una salida de longitud fija y el error se
-computa solo sobre las posiciones donde hay bus. **El objetivo que se minimiza
-es el error cuadrático**, promediado sobre esas posiciones válidas:
+deja margen de intervención, y es el régimen donde la persistencia es difícil de
+superar [@manibardo2022]; ese horizonte queda como referencia, y las
+afirmaciones operativas de la Sección V-D se leen sobre los de cinco y diez. El
+vector no tiene longitud fija, porque $N$ varía minuto a minuto. El modelo emite
+entonces una salida de longitud fija y el error se computa solo sobre las
+posiciones donde hay bus. **El objetivo que se minimiza es el error
+cuadrático**, promediado sobre esas posiciones válidas:
 
 $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 \big(\hat{h}_i - h_i\big)^{2}, \tag{2}$$
 
-donde $\mathcal{L}$ es la pérdida que el ajuste minimiza, $\mathcal{V}$ es el
-conjunto de posiciones del vector con bus asignado en el instante objetivo, y
-$|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$ y $h_i$ son el valor
-predicho y el observado en la posición $i$, expresados en la escala tipificada
-por sentido que fija el Apéndice A, sección B y no en minutos.
+donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en
+el instante objetivo, y $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$
+y $h_i$ son el valor predicho y el observado en la posición $i$, expresados en
+la escala tipificada por sentido que fija el Apéndice A, sección B y no en
+minutos.
 
 ### B. Definición del evento de bunching
 
-Las causas del bunching no son observables en estos registros GPS, que no traen
-pasajeros, ocupación ni estado del tránsito, de modo que el evento se define
-sobre la geometría del vector de headways y no sobre lo que la produjo. Es una
-propiedad del patrón colectivo y no de un bus, y se manifiesta en posiciones del
-vector de la Sección III-A: un mismo instante puede llevar varias posiciones
-afectadas a la vez.
+Los registros GPS no traen pasajeros, ocupación ni estado del tránsito, de modo
+que el evento se define sobre la geometría del vector de headways y no sobre sus
+causas. Un mismo instante puede llevar varias posiciones afectadas a la vez.
 
 La convención del campo marca el evento con una fracción del headway programado:
 un cuarto en las formulaciones más citadas [@moreiramatias2016], y la mitad en
-el TCQSM [@tcqsm2003]. Estos corredores no tienen programación, y sustituir ese
-denominador por uno observado en el propio corredor es la práctica que la
-Sección II-A recoge. Aquí se sustituye por el promedio del propio vector en ese
-instante: la fracción es heredada del TCQSM y la sustitución del denominador es
-nuestra. El promedio vigente cumple la función de la programación —fijar la
-separación normal del corredor—, que un umbral fijo en minutos no cumple entre
-corredores de frecuencias distintas. **Un headway cuenta como bunching si cae
-por debajo de la mitad de ese promedio.** Ese valor es el umbral relativo del
-evento, y se mueve con cada vector.
+el TCQSM [@tcqsm2003]. Estos corredores no tienen programación. La Sección II-A
+recoge la práctica de sustituirla por un headway observado, y aquí se la
+sustituye por el promedio del propio vector en ese instante. Ese promedio cumple
+la función de la programación, fijar la separación normal del corredor, que un
+umbral fijo en minutos no cumple entre corredores de frecuencias distintas. La
+fracción de un medio se hereda del TCQSM y la sustitución es nuestra. El
+resultado es el **umbral relativo** del evento, que se mueve con cada vector.
 
 El vector de la Sección III-A se escribe por componentes como
 $\mathbf{h}(t) = (h_1, \dots, h_m)$. Su promedio y el umbral del evento son
@@ -237,30 +232,19 @@ $\hat{b}_i(t) = 1$ es un **trigger**: la señal que el detector emite, y lo úni
 que un operador vería. El umbral sale del vector predicho porque quien opera un
 corredor no dispone del observado al momento de decidir.
 
-Como $\tau$ es función del propio vector que se evalúa, y no un número fijo de
-minutos, las Ecuaciones (4) y (5) no comparan contra el mismo umbral:
-
-$$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
-\;\neq\; \rho\,\bar{h} \;=\; \tau(\mathbf{h})
-\qquad \text{siempre que } \bar{\hat{h}} \neq \bar{h}, \tag{6}$$
-
-donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ resultan de aplicar $\rho$
-al vector observado y al predicho. Un denominador observado, como el de la
-Sección II-A, no tiene esa propiedad: no se mueve con la predicción. Eso no lo
-pone a salvo, y la Sección V-D mide si esa regla también colapsa. La Figura 1 lo
-muestra con el mismo headway de dos minutos, y la Sección V-B mide qué ocurre
-sobre datos reales cuando los dos umbrales de la Ecuación (6) se tratan como
-uno.
+Como $\tau$ se recalcula sobre cada vector, lo predicho y lo observado no se
+comparan contra el mismo umbral en minutos, y la Sección V-B mide qué ocurre
+cuando se los trata como uno. Dividir por un promedio observado, como el de la
+Sección II-A, elimina esa diferencia, y la Sección V-D mide si eso evita el
+colapso. La Figura 1 ilustra la regla con el mismo headway en dos corredores.
 
 ![El mismo headway bajo dos umbrales](figuras/bunching-umbral.es.png)
 
 **Fig. 1.** El mismo headway de 2.0 min bajo el umbral relativo. Cada barra es
-una posición del vector y la línea discontinua es el umbral τ = promedio/2 de
-ese panel. (a) En el corredor irregular el promedio es 5.9 min y el umbral 3.0
-min: los headways de 2.0 y 1.2 quedan debajo y **los dos son bunching**. (b) En
-el corredor regular el promedio es 3.1 min y el umbral 1.6 min: el mismo headway
-de 2.0 min queda encima y **no es bunching**. Valores ilustrativos, no datos
-reales.
+una posición del vector y la línea discontinua es τ = promedio/2. (a) Corredor
+irregular, umbral 3.0 min: el headway de 2.0 min es bunching. (b) Corredor
+regular, umbral 1.6 min: el mismo headway no lo es. Valores ilustrativos, no
+datos reales.
 
 ### C. Métricas
 
@@ -274,7 +258,7 @@ El MAE no describe la forma del vector. El coeficiente de variación (CV) es su
 desviación estándar muestral dividida por su promedio:
 
 $$\mathrm{CV}(\mathbf{h}) \;=\; \frac{1}{\bar{h}}
-\sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\big(h_j - \bar{h}\big)^{2}}, \tag{7}$$
+\sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\big(h_j - \bar{h}\big)^{2}}, \tag{6}$$
 
 donde $m$, $h_j$ y $\bar{h}$ conservan el significado de la Ecuación (3). Se
 calcula sobre los vectores de tres posiciones o más que exige la Ecuación (4).
@@ -282,7 +266,7 @@ Se reporta porque es adimensional, de modo que corredores de frecuencias
 distintas quedan sobre la misma escala, y porque es la cantidad con que se lee
 la escala de nivel de servicio del TCQSM [@tcqsm2003]: el manual indexa sus
 bandas por la dispersión del headway respecto del programado, y en un corredor
-sin programación esa dispersión es la Ecuación (7). Su sesgo es el CV de lo
+sin programación esa dispersión es la Ecuación (6). Su sesgo es el CV de lo
 predicho menos el de lo observado, y un valor negativo dice que lo predicho es
 más regular que la realidad.
 
@@ -291,7 +275,7 @@ cuánto de esa diferencia se debe al error. La varianza entre las posiciones de
 un mismo vector la reparte:
 
 $$V_h \;=\; V_{\hat h} + V_e + 2\,C_{\hat h e}, \qquad
-r \;=\; \frac{V_{\hat h}}{V_h}, \qquad r_0 \;=\; 1 - \frac{V_e}{V_h}, \tag{8}$$
+r \;=\; \frac{V_{\hat h}}{V_h}, \qquad r_0 \;=\; 1 - \frac{V_e}{V_h}, \tag{7}$$
 
 donde $V_h$, $V_{\hat h}$ y $V_e$ son las varianzas entre posiciones del headway
 observado, del predicho y del error $e_i = h_i - \hat{h}_i$, promediadas sobre
@@ -310,7 +294,7 @@ y el F1 son entonces
 
 $$\mathrm{F}_1 \;=\; \frac{2PR}{P+R}, \qquad
 P \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}, \qquad
-R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{9}$$
+R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{8}$$
 
 El F1 no usa TN [@chicco2020], y premia por eso al **detector trivial**: el que
 emite un trigger en toda posición. Maximizar el F1 sobre una predicción sin
@@ -381,7 +365,7 @@ E4 y 0.33 en E59. En E2 la diferencia fue de 0.07 minutos y no resistió la
 prueba estadística al agrupar las observaciones por día de servicio.
 
 Ese error no dice nada sobre la forma del vector, y el coeficiente de variación
-de la Ecuación (7) sí. En E2 a diez minutos valió 0.79 sobre lo observado y 0.16
+de la Ecuación (6) sí. En E2 a diez minutos valió 0.79 sobre lo observado y 0.16
 sobre lo predicho para el mismo instante: el vector predicho describió un
 corredor casi cinco veces más regular que el real. Leídas contra la escala del
 TCQSM de la Sección III-C, esas cifras califican al mismo corredor como nivel A
@@ -395,7 +379,7 @@ minuto a −0.63 a diez. La persistencia no comprimió nada, con el sesgo dentro
 ±0.022. El control sitúa el efecto en el **ajuste por error cuadrático**, que la
 persistencia no hace, y no en los datos ni en el corredor.
 
-La Ecuación (8) ata ese efecto a una sola cantidad. Sobre las doce celdas, $r$
+La Ecuación (7) ata ese efecto a una sola cantidad. Sobre las doce celdas, $r$
 siguió a $r_0$ con una correlación de 0.993 en el LSTM, con $r$ entre 0.045 y
 0.552, y de 0.996 en el XGBoost, con $r$ entre 0.040 y 0.547. Las dos
 arquitecturas no comparten sesgo inductivo y sí el objetivo de ajuste. La
@@ -621,7 +605,7 @@ La compresión de la Sección V-A admite una lectura que apunta al ruido de
 medición y no a la predicción. El eje del corredor se estima de los registros y
 el sentido de marcha se infiere del signo del arco. Un error de medición entra
 entonces en el error de predicción y agranda la compresión, sin decir nada sobre
-la predicción misma. La descomposición de la Ecuación (8) acota esa lectura sin
+la predicción misma. La descomposición de la Ecuación (7) acota esa lectura sin
 eliminarla: $r$ sigue a $r_0$ con una correlación de 0.993. Del corpus depende
 el tamaño del efecto, no su existencia: un corredor con geometría publicada y
 sentido declarado tendría un error menor y una compresión menor, en la
@@ -757,7 +741,7 @@ secuencia tiene seis pasos.
    mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
-\qquad h = T - t_{c}, \tag{10}$$
+\qquad h = T - t_{c}, \tag{9}$$
 
 donde $s_{L}$ y $s_{F}$ son las coordenadas de arco del bus de adelante y del de
 atrás. El instante $t_{c}$ es el último en que el de adelante pasó por la
@@ -812,18 +796,15 @@ atención entre todas. Las tres quedaron dentro de un rango de 0.017 a 0.074
 minutos de MAE en las doce celdas, y ninguna quedó primera en las doce, de modo
 que el trabajo continuó con la más simple.
 
-A los tres se agrega un cuarto método que no compite con ellos y cumple otra
-función: fijar un piso. El **perfil posicional** responde con el headway
-promedio que cada posición del vector registró en un período anterior, y lo
-repite sin cambios en cada minuto del período de prueba. No lee la ventana de
-entrada, de modo que no puede anticipar nada. Existe porque las posiciones del
-vector no son intercambiables: las de más adelante llevan headways
-sistemáticamente más cortos, así que algunas caen por debajo de la mitad del
-promedio de su vector por la posición que ocupan y no por lo que ocurrió ese
-minuto. Lo que ese perfil ordena es la parte del ordenamiento que la posición
-explica por sí sola. Se ajusta sobre el período de prueba del origen 2 y se
-aplica al del origen 3, los mismos dos períodos que la Sección IV-A usa para el
-umbral y por la misma razón.
+El **perfil posicional** no compite con los tres métodos: fija el piso de la
+Sección III-C. Responde con el headway promedio que cada posición del vector
+registró en un período anterior, y lo repite sin cambios en cada minuto del
+período de prueba, sin leer la ventana de entrada. Existe porque las posiciones
+del vector no son intercambiables: las de más adelante llevan headways
+sistemáticamente más cortos, y algunas caen por debajo de la mitad del promedio
+de su vector por la posición que ocupan y no por lo que ocurrió ese minuto. Se
+ajusta sobre el período de prueba del origen 2 y se aplica al del origen 3, los
+mismos dos períodos que la Sección IV-A usa para el umbral y por la misma razón.
 
 ### C. Protocolo de evaluación
 
@@ -867,7 +848,7 @@ y consta de tres partes: cuál de los dos gana, por cuánto y si la diferencia
 sobrevive su prueba. Exigir muestras idénticas es lo que lo distingue de la
 resta de dos métricas agregadas, que pueden haberse calculado sobre poblaciones
 distintas. Este trabajo emite veredictos sobre el MAE de la Sección III-C y
-sobre las cantidades de detección de la Ecuación (9), el MCC y el AUC. Un
+sobre las cantidades de detección de la Ecuación (8), el MCC y el AUC. Un
 veredicto sin umbral es el que usa el AUC, que no depende del punto de
 operación.
 
@@ -887,7 +868,7 @@ remuestreo y se toma el intervalo percentil al 95 %, con dos mil remuestreos y
 semilla fija. El agrupamiento es el mismo del diferencial de pérdida y responde
 a la misma razón.
 
-La precisión de la Ecuación (9) admite su propia acotación, porque puede
+La precisión de la Ecuación (8) admite su propia acotación, porque puede
 descansar sobre muy pocos triggers. Se acota con el intervalo exacto de
 Clopper–Pearson [@clopper1934] al 95 %, calculado sobre los conteos de TP y de
 FP de cada celda. Los conteos que necesitan acotarse aquí son los pequeños, y en

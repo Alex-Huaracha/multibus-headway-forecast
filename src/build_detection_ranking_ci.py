@@ -15,7 +15,7 @@ differences, LSTM minus persistence:
 ``delta_auc``
     The threshold-free verdict. This is the one the headline count is made of.
 ``delta_mcc_fixed``
-    The operating point of Equation (7), the observed threshold transplanted
+    The operating point of Equation (5), the observed threshold transplanted
     onto the predicted vector.
 ``delta_mcc_calibrated``
     The operating point refitted on origin ``r2`` and applied forward, which is
