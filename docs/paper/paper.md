@@ -44,11 +44,12 @@ el punto de operación. Predice el vector completo de headways de un corredor
 recurrente. La regla de la Sección III-B convierte lo predicho en un indicador
 de bunching, y la evaluación puntúa esa detección con y sin umbral. Las dos
 puntuaciones se contradicen: con el umbral del evento observado trasladado sin
-cambios, la persistencia llega a superar a la red por un factor de 253 en el F1.
-Sin umbral, la misma predicción ordena mejor que la persistencia en las nueve
-combinaciones de corredor y origen a diez minutos. La Sección II-C delimita
-cuánto del mecanismo que este trabajo mide ya estaba publicado. Nuestras
-contribuciones son tres:
+cambios, la persistencia —que repite el último vector observado— llega a superar
+a la red por un factor de 253 en el F1. Sin umbral, la misma predicción ordena
+mejor que la persistencia en las nueve combinaciones de corredor y origen de
+evaluación, cada uno con su propio período de prueba, a diez minutos. La Sección
+II-C delimita cuánto del mecanismo que este trabajo mide ya estaba publicado.
+Nuestras contribuciones son tres:
 
 - Medimos esa compresión sobre el vector de headways, la aislamos con la
   persistencia como control de compresión nula y la leemos en la escala de
@@ -134,8 +135,17 @@ cambia el objetivo y fija su única tasa sobre un período anterior disjunto.
 
 ## III. Formulación y definición del evento
 
-Los datos, los métodos comparados y el protocolo de partición quedan en el
-Apéndice A.
+El estudio cubre tres corredores de Arequipa, identificados como E2, E4 y E59,
+con 152 días seguidos de registros GPS. Se comparan tres métodos sobre las
+mismas muestras. El método bajo estudio es una red recurrente (**LSTM**), un
+conjunto de árboles con refuerzo de gradiente (**XGBoost**) [@chen2016] sirve de
+control de arquitectura, y la **persistencia** repite el último vector
+observado. Cada corredor se predice a cuatro horizontes, y cada combinación de
+corredor y horizonte es una **celda**: hay doce. La evaluación se repite sobre
+tres **orígenes de evaluación** (*rolling origin*): tres fechas de fin de
+entrenamiento, cada una con su propio período de prueba. El tercero es el que se
+publica, y el XGBoost se ajusta solo sobre él. El Apéndice A detalla los datos,
+los métodos y el protocolo.
 
 ### A. Formulación de la tarea de predicción
 
@@ -237,10 +247,10 @@ $$\tau(\hat{\mathbf{h}}) \;=\; \rho\,\bar{\hat{h}}
 donde $\tau(\mathbf{h})$ y $\tau(\hat{\mathbf{h}})$ resultan de aplicar $\rho$
 al vector observado y al predicho. Un denominador observado, como el de la
 Sección II-A, no tiene esa propiedad: no se mueve con la predicción. Eso no lo
-pone a salvo, y la Sección V-D mide cuánto de la diferencia le corresponde. La
-Figura 1 lo muestra con el mismo headway de dos minutos, y la Sección V-B mide
-qué ocurre sobre datos reales cuando los dos umbrales de la Ecuación (6) se
-tratan como uno.
+pone a salvo, y la Sección V-D mide si esa regla también colapsa. La Figura 1 lo
+muestra con el mismo headway de dos minutos, y la Sección V-B mide qué ocurre
+sobre datos reales cuando los dos umbrales de la Ecuación (6) se tratan como
+uno.
 
 ![El mismo headway bajo dos umbrales](figuras/bunching-umbral.es.png)
 
@@ -334,14 +344,11 @@ dos métodos es el cociente de sus F1 bajo el mismo umbral.
 ### A. Recalibración fuera de muestra
 
 La primera reparación deja intacta la regla del evento y mueve el umbral del
-detector de la Ecuación (5), su punto de operación. Toda la evaluación se repite
-sobre tres **orígenes de evaluación** (*rolling origin*): tres fechas de fin de
-entrenamiento, cada una con su propio período de prueba, que el Apéndice A,
-sección C detalla. Ese umbral no se hereda de lo observado: se ajusta
-maximizando el MCC sobre el período de prueba del origen 2 y se aplica sin
-cambios al del origen 3. Los dos períodos son disjuntos y provienen de modelos
-entrenados por separado, de modo que el período publicado no informa su propio
-umbral.
+detector de la Ecuación (5), su punto de operación. Ese umbral no se hereda de
+lo observado: se ajusta maximizando el MCC sobre el período de prueba del origen
+2 y se aplica sin cambios al del origen 3. Los dos períodos son disjuntos y
+provienen de modelos entrenados por separado, de modo que el período publicado
+no informa su propio umbral.
 
 ### B. La regla de denominador observado y la regla de cuota
 
@@ -356,10 +363,10 @@ Es la longitud del vector por la fracción de posiciones que la regla de la
 Sección III-B marcó en el origen 2, del que la Sección IV-A toma el umbral
 recalibrado. Se la llama aquí **la regla de cuota**. Esa cantidad es un entero y
 los vectores llevan entre tres y seis posiciones. En E4 esa fracción queda por
-debajo de un sexto desde los tres minutos, de modo que los vectores de tres
-posiciones no marcan ninguna, y el redondeo mueve la frecuencia del evento entre
--5.0 y +7.0 puntos. La regla de cuota no marca entonces exactamente el mismo
-evento que las otras dos.
+debajo de un sexto desde el horizonte de tres minutos, de modo que los vectores
+de tres posiciones no marcan ninguna, y el redondeo mueve la frecuencia del
+evento entre -5.0 y +7.0 puntos. La regla de cuota no marca entonces exactamente
+el mismo evento que las otras dos.
 
 ---
 
@@ -430,8 +437,9 @@ la Sección V-A.
 
 ![Tasa de trigger contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 3.** Fracción de posiciones con trigger de cada método, contra la tasa
-real del evento (punteada).
+**Fig. 3.** Fracción de posiciones con trigger de la persistencia y del LSTM,
+con el umbral del evento observado aplicado sin cambios, contra la tasa real del
+evento (punteada), por horizonte. Un panel por corredor, origen 3.
 
 **Tabla 1.** Detección con el umbral del evento observado aplicado sin cambios a
 lo predicho, con el piso del detector trivial al lado.
@@ -523,11 +531,11 @@ piso.
 La Tabla 3 contrasta las tres reglas de la Sección IV-B sobre la misma
 población. Las dos con denominador colapsaron: la razón entre la tasa de trigger
 del LSTM y la tasa real del evento tuvo mediana **0.079** bajo la regla de la
-Sección III-B y **0.153** bajo la de denominador observado. Quitar la
-auto-referencia duplicó el disparo y lo dejó un orden de magnitud por debajo de
-la frecuencia del evento. La regla de cuota no puede colapsar, porque marca la
-misma cantidad en lo predicho y en lo observado, y la persistencia no colapsó
-bajo ninguna de las tres.
+Sección III-B y **0.153** bajo la de denominador observado. Dividir por lo
+observado en lugar de por lo predicho duplicó el disparo y lo dejó un orden de
+magnitud por debajo de la frecuencia del evento. La regla de cuota no puede
+colapsar, porque marca la misma cantidad en lo predicho y en lo observado, y la
+persistencia no colapsó bajo ninguna de las tres.
 
 El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
 minutos. En E2 a diez minutos, bajo la regla de la Sección III-B, ese umbral
@@ -644,7 +652,7 @@ a ninguno.
 Las métricas de la Sección III-C son genéricas y comparables entre corredores, y
 ninguna liga un error de predicción a una decisión de intervención. Los dos
 puntos de operación de la Sección V ofrecen además avisos distintos: el
-trasplantado emitió un trigger en el 0.03 % de las posiciones de E2 a diez
+trasladado emitió un trigger en el 0.03 % de las posiciones de E2 a diez
 minutos, con la precisión por encima de la tasa base según la Sección V-B —un
 filtro de prioridad—, y el recalibrado en el 26.98 %. Elegir entre esos dos
 regímenes de aviso exige una función de costo que pondere el aviso perdido
@@ -779,17 +787,13 @@ explica menos de un punto porcentual en cada corredor.
 
 ### B. Métodos comparados
 
-Se comparan tres métodos sobre las mismas muestras, y cada uno cumple un papel
-distinto. El método bajo estudio es una red recurrente (**LSTM**). Un conjunto
-de árboles con refuerzo de gradiente (**XGBoost**) [@chen2016] actúa como
-**control de arquitectura**: si reproduce el patrón del LSTM, ese patrón no
-proviene del aprendizaje profundo sino del objetivo de la Ecuación (2). El
-tercero no ajusta parámetros y fija el error de referencia: la **persistencia**
-repite el último vector observado, así que su error crece con el horizonte.
+El XGBoost es un control de arquitectura: si reproduce el patrón del LSTM, ese
+patrón no proviene del aprendizaje profundo sino del objetivo de la Ecuación
+(2). La persistencia no ajusta parámetros y fija el error de referencia, que
+crece con el horizonte.
 
 De los tres métodos retenidos, solo el LSTM y el XGBoost ajustan parámetros.
-Ambos se ajustan por corredor y por horizonte, y cada combinación de corredor y
-horizonte se denomina aquí **celda**: hay doce. Los dos sentidos comparten el
+Ambos se ajustan por separado en cada celda. Los dos sentidos comparten el
 modelo de su corredor y entran juntos al entrenamiento. Lo que se separa por
 sentido son los estadísticos de estandarización, de modo que lo predicho se
 devuelve a minutos con los del sentido que le corresponde. El LSTM usa 32
