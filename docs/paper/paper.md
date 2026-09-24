@@ -230,11 +230,15 @@ $\hat{b}_i(t) = 1$ es un **trigger**: la señal que el detector emite, y lo úni
 que un operador vería. El umbral sale del vector predicho porque quien opera un
 corredor no dispone del observado al momento de decidir.
 
-Como $\tau$ se recalcula sobre cada vector, lo predicho y lo observado no se
-comparan contra el mismo umbral en minutos, y la Sección V-B mide qué ocurre
-cuando se los trata como uno. Dividir por un promedio observado, como el de la
-Sección II-A, elimina esa diferencia, y la Sección V-D mide si eso evita el
-colapso. La Figura 1 ilustra la regla con el mismo headway en dos corredores.
+La fracción $\rho = \tfrac{1}{2}$ del detector es la del evento observado,
+heredada sin cambios, y a esa herencia se le llama aquí el **umbral
+trasladado**. No es neutral. La fracción se fijó sobre vectores con la
+dispersión real, y un vector predicho más regular que el observado deja pocas
+posiciones por debajo de la mitad de su promedio, aunque ese promedio, y con él
+el umbral en minutos, se parezca al observado. La Sección V-B mide cuántas.
+Dividir por un promedio observado, como el de la Sección II-A, iguala el umbral
+en minutos de los dos lados, y la Sección V-D mide si eso evita el colapso. La
+Figura 1 ilustra la regla con el mismo headway en dos corredores.
 
 ![El mismo headway bajo dos umbrales](figuras/bunching-umbral.es.png)
 
