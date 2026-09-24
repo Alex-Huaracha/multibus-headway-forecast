@@ -506,12 +506,10 @@ indistinguibles.
 ### D. El umbral en minutos y la regla de cuota
 
 La Tabla 3 contrasta las tres reglas de la Sección IV-B sobre la misma
-población. Las dos con denominador colapsaron: la razón entre la tasa de trigger
-del LSTM y la tasa real del evento tuvo mediana **0.079** bajo la regla de la
-Sección III-B y **0.153** bajo la de denominador observado. Dividir por lo
-observado en lugar de por lo predicho duplicó el disparo y lo dejó un orden de
-magnitud por debajo de la frecuencia del evento. La regla de cuota no puede
-colapsar, porque marca la misma cantidad en lo predicho y en lo observado, y la
+población. Las dos con denominador colapsaron: dividir por lo observado en lugar
+de por lo predicho duplicó el disparo del LSTM y lo dejó un orden de magnitud
+por debajo de la frecuencia del evento. La regla de cuota no puede colapsar,
+porque marca la misma cantidad en lo predicho y en lo observado, y la
 persistencia no colapsó bajo ninguna de las tres.
 
 El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
@@ -535,27 +533,22 @@ minutos, a la manera del umbral de un minuto de Sun, Schmöcker y Nakamura
 [@sun2021]. Se calibró sobre el origen 2 y se aplicó sin cambios al origen 3.
 Frente a la regla de la Sección III-B, la tasa de trigger del LSTM cayó por un
 factor de mediana 138 en diez de las doce celdas, y en las otras dos no emitió
-ninguno. La mediana de su AUC bajó a 0.60, y en E2 a diez minutos llegó a 0.493,
-indistinguible del azar. Con la mitad del headway mediano, el factor fue de 2.0
-y la mediana del AUC de 0.655: el umbral dispara menos que una regla ya
-colapsada.
+ninguno. Con la mitad del headway mediano el factor fue de 2.0: el umbral
+dispara menos que una regla ya colapsada.
 
 La consecuencia está en el veredicto. La regla de cuota reproduce el veredicto
-sin umbral de la Sección V-C en **once** de las doce celdas; la de denominador
-observado en siete y la de la Sección III-B en seis. Bajo esta última la
-persistencia ganó las doce, que es lo que hizo leer el colapso como ceguera del
-modelo. La única celda donde la cuota discrepa es E59 a cinco minutos. El solape
-no explica esa diferencia: la regla de denominador observado es la que más se
-parece a la de la Sección III-B sobre lo observado, y es la que colapsa con
-ella.
+sin umbral de la Sección V-C en **once** de las doce celdas, y las dos con
+denominador en la mitad o poco más. La única celda donde la cuota discrepa es
+E59 a cinco minutos. El solape no explica esa diferencia: la regla de
+denominador observado es la que más se parece a la de la Sección III-B sobre lo
+observado, y es la que colapsa con ella.
 
-La regla de cuota no convierte al modelo en mejor detector. Su MCC tuvo mediana
-**0.210**, contra **0.100** bajo la regla de la Sección III-B, a la que superó
-en las doce celdas. Aun así, bajo la cuota el LSTM **sigue por debajo de la
-persistencia** en siete de las doce celdas. Las cinco que gana son las tres de
-E2 desde los tres minutos, y las de diez minutos en E4 y E59. Reparar la regla
-recupera discriminación y no cambia de dueño el veredicto a un minuto en ninguno
-de los tres corredores.
+La regla de cuota no convierte al modelo en mejor detector. Su MCC mediano
+duplicó el de la regla de la Sección III-B, y lo superó en las doce celdas. Aun
+así, bajo la cuota el LSTM **sigue por debajo de la persistencia** en siete de
+las doce celdas. Las cinco que gana son las tres de E2 desde los tres minutos, y
+las de diez minutos en E4 y E59. Reparar la regla recupera discriminación y no
+cambia de dueño el veredicto a un minuto en ninguno de los tres corredores.
 
 **Tabla 3.** Las tres reglas del evento sobre la misma población y el mismo
 origen. Cada celda es la mediana de las doce combinaciones de corredor y
@@ -576,7 +569,10 @@ marcadas queda fijada antes de leer los valores.
 
 El evento es la fracción del promedio que usa la convención del campo, y no se
 validó contra un registro de incidentes, que estos corredores no producen. Toda
-afirmación de detección vale entonces para el evento así definido.
+afirmación de detección vale entonces para el evento así definido. Contra el
+evento del umbral absoluto de la Sección V-D, el AUC del LSTM tuvo mediana 0.60,
+frente a 0.656 contra el evento de la Sección III-B, y en E2 a diez minutos
+quedó en 0.493, indistinguible del azar.
 
 La compresión de la Sección V-A admite una lectura que apunta al ruido de
 medición: el eje del corredor se estima de los registros y el sentido de marcha
