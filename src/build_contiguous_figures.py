@@ -202,9 +202,7 @@ FIGURE_NAMES = {
     "detection_against_floor": (
         "contiguo-deteccion-contra-piso.png", "deteccion-contra-piso",
     ),
-    "dispersion_compression": (
-        "contiguo-compresion-dispersion.png", "compresion-dispersion",
-    ),
+    "dispersion_compression": ("contiguo-compresion-dispersion.png", None),
     "dispersion_vs_horizon": (
         "contiguo-compresion-vs-horizonte.png", "compresion-vs-horizonte",
     ),

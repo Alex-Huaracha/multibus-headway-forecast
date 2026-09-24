@@ -374,22 +374,23 @@ vehicles bunched»— según lo observado.
 
 La brecha no fue un caso aislado. El sesgo del coeficiente de variación resultó
 negativo en **las doce celdas y los tres orígenes de evaluación**, y se
-profundizó sin excepción al alargar el horizonte: en E2 pasó de −0.42 a un
-minuto a −0.63 a diez. La persistencia no comprimió nada, con el sesgo dentro de
-±0.022. El control sitúa el efecto en el **ajuste por error cuadrático**, que la
-persistencia no hace, y no en los datos ni en el corredor.
+profundizó sin excepción al alargar el horizonte, como muestra la Figura 2. La
+persistencia no comprimió nada, con el sesgo dentro de ±0.022. El control sitúa
+el efecto en el **ajuste por error cuadrático**, que la persistencia no hace, y
+no en los datos ni en el corredor.
+
+![Sesgo de dispersión contra el horizonte](figuras/compresion-vs-horizonte.es.png)
+
+**Fig. 2.** Sesgo del coeficiente de variación, lo predicho menos lo observado,
+por método y horizonte. Un panel por corredor, origen 3; un valor negativo es un
+vector predicho más regular que el observado.
 
 La Ecuación (7) ata ese efecto a una sola cantidad. Sobre las doce celdas, $r$
 siguió a $r_0$ con una correlación de 0.993 en el LSTM, con $r$ entre 0.045 y
 0.552, y de 0.996 en el XGBoost, con $r$ entre 0.040 y 0.547. Las dos
 arquitecturas no comparten sesgo inductivo y sí el objetivo de ajuste. La
 fracción $r_0$ del LSTM cae de 49.5 % en E4 a un minuto hasta 1.3 % en E2 a
-diez. La Figura 2 muestra el efecto.
-
-![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
-
-**Fig. 2.** Coeficiente de variación medio del vector observado (gris) y del
-predicho (rojo), por método, a diez minutos. Un panel por corredor, origen 3.
+diez.
 
 ### B. Colapso de la detección al trasladar el umbral
 
