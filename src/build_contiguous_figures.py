@@ -14,6 +14,8 @@ so a figure can never disagree with the table it illustrates.
                                         El artefacto que se está explicando.
     contiguo-deteccion-sin-umbral.png   Ventaja escalar y AUC de detección, juntas.
                                         El veredicto corregido.
+    contiguo-deteccion-contra-piso.png  AUC de detección contra el piso posicional.
+                                        El veredicto sin umbral, acotado.
     contiguo-compresion-dispersion.png  CV observado contra CV predicho, a h = 10.
                                         La causa del artefacto.
     contiguo-compresion-vs-horizonte.png  El mismo sesgo contra el horizonte. La
@@ -102,6 +104,7 @@ LANG = {
         "auc_lstm": "AUC de bunching — LSTM",
         "advantage_axis": "Ventaja en MAE sobre persistencia [min]",
         "auc_axis": "AUC de detección de bunching",
+        "auc_floor": "Piso del perfil posicional",
         "observed_bars": "Realidad observada",
         "predicted_bars": "Lo que el modelo predice",
         "cv_axis": "Coeficiente de variación del vector",
@@ -130,6 +133,7 @@ LANG = {
         "auc_lstm": "Bunching AUC — LSTM",
         "advantage_axis": "MAE advantage over persistence [min]",
         "auc_axis": "Bunching detection AUC",
+        "auc_floor": "Positional-profile floor",
         "observed_bars": "Observed",
         "predicted_bars": "Predicted",
         "cv_axis": "Vector coefficient of variation",
@@ -194,8 +198,9 @@ FIGURE_NAMES = {
     "threshold_artifact": (
         "contiguo-artefacto-umbral.png", "artefacto-umbral",
     ),
-    "detection_without_threshold": (
-        "contiguo-deteccion-sin-umbral.png", "deteccion-sin-umbral",
+    "detection_without_threshold": ("contiguo-deteccion-sin-umbral.png", None),
+    "detection_against_floor": (
+        "contiguo-deteccion-contra-piso.png", "deteccion-contra-piso",
     ),
     "dispersion_compression": (
         "contiguo-compresion-dispersion.png", "compresion-dispersion",
@@ -529,6 +534,71 @@ def detection_without_threshold(*, lang: str = "es", chrome: bool = True) -> Pat
     return path
 
 
+def detection_against_floor(*, lang: str = "es", chrome: bool = True) -> Path:
+    """The threshold-free verdict, bounded by what position alone achieves.
+
+    One AUC axis only. The earlier pairing with the scalar advantage put minutes
+    and AUC on twin axes, where a crossing of the two curves looks meaningful and
+    is not; the scalar result already lives in the text. The positional floor is
+    drawn because an AUC above 0.5 is not yet evidence of anticipation: a profile
+    that never reads the input window already clears chance in E2.
+    """
+    path = _resolve("detection_against_floor", lang, chrome)
+    words = LANG[lang]
+    null = _load("positional_null.csv")
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.4), sharex=True, sharey=True)
+    legend_handles: list = []
+
+    for ax, corridor in zip(axes, CORRIDORS):
+        cell = null.filter(pl.col("corridor") == corridor).sort("horizon")
+        horizons = cell.get_column("horizon")
+        for column, label_key, color, marker, style in (
+            ("auc_lstm", "auc_lstm", "tab:red", "s", "-"),
+            ("auc_persist", "auc_persistence", "tab:gray", "o", "--"),
+            ("auc_null", "auc_floor", "black", "", ":"),
+        ):
+            (line,) = ax.plot(
+                horizons, cell.get_column(column),
+                color=color, marker=marker, linestyle=style,
+                linewidth=2.0, markersize=7, label=words[label_key],
+            )
+            if ax is axes[0]:
+                legend_handles.append(line)
+        # Chance is a reference, not a series: thin and unlabelled, named in the
+        # caption. Shared limits keep the three corridors on one scale.
+        ax.axhline(0.5, color="tab:gray", linewidth=0.8, alpha=0.6)
+        ax.set_ylim(0.45, 0.85)
+        ax.set_title(corridor)
+        ax.set_xticks(list(HORIZONS))
+        ax.set_xlabel(words["horizon_axis"])
+        ax.grid(True, alpha=0.3)
+
+    axes[0].set_ylabel(words["auc_axis"])
+    if chrome:
+        fig.suptitle(
+            "Sin umbral el LSTM ordena mejor a diez minutos, salvo en E2, donde "
+            "la posición sola ordena igual",
+            y=0.99, fontsize=12.5,
+        )
+    fig.legend(
+        legend_handles, [line.get_label() for line in legend_handles],
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.925 if chrome else CLEAN_LEGEND_Y),
+        ncol=3, frameon=False,
+    )
+    if chrome:
+        _caption(fig, [
+            "AUC sobre el origen 3. El piso responde con el headway promedio de cada posición en el origen 2, sin leer la ventana",
+            "de entrada. La línea fina en 0.5 es el azar.",
+        ])
+    fig.tight_layout(rect=(0, 0.08, 1, 0.88) if chrome else CLEAN_RECT)
+
+    fig.savefig(path, dpi=DPI)
+    plt.close(fig)
+    return path
+
+
 def dispersion_compression(*, lang: str = "es", chrome: bool = True) -> Path:
     """Observed vs predicted coefficient of variation, by model and corridor.
 
@@ -660,7 +730,7 @@ def dispersion_vs_horizon(*, lang: str = "es", chrome: bool = True) -> Path:
 
 RENDERERS = (
     degradation, volatility, threshold_artifact, detection_without_threshold,
-    dispersion_compression, dispersion_vs_horizon,
+    detection_against_floor, dispersion_compression, dispersion_vs_horizon,
 )
 
 

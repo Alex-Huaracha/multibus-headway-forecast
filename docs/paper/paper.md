@@ -464,23 +464,24 @@ excepción es E4 a cinco minutos, donde solo el origen 2 favoreció al LSTM. Las
 nueve diferencias de diez minutos sobrevivieron su intervalo, y van de 0.033 a
 0.061. La persistencia conservó la ventaja a un minuto en los tres corredores y
 los tres orígenes, donde el error escalar también la favorecía. La Tabla 2 reúne
-los dos instrumentos, y la Figura 4 pone la ventaja escalar junto al AUC.
+los dos instrumentos, y la Figura 4 pone el AUC de los dos métodos junto al piso
+posicional.
 
 Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
 y el perfil posicional del Apéndice A, sección B lo acota. En E4 y E59 el piso
-queda indistinguible del azar, entre 0.486 y 0.523, y el LSTM lo supera por
-entre 0.08 y 0.29 en las ocho celdas, con las ocho diferencias fuera de su
-intervalo. En E2 el piso sube a 0.58 y no se mueve con el horizonte. **A diez
-minutos el LSTM queda por debajo de ese piso, 0.565 contra 0.579**, con una
-diferencia de -0.013 [-0.023, -0.003]: ahí la ventaja sin umbral no se sostiene
-contra un método que no lee la ventana de entrada. Es la única de las doce
-celdas donde ocurre, y es la que la Sección V-B usa para exhibir el colapso.
+queda indistinguible del azar, y el LSTM lo supera en las ocho celdas, con las
+ocho diferencias fuera de su intervalo. En E2 el piso queda por encima del azar
+en todos los horizontes, y **a diez minutos el LSTM cae por debajo de él, 0.565
+contra 0.579**, con una diferencia de -0.013 [-0.023, -0.003]: ahí la ventaja
+sin umbral no se sostiene contra un método que no lee la ventana de entrada. Es
+la única de las doce celdas donde ocurre, y es la que la Sección V-B usa para
+exhibir el colapso.
 
-![Ventaja escalar y AUC de detección](figuras/deteccion-sin-umbral.es.png)
+![AUC de detección contra el piso posicional](figuras/deteccion-contra-piso.es.png)
 
-**Fig. 4.** Ventaja de error absoluto del LSTM sobre la persistencia (escala
-izquierda) y AUC de detección de cada método (escala derecha), un panel por
-corredor.
+**Fig. 4.** AUC de detección del LSTM y de la persistencia contra el piso del
+perfil posicional (punteado), por horizonte. Un panel por corredor, origen 3; la
+línea en 0.5 es el azar.
 
 **Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra,
 con el piso del perfil posicional al lado del AUC que acota.
