@@ -21,7 +21,7 @@ figure it sits next to, and no number in the paper is ever typed by hand.
                                               definitions the viability probe
                                               compared, on the two dimensions
                                               that decided the discards.
-    tabla-7-punto-de-operacion.md             The four ways of setting the
+    tabla-7-reglas-del-umbral.md             The four ways of setting the
                                               operating point, and which of
                                               them recover the verdict.
 
@@ -593,7 +593,7 @@ TABLES = {
     "tabla-4-cobertura-headway.md": tabla_4,
     "tabla-5-formulaciones-headway.md": tabla_5,
     "tabla-6-ablacion-arquitectura.md": tabla_6,
-    "tabla-7-punto-de-operacion.md": tabla_7,
+    "tabla-7-reglas-del-umbral.md": tabla_7,
 }
 
 

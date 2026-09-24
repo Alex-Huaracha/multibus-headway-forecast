@@ -26,8 +26,8 @@ completo de headways de una línea de metro con una red profunda, y reportan sol
 el error en minutos, sin convertir lo predicho en un indicador de evento
 [@usama2025]. Sun, Schmöcker y Nakamura sí llegan a la detección, y dejan
 pendiente construir la curva que compararía a los métodos basados en headway sin
-fijar un punto de operación [@sun2021]. Queda sin medir qué le hace el error de
-la primera etapa a la decisión de la segunda.
+fijar un umbral [@sun2021]. Queda sin medir qué le hace el error de la primera
+etapa a la decisión de la segunda.
 
 La primera etapa introduce el defecto que la segunda hereda. Un modelo entrenado
 con error cuadrático medio tiende al promedio condicional, y la dispersión entre
@@ -39,31 +39,32 @@ promedio del propio vector predicho, de modo que es relativa, y aun así deja de
 avisar.
 
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta
-el punto de operación. Predice el vector completo de headways de un corredor
-—los buses de una empresa que circulan sobre una misma ruta— con una red
-recurrente. La regla de la Sección III-B convierte lo predicho en un indicador
-de bunching, y la evaluación puntúa esa detección con y sin umbral. Las dos
-puntuaciones se contradicen: con el umbral del evento observado trasladado sin
-cambios, la persistencia —que repite el último vector observado— llega a superar
-a la red por un factor de 253 en el F1. Sin umbral, la misma predicción ordena
-mejor que la persistencia en las nueve combinaciones de corredor y origen de
-evaluación, cada uno con su propio período de prueba, a diez minutos. La Sección
-II-C delimita cuánto del mecanismo que este trabajo mide ya estaba publicado.
+el umbral. Predice el vector completo de headways de un corredor —los buses de
+una empresa que circulan sobre una misma ruta— con una red recurrente. La regla
+de la Sección III-B convierte lo predicho en un indicador de bunching, y la
+evaluación puntúa esa detección con y sin umbral. Las dos puntuaciones se
+contradicen: con el umbral del evento observado trasladado sin cambios, la
+persistencia —que repite el último vector observado— llega a superar a la red
+por un factor de 253 en el F1. Sin umbral, la misma predicción ordena mejor que
+la persistencia en las nueve combinaciones de corredor y origen de evaluación,
+cada uno con su propio período de prueba, a diez minutos. La Sección II-C
+delimita cuánto del mecanismo que este trabajo mide ya estaba publicado.
 Nuestras contribuciones son tres:
 
 - Medimos esa compresión sobre el vector de headways, la aislamos con la
-  persistencia como control de compresión nula y la leemos en la escala de
-  nivel de servicio del *Transit Capacity and Quality of Service Manual*
-  (TCQSM). El mismo corredor queda en nivel A según lo predicho y en nivel F
-  según lo observado.
-- Mostramos que la evaluación en dos etapas, con el umbral trasladado, invierte
-  el veredicto que las mismas predicciones dan sin umbral. Acotamos ese
-  veredicto con un perfil posicional que no lee la ventana de entrada.
+  persistencia como control de compresión nula y la leemos en la escala de nivel
+  de servicio del *Transit Capacity and Quality of Service Manual* (TCQSM). El
+  mismo corredor queda en nivel A según lo predicho y en nivel F según lo
+  observado.
+- Mostramos que la evaluación en dos etapas, con el umbral trasladado, cambia
+  qué método detecta mejor, frente a las mismas predicciones puntuadas sin
+  umbral. Acotamos esa comparación con un perfil posicional que no lee la
+  ventana de entrada.
 - Mostramos que el colapso alcanza a toda regla que lleve a lo predicho un
-  umbral fijado sobre la escala de lo observado, relativa o absoluta. Un punto
-  de operación fijado sobre lo predicho recupera el veredicto sin umbral en once
-  de las doce celdas, sea recalibrado sobre un origen anterior o como una cuota
-  de posiciones que por construcción no puede colapsar.
+  umbral fijado sobre la escala de lo observado, relativa o absoluta. Un umbral
+  fijado sobre lo predicho recupera la comparación sin umbral en once de las
+  doce celdas, sea recalibrado sobre un origen anterior o como una cuota de
+  posiciones que por construcción no puede colapsar.
 
 ---
 
@@ -76,11 +77,11 @@ de la Sección I: un headway cuenta como bunching si cae por debajo de la cuarta
 parte del headway observado en la primera parada del mismo viaje [@yu2016].
 Jiao, Shen y Zhang heredan esa misma regla, y su pérdida suma un término de
 clasificación, porque una pérdida atenta solo al error de regresión trata como
-ruido los casos que la regla marca [@jiao2023]. La segunda etapa se evalúa en un
-punto de operación único: ninguna de las ocho filas con que Santos y
-colaboradores resumen el subcampo registra una medida que puntúe el ordenamiento
-sin fijar antes un umbral [@santos2022]. Este trabajo puntúa las mismas
-predicciones con el umbral y sin él, para aislar el punto de operación.
+ruido los casos que la regla marca [@jiao2023]. La segunda etapa se evalúa con
+un solo umbral: ninguna de las ocho filas con que Santos y colaboradores resumen
+el subcampo registra una medida que puntúe el ordenamiento sin fijar antes un
+umbral [@santos2022]. Este trabajo puntúa las mismas predicciones con el umbral
+y sin él, para aislar el efecto del umbral.
 
 ### B. Compresión de la dispersión bajo error cuadrático medio
 
@@ -310,11 +311,10 @@ piso a todo F1 reportado. El coeficiente de correlación de Matthews (MCC) usa
 los cuatro conteos. Para ese detector su cociente queda indeterminado, porque
 numerador y denominador se anulan a la vez, y se le asigna cero por extensión
 por continuidad [@chicco2020]. El área bajo la curva ROC (AUC) [@handtill2001]
-prescinde del umbral —el punto de operación del detector— y puntúa el
-ordenamiento del puntaje continuo $-\hat{h}_i/\bar{\hat{h}}$, del cual la
-Ecuación (5) es el umbral en $-\rho$. Se calcula por celda, con todas las
-posiciones y los dos sentidos en un solo ordenamiento, y vale 0.5 cuando la
-predicción no ordena.
+prescinde del umbral y puntúa el ordenamiento del puntaje continuo
+$-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (5) es el umbral en $-\rho$. Se
+calcula por celda, con todas las posiciones y los dos sentidos en un solo
+ordenamiento, y vale 0.5 cuando la predicción no ordena.
 
 Ese 0.5 es el piso de una predicción sin ninguna información, y no el de una
 predicción sin información **temporal**. El perfil posicional del Apéndice A,
@@ -329,16 +329,16 @@ dos métodos es el cociente de sus F1 bajo el mismo umbral.
 
 ---
 
-## IV. Reparaciones del punto de operación y de la regla
+## IV. Reparaciones del umbral y de la regla
 
 ### A. Recalibración fuera de muestra
 
 La primera reparación deja intacta la regla del evento y mueve el umbral del
-detector de la Ecuación (5), su punto de operación. Ese umbral no se hereda de
-lo observado: se ajusta maximizando el MCC sobre el período de prueba del origen
-2 y se aplica sin cambios al del origen 3. Los dos períodos son disjuntos y
-provienen de modelos entrenados por separado, de modo que el período publicado
-no informa su propio umbral.
+detector de la Ecuación (5). Ese umbral no se hereda de lo observado: se ajusta
+maximizando el MCC sobre el período de prueba del origen 2 y se aplica sin
+cambios al del origen 3. Los dos períodos son disjuntos y provienen de modelos
+entrenados por separado, de modo que el período publicado no informa su propio
+umbral.
 
 ### B. La regla de denominador observado y la regla de cuota
 
@@ -463,14 +463,14 @@ degenera en este corpus: sobre la persistencia en E2, de tres minutos en
 adelante, el umbral que optimiza el F1 emitió un trigger entre el 99.9 % y el
 100 % de las posiciones, esto es, el detector trivial de la Tabla 1.
 
-Eliminar el umbral mueve el veredicto más. Puntuado mediante el AUC, **el LSTM
-ganó en las nueve combinaciones de corredor y origen a diez minutos**, y en 6 de
-las 12 celdas del origen 3. Los tres orígenes coincidieron en el ganador de 11
-de las 12 celdas, incluido el primero, que cubre las fiestas de fin de año; la
-excepción es E4 a cinco minutos, donde solo el origen 2 favoreció al LSTM. Las
-nueve diferencias de diez minutos sobrevivieron su intervalo, y van de 0.033 a
-0.061. La persistencia conservó la ventaja a un minuto en los tres corredores y
-los tres orígenes, donde el error escalar también la favorecía. La Figura 4
+Eliminar el umbral cambia más la comparación. Puntuado mediante el AUC, **el
+LSTM ganó en las nueve combinaciones de corredor y origen a diez minutos**, y en
+6 de las 12 celdas del origen 3. Los tres orígenes coincidieron en el ganador de
+11 de las 12 celdas, incluido el primero, que cubre las fiestas de fin de año;
+la excepción es E4 a cinco minutos, donde solo el origen 2 favoreció al LSTM.
+Las nueve diferencias de diez minutos sobrevivieron su intervalo, y van de 0.033
+a 0.061. La persistencia conservó la ventaja a un minuto en los tres corredores
+y los tres orígenes, donde el error escalar también la favorecía. La Figura 4
 muestra el AUC de los dos métodos junto al piso posicional, y la Tabla 2 da cada
 diferencia con su intervalo.
 
@@ -509,7 +509,7 @@ indistinguibles.
 | E59 | 5 | +0.017 [+0.012, +0.022] | +0.173 [+0.162, +0.184] | -0.044 [-0.053, -0.036] |
 | E59 | 10 | +0.061 [+0.054, +0.067] | +0.146 [+0.133, +0.159] | +0.042 [+0.033, +0.052] |
 
-### D. Las cuatro formas de fijar el punto de operación
+### D. Formas de fijar el umbral
 
 La Tabla 3 contrasta, sobre la misma población, el umbral trasladado, las dos
 reglas de la Sección IV-B y el umbral recalibrado de la Sección IV-A. Las dos
@@ -546,19 +546,19 @@ factor de mediana 138 en diez de las doce celdas, y en las otras dos no emitió
 ninguno. Con la mitad del headway mediano el factor fue de 2.0: el umbral
 dispara menos que una regla ya colapsada.
 
-La consecuencia está en el veredicto. El umbral recalibrado y la regla de cuota
-reproducen el veredicto sin umbral de la Sección V-C en once de las doce celdas,
-y las dos reglas que colapsan en la mitad o poco más. La única celda donde
-discrepan es E59 a cinco minutos. El solape no explica esa diferencia: la regla de
-denominador observado es la que más se parece a la de la Sección III-B sobre lo
-observado, y es la que colapsa con ella.
+La consecuencia está en qué método gana. El umbral recalibrado y la regla de
+cuota reproducen la comparación sin umbral de la Sección V-C en once de las doce
+celdas, y las dos reglas que colapsan en la mitad o poco más. La única celda
+donde discrepan es E59 a cinco minutos. El solape no explica esa diferencia: la
+regla de denominador observado es la que más se parece a la de la Sección III-B
+sobre lo observado, y es la que colapsa con ella.
 
 La regla de cuota no convierte al modelo en mejor detector. Su MCC mediano
 duplicó el de la regla de la Sección III-B, y lo superó en las doce celdas. Aun
 así, bajo la cuota el LSTM **sigue por debajo de la persistencia** en siete de
 las doce celdas. Las cinco que gana son las tres de E2 desde los tres minutos, y
 las de diez minutos en E4 y E59. Reparar la regla recupera discriminación y no
-cambia de dueño el veredicto a un minuto en ninguno de los tres corredores.
+cambia el ganador a un minuto en ninguno de los tres corredores.
 
 **Tabla 3.** Las cuatro reglas, sobre la misma población y el mismo origen. T/E
 es la tasa de trigger dividida por la tasa del evento, y vale uno cuando el
@@ -796,12 +796,13 @@ headway válido siguen enmascaradas.
 
 ## Apéndice B. Pruebas estadísticas
 
-Un veredicto compara dos métodos sobre las mismas muestras bajo una métrica
-declarada, y consta de tres partes: cuál de los dos gana, por cuánto y si la
-diferencia sobrevive su prueba. Exigir muestras idénticas lo distingue de restar
-dos métricas agregadas, que pueden venir de poblaciones distintas. Este trabajo
-emite veredictos sobre el MAE, el MCC y el AUC de la Sección III-C, y el que usa
-el AUC es sin umbral, porque no depende del punto de operación.
+Una comparación pareada enfrenta dos métodos sobre las mismas muestras bajo una
+métrica declarada, y consta de tres partes: cuál de los dos gana, por cuánto y
+si la diferencia sobrevive su prueba. Exigir muestras idénticas lo distingue de
+restar dos métricas agregadas, que pueden venir de poblaciones distintas. Este
+trabajo hace comparaciones pareadas sobre el MAE, el MCC y el AUC de la Sección
+III-C, y la que usa el AUC es sin umbral, porque puntúa todos los umbrales a la
+vez.
 
 Una diferencia de MAE puede ser ruido del período de prueba. Se contrasta con la
 prueba de Diebold–Mariano [@diebold1995] sobre el diferencial de pérdida por
