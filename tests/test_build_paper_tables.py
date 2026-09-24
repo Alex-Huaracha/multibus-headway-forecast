@@ -36,7 +36,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 PAPER = REPO_ROOT / "docs" / "paper" / "paper.md"
 
 # tabla_3 (robustez) is no longer pasted: the manuscript replaced it with the
-# VI-A paragraph, so only its shape is checked below, not its paste.
+# V-C paragraph, so only its shape is checked below, not its paste.
 PASTED_TABLES = [("Tabla 1", tabla_1), ("Tabla 2", tabla_2)]
 ALL_TABLES = PASTED_TABLES + [("robustez", tabla_3)]
 

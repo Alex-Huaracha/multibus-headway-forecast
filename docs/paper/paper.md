@@ -306,7 +306,9 @@ numerador y denominador se anulan a la vez, y se le asigna cero por extensión
 por continuidad [@chicco2020]. El área bajo la curva ROC (AUC) [@handtill2001]
 prescinde del umbral —el punto de operación del detector— y puntúa el
 ordenamiento del puntaje continuo $-\hat{h}_i/\bar{\hat{h}}$, del cual la
-Ecuación (5) es el umbral en $-\rho$. Vale 0.5 cuando la predicción no ordena.
+Ecuación (5) es el umbral en $-\rho$. Se calcula por celda, con todas las
+posiciones y los dos sentidos en un solo ordenamiento, y vale 0.5 cuando la
+predicción no ordena.
 
 Ese 0.5 es el piso de una predicción sin ninguna información, y no el de una
 predicción sin información **temporal**. El perfil posicional del Apéndice A,
@@ -386,8 +388,8 @@ diez. La Figura 2 muestra el efecto.
 
 ![Dispersión observada frente a predicha](figuras/compresion-dispersion.es.png)
 
-**Fig. 2.** Dispersión observada frente a dispersión predicha por método,
-horizonte de diez minutos.
+**Fig. 2.** Coeficiente de variación medio del vector observado (gris) y del
+predicho (rojo), por método, a diez minutos. Un panel por corredor, origen 3.
 
 ### B. Colapso de la detección al trasladar el umbral
 

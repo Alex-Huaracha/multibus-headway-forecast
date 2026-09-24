@@ -171,8 +171,7 @@ def tabla_1() -> str:
         aligns="lrrrrrr",
     )
     note = (
-        "\n\n† La regla vacía —marcar toda posición— supera al ganador "
-        "declarado en estas celdas."
+        "\n\n† El detector trivial supera al ganador declarado en estas celdas."
     )
     return table + note
 
