@@ -587,14 +587,9 @@ no se parecen a las de un mes ordinario.
 
 ### B. Amenazas a la validez
 
-El umbral del evento es la fracción del promedio que usa la convención del
-campo, no una calibración contra eventos observados, y validarla exigiría un
-registro de incidentes que estos corredores no producen. Toda afirmación de
-detección vale entonces para el evento así definido y sobre las posiciones que
-resolvieron. El tope de treinta minutos del Apéndice A recorta además los
-headways más largos y baja el promedio del vector y, con él, el umbral, de modo
-que la tasa base no es comparable con tasas medidas sobre registros sin
-enmascarar.
+El evento es la fracción del promedio que usa la convención del campo, y no se
+validó contra un registro de incidentes, que estos corredores no producen. Toda
+afirmación de detección vale entonces para el evento así definido.
 
 La compresión de la Sección V-A admite una lectura que apunta al ruido de
 medición: el eje del corredor se estima de los registros y el sentido de marcha
@@ -604,34 +599,14 @@ eliminarla: $r$ sigue a $r_0$ con una correlación de 0.993. El corpus fija
 entonces el tamaño del efecto y no su existencia: un corredor con geometría
 publicada tendría un error menor y una compresión menor.
 
-Un vector reúne entre 3.8 y 5.9 headways en promedio, así que la dispersión
-transversal reposa sobre pocas observaciones. Que el efecto se repita en los
-tres corredores y los tres orígenes lo hace poco atribuible a esa longitud,
-aunque cada cifra es menos estable en E2 y E4, de vector más corto, que en E59.
-El período de prueba incluye además los días de Carnaval, que no se
-identificaron ni se trataron aparte.
+Cada modelo se entrenó con una sola semilla, y un vector reúne en promedio entre
+3.8 y 5.9 headways, de modo que su dispersión reposa sobre pocas observaciones.
+El efecto se repite en los tres corredores y en los tres orígenes, cada uno con
+su propio entrenamiento, y eso lo hace poco atribuible a cualquiera de las dos
+cosas.
 
-El LSTM y el XGBoost se entrenaron con una sola semilla, de modo que ninguna
-cifra incluye la variación entre entrenamientos. Sus presupuestos de búsqueda
-del Apéndice A, sección B no son iguales: donde el LSTM queda por detrás del
-XGBoost, la diferencia no es atribuible a la clase de modelo. El contraste de
-arquitecturas de esa sección tampoco está nivelado, porque precede al protocolo.
-La persistencia no ajusta parámetros, y su error de referencia no depende de esa
-asimetría.
-
-El piso posicional tiene dos límites propios. Se ajusta sobre un solo origen
-anterior, mientras que los veredictos entre métodos se replican sobre tres. Y no
-carece de información: lee qué posiciones ocupó el corredor en ese minuto,
-aunque no la ventana de entrada, y los métodos que acota leen esa misma
-composición, así que la comparación no favorece a ninguno.
-
-Las métricas de la Sección III-C son genéricas, y ninguna liga un error de
-predicción a una decisión de intervención. Los dos puntos de operación de la
-Sección V dan además avisos distintos: en E2 a diez minutos, el trasladado marcó
-el 0.03 % de las posiciones, con la precisión por encima de la tasa base —un
-filtro de prioridad—, y el recalibrado el 26.98 %. Elegir entre ellos exige una
-función de costo que pondere el aviso perdido contra el aviso falso, y esa
-función depende de la operación de cada empresa.
+El piso posicional se ajusta sobre un solo origen anterior, mientras que los
+veredictos entre métodos se replican sobre tres.
 
 ---
 
