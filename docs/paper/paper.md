@@ -456,14 +456,13 @@ adelante, el umbral que optimiza el F1 emitió un trigger entre el 99.9 % y el
 
 Eliminar el umbral mueve el veredicto más. Puntuado mediante el AUC, **el LSTM
 ganó en las nueve combinaciones de corredor y origen a diez minutos**, y en 6 de
-las 12 celdas del origen 3. Las nueve diferencias de diez minutos sobrevivieron
-su intervalo, y van de 0.033 a 0.061. La persistencia conservó la ventaja a un
-minuto en los tres corredores y los tres orígenes, donde el error escalar
-también la favorecía. La inversión del AUC llegó en el mismo escalón que la del
-error escalar en E2, y uno o dos escalones más tarde en E59 y E4, y en ninguna
-de las dos métricas la ventaja volvió a la persistencia al alargar el horizonte.
-La Tabla 2 reúne los dos instrumentos, y la Figura 4 pone la ventaja escalar
-junto al AUC.
+las 12 celdas del origen 3. Los tres orígenes coincidieron en el ganador de 11
+de las 12 celdas, incluido el primero, que cubre las fiestas de fin de año; la
+excepción es E4 a cinco minutos, donde solo el origen 2 favoreció al LSTM. Las
+nueve diferencias de diez minutos sobrevivieron su intervalo, y van de 0.033 a
+0.061. La persistencia conservó la ventaja a un minuto en los tres corredores y
+los tres orígenes, donde el error escalar también la favorecía. La Tabla 2 reúne
+los dos instrumentos, y la Figura 4 pone la ventaja escalar junto al AUC.
 
 Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
 y el perfil posicional del Apéndice A, sección B lo acota. En E4 y E59 el piso
@@ -551,13 +550,11 @@ ella.
 
 La regla de cuota no convierte al modelo en mejor detector. Su MCC tuvo mediana
 **0.210**, contra **0.100** bajo la regla de la Sección III-B, a la que superó
-en las doce celdas. El umbral recalibrado de la Sección V-C, que toma del mismo
-origen 2 su única información previa, alcanzó 0.198, puntuado contra el evento
-de la Sección III-B y no contra el de la cuota. Aun así, bajo la cuota el LSTM
-**sigue por debajo de la persistencia** en siete de las doce celdas. Las cinco
-que gana son las tres de E2 desde los tres minutos, y las de diez minutos en E4
-y E59. Reparar la regla recupera discriminación y no cambia de dueño el
-veredicto a un minuto en ninguno de los tres corredores.
+en las doce celdas. Aun así, bajo la cuota el LSTM **sigue por debajo de la
+persistencia** en siete de las doce celdas. Las cinco que gana son las tres de
+E2 desde los tres minutos, y las de diez minutos en E4 y E59. Reparar la regla
+recupera discriminación y no cambia de dueño el veredicto a un minuto en ninguno
+de los tres corredores.
 
 **Tabla 3.** Las tres reglas del evento sobre la misma población y el mismo
 origen. Cada celda es la mediana de las doce combinaciones de corredor y
@@ -574,18 +571,7 @@ marcadas queda fijada antes de leer los valores.
 
 ---
 
-## VI. Discusión y amenazas a la validez
-
-### A. Robustez frente al origen
-
-El veredicto sin umbral de la Sección V-C no depende del origen. Los tres
-orígenes coincidieron en 11 de las 12 celdas —la excepción es E4 a cinco
-minutos, donde solo el origen 2 favoreció al LSTM— y en las nueve combinaciones
-de corredor y origen a diez minutos. El primer período de prueba, del 23 de
-diciembre al 13 de enero, incluye las fiestas, cuando la frecuencia y la demanda
-no se parecen a las de un mes ordinario.
-
-### B. Amenazas a la validez
+## VI. Amenazas a la validez
 
 El evento es la fracción del promedio que usa la convención del campo, y no se
 validó contra un registro de incidentes, que estos corredores no producen. Toda
@@ -831,13 +817,6 @@ que acotar.
 
 ## Referencias
 
-_(lista en construcción: solo las fuentes ya verificadas en
-`fuentes-verificadas.md` y ya llamadas desde el texto. Las llamadas usan claves
-con arroba y no números, de modo que insertar una fuente no obliga a renumerar ni
-a corregir llamadas. La numeración por orden de primera aparición se resuelve al
-convertir al formato final, sustituyendo cada clave por su número; el orden de
-esta lista no es todavía el definitivo.)_
-
 `[@andres2017]` M. Andres and R. Nair, "A predictive-control framework to address
 bus bunching," *Transportation Research Part B: Methodological*, vol. 104,
 pp. 123–148, 2017, doi: 10.1016/j.trb.2017.06.013.
@@ -847,12 +826,7 @@ Positioning System Traces: Survey and Comparative Evaluation," *Transportation
 Research Record*, vol. 2291, no. 1, pp. 61–71, 2012, doi: 10.3141/2291-08.
 
 `[@bonavita2024]` M. Bonavita, "On some limitations of data-driven weather
-forecasting models," arXiv:2309.08473, 2023. La afirmación de la Sección
-II-A proviene de este preprint, que examina un solo modelo; la versión publicada
-—"On Some Limitations of Current Machine Learning Weather Prediction Models,"
-*Geophysical Research Letters*, vol. 51, no. 12, art. e2023GL107377, 2024,
-doi: 10.1029/2023GL107377— lleva otro título y examina tres, de modo que no se le
-atribuye texto.
+forecasting models," arXiv:2309.08473, 2023.
 
 `[@chen2016]` T. Chen and C. Guestrin, "XGBoost: A Scalable Tree Boosting System,"
 in *Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
