@@ -13,4 +13,4 @@
 | E59 | 5 | 0.208 | 0.344 | 0.405 | 0.083 | 4.9× |
 | E59 | 10 | 0.208 | 0.344 | 0.303&nbsp;† | 0.034 | 8.8× |
 
-† La regla vacía —marcar toda posición— supera al ganador declarado en estas celdas.
+† El detector trivial supera al ganador declarado en estas celdas.

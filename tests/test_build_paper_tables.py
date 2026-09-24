@@ -87,17 +87,15 @@ class TestTablaDosPrintsWhatItsSourcesPublished:
     def rows(self) -> list[list[str]]:
         return [_cells(row) for row in _rows(tabla_2())]
 
-    def test_the_floor_is_the_figure_the_null_builder_published(self, rows) -> None:
-        printed = {
-            (cells[0], int(cells[1])): cells[4].replace("**", "").split("&nbsp;")[0]
-            for cells in rows
-        }
+    def test_the_floor_band_is_the_one_the_null_builder_published(self, rows) -> None:
+        printed = {(cells[0], int(cells[1])): cells[3] for cells in rows}
         for row in _load("positional_null.csv").iter_rows(named=True):
             key = (row["corridor"], row["horizon"])
-            assert printed[key] == f"{row['auc_null']:.3f}", key
+            for column in ("lstm_vs_null_delta", "lstm_vs_null_ci_low", "lstm_vs_null_ci_high"):
+                assert f"{row[column]:+.3f}" in printed[key], (key, column)
 
     def test_every_interval_is_the_one_the_bootstrap_published(self, rows) -> None:
-        printed = {(cells[0], int(cells[1])): (cells[5], cells[8]) for cells in rows}
+        printed = {(cells[0], int(cells[1])): (cells[2], cells[4]) for cells in rows}
         intervals = _load("detection_ranking_ci.csv").filter(pl.col("origin") == "main")
         for row in intervals.iter_rows(named=True):
             key = (row["corridor"], row["horizon"])

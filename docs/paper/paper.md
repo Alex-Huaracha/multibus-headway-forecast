@@ -464,19 +464,18 @@ de las 12 celdas, incluido el primero, que cubre las fiestas de fin de año; la
 excepción es E4 a cinco minutos, donde solo el origen 2 favoreció al LSTM. Las
 nueve diferencias de diez minutos sobrevivieron su intervalo, y van de 0.033 a
 0.061. La persistencia conservó la ventaja a un minuto en los tres corredores y
-los tres orígenes, donde el error escalar también la favorecía. La Tabla 2 reúne
-los dos instrumentos, y la Figura 4 pone el AUC de los dos métodos junto al piso
-posicional.
+los tres orígenes, donde el error escalar también la favorecía. La Figura 4
+muestra el AUC de los dos métodos junto al piso posicional, y la Tabla 2 da cada
+diferencia con su intervalo.
 
 Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
 y el perfil posicional del Apéndice A, sección B lo acota. En E4 y E59 el piso
 queda indistinguible del azar, y el LSTM lo supera en las ocho celdas, con las
 ocho diferencias fuera de su intervalo. En E2 el piso queda por encima del azar
 en todos los horizontes, y **a diez minutos el LSTM cae por debajo de él, 0.565
-contra 0.579**, con una diferencia de -0.013 [-0.023, -0.003]: ahí la ventaja
-sin umbral no se sostiene contra un método que no lee la ventana de entrada. Es
-la única de las doce celdas donde ocurre, y es la que la Sección V-B usa para
-exhibir el colapso.
+contra 0.579**, fuera de su intervalo: ahí la ventaja sin umbral no se sostiene
+contra un método que no lee la ventana de entrada. Es la única de las doce
+celdas donde ocurre, y es la que la Sección V-B usa para exhibir el colapso.
 
 ![AUC de detección contra el piso posicional](figuras/deteccion-contra-piso.es.png)
 
@@ -484,32 +483,25 @@ exhibir el colapso.
 perfil posicional (punteado), por horizonte. Un panel por corredor, origen 3; la
 línea en 0.5 es el azar.
 
-**Tabla 2.** Veredicto sin umbral y con el umbral recalibrado fuera de muestra,
-con el piso del perfil posicional al lado del AUC que acota.
+**Tabla 2.** Diferencias del LSTM, sin umbral y con el umbral recalibrado fuera
+de muestra, con su intervalo de confianza del 95 %. Un signo positivo favorece
+al LSTM, y un intervalo que contiene el cero deja a los dos lados
+indistinguibles.
 
-| Corredor | h | AUC LSTM | AUC persist. | Piso posicional | Δ AUC [IC 95 %] | MCC recal. LSTM | MCC recal. persist. | Δ MCC [IC 95 %] |
-| :--- | ---: | ---: | ---: | ---: | :---: | ---: | ---: | :---: |
-| E2 | 1 | 0.714 | **0.723** | 0.587 | -0.009 [-0.015, -0.004] | 0.310 | **0.401** | -0.091 [-0.106, -0.078] |
-| E2 | 3 | **0.629** | 0.598 | 0.580 | +0.031 [+0.025, +0.036] | **0.178** | 0.160 | +0.018 [+0.005, +0.028] |
-| E2 | 5 | **0.604** | 0.567 | 0.582&nbsp;§ | +0.037 [+0.031, +0.042] | **0.139** | 0.102 | +0.037 [+0.026, +0.046] |
-| E2 | 10 | **0.565** | 0.528 | 0.579&nbsp;§ | +0.037 [+0.026, +0.047] | **0.085** | 0.027 | +0.058 [+0.039, +0.073] |
-| E4 | 1 | 0.811 | **0.833** | 0.523 | -0.022 [-0.027, -0.016] | 0.476 | **0.615** | -0.140 [-0.150, -0.130] |
-| E4 | 3 | 0.702 | **0.719** | 0.520 | -0.017 [-0.025, -0.009] | 0.269 | **0.375** | -0.106 [-0.122, -0.086] |
-| E4 | 5 | 0.648 | 0.649 | 0.519 | -0.001 [-0.010, +0.008] | 0.190 | **0.254** | -0.064 [-0.083, -0.043] |
-| E4 | 10 | **0.604** | 0.558 | 0.521 | +0.047 [+0.030, +0.063] | 0.126 | 0.111 | +0.015 [-0.005, +0.033] |
-| E59 | 1 | 0.760 | **0.781** | 0.498 | -0.021 [-0.025, -0.016] | 0.363 | **0.517** | -0.154 [-0.164, -0.144] |
-| E59 | 3 | 0.688 | 0.689 | 0.493 | 0.000 [-0.005, +0.005] | 0.237 | **0.328** | -0.091 [-0.100, -0.081] |
-| E59 | 5 | **0.665** | 0.648 | 0.492 | +0.017 [+0.012, +0.022] | 0.205 | **0.249** | -0.044 [-0.053, -0.036] |
-| E59 | 10 | **0.632** | 0.571 | 0.486 | +0.061 [+0.054, +0.067] | **0.161** | 0.119 | +0.042 [+0.033, +0.052] |
-
-La negrita marca al ganador de cada par, y se omite donde el intervalo de esa
-diferencia contiene al cero: ahí los dos métodos son indistinguibles. Ocurre en
-tres celdas, y en E4 a diez minutos afecta solo a la correlación recalibrada,
-donde la ventaja del LSTM no resiste su intervalo aunque sí resista la del AUC.
-
-§ El piso posicional supera a la persistencia en estas celdas, y al LSTM en la
-de diez minutos. La negrita compara los dos métodos entre sí y no contra el
-piso.
+| Corredor | h | Δ AUC frente a la persistencia | Δ AUC frente al piso posicional | Δ MCC recal. frente a la persistencia |
+| :--- | ---: | :---: | :---: | :---: |
+| E2 | 1 | -0.009 [-0.015, -0.004] | +0.126 [+0.117, +0.138] | -0.091 [-0.106, -0.078] |
+| E2 | 3 | +0.031 [+0.025, +0.036] | +0.050 [+0.040, +0.061] | +0.018 [+0.005, +0.028] |
+| E2 | 5 | +0.037 [+0.031, +0.042] | +0.021 [+0.013, +0.031] | +0.037 [+0.026, +0.046] |
+| E2 | 10 | +0.037 [+0.026, +0.047] | -0.013 [-0.023, -0.003] | +0.058 [+0.039, +0.073] |
+| E4 | 1 | -0.022 [-0.027, -0.016] | +0.288 [+0.273, +0.305] | -0.140 [-0.150, -0.130] |
+| E4 | 3 | -0.017 [-0.025, -0.009] | +0.182 [+0.167, +0.199] | -0.106 [-0.122, -0.086] |
+| E4 | 5 | -0.001 [-0.010, +0.008] | +0.128 [+0.113, +0.144] | -0.064 [-0.083, -0.043] |
+| E4 | 10 | +0.047 [+0.030, +0.063] | +0.083 [+0.068, +0.097] | +0.015 [-0.005, +0.033] |
+| E59 | 1 | -0.021 [-0.025, -0.016] | +0.262 [+0.253, +0.271] | -0.154 [-0.164, -0.144] |
+| E59 | 3 | 0.000 [-0.005, +0.005] | +0.195 [+0.186, +0.204] | -0.091 [-0.100, -0.081] |
+| E59 | 5 | +0.017 [+0.012, +0.022] | +0.173 [+0.162, +0.184] | -0.044 [-0.053, -0.036] |
+| E59 | 10 | +0.061 [+0.054, +0.067] | +0.146 [+0.133, +0.159] | +0.042 [+0.033, +0.052] |
 
 ### D. El umbral en minutos y la regla de cuota
 

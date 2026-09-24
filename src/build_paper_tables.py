@@ -176,43 +176,32 @@ def tabla_1() -> str:
     return table + note
 
 
-def _pair(left: float | None, right: float | None, *, decided: bool) -> list[str]:
-    """Two figures, with the better one bold only when something decided it.
-
-    ``decided`` is never the margin itself. A margin of 0,001 names a winner as
-    confidently as one of 0,061, and the difference between them is the whole
-    question.
-    """
-    if not decided:
-        return [_num(left), _num(right)]
-    return [
-        f"**{_num(left)}**" if left > right else _num(left),
-        f"**{_num(right)}**" if right > left else _num(right),
-    ]
+def _band(delta: float | None, low: float | None, high: float | None) -> str:
+    if delta is None:
+        return "—"
+    return f"{_signed(delta)} [{_signed(low)}, {_signed(high)}]"
 
 
 def tabla_2() -> str:
-    """The same predictions scored without a threshold, and with the threshold refitted.
+    """The learner's three differences, each with the interval that decides it.
+
+    The levels are Figure 4's job: the two areas and the positional floor are
+    drawn there, against chance. What a figure cannot carry is the bound, so the
+    table prints only differences, learner minus the other side, and lets the
+    sign name the winner and the interval say whether anything decided it.
 
     Two scorings sit side by side on purpose. The area under the curve needs no
     operating point at all; the refitted Matthews correlation keeps one but
-    fixes it on a window the scoring never sees. They agree on the direction,
-    which is what makes the repair a repair and not a second artifact.
+    fixes it on a window the scoring never sees. Each is read against its own
+    interval, which is how E4 at ten minutes shows an area win and a Matthews
+    tie.
 
-    Each instrument is bolded against its own interval. Letting the area's bound
-    decide the correlation's bold would report one standard and print two, which
-    is how E4 at ten minutes came to show a Matthews win its interval denies.
-
-    The positional floor sits between the two areas rather than in a footnote,
-    because it is what those areas have to clear. A rule that answers the mean
-    headway of each position, reads no input window and therefore anticipates
-    nothing still scores above chance wherever the positions of a vector are not
-    exchangeable. Bold compares the two methods only; the floor is flagged, never
-    bolded, so the bold count agrees with the paired verdict the text reports.
+    The floor column is the one the text argues from. A rule that answers the
+    mean headway of each position reads no input window and anticipates
+    nothing, yet scores above chance wherever the positions of a vector are not
+    exchangeable; the learner's area has to clear it, and E2 at ten minutes is
+    the one cell where it does not.
     """
-    det = _load("contiguous_detection_calibrated.csv")
-    # The intervals decide every bold in this table. Two cells used to name a
-    # winner off a margin of 0,001, which no bound supports.
     ci = _load("detection_ranking_ci.csv").filter(pl.col("origin") == "main")
     null = _load("positional_null.csv")
 
@@ -220,54 +209,31 @@ def tabla_2() -> str:
     for corridor in CORRIDORS:
         for horizon in HORIZONS:
             keys = {"corridor": corridor, "horizon": horizon}
-            auc_l = _cell(det, "auc", model=LEARNER, **keys)
-            auc_r = _cell(det, "auc", model=RIVAL, **keys)
-            mcc_l = _cell(det, "mcc_calibrated", model=LEARNER, **keys)
-            mcc_r = _cell(det, "mcc_calibrated", model=RIVAL, **keys)
-            auc_floor = _cell(null, "auc_null", **keys)
-
-            bands = [
-                "—" if delta is None else (
-                    f"{_signed(delta)} [{_signed(low)}, {_signed(high)}]"
-                )
-                for delta, low, high in (
-                    (
-                        _cell(ci, "delta_auc", **keys),
-                        _cell(ci, "auc_ci_low", **keys),
-                        _cell(ci, "auc_ci_high", **keys),
-                    ),
-                    (
-                        _cell(ci, "delta_mcc_calibrated", **keys),
-                        _cell(ci, "mcc_calibrated_ci_low", **keys),
-                        _cell(ci, "mcc_calibrated_ci_high", **keys),
-                    ),
-                )
-            ]
-
-            # The floor is flagged where it beats persistence; the note names
-            # the cell where it also beats the learner.
-            floor = _num(auc_floor)
-            if auc_floor is not None and auc_floor > auc_r:
-                floor += "&nbsp;§"
-
             rows.append([
                 corridor, str(horizon),
-                *_pair(auc_l, auc_r, decided=bool(_cell(ci, "auc_survives", **keys))),
-                floor,
-                bands[0],
-                *_pair(
-                    mcc_l, mcc_r,
-                    decided=bool(_cell(ci, "mcc_calibrated_survives", **keys)),
+                _band(
+                    _cell(ci, "delta_auc", **keys),
+                    _cell(ci, "auc_ci_low", **keys),
+                    _cell(ci, "auc_ci_high", **keys),
                 ),
-                bands[1],
+                _band(
+                    _cell(null, "lstm_vs_null_delta", **keys),
+                    _cell(null, "lstm_vs_null_ci_low", **keys),
+                    _cell(null, "lstm_vs_null_ci_high", **keys),
+                ),
+                _band(
+                    _cell(ci, "delta_mcc_calibrated", **keys),
+                    _cell(ci, "mcc_calibrated_ci_low", **keys),
+                    _cell(ci, "mcc_calibrated_ci_high", **keys),
+                ),
             ])
 
     return _render(
-        ["Corredor", "h", f"AUC {LEARNER}", "AUC persist.", "Piso posicional",
-         "Δ AUC [IC 95 %]", f"MCC recal. {LEARNER}", "MCC recal. persist.",
-         "Δ MCC [IC 95 %]"],
+        ["Corredor", "h", "Δ AUC frente a la persistencia",
+         "Δ AUC frente al piso posicional",
+         "Δ MCC recal. frente a la persistencia"],
         rows,
-        aligns="lrrrrcrrc",
+        aligns="lrccc",
     )
 
 
