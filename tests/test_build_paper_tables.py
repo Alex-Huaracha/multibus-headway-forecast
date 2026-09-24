@@ -30,6 +30,7 @@ from src.build_paper_tables import (
     tabla_1,
     tabla_2,
     tabla_3,
+    tabla_7,
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -37,7 +38,7 @@ PAPER = REPO_ROOT / "docs" / "paper" / "paper.md"
 
 # tabla_3 (robustez) is no longer pasted: the manuscript replaced it with the
 # V-C paragraph, so only its shape is checked below, not its paste.
-PASTED_TABLES = [("Tabla 1", tabla_1), ("Tabla 2", tabla_2)]
+PASTED_TABLES = [("Tabla 1", tabla_1), ("Tabla 2", tabla_2), ("Tabla 3", tabla_7)]
 ALL_TABLES = PASTED_TABLES + [("robustez", tabla_3)]
 
 
@@ -75,7 +76,7 @@ class TestTheManuscriptCarriesWhatTheBuilderEmits:
         header = builder().splitlines()[0]
         assert header in paper, f"{name}: la cabecera pegada no es la que emite el builder"
 
-    @pytest.mark.parametrize(("name", "builder"), ALL_TABLES)
+    @pytest.mark.parametrize(("name", "builder"), [t for t in ALL_TABLES if t[0] != "Tabla 3"])
     def test_each_table_carries_one_row_per_cell(self, name, builder) -> None:
         assert len(_rows(builder())) == len(CORRIDORS) * len(HORIZONS)
 
@@ -115,3 +116,35 @@ class TestTablaDosPrintsWhatItsSourcesPublished:
                     if float(figure) == 0.0:
                         figure = f"{0.0:.3f}"
                     assert figure in band, (key, column)
+
+
+class TestTablaTresComparesEveryOperatingPoint:
+    """One row per way of setting the operating point, each traced to its CSV."""
+
+    @pytest.fixture(scope="class")
+    def rows(self) -> dict[str, list[str]]:
+        return {cells[0]: cells for cells in map(_cells, _rows(tabla_7()))}
+
+    def test_there_is_one_row_per_operating_point(self, rows) -> None:
+        assert list(rows) == [
+            "Umbral trasladado", "Denominador observado",
+            "Umbral recalibrado", "Cuota",
+        ]
+
+    def test_the_recalibrated_row_is_read_from_the_calibrated_csv(self, rows) -> None:
+        det = _load("contiguous_detection_calibrated.csv")
+        lstm = det.filter(pl.col("model") == "LSTM")
+        ratio = (lstm["fire_rate_calibrated"] / lstm["base_rate"]).median()
+        assert rows["Umbral recalibrado"][1] == f"{ratio:.3f}"
+        assert rows["Umbral recalibrado"][3] == f"{lstm['mcc_calibrated'].median():.3f}"
+
+    def test_the_recalibrated_agreement_is_counted_cell_by_cell(self, rows) -> None:
+        det = _load("contiguous_detection_calibrated.csv").pivot(
+            on="model", index=["corridor", "horizon"],
+            values=["auc", "mcc_calibrated"],
+        )
+        agrees = det.filter(
+            (pl.col("auc_LSTM") > pl.col("auc_Persistence"))
+            == (pl.col("mcc_calibrated_LSTM") > pl.col("mcc_calibrated_Persistence"))
+        ).height
+        assert rows["Umbral recalibrado"][5] == f"{agrees}/12"

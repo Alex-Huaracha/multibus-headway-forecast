@@ -21,8 +21,11 @@ figure it sits next to, and no number in the paper is ever typed by hand.
                                               definitions the viability probe
                                               compared, on the two dimensions
                                               that decided the discards.
+    tabla-7-punto-de-operacion.md             The four ways of setting the
+                                              operating point, and which of
+                                              them recover the verdict.
 
-Tables 1 and 2 are pasted into ``docs/paper/paper.md`` as numbered tables.
+Tables 1, 2 and 7 are pasted into ``docs/paper/paper.md`` as Tables 1, 2 and 3.
 Tables 3 to 5 are not: Section VI-A carries the robustness verdict in prose
 (the manuscript replaced the pasted table with a paragraph), Sections IV-A and
 III-A quote tables 4 and 5 in prose, and the files exist so those figures have
@@ -503,6 +506,86 @@ def tabla_6() -> str:
     )
 
 
+def _agreement(free: pl.DataFrame, thresholded: pl.DataFrame, column: str) -> int:
+    """Cells where the thresholded winner is the threshold-free one.
+
+    The winner is the sign of the difference, as in Section V-C, and not the
+    interval: the question is whether the rule inverts the verdict, not whether
+    either verdict is decided.
+    """
+    sides = thresholded.pivot(on="model", index=["corridor", "horizon"], values=column)
+    joined = free.join(sides, on=["corridor", "horizon"], how="inner")
+    return joined.filter(
+        pl.col("_free") == (pl.col(LEARNER) > pl.col(RIVAL))
+    ).height
+
+
+def tabla_7() -> str:
+    """Every way the paper sets the operating point, on one population.
+
+    Four rows, the two that name a level in minutes first and the two that fit
+    the operating point to the forecast after, so the table reads as the ladder
+    Section V-D argues: the first two collapse, the last two recover the
+    threshold-free verdict. The recalibrated threshold keeps the event of
+    Section III-B, so its overlap with that event is one by construction.
+
+    Every cell is the median over the twelve corridor x horizon cells, except
+    the agreement count. The published rule's row is read from the same CSV as
+    the other two event rules; the recalibrated row from the detection CSV,
+    which scores the same residuals over the same population.
+    """
+    rules = _load("threshold_denominators.csv")
+    det = _load("contiguous_detection_calibrated.csv")
+    free = det.pivot(on="model", index=["corridor", "horizon"], values="auc").select(
+        "corridor", "horizon",
+        (pl.col(LEARNER) > pl.col(RIVAL)).alias("_free"),
+    )
+
+    def rule_row(rule: str, label: str) -> list[str]:
+        arm = rules.filter(pl.col("rule") == rule)
+        learner = arm.filter(pl.col("model") == LEARNER)
+        rival = arm.filter(pl.col("model") == RIVAL)
+        by_construction = "&nbsp;‡" if rule == "rank" else ""
+        return [
+            label,
+            _num(learner["rate_ratio"].median()) + by_construction,
+            _num(rival["rate_ratio"].median()) + by_construction,
+            _num(learner["mcc"].median()),
+            _num(learner["jaccard_truth_vs_published"].median()),
+            f"{_agreement(free, arm, 'mcc')}/12",
+        ]
+
+    ratio = (pl.col("fire_rate_calibrated") / pl.col("base_rate")).alias("ratio")
+    learner = det.filter(pl.col("model") == LEARNER).with_columns(ratio)
+    rival = det.filter(pl.col("model") == RIVAL).with_columns(ratio)
+    recalibrated = [
+        "Umbral recalibrado",
+        _num(learner["ratio"].median()),
+        _num(rival["ratio"].median()),
+        _num(learner["mcc_calibrated"].median()),
+        _num(1.0),
+        f"{_agreement(free, det, 'mcc_calibrated')}/12",
+    ]
+
+    rows = [
+        rule_row("pred_mean", "Umbral trasladado"),
+        rule_row("obs_mean", "Denominador observado"),
+        recalibrated,
+        rule_row("rank", "Cuota"),
+    ]
+    table = _render(
+        ["Regla", f"T/E {LEARNER}", "T/E pers.", f"MCC {LEARNER}",
+         "Solape", "Coincide"],
+        rows,
+        aligns="lrrrrc",
+    )
+    note = (
+        "\n\n‡ Vale uno por construcción y no por medición: la cantidad de "
+        "posiciones marcadas queda fijada antes de leer los valores."
+    )
+    return table + note
+
+
 TABLES = {
     "tabla-1-deteccion-umbral-trasplantado.md": tabla_1,
     "tabla-2-veredicto-sin-umbral.md": tabla_2,
@@ -510,6 +593,7 @@ TABLES = {
     "tabla-4-cobertura-headway.md": tabla_4,
     "tabla-5-formulaciones-headway.md": tabla_5,
     "tabla-6-ablacion-arquitectura.md": tabla_6,
+    "tabla-7-punto-de-operacion.md": tabla_7,
 }
 
 
