@@ -706,10 +706,16 @@ donde $s_{L}$ y $s_{F}$ son las coordenadas de arco del bus de adelante y del de
 atrás. El instante $t_{c}$ es el último en que el de adelante pasó por la
 coordenada que el de atrás ocupa en $T$, y $h$ es el headway resultante. La
 definición es la de Pilachowski [@pilachowski2009], que Andres y Nair evalúan en
-la coordenada del bus de atrás [@andres2017]. El cruce se resuelve sobre los
-registros originales del bus de adelante; la rejilla solo fija el instante $T$ y
-el orden de los buses. Si no existe tal $t_{c}$, o si $h$ supera los treinta
-minutos, se emite «sin valor».
+la coordenada del bus de atrás [@andres2017], y la Figura 6 la ilustra. El cruce
+se resuelve sobre los registros originales del bus de adelante; la rejilla solo
+fija el instante $T$ y el orden de los buses. Si no existe tal $t_{c}$, o si $h$
+supera los treinta minutos, se emite «sin valor».
+
+![El headway como cruce hacia atrás](figuras/esquema-headway.es.png)
+
+**Fig. 6.** El headway de la Ecuación (9) sobre dos trayectorias ilustrativas:
+el tiempo entre el paso del bus de adelante por la coordenada $s_F(T)$ y la
+llegada del de atrás a ella.
 
 Ese headway describe un solo par. En cada snapshot, los buses de un mismo
 sentido se ordenan por su coordenada de arco, y con $N$ buses quedan $N-1$

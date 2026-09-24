@@ -134,6 +134,8 @@ LANG = {
         "leader_before": "el de adelante pasó\npor acá antes",
         "time_axis": "Tiempo [min] →",
         "distance_axis": "Distancia recorrida sobre el eje (s) →",
+        "leading_bus_sym": "Bus de adelante, $L$",
+        "following_bus_sym": "Bus de atrás, $F$",
         "headway_caption": (
             "Trayectorias ilustrativas, no datos reales. Es una definición de cruce por coordenada, no por parada: no necesita una tabla de paradas,",
             "que es exactamente lo que falta en estos datos.",
@@ -212,6 +214,8 @@ LANG = {
         "leader_before": "the leader passed\nthrough here earlier",
         "time_axis": "Time [min] →",
         "distance_axis": "Distance travelled along the axis (s) →",
+        "leading_bus_sym": "Leading bus, $L$",
+        "following_bus_sym": "Following bus, $F$",
         "headway_caption": (
             "Illustrative trajectories, not real data. This is a crossing definition by position, not by stop: it needs no stop inventory,",
             "which is exactly what these data lack.",
@@ -261,11 +265,9 @@ FIGURE_NAMES = {
     "pipeline": ("esquema-pipeline.png", None),
     "corridor_axis": ("esquema-eje-corredor.png", None),
     "projection": ("esquema-proyeccion.png", None),
-    # No paper stem: the manuscript's Fig. 1 is now a hand-drawn two-snapshot
-    # diagram (``figuras/headway/``, Excalidraw source beside the PNG). The
-    # time-space schematic below is still what metodologia.md and sintesis.md
-    # embed, so the chrome variant stays; only the clean pair is dead output.
-    "headway": ("esquema-headway.png", None),
+    # The chrome variant is what metodologia.md and sintesis.md embed; the clean
+    # pair illustrates Eq. (9) in the paper's appendix, in its notation.
+    "headway": ("esquema-headway.png", "esquema-headway"),
     "temporal_split": (
         "esquema-particion-temporal.png", "esquema-particion-temporal",
     ),
@@ -588,13 +590,21 @@ def headway(*, lang: str = "es", chrome: bool = True) -> Path:
 
     fig, ax = plt.subplots(figsize=(11, 5.8))
 
-    ax.plot(t, lead, color=AXIS_COLOR, linewidth=2.4, label=words["leading_bus"])
+    # The clean variant speaks the notation of Eq. (9) and nothing else: the
+    # paper defines L, F, T, t_c and h, so plain-language callouts would be a
+    # second, looser definition next to the exact one.
+    lead_key, follow_key = (
+        ("leading_bus", "following_bus") if chrome
+        else ("leading_bus_sym", "following_bus_sym")
+    )
+    ax.plot(t, lead, color=AXIS_COLOR, linewidth=2.4, label=words[lead_key])
     ax.plot(t, follow, color=OFFROUTE_COLOR, linewidth=2.4,
-            label=words["following_bus"])
+            label=words[follow_key])
 
     ax.axhline(s_now, color="dimgray", linestyle=":", linewidth=1.3)
-    ax.text(0.4, s_now + 6.0, words["same_point"],
-            fontsize=9, color="dimgray")
+    if chrome:
+        ax.text(0.4, s_now + 6.0, words["same_point"],
+                fontsize=9, color="dimgray")
 
     ax.scatter([t_now], [s_now], s=95, color=OFFROUTE_COLOR, zorder=5)
     ax.scatter([t_cross], [s_now], s=95, color=AXIS_COLOR, zorder=5)
@@ -605,30 +615,42 @@ def headway(*, lang: str = "es", chrome: bool = True) -> Path:
     )
     ax.text(
         (t_now + t_cross) / 2.0, s_now + 13.0,
-        words["headway_callout"],
-        ha="center", fontsize=11.5, color=ACCENT, fontweight="bold",
+        words["headway_callout"] if chrome else r"$h = T - t_c$",
+        ha="center", fontsize=11.5 if chrome else 13.0, color=ACCENT,
+        fontweight="bold",
     )
 
-    ax.annotate(
-        words["follower_now"], xy=(t_now, s_now),
-        xytext=(t_now + 1.0, s_now - 145.0), fontsize=9.5,
-        color=OFFROUTE_COLOR, ha="left",
-        arrowprops=dict(arrowstyle="-|>", color=OFFROUTE_COLOR, linewidth=1.1),
-    )
-    ax.annotate(
-        words["leader_before"], xy=(t_cross, s_now),
-        xytext=(t_cross - 1.0, s_now - 145.0), fontsize=9.5,
-        color=AXIS_COLOR, ha="right",
-        arrowprops=dict(arrowstyle="-|>", color=AXIS_COLOR, linewidth=1.1),
-    )
+    if chrome:
+        ax.annotate(
+            words["follower_now"], xy=(t_now, s_now),
+            xytext=(t_now + 1.0, s_now - 145.0), fontsize=9.5,
+            color=OFFROUTE_COLOR, ha="left",
+            arrowprops=dict(arrowstyle="-|>", color=OFFROUTE_COLOR, linewidth=1.1),
+        )
+        ax.annotate(
+            words["leader_before"], xy=(t_cross, s_now),
+            xytext=(t_cross - 1.0, s_now - 145.0), fontsize=9.5,
+            color=AXIS_COLOR, ha="right",
+            arrowprops=dict(arrowstyle="-|>", color=AXIS_COLOR, linewidth=1.1),
+        )
+    else:
+        # Drop lines from both crossings to the axes they are read on.
+        for t_mark, color in ((t_cross, AXIS_COLOR), (t_now, OFFROUTE_COLOR)):
+            ax.plot([t_mark, t_mark], [float(follow.min()) - 20.0, s_now],
+                    color=color, linestyle=":", linewidth=1.1)
     ax.set_xlim(t[0] - 1.0, t[-1] + 1.0)
 
     if chrome:
         ax.set_title(words["headway_title"], fontsize=12.5)
     ax.set_xlabel(words["time_axis"])
     ax.set_ylabel(words["distance_axis"])
-    ax.set_xticks([])
-    ax.set_yticks([])
+    if chrome:
+        ax.set_xticks([])
+        ax.set_yticks([])
+    else:
+        ax.set_ylim(bottom=float(follow.min()) - 20.0)
+        ax.set_xticks([t_cross, t_now], [r"$t_c$", r"$T$"], fontsize=12)
+        ax.set_yticks([s_now], [r"$s_F(T)$"], fontsize=12)
     ax.legend(loc="upper left", fontsize=9.5, framealpha=0.9)
     ax.grid(True, alpha=0.2)
 
