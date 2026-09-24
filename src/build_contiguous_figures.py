@@ -16,6 +16,8 @@ so a figure can never disagree with the table it illustrates.
                                         El veredicto corregido.
     contiguo-deteccion-contra-piso.png  AUC de detección contra el piso posicional.
                                         El veredicto sin umbral, acotado.
+    contiguo-umbral-en-minutos.png      Umbral en minutos de cada regla, observado
+                                        contra predicho. Por qué la cuota no colapsa.
     contiguo-compresion-dispersion.png  CV observado contra CV predicho, a h = 10.
                                         La causa del artefacto.
     contiguo-compresion-vs-horizonte.png  El mismo sesgo contra el horizonte. La
@@ -105,6 +107,11 @@ LANG = {
         "advantage_axis": "Ventaja en MAE sobre persistencia [min]",
         "auc_axis": "AUC de detección de bunching",
         "auc_floor": "Piso del perfil posicional",
+        "cut_rule_published": "Regla de la Sección III-B",
+        "cut_rule_quota": "Regla de cuota",
+        "cut_observed": "sobre lo observado",
+        "cut_predicted": "sobre lo predicho",
+        "cut_axis": "Umbral aplicado [min]",
         "observed_bars": "Realidad observada",
         "predicted_bars": "Lo que el modelo predice",
         "cv_axis": "Coeficiente de variación del vector",
@@ -134,6 +141,11 @@ LANG = {
         "advantage_axis": "MAE advantage over persistence [min]",
         "auc_axis": "Bunching detection AUC",
         "auc_floor": "Positional-profile floor",
+        "cut_rule_published": "Section III-B rule",
+        "cut_rule_quota": "Quota rule",
+        "cut_observed": "on the observed",
+        "cut_predicted": "on the predicted",
+        "cut_axis": "Applied threshold [min]",
         "observed_bars": "Observed",
         "predicted_bars": "Predicted",
         "cv_axis": "Vector coefficient of variation",
@@ -201,6 +213,9 @@ FIGURE_NAMES = {
     "detection_without_threshold": ("contiguo-deteccion-sin-umbral.png", None),
     "detection_against_floor": (
         "contiguo-deteccion-contra-piso.png", "deteccion-contra-piso",
+    ),
+    "threshold_in_minutes": (
+        "contiguo-umbral-en-minutos.png", "umbral-en-minutos",
     ),
     "dispersion_compression": ("contiguo-compresion-dispersion.png", None),
     "dispersion_vs_horizon": (
@@ -597,6 +612,77 @@ def detection_against_floor(*, lang: str = "es", chrome: bool = True) -> Path:
     return path
 
 
+def threshold_in_minutes(*, lang: str = "es", chrome: bool = True) -> Path:
+    """The threshold each rule ends up applying, read in minutes.
+
+    Under the published rule the threshold on the predicted vector sits where the
+    one on the observed vector sits, so the compressed forecast has almost nothing
+    below it. The quota rule fixes a count instead of a value, and its threshold
+    climbs to wherever the compressed distribution landed — further with every
+    minute of horizon. The observed-denominator rule is left out: by construction
+    it applies the same number to both sides, so it would draw one line twice.
+    """
+    path = _resolve("threshold_in_minutes", lang, chrome)
+    words = LANG[lang]
+    table = _load("threshold_denominators.csv").filter(pl.col("model") == "LSTM")
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.4), sharex=True, sharey=True)
+    legend_handles: list = []
+
+    for ax, corridor in zip(axes, CORRIDORS):
+        for rule, rule_key, color, marker in (
+            ("pred_mean", "cut_rule_published", "tab:gray", "o"),
+            ("rank", "cut_rule_quota", "tab:red", "s"),
+        ):
+            row = table.filter(
+                (pl.col("corridor") == corridor) & (pl.col("rule") == rule)
+            ).sort("horizon")
+            for column, side_key, style in (
+                ("cut_truth_min", "cut_observed", "--"),
+                ("cut_alarm_min", "cut_predicted", "-"),
+            ):
+                (line,) = ax.plot(
+                    row.get_column("horizon"), row.get_column(column),
+                    color=color, marker=marker, linestyle=style,
+                    linewidth=2.0, markersize=7,
+                    label=f"{words[rule_key]}, {words[side_key]}",
+                )
+                if ax is axes[0]:
+                    legend_handles.append(line)
+        ax.set_title(corridor)
+        ax.set_xticks(list(HORIZONS))
+        ax.set_xlabel(words["horizon_axis"])
+        ax.grid(True, alpha=0.3)
+
+    # Set once, after every panel is drawn: with shared axes, a per-panel limit
+    # freezes the top at the first corridor's range and clips E4.
+    axes[0].set_ylim(bottom=0)
+    axes[0].autoscale(axis="y")
+    axes[0].set_ylim(bottom=0)
+    axes[0].set_ylabel(words["cut_axis"])
+    if chrome:
+        fig.suptitle(
+            "La cuota sube su umbral hasta la distribución comprimida; "
+            "el umbral de la regla publicada no se mueve",
+            y=0.99, fontsize=12.5,
+        )
+    fig.legend(
+        legend_handles, [line.get_label() for line in legend_handles],
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.925 if chrome else CLEAN_LEGEND_Y),
+        ncol=4, frameon=False,
+    )
+    if chrome:
+        _caption(fig, [
+            "LSTM, origen 3. El umbral de cada vector, en minutos, promediado sobre sus posiciones.",
+        ])
+    fig.tight_layout(rect=(0, 0.06, 1, 0.88) if chrome else CLEAN_RECT)
+
+    fig.savefig(path, dpi=DPI)
+    plt.close(fig)
+    return path
+
+
 def dispersion_compression(*, lang: str = "es", chrome: bool = True) -> Path:
     """Observed vs predicted coefficient of variation, by model and corridor.
 
@@ -728,7 +814,8 @@ def dispersion_vs_horizon(*, lang: str = "es", chrome: bool = True) -> Path:
 
 RENDERERS = (
     degradation, volatility, threshold_artifact, detection_without_threshold,
-    detection_against_floor, dispersion_compression, dispersion_vs_horizon,
+    detection_against_floor, threshold_in_minutes, dispersion_compression,
+    dispersion_vs_horizon,
 )
 
 

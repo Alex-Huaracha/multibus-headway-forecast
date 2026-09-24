@@ -523,14 +523,19 @@ colapsar, porque marca la misma cantidad en lo predicho y en lo observado, y la
 persistencia no colapsó bajo ninguna de las tres.
 
 El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
-minutos. En E2 a diez minutos, bajo la regla de la Sección III-B, ese umbral
-valió 3.89 minutos sobre lo observado y 3.92 sobre lo predicho: se quedó donde
-estaba. Bajo la regla de cuota el mismo par valió 2.76 y 6.82 minutos. La cuota
-sube su propio umbral hasta donde quedó la distribución comprimida, y la
-distancia que sube crece con el horizonte en los tres corredores. Un umbral en
-minutos no puede seguirla, porque su valor no depende de la escala de lo que
-evalúa. La compresión de la Sección V-A alcanza entonces a toda regla que nombre
-una cantidad de minutos, y no solo a la que divide por lo predicho.
+minutos, y la Figura 5 lo muestra. Bajo la regla de la Sección III-B, el umbral
+sobre lo predicho quedó a menos de 0.35 minutos del umbral sobre lo observado en
+las doce celdas. Bajo la regla de cuota subió hasta donde quedó la distribución
+comprimida, y la distancia crece con el horizonte en los tres corredores. Un
+umbral en minutos no puede seguirla, porque su valor no depende de la escala de
+lo que evalúa. La compresión de la Sección V-A alcanza entonces a toda regla que
+nombre una cantidad de minutos, y no solo a la que divide por lo predicho.
+
+![Umbral en minutos de cada regla](figuras/umbral-en-minutos.es.png)
+
+**Fig. 5.** Umbral en minutos que aplica cada regla, promediado sobre las
+posiciones, sobre lo observado (discontinua) y sobre lo predicho por el LSTM
+(continua), por horizonte. Un panel por corredor, origen 3.
 
 Un umbral absoluto, sin denominador ni cuota, lo confirma. Se fijó en la cuarta
 parte del headway mediano observado de cada corredor y sentido, entre 1.4 y 2.4
