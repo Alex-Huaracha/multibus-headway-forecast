@@ -11,23 +11,26 @@ _(pendiente — se escribe al final)_
 El headway es el tiempo que separa el paso de dos buses consecutivos por un
 mismo punto de una ruta. El bunching es la circulación conjunta de dos buses que
 ese tiempo debería mantener separados, y desiguala la espera entre los pasajeros
-de esa ruta. Trompet, Liu y Graham comparan doce empresas de bus urbano, y las
-que publican un indicador de servicio lo definen sobre la regularidad agregada
-del recorrido y no sobre un headway aislado [@trompet2011].
+de esa ruta. La predicción del bunching sigue un procedimiento de dos etapas:
+primero se estima el headway futuro, y después se lo compara contra un umbral
+que decide si hay evento [@yu2016] [@jiao2023]. La segunda etapa no tiene un
+valor acordado: los umbrales publicados van desde veinte segundos hasta un
+cuarto del headway programado [@rezazada2024]. El procedimiento supone que la
+segunda etapa hereda la mejora de la primera, de modo que predecir el headway
+con menos error debería mejorar la detección del bunching.
 
-La predicción de ese evento sigue un procedimiento de dos etapas: primero se
-estima el headway futuro, y después se lo compara contra un umbral que decide si
-hay evento [@yu2016] [@jiao2023]. Su segunda etapa no tiene un valor acordado:
-los umbrales publicados van desde veinte segundos hasta un cuarto del headway
-programado [@rezazada2024].
-
-Ese procedimiento deja dos huecos. Usama y Koutsopoulos predicen el vector
-completo de headways de una línea de metro con una red profunda, y reportan solo
-el error en minutos, sin convertir lo predicho en un indicador de evento
-[@usama2025]. Sun, Schmöcker y Nakamura sí llegan a la detección, y dejan
-pendiente construir la curva que compararía a los métodos basados en headway sin
-fijar un umbral [@sun2021]. Queda sin medir qué le hace el error de la primera
-etapa a la decisión de la segunda.
+En nuestros datos esa suposición no se cumplió. Un corredor reúne los buses de
+una empresa que circulan sobre una misma ruta, y su vector de headways contiene
+un headway por cada par de buses consecutivos. Se predijo ese vector completo
+con una red recurrente. A diez minutos de anticipación, en el corredor E2, la
+red tuvo un error absoluto medio 1.47 minutos menor que el de la persistencia,
+que repite el último vector observado. Sobre el mismo período, la regla de
+bunching de la Sección III-B marcó 15&nbsp;245 eventos en los headways
+observados. Se aplicó a lo predicho el mismo umbral, sin cambios, y a esa
+herencia se le llama aquí el umbral trasladado. Con él, la red emitió catorce
+alarmas, las posiciones predichas que la regla marcó como bunching, y la
+persistencia emitió 15&nbsp;083. Puntuada con el F1, la persistencia superó a la
+red por un factor de 253.
 
 La primera etapa introduce el defecto que la segunda hereda. Un modelo entrenado
 con error cuadrático medio, cuando no sabe si un headway será corto o largo,
@@ -36,23 +39,26 @@ predice un valor intermedio, porque así su error promedio es menor
 parecen entre sí más que los reales: la predicción queda **subdispersa**
 (*underdispersion*), con menos dispersión que lo observado [@mayer2023]. El
 bunching es justamente un headway mucho más corto que los demás, y una
-predicción subdispersa casi no los contiene. Si el umbral que marca bunching en
-los datos reales se aplica sin cambios a lo predicho, casi ninguna posición
-queda por debajo de él, y el detector deja de avisar aunque el error en minutos
-mejore. Ocurre aunque el umbral sea relativo, una fracción del promedio del
-propio vector predicho (Sección III-B).
+predicción subdispersa casi no los contiene. Con el umbral trasladado, casi
+ninguna posición predicha queda por debajo de él, y de ahí salen las catorce
+alarmas de E2. Eso ocurre aunque el umbral sea relativo, una fracción del
+promedio del propio vector predicho (Sección III-B).
+
+El procedimiento de dos etapas deja dos huecos. Usama y Koutsopoulos predicen el
+vector completo de headways de una línea de metro con una red profunda, y
+reportan solo el error en minutos, sin convertir lo predicho en un indicador de
+evento [@usama2025]. Sun, Schmöcker y Nakamura sí llegan a la detección, y dejan
+pendiente construir la curva que compararía a los métodos basados en headway sin
+fijar un umbral [@sun2021]. Queda sin medir qué le hace el error de la primera
+etapa a la decisión de la segunda.
 
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta
-el umbral. Predice el vector completo de headways de un corredor —los buses de
-una empresa que circulan sobre una misma ruta— con una red recurrente. La regla
-de la Sección III-B convierte lo predicho en un indicador de bunching, y la
-evaluación puntúa esa detección con y sin umbral. Las dos puntuaciones se
-contradicen: con el umbral del evento observado trasladado sin cambios, la
-persistencia —que repite el último vector observado— llega a superar a la red
-por un factor de 253 en el F1. Sin umbral, la misma predicción ordena mejor que
-la persistencia en las nueve combinaciones de corredor y origen de evaluación,
-cada uno con su propio período de prueba, a diez minutos. La Sección II-C
-delimita cuánto del mecanismo que este trabajo mide ya estaba publicado.
+el umbral. La regla de la Sección III-B convierte lo predicho en un indicador de
+bunching, y la evaluación puntúa esa detección con y sin umbral. Las dos
+puntuaciones se contradicen: sin umbral, la red ordenó mejor que la persistencia
+en las nueve combinaciones de corredor y origen de evaluación a diez minutos,
+cada una con su propio período de prueba. La Sección II-C delimita cuánto del
+mecanismo que este trabajo mide ya estaba publicado.
 Nuestras contribuciones son tres:
 
 - Medimos esa subdispersión sobre el vector de headways, la aislamos con la
@@ -990,11 +996,6 @@ doi: 10.1080/15472450.2020.1725887.
 `[@tcqsm2003]` *Transit Capacity and Quality of Service Manual*, 2nd ed., TCRP
 Report 100, Transportation Research Board, 2003, Part 3, ch. 3, p. 3-48,
 Exhibit 3-30.
-
-`[@trompet2011]` M. Trompet, X. Liu, and D. J. Graham, "Development of Key
-Performance Indicator to Compare Regularity of Service between Urban Bus
-Operators," *Transportation Research Record: Journal of the Transportation
-Research Board*, vol. 2216, no. 1, pp. 33–41, 2011, doi: 10.3141/2216-04.
 
 `[@usama2025]` M. Usama and H. Koutsopoulos, "Real Time Headway Predictions in
 Urban Rail Systems and Implications for Service Control: A Deep Learning
