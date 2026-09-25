@@ -1,4 +1,4 @@
-| Corredor | h | Δ AUC frente a la persistencia | Δ AUC frente al piso posicional | Δ MCC recal. frente a la persistencia |
+| Corredor | h | Δ AUC frente a la persistencia | Δ AUC frente al promedio histórico por posición | Δ MCC recal. frente a la persistencia |
 | :--- | ---: | :---: | :---: | :---: |
 | E2 | 1 | -0.009 [-0.015, -0.004] | +0.126 [+0.117, +0.138] | -0.091 [-0.106, -0.078] |
 | E2 | 3 | +0.031 [+0.025, +0.036] | +0.050 [+0.040, +0.061] | +0.018 [+0.005, +0.028] |

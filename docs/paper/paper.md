@@ -58,8 +58,8 @@ Nuestras contribuciones son tres:
   observado.
 - Mostramos que la evaluación en dos etapas, con el umbral trasladado, cambia
   qué método detecta mejor, frente a las mismas predicciones puntuadas sin
-  umbral. Acotamos esa comparación con un perfil posicional que no lee la
-  ventana de entrada.
+  umbral. Acotamos esa comparación con un baseline de promedio histórico por
+  posición, que no lee la ventana de entrada.
 - Mostramos que el colapso alcanza a toda regla que lleve a lo predicho un
   umbral fijado sobre la escala de lo observado, relativa o absoluta. Un umbral
   fijado sobre lo predicho recupera la comparación sin umbral en once de las
@@ -301,27 +301,27 @@ $$\mathrm{F}_1 \;=\; \frac{2PR}{P+R}, \qquad
 P \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}, \qquad
 R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{8}$$
 
-El F1 no usa TN [@chicco2020], y premia por eso al **detector trivial**: el que
-emite un trigger en toda posición. Maximizar el F1 sobre una predicción sin
-información conduce a ese detector con independencia de la tasa base
-[@lipton2014]. La tasa base de una celda es la fracción de sus posiciones donde
-el indicador observado vale 1. Ese detector alcanza recall 1 y precisión igual a
-la tasa base [@flach2015], así que su F1 queda fijado por ella y acompaña como
-piso a todo F1 reportado. El coeficiente de correlación de Matthews (MCC) usa
-los cuatro conteos. Para ese detector su cociente queda indeterminado, porque
-numerador y denominador se anulan a la vez, y se le asigna cero por extensión
-por continuidad [@chicco2020]. El área bajo la curva ROC (AUC) [@handtill2001]
-prescinde del umbral y puntúa el ordenamiento del puntaje continuo
-$-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (5) es el umbral en $-\rho$. Se
-calcula por celda, con todas las posiciones y los dos sentidos en un solo
-ordenamiento, y vale 0.5 cuando la predicción no ordena.
+El F1 no usa TN [@chicco2020], y premia por eso al **baseline siempre
+positivo**, que marca bunching en toda posición. Maximizar el F1 sobre una
+predicción sin información conduce a ese baseline con independencia de la tasa
+base [@lipton2014]. La tasa base de una celda es la fracción de sus posiciones
+donde el indicador observado vale 1. Ese baseline alcanza recall 1 y precisión
+igual a la tasa base [@flach2015], así que su F1 queda fijado por ella y
+acompaña como baseline a todo F1 reportado. El coeficiente de correlación de
+Matthews (MCC) usa los cuatro conteos. Para ese baseline su cociente queda
+indeterminado, porque numerador y denominador se anulan a la vez, y se le asigna
+cero por extensión por continuidad [@chicco2020]. El área bajo la curva ROC
+(AUC) [@handtill2001] prescinde del umbral y puntúa el ordenamiento del puntaje
+continuo $-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (5) es el umbral en
+$-\rho$. Se calcula por celda, con todas las posiciones y los dos sentidos en un
+solo ordenamiento, y vale 0.5 cuando la predicción no ordena.
 
-Ese 0.5 es el piso de una predicción sin ninguna información, y no el de una
-predicción sin información **temporal**. El perfil posicional del Apéndice A,
-sección B fija el segundo: es lo que alcanza el AUC cuando solo se conoce qué
-posición del vector suele llevar el headway más corto. Cumple para el AUC la
-misma función que el detector trivial cumple para el F1, y por eso acompaña a
-todo AUC reportado.
+Ese 0.5 es el baseline de una predicción sin ninguna información, y no el de una
+predicción sin información **temporal**. El **baseline de promedio histórico por
+posición** del Apéndice A, sección B fija el segundo: es lo que alcanza el AUC
+cuando solo se conoce qué posición del vector suele llevar el headway más corto.
+Cumple para el AUC la misma función que el baseline siempre positivo cumple para
+el F1, y por eso acompaña a todo AUC reportado.
 
 Sobre esas cantidades se construyen dos cocientes. La tasa de trigger de un
 método es la fracción de sus posiciones con $\hat{b}_i = 1$, y el factor entre
@@ -409,10 +409,10 @@ la Figura 3 muestra el mismo colapso en la tasa de trigger.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
 fenómeno que se le pidió anticipar. Tres observaciones lo contradicen. La
-primera es que el ganador declarado tampoco detectó bien: el detector trivial de
-la Sección III-C superó a la persistencia en 5 de las doce celdas, y en 15 de
-las 36 combinaciones de celda y origen. La segunda es que el LSTM acertó en las
-pocas ocasiones en que emitió. De los catorce triggers de E2, diez
+primera es que el ganador declarado tampoco detectó bien: el baseline siempre
+positivo de la Sección III-C superó a la persistencia en 5 de las doce celdas, y
+en 15 de las 36 combinaciones de celda y origen. La segunda es que el LSTM
+acertó en las pocas ocasiones en que emitió. De los catorce triggers de E2, diez
 correspondieron a eventos reales, 71 % de precisión contra una tasa base de 30
 %, con el intervalo del Apéndice B entre 42 % y 92 %. Las celdas con más
 triggers estrechan ese intervalo y mantienen la precisión por encima de su tasa
@@ -433,9 +433,9 @@ con el umbral del evento observado aplicado sin cambios, contra la tasa real del
 evento (punteada), por horizonte. Un panel por corredor, origen 3.
 
 **Tabla 1.** Detección con el umbral del evento observado aplicado sin cambios a
-lo predicho, con el piso del detector trivial al lado.
+lo predicho, con el F1 del baseline siempre positivo al lado.
 
-| Corredor | h | Tasa base | Piso trivial | F1 persistencia | F1 LSTM | Factor |
+| Corredor | h | Tasa base | F1 baseline | F1 persistencia | F1 LSTM | Factor |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
 | E2 | 1 | 0.299 | 0.460 | 0.581 | 0.207 | 2.8× |
 | E2 | 3 | 0.301 | 0.462 | 0.414&nbsp;† | 0.038 | 11× |
@@ -450,18 +450,18 @@ lo predicho, con el piso del detector trivial al lado.
 | E59 | 5 | 0.208 | 0.344 | 0.405 | 0.083 | 4.9× |
 | E59 | 10 | 0.208 | 0.344 | 0.303&nbsp;† | 0.034 | 8.8× |
 
-† El detector trivial supera al ganador declarado en estas celdas.
+† El baseline siempre positivo supera al ganador declarado en estas celdas.
 
-### C. Detección sin umbral, acotada por el piso posicional
+### C. Detección sin umbral, acotada por el promedio histórico por posición
 
 Si el problema es el umbral, recalibrarlo debería bastar. Con el umbral
 trasladado de la Tabla 1, la persistencia ganaba las doce celdas. La
-recalibración de la Sección IV-A, que no toca el modelo, llevó al LSTM a ganar
-5 de las 12 celdas, entre ellas las tres de diez minutos, si
-bien la de E4 no resiste su propio intervalo. Su objetivo es el MCC porque el F1
-degenera en este corpus: sobre la persistencia en E2, de tres minutos en
-adelante, el umbral que optimiza el F1 emitió un trigger entre el 99.9 % y el
-100 % de las posiciones, esto es, el detector trivial de la Tabla 1.
+recalibración de la Sección IV-A, que no toca el modelo, llevó al LSTM a ganar 5
+de las 12 celdas, entre ellas las tres de diez minutos, si bien la de E4 no
+resiste su propio intervalo. Su objetivo es el MCC porque el F1 degenera en este
+corpus: sobre la persistencia en E2, de tres minutos en adelante, el umbral que
+optimiza el F1 emitió un trigger entre el 99.9 % y el 100 % de las posiciones,
+esto es, el baseline siempre positivo de la Tabla 1.
 
 Eliminar el umbral cambia más la comparación. Puntuado mediante el AUC, **el
 LSTM ganó en las nueve combinaciones de corredor y origen a diez minutos**, y en
@@ -471,30 +471,31 @@ la excepción es E4 a cinco minutos, donde solo el origen 2 favoreció al LSTM.
 Las nueve diferencias de diez minutos sobrevivieron su intervalo, y van de 0.033
 a 0.061. La persistencia conservó la ventaja a un minuto en los tres corredores
 y los tres orígenes, donde el error escalar también la favorecía. La Figura 4
-muestra el AUC de los dos métodos junto al piso posicional, y la Tabla 2 da cada
-diferencia con su intervalo.
+muestra el AUC de los dos métodos junto al promedio histórico por posición, y la
+Tabla 2 da cada diferencia con su intervalo.
 
 Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
-y el perfil posicional del Apéndice A, sección B lo acota. En E4 y E59 el piso
-queda indistinguible del azar, y el LSTM lo supera en las ocho celdas, con las
-ocho diferencias fuera de su intervalo. En E2 el piso queda por encima del azar
-en todos los horizontes, y **a diez minutos el LSTM cae por debajo de él, 0.565
-contra 0.579**, fuera de su intervalo: ahí la ventaja sin umbral no se sostiene
-contra un método que no lee la ventana de entrada. Es la única de las doce
-celdas donde ocurre, y es la que la Sección V-B usa para exhibir el colapso.
+y el promedio histórico por posición del Apéndice A, sección B lo acota. En E4 y
+E59 el baseline queda indistinguible del azar, y el LSTM lo supera en las ocho
+celdas, con las ocho diferencias fuera de su intervalo. En E2 el baseline queda
+por encima del azar en todos los horizontes, y **a diez minutos el LSTM cae por
+debajo de él, 0.565 contra 0.579**, fuera de su intervalo: ahí la ventaja sin
+umbral no se sostiene contra un método que no lee la ventana de entrada. Es la
+única de las doce celdas donde ocurre, y es la que la Sección V-B usa para
+exhibir el colapso.
 
-![AUC de detección contra el piso posicional](figuras/deteccion-contra-piso.es.png)
+![AUC de detección contra el promedio histórico por posición](figuras/deteccion-contra-baseline.es.png)
 
-**Fig. 4.** AUC de detección del LSTM y de la persistencia contra el piso del
-perfil posicional (punteado), por horizonte. Un panel por corredor, origen 3; la
-línea en 0.5 es el azar.
+**Fig. 4.** AUC de detección del LSTM y de la persistencia contra el promedio
+histórico por posición (punteado), por horizonte. Un panel por corredor, origen
+3; la línea en 0.5 es el azar.
 
 **Tabla 2.** Diferencias del LSTM, sin umbral y con el umbral recalibrado fuera
 de muestra, con su intervalo de confianza del 95 %. Un signo positivo favorece
 al LSTM, y un intervalo que contiene el cero deja a los dos lados
 indistinguibles.
 
-| Corredor | h | Δ AUC frente a la persistencia | Δ AUC frente al piso posicional | Δ MCC recal. frente a la persistencia |
+| Corredor | h | Δ AUC frente a la persistencia | Δ AUC frente al promedio histórico por posición | Δ MCC recal. frente a la persistencia |
 | :--- | ---: | :---: | :---: | :---: |
 | E2 | 1 | -0.009 [-0.015, -0.004] | +0.126 [+0.117, +0.138] | -0.091 [-0.106, -0.078] |
 | E2 | 3 | +0.031 [+0.025, +0.036] | +0.050 [+0.040, +0.061] | +0.018 [+0.005, +0.028] |
@@ -601,9 +602,9 @@ una sola semilla, y un vector reúne en promedio entre 3.8 y 5.9 headways. El
 efecto se repitió en los tres corredores y los tres orígenes, cada uno con su
 propio entrenamiento.
 
-Los datos cubren tres corredores de una sola ciudad durante 152 días. El perfil
-posicional se ajustó sobre un solo origen anterior, mientras que las
-comparaciones entre métodos se replicaron sobre tres.
+Los datos cubren tres corredores de una sola ciudad durante 152 días. El
+promedio histórico por posición se ajustó sobre un solo origen anterior,
+mientras que las comparaciones entre métodos se replicaron sobre tres.
 
 ---
 
@@ -617,9 +618,9 @@ sobre lo observado cambia qué método detecta mejor, frente a la comparación s
 umbral. Para corregirlo, propusimos fijar el umbral sobre lo predicho,
 recalibrado en un origen anterior o con la regla de cuota, y ambas formas
 recuperan la comparación sin umbral. Sugerimos además contrastar todo modelo con
-el perfil posicional, que el LSTM no superó en E2 a diez minutos. Esperamos que
-la detección de bunching sobre predicciones se evalúe en adelante con el umbral
-fijado sobre lo predicho.
+el promedio histórico por posición, que el LSTM no superó en E2 a diez minutos.
+Esperamos que la detección de bunching sobre predicciones se evalúe en adelante
+con el umbral fijado sobre lo predicho.
 
 ---
 
@@ -753,15 +754,18 @@ convolución sobre las contiguas y una atención entre todas. Las tres quedaron 
 entre 0.017 y 0.074 minutos de MAE en las doce celdas, ninguna ganó las doce, y
 se conservó la más simple.
 
-El **perfil posicional** no compite con los tres métodos: fija el piso de la
-Sección III-C. Responde con el headway promedio que cada posición del vector
-registró en un período anterior, y lo repite sin cambios en cada minuto del
-período de prueba, sin leer la ventana de entrada. Existe porque las posiciones
-del vector no son intercambiables: las de más adelante llevan headways
-sistemáticamente más cortos, y algunas caen por debajo de la mitad del promedio
-de su vector por la posición que ocupan y no por lo que ocurrió ese minuto. Se
-ajusta sobre el período de prueba del origen 2 y se aplica al del origen 3, los
-mismos dos períodos que la Sección IV-A usa para el umbral y por la misma razón.
+El **baseline de promedio histórico por posición** no compite con los tres
+métodos: es el baseline del AUC de la Sección III-C. El promedio histórico es un
+baseline habitual en la predicción de transporte [@rodrigues2022], y aquí se
+agrupa por posición del vector en lugar de por hora. Responde con el headway
+promedio que cada posición del vector registró en un período anterior, y lo
+repite sin cambios en cada minuto del período de prueba, sin leer la ventana de
+entrada. Existe porque las posiciones del vector no son intercambiables: las de
+más adelante llevan headways sistemáticamente más cortos, y algunas caen por
+debajo de la mitad del promedio de su vector por la posición que ocupan y no por
+lo que ocurrió ese minuto. Se ajusta sobre el período de prueba del origen 2 y
+se aplica al del origen 3, los mismos dos períodos que la Sección IV-A usa para
+el umbral y por la misma razón.
 
 ### C. Protocolo de evaluación
 
@@ -938,6 +942,10 @@ empirical agent-based model," arXiv:2004.13022, 2020.
 comprehensive review from demand, supply, and decision-making perspectives,"
 *Transport Reviews*, vol. 44, no. 4, pp. 766–790, 2024,
 doi: 10.1080/01441647.2024.2313969.
+
+`[@rodrigues2022]` F. Rodrigues, "On the importance of stationarity, strong
+baselines and benchmarks in transport prediction problems," arXiv:2203.02954,
+2022.
 
 `[@santos2022]` V. B. Santos, C. E. S. Pires, D. C. Nascimento, and A. R. M. de
 Queiroz, "A Decision Tree Ensemble Model for Predicting Bus Bunching," *The

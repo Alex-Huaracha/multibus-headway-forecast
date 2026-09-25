@@ -243,7 +243,7 @@ class TestTheDocumentDeclaresTheFloor:
         return re.sub(r"\s+", " ", self.PAPER.read_text(encoding="utf-8"))
 
     def test_the_paper_names_the_positional_floor(self, paper):
-        assert "perfil posicional" in paper
+        assert "promedio histórico por posición" in paper
 
     def test_the_paper_declares_the_e2_exception(self, paper):
         """The sentence that costs the showcase cell. Its absence is the

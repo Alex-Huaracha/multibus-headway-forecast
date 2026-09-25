@@ -40,9 +40,12 @@ Aquí solo va la decisión.
 | La tabla que cruza lo observado con lo predicho | `matriz de confusión` | 1 | `confusion matrix` ²¹ | cruce |
 | La señal que el detector emite sobre una posición predicha | `trigger` | 19 | `trigger` ²² | disparo, alarma, alerta ²³ |
 | Lo que hace la regla sobre lo observado al fijar el evento verdadero | `marcar` | 3 | `mark` ²² | trigger ²⁴ |
-| El valor contra el que se compara el headway | `umbral` | 95 | `threshold` | corte, referencia |
+| El valor contra el que se compara el headway | `umbral` | 99 | `threshold` | corte, referencia, punto de operación ²⁵ |
 | El valor del que el umbral es una fracción | `denominador` | 7 | `denominator` ¹² | referencia |
-| El error que fijan los métodos sin ajuste | `error de referencia` | 2 | `reference` | línea base, benchmark |
+| El error que fijan los métodos sin ajuste | `error de referencia` | 1 | `reference` | línea base, benchmark, baseline ²⁶ |
+| La regla que marca bunching en toda posición, contra la que se lee todo F1 | `baseline siempre positivo` | 6 | `always-positive baseline` ²⁶ | detector trivial, piso trivial, regla vacía |
+| El headway promedio de cada posición del vector en un período anterior, repetido cada minuto; contra él se lee todo AUC | `baseline de promedio histórico por posición`; después, `promedio histórico por posición` | 11 | `per-position historical average` ²⁷ | perfil posicional, piso posicional, baseline posicional, nulo posicional |
+| La comparación de dos métodos sobre las mismas muestras bajo una métrica declarada | `comparación pareada` | 2 | `paired comparison` | veredicto ²⁵ |
 | La realidad contra la que se compara la predicción | `observado` | — | `observed`, `observations` | de referencia |
 | La dispersión entre los buses de un mismo instante | `dispersión transversal` | 4 | ⁷ | lateral ¹³ |
 
@@ -75,7 +78,8 @@ Aquí solo va la decisión.
    `ping` a la observación espacial. Al traducir hay que decidir esto
    explícitamente o la versión inglesa refunde los dos objetos que el español
    acaba de separar.
-6. `punto` está tomado por **punto de operación**, que es el concepto del título.
+6. `punto` quedaba tomado por **punto de operación**. Ese término salió del
+   manuscrito el 2026-09-24 (nota 25), así que la restricción ya no aplica.
 7. Sin término que heredar. Para la rejilla se leyeron completos los dos trabajos
    de reconstrucción de trayectorias de transporte desde datos AVL —Huang,
    Abdelhalim, Stewart, Zhao y Koutsopoulos, «Reconstructing Transit Vehicle
@@ -173,12 +177,15 @@ Aquí solo va la decisión.
     **Corrección a una cuenta anterior**: los 38 de `alert` estaban inflados —21
     son nombres de variable de Waze en Santos (`alertSubtype`,
     `alertNThumbsUp`), no el detector—. Para lo observado, `mark` o `label`.
-23. `alarma` y `alerta` **están vetadas por el propio paper**: V-H abre con «Eso no
-    es una **alarma**. Una alarma tiene que sonar cuando ocurre el evento», y
-    concluye que lo que queda es un filtro de prioridad. Usar el sustantivo que la
-    sección niega contradiría su conclusión operativa. `disparo` se descartó por
-    legibilidad fuera del gremio: se entiende en un contexto de software, no en uno
-    de transporte.
+23. `alarma` y `alerta` **están vetadas por el propio paper**: V-H abre con «Eso
+    no es una **alarma**. Una alarma tiene que sonar cuando ocurre el evento», y
+    concluye que lo que queda es un filtro de prioridad. Usar el sustantivo que
+    la sección niega contradiría su conclusión operativa. **Corrección
+    2026-09-24:** esa frase ya no existe en `paper.md` —la V-H se eliminó—, de
+    modo que el veto perdió su fundamento. El sustantivo del campo es `alarm`
+    (Moreira-Matias, Sun, Yu); la decisión de cambiar `trigger` sigue abierta.
+    `disparo` se descartó por legibilidad fuera del gremio: se entiende en un
+    contexto de software, no en uno de transporte.
 24. **El paper ya trazaba la línea entre los dos objetos**, en dos frases seguidas
     de V-C: «La regla… aplicada a lo observado, **marcó** 15 245 eventos… Aplicada
     a lo predicho…, emitió catorce **triggers**». Doce usos la habían cruzado y
@@ -186,6 +193,33 @@ Aquí solo va la decisión.
     IV-D, que decía «la fracción de posiciones que **marca** como evento». Ahora
     las dos se definen sobre su ecuación: `marcar` en la (5) y `trigger` en la (6),
     en lugar de deducirse doscientas líneas después.
+
+25. **Retirados el 2026-09-24 por no ser términos del campo.** `punto de
+    operación` (*operating point*) solo aparece en Fawcett 2006, el tutorial de
+    ROC; ningún paper de bunching lo usa, y todos dicen `threshold` —Yu, Jiao,
+    Santos, Sun `bunching threshold`—. `veredicto` (*verdict*) da **cero** usos
+    en las 22 referencias: el campo no nombra ese objeto, dice qué le pasa a la
+    comparación —Kim «overestimate», Wu «illusion of progress»—. En el paper
+    quedó `qué método gana` o `la comparación sin umbral`, y en el Apéndice B,
+    donde se definía, `comparación pareada`. En el código sobreviven `verdict()`
+    y comentarios con «operating point»; no se traducen al paper.
+26. **`baseline` se presta sin traducir, en masculino** (`el baseline`), porque
+    se entiende mejor que `línea base`. Nombra solo las dos varas de medir,
+    nunca a la persistencia, que conserva `error de referencia`. `detector`
+    queda reservado para la regla de la Ecuación (5): llamar «detector» a la
+    vara de medir juntaba dos objetos de papel opuesto. El nombre viene de Flach
+    & Kull, ya citados: «the **baseline** to beat is the **always-positive
+    classifier**». `classifier` no se toma, porque el LSTM no es un clasificador
+    y sumaría un tercer término.
+27. **`historical average` es el término estándar** del baseline en predicción
+    de transporte: Rodrigues 2022, «the average weekly pattern for each
+    location… commonly referred in literature as the “Historical Average” (HA)»,
+    citado en el Apéndice A-B; Jiao 2023, «historical average models». **Pero el
+    HA estándar agrupa por hora del día y día de la semana**, y el nuestro por
+    posición del vector (`PROFILE_KEY` en `build_positional_null.py:88`:
+    corredor, sentido, horizonte, `pair_rank`). Por eso `por posición` no se
+    omite nunca: sin él, el revisor supone el agrupamiento por hora.
+    `posicional` se retiró porque sonaba a posición geográfica (ver nota 5).
 
 ## Nota sobre la concordancia
 

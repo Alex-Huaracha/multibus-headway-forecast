@@ -14,7 +14,7 @@ so a figure can never disagree with the table it illustrates.
                                         El artefacto que se está explicando.
     contiguo-deteccion-sin-umbral.png   Ventaja escalar y AUC de detección, juntas.
                                         El veredicto corregido.
-    contiguo-deteccion-contra-piso.png  AUC de detección contra el piso posicional.
+    contiguo-deteccion-contra-baseline.png  AUC de detección contra el promedio histórico por posición.
                                         El veredicto sin umbral, acotado.
     contiguo-umbral-en-minutos.png      Umbral en minutos de cada regla, observado
                                         contra predicho. Por qué la cuota no colapsa.
@@ -106,7 +106,7 @@ LANG = {
         "auc_lstm": "AUC de bunching — LSTM",
         "advantage_axis": "Ventaja en MAE sobre persistencia [min]",
         "auc_axis": "AUC de detección de bunching",
-        "auc_floor": "Piso del perfil posicional",
+        "auc_floor": "Promedio histórico por posición",
         "cut_rule_published": "Regla de la Sección III-B",
         "cut_rule_quota": "Regla de cuota",
         "cut_observed": "sobre lo observado",
@@ -212,7 +212,7 @@ FIGURE_NAMES = {
     ),
     "detection_without_threshold": ("contiguo-deteccion-sin-umbral.png", None),
     "detection_against_floor": (
-        "contiguo-deteccion-contra-piso.png", "deteccion-contra-piso",
+        "contiguo-deteccion-contra-baseline.png", "deteccion-contra-baseline",
     ),
     "threshold_in_minutes": (
         "contiguo-umbral-en-minutos.png", "umbral-en-minutos",
@@ -602,7 +602,7 @@ def detection_against_floor(*, lang: str = "es", chrome: bool = True) -> Path:
     )
     if chrome:
         _caption(fig, [
-            "AUC sobre el origen 3. El piso responde con el headway promedio de cada posición en el origen 2, sin leer la ventana",
+            "AUC sobre el origen 3. El baseline responde con el headway promedio de cada posición en el origen 2, sin leer la ventana",
             "de entrada. La línea fina en 0.5 es el azar.",
         ])
     fig.tight_layout(rect=(0, 0.08, 1, 0.88) if chrome else CLEAN_RECT)

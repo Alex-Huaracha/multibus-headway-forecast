@@ -168,13 +168,13 @@ def tabla_1() -> str:
             ])
 
     table = _render(
-        ["Corredor", "h", "Tasa base", "Piso trivial", "F1 persistencia",
+        ["Corredor", "h", "Tasa base", "F1 baseline", "F1 persistencia",
          f"F1 {LEARNER}", "Factor"],
         rows,
         aligns="lrrrrrr",
     )
     note = (
-        "\n\n† El detector trivial supera al ganador declarado en estas celdas."
+        "\n\n† El baseline siempre positivo supera al ganador declarado en estas celdas."
     )
     return table + note
 
@@ -233,7 +233,7 @@ def tabla_2() -> str:
 
     return _render(
         ["Corredor", "h", "Δ AUC frente a la persistencia",
-         "Δ AUC frente al piso posicional",
+         "Δ AUC frente al promedio histórico por posición",
          "Δ MCC recal. frente a la persistencia"],
         rows,
         aligns="lrccc",
