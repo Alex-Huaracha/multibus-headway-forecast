@@ -30,13 +30,17 @@ fijar un umbral [@sun2021]. Queda sin medir qué le hace el error de la primera
 etapa a la decisión de la segunda.
 
 La primera etapa introduce el defecto que la segunda hereda. Un modelo entrenado
-con error cuadrático medio tiende al promedio condicional, y la dispersión entre
-los buses de un mismo instante —la cantidad que el bunching altera— sale
-comprimida. Un umbral trasladado sin cambios a esa distribución encogida
-encuentra pocos valores que lo crucen: el detector casi deja de emitir avisos
-aunque el error en minutos mejore. La regla de la Sección III-B divide por el
-promedio del propio vector predicho, de modo que es relativa, y aun así deja de
-avisar.
+con error cuadrático medio, cuando no sabe si un headway será corto o largo,
+predice un valor intermedio, porque así su error promedio es menor
+[@gneiting2011]. Por eso los headways que predice para un mismo instante se
+parecen entre sí más que los reales: la predicción queda **subdispersa**
+(*underdispersion*), con menos dispersión que lo observado [@mayer2023]. El
+bunching es justamente un headway mucho más corto que los demás, y una
+predicción subdispersa casi no los contiene. Si el umbral que marca bunching en
+los datos reales se aplica sin cambios a lo predicho, casi ninguna posición
+queda por debajo de él, y el detector deja de avisar aunque el error en minutos
+mejore. Ocurre aunque el umbral sea relativo, una fracción del promedio del
+propio vector predicho (Sección III-B).
 
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta
 el umbral. Predice el vector completo de headways de un corredor —los buses de
@@ -51,11 +55,11 @@ cada uno con su propio período de prueba, a diez minutos. La Sección II-C
 delimita cuánto del mecanismo que este trabajo mide ya estaba publicado.
 Nuestras contribuciones son tres:
 
-- Medimos esa compresión sobre el vector de headways, la aislamos con la
-  persistencia como control de compresión nula y la leemos en la escala de nivel
-  de servicio del *Transit Capacity and Quality of Service Manual* (TCQSM). El
-  mismo corredor queda en nivel A según lo predicho y en nivel F según lo
-  observado.
+- Medimos esa subdispersión sobre el vector de headways, la aislamos con la
+  persistencia, que no la produce, como control, y la leemos en la escala de
+  nivel de servicio del *Transit Capacity and Quality of Service Manual*
+  (TCQSM). El mismo corredor queda en nivel A según lo predicho y en nivel F
+  según lo observado.
 - Mostramos que la evaluación en dos etapas, con el umbral trasladado, cambia
   qué método detecta mejor, frente a las mismas predicciones puntuadas sin
   umbral. Acotamos esa comparación con un baseline de promedio histórico por
@@ -83,28 +87,28 @@ el subcampo registra una medida que puntúe el ordenamiento sin fijar antes un
 umbral [@santos2022]. Este trabajo puntúa las mismas predicciones con el umbral
 y sin él, para aislar el efecto del umbral.
 
-### B. Compresión de la dispersión bajo error cuadrático medio
+### B. Subdispersión bajo error cuadrático medio
 
 La primera etapa arrastra una propiedad que es un teorema y no una regularidad
 empírica: lo ajustado para minimizar el error cuadrático sale menos disperso que
-la cantidad que predice. La predicción óptima es la media condicional
-[@gneiting2011], y la varianza del objetivo se descompone en la de esa
-predicción más el error cuadrático esperado, con una compresión que crece al
-alargar el horizonte [@patton2012]. Esa compresión está medida sobre la varianza
-temporal de una serie escalar [@mayer2023], sobre conjuntos de instancias en
-seis dominios, entre ellos el tráfico [@green2026], y sobre la dispersión
-transversal de un campo espacial [@bonavita2024].
+la cantidad que predice, y se dice subdisperso. La predicción óptima es la media
+condicional [@gneiting2011], y la varianza del objetivo se descompone en la de
+esa predicción más el error cuadrático esperado, con una subdispersión que crece
+al alargar el horizonte [@patton2012]. Esa subdispersión está medida sobre la
+varianza temporal de una serie escalar [@mayer2023], sobre conjuntos de
+instancias en seis dominios, entre ellos el tráfico [@green2026], y sobre la
+dispersión transversal de un campo espacial [@bonavita2024].
 
 El daño sobre una regla de umbral también está documentado: el método con mejor
 error cuadrático es el que peor detecta los episodios altos de ozono, porque
 subestima la variabilidad [@petetin2022]. Lo que no encontramos es esa medición
 sobre el vector de headways de un corredor, ni un control que separe la
-compresión del resto del procedimiento; la Sección V-A usa la persistencia para
-eso.
+subdispersión del resto del procedimiento; la Sección V-A usa la persistencia
+para eso.
 
 ### C. Correcciones del umbral y delimitación
 
-El efecto de la compresión sobre una regla de umbral tiene dos correcciones
+El efecto de la subdispersión sobre una regla de umbral tiene dos correcciones
 publicadas fuera del transporte, y ambas alinean cuantiles entre lo predicho y
 lo observado: uno reubica el umbral en el valor que su percentil ocupa dentro de
 lo predicho [@hoffmann2018], y el otro lleva la distribución de lo predicho a la
@@ -126,11 +130,11 @@ Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
 diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
 bajo la curva para su clasificador probabilístico [@sun2021]. Su etiqueta es un
 umbral absoluto de un minuto, y la Sección V-D muestra que, en nuestros datos,
-un umbral absoluto del mismo tipo también colapsa bajo la compresión. El umbral
-de Jiao y colaboradores es relativo pero se ancla en una observación fija, y su
-reparación cambia el objetivo que el modelo optimiza [@jiao2023]. Este trabajo
-repara la regla y no el modelo: no reentrena, no cambia el objetivo y fija su
-única tasa sobre un período anterior disjunto.
+un umbral absoluto del mismo tipo también colapsa bajo la subdispersión. El
+umbral de Jiao y colaboradores es relativo pero se ancla en una observación
+fija, y su reparación cambia el objetivo que el modelo optimiza [@jiao2023].
+Este trabajo repara la regla y no el modelo: no reentrena, no cambia el objetivo
+y fija su única tasa sobre un período anterior disjunto.
 
 ---
 
@@ -362,7 +366,7 @@ el mismo evento que las otras dos.
 
 ## V. Resultados
 
-### A. Error escalar y compresión de la dispersión
+### A. Error escalar y subdispersión
 
 A diez minutos de anticipación, el LSTM predijo el headway mejor que la
 persistencia: el error absoluto medio bajó 1.47 minutos en E2, 1.38 en E4 y 1.17
@@ -381,11 +385,11 @@ vehicles bunched»— según lo observado.
 La brecha no fue un caso aislado. El sesgo del coeficiente de variación resultó
 negativo en **las doce celdas y los tres orígenes de evaluación**, y se
 profundizó sin excepción al alargar el horizonte, como muestra la Figura 2. La
-persistencia no comprimió nada, con el sesgo dentro de ±0.022. El control sitúa
-el efecto en el **ajuste por error cuadrático**, que la persistencia no hace, y
-no en los datos ni en el corredor.
+persistencia no quedó subdispersa, con el sesgo dentro de ±0.022. El control
+sitúa el efecto en el **ajuste por error cuadrático**, que la persistencia no
+hace, y no en los datos ni en el corredor.
 
-![Sesgo de dispersión contra el horizonte](figuras/compresion-vs-horizonte.es.png)
+![Sesgo de dispersión contra el horizonte](figuras/subdispersion-vs-horizonte.es.png)
 
 **Fig. 2.** Sesgo del coeficiente de variación, lo predicho menos lo observado,
 por método y horizonte. Un panel por corredor, origen 3; un valor negativo es un
@@ -423,7 +427,7 @@ origen y el tercero varía entre 0.90 y 1.58 en diez de las doce celdas. En E2
 valió **126**, **58** y **36** a cinco minutos, y **2 299**, **817** y **253** a
 diez. Son las dos celdas donde el umbral trasladado dejó al detector casi sin
 triggers. Un cociente cuyo denominador se acerca a cero no mide una capacidad
-del modelo, sino la interacción entre el umbral y la distribución comprimida de
+del modelo, sino la interacción entre el umbral y la distribución subdispersa de
 la Sección V-A.
 
 ![Tasa de trigger contra tasa real del evento](figuras/artefacto-umbral.es.png)
@@ -459,7 +463,7 @@ trasladado de la Tabla 1, la persistencia ganaba las doce celdas. La
 recalibración de la Sección IV-A, que no toca el modelo, llevó al LSTM a ganar 5
 de las 12 celdas, entre ellas las tres de diez minutos, si bien la de E4 no
 resiste su propio intervalo. Su objetivo es el MCC porque el F1 degenera en este
-corpus: sobre la persistencia en E2, de tres minutos en adelante, el umbral que
+dataset: sobre la persistencia en E2, de tres minutos en adelante, el umbral que
 optimiza el F1 emitió un trigger entre el 99.9 % y el 100 % de las posiciones,
 esto es, el baseline siempre positivo de la Tabla 1.
 
@@ -524,11 +528,11 @@ El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
 minutos, y la Figura 5 lo muestra. Bajo la regla de la Sección III-B, el umbral
 sobre lo predicho quedó a menos de 0.35 minutos del umbral sobre lo observado en
 las doce celdas. Bajo la regla de cuota subió hasta donde quedó la distribución
-comprimida, y la distancia crece con el horizonte en los tres corredores. Un
+subdispersa, y la distancia crece con el horizonte en los tres corredores. Un
 umbral fijado sobre lo observado no puede seguirla, porque su valor no depende
 de la escala de lo que evalúa. La recalibración la sigue por otra vía: la
 fracción ajustada sobre lo predicho del origen 2 quedó entre 0.58 y 0.91 del
-promedio, contra el 0.5 heredado. La compresión de la Sección V-A alcanza
+promedio, contra el 0.5 heredado. La subdispersión de la Sección V-A alcanza
 entonces a toda regla cuyo umbral se fija sobre lo observado, y no solo a la que
 divide por lo predicho.
 
@@ -592,17 +596,17 @@ recomendación de fijar el umbral sobre lo predicho no depende de esa definició
 en la Sección V-D, el umbral fijado sobre lo observado deja de avisar tanto si
 es relativo como si es absoluto.
 
-La compresión se atribuye al ajuste por error cuadrático y admite dos lecturas
-alternativas. La primera es el ruido de medición: el eje del corredor y el
-sentido de marcha se estiman de los registros, y ese error agranda la
-compresión. La descomposición de la Ecuación (7) la acota sin eliminarla, con
-una correlación de 0.993 entre $r$ y $r_0$, de modo que el corpus fija el tamaño
-del efecto y no su existencia. La segunda es el azar: cada modelo se entrenó con
-una sola semilla, y un vector reúne en promedio entre 3.8 y 5.9 headways. El
-efecto se repitió en los tres corredores y los tres orígenes, cada uno con su
-propio entrenamiento.
+La subdispersión se atribuye al ajuste por error cuadrático y admite dos
+lecturas alternativas. La primera es el ruido de medición: el eje del corredor y
+el sentido de marcha se estiman de los registros, y ese error agranda la
+subdispersión. La descomposición de la Ecuación (7) la acota sin eliminarla, con
+una correlación de 0.993 entre $r$ y $r_0$, de modo que el dataset fija el
+tamaño del efecto y no su existencia. La segunda es el azar: cada modelo se
+entrenó con una sola semilla, y un vector reúne en promedio entre 3.8 y 5.9
+headways. El efecto se repitió en los tres corredores y los tres orígenes, cada
+uno con su propio entrenamiento.
 
-Los datos cubren tres corredores de una sola ciudad durante 152 días. El
+El dataset cubre tres corredores de una sola ciudad durante 152 días. El
 promedio histórico por posición se ajustó sobre un solo origen anterior,
 mientras que las comparaciones entre métodos se replicaron sobre tres.
 
@@ -613,7 +617,7 @@ mientras que las comparaciones entre métodos se replicaron sobre tres.
 Este trabajo mostró que las predicciones entrenadas por error cuadrático
 describen un corredor más regular que el real: el mismo corredor queda en nivel
 A del TCQSM según lo predicho y en nivel F según lo observado. Mostró también
-que, por esa compresión, aplicar a lo predicho el umbral de bunching fijado
+que, por esa subdispersión, aplicar a lo predicho el umbral de bunching fijado
 sobre lo observado cambia qué método detecta mejor, frente a la comparación sin
 umbral. Para corregirlo, propusimos fijar el umbral sobre lo predicho,
 recalibrado en un origen anterior o con la regla de cuota, y ambas formas
@@ -627,7 +631,7 @@ con el umbral fijado sobre lo predicho.
 ## VIII. Declaraciones
 
 Los datos primarios son registros GPS del Sistema Integrado de Transporte de
-Arequipa, cuya fuente es la Municipalidad Provincial de Arequipa. El conjunto
+Arequipa, cuya fuente es la Municipalidad Provincial de Arequipa. El dataset
 crudo y el procesado están disponibles en Kaggle, en
 `kaggle.com/datasets/alexhuaracha/multibus-headway-forecast-raw` y
 `kaggle.com/datasets/alexhuaracha/multibus-headway-forecast-clean`. El código de

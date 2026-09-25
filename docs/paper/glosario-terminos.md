@@ -24,6 +24,7 @@ Aquí solo va la decisión.
 | El trazado vial que el corredor recorre | `ruta` | — | `route` | — |
 | El vehículo | `bus` | 51 | `bus` | unidad ², flota |
 | La entidad dueña de los buses | `empresa` | 6 | `company` ³ | operador |
+| La colección de registros de los tres corredores, cruda o procesada | `dataset` | 4 | `dataset` | corpus, conjunto |
 | Lo que el bus emite: identificador, instante y coordenada | `registro GPS` | 10 | `GPS record` | dato, emisión, ping, bitácora, registro ⁴ |
 | La ubicación de un bus en el espacio | `coordenada` | 14 | `position` ⁵ | posición, punto ⁶, ubicación |
 | El lado del eje hacia el que el bus avanza | `sentido` | 15 | `direction` ¹⁵ | dirección ¹⁶ |
@@ -48,6 +49,7 @@ Aquí solo va la decisión.
 | La comparación de dos métodos sobre las mismas muestras bajo una métrica declarada | `comparación pareada` | 2 | `paired comparison` | veredicto ²⁵ |
 | La realidad contra la que se compara la predicción | `observado` | — | `observed`, `observations` | de referencia |
 | La dispersión entre los buses de un mismo instante | `dispersión transversal` | 4 | ⁷ | lateral ¹³ |
+| Lo predicho con menos dispersión transversal que lo observado, por el ajuste con error cuadrático | `subdispersión`, `subdisperso` | 19 | `underdispersion`, `underdispersed` (Mayer y Yang) | compresión, comprimido, encogido, aplanado |
 
 ## Notas
 

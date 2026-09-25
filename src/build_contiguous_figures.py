@@ -20,7 +20,7 @@ so a figure can never disagree with the table it illustrates.
                                         contra predicho. Por qué la cuota no colapsa.
     contiguo-compresion-dispersion.png  CV observado contra CV predicho, a h = 10.
                                         La causa del artefacto.
-    contiguo-compresion-vs-horizonte.png  El mismo sesgo contra el horizonte. La
+    contiguo-subdispersion-vs-horizonte.png  El mismo sesgo contra el horizonte. La
                                         dosis-respuesta.
 
 ``contiguo-artefacto-umbral`` and ``contiguo-deteccion-sin-umbral`` are the
@@ -219,7 +219,7 @@ FIGURE_NAMES = {
     ),
     "dispersion_compression": ("contiguo-compresion-dispersion.png", None),
     "dispersion_vs_horizon": (
-        "contiguo-compresion-vs-horizonte.png", "compresion-vs-horizonte",
+        "contiguo-subdispersion-vs-horizonte.png", "subdispersion-vs-horizonte",
     ),
 }
 
