@@ -39,7 +39,9 @@ Aquí solo va la decisión.
 | El instante en que el de adelante pasó por la coordenada del de atrás | `cruce` | 4 | `crossing` ¹⁸ | — |
 | El punto a partir del cual el LSTM pasa a ganar | `frontera de régimen` | 5 | ¹⁹ | cruce, frontera ²⁰ |
 | La tabla que cruza lo observado con lo predicho | `matriz de confusión` | 1 | `confusion matrix` ²¹ | cruce |
-| La señal que el detector emite sobre una posición predicha | `trigger` | 19 | `trigger` ²² | disparo, alarma, alerta ²³ |
+| La señal que el detector emite sobre una posición predicha | `alarma`, `tasa de alarma` | 15 | `alarm` (Moreira-Matias, Sun, Yu) ²² | trigger, disparo, alerta ²³ |
+| Cuánto se parecen dos eventos: de las posiciones que marca al menos uno, la fracción que marcan ambos | `índice de Jaccard`, `Jaccard` | 4 | `Jaccard index` | solape |
+| La regla que marca en cada vector una fracción fija de sus posiciones más cortas | `umbral por percentil`, `percentil` | 21 | `percentile threshold` (Roberts y Lean 2008; Hoffmann et al. 2018) | cuota, regla de cuota |
 | Lo que hace la regla sobre lo observado al fijar el evento verdadero | `marcar` | 3 | `mark` ²² | trigger ²⁴ |
 | El valor contra el que se compara el headway | `umbral` | 99 | `threshold` | corte, referencia, punto de operación ²⁵ |
 | El valor del que el umbral es una fracción | `denominador` | 7 | `denominator` ¹² | referencia |
@@ -185,7 +187,8 @@ Aquí solo va la decisión.
     la sección niega contradiría su conclusión operativa. **Corrección
     2026-09-24:** esa frase ya no existe en `paper.md` —la V-H se eliminó—, de
     modo que el veto perdió su fundamento. El sustantivo del campo es `alarm`
-    (Moreira-Matias, Sun, Yu); la decisión de cambiar `trigger` sigue abierta.
+    (Moreira-Matias, Sun, Yu). **Aplicado 2026-09-25:** `trigger` pasó a `alarma`,
+    y la columna T/E de la Tabla 3 a A/E.
     `disparo` se descartó por legibilidad fuera del gremio: se entiende en un
     contexto de software, no en uno de transporte.
 24. **El paper ya trazaba la línea entre los dos objetos**, en dos frases seguidas

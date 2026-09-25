@@ -67,8 +67,8 @@ Nuestras contribuciones son tres:
 - Mostramos que el colapso alcanza a toda regla que lleve a lo predicho un
   umbral fijado sobre la escala de lo observado, relativa o absoluta. Un umbral
   fijado sobre lo predicho recupera la comparación sin umbral en once de las
-  doce celdas, sea recalibrado sobre un origen anterior o como una cuota de
-  posiciones que por construcción no puede colapsar.
+  doce celdas, sea recalibrado sobre un origen anterior o como un percentil de
+  cada vector, que por construcción no puede colapsar.
 
 ---
 
@@ -117,14 +117,15 @@ declara extremo un pronóstico comparándolo contra la climatología **del propi
 modelo** [@ecmwffug], así que referir el umbral a lo que el modelo produce no es
 nuevo.
 
-Hoffmann y colaboradores observan que un indicador definido sobre un cuantil
+Hoffmann y colaboradores observan que un indicador definido sobre un percentil
 queda libre de sesgo por definición [@hoffmann2018]. Eso ocurre porque un
-cuantil **conserva la frecuencia del evento** bajo cualquier transformación
-monótona de lo predicho. Ninguna de las tres prácticas lleva esa propiedad
-**dentro de la instancia que evalúa**, y ese es el paso que da este trabajo: la
-regla de cuota de la Sección IV-B marca en cada vector una fracción fija de sus
-posiciones, tomada de un origen anterior, y así marca en lo predicho la misma
-cantidad de posiciones que en lo observado.
+percentil **conserva la frecuencia del evento** bajo cualquier transformación
+monótona de lo predicho. Roberts y Lean calculan ese percentil **dentro de cada
+campo** de lluvia, sobre lo pronosticado y lo observado por separado, para
+quitar el sesgo de intensidad [@roberts2008]. Este trabajo lleva ese umbral por
+percentil al vector de headways: el de la Sección IV-B marca en cada vector una
+fracción fija de sus posiciones, tomada de un origen anterior, y así marca en lo
+predicho la misma cantidad de posiciones que en lo observado.
 
 Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
 diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
@@ -132,9 +133,10 @@ bajo la curva para su clasificador probabilístico [@sun2021]. Su etiqueta es un
 umbral absoluto de un minuto, y la Sección V-D muestra que, en nuestros datos,
 un umbral absoluto del mismo tipo también colapsa bajo la subdispersión. El
 umbral de Jiao y colaboradores es relativo pero se ancla en una observación
-fija, y su reparación cambia el objetivo que el modelo optimiza [@jiao2023].
-Este trabajo repara la regla y no el modelo: no reentrena, no cambia el objetivo
-y fija su única tasa sobre un período anterior disjunto.
+fija, y su corrección cambia el objetivo que el modelo optimiza [@jiao2023].
+Este trabajo corrige la regla y no el modelo: no reentrena, no cambia el
+objetivo y fija lo único que ajusta, el umbral, sobre un período anterior
+disjunto.
 
 ---
 
@@ -233,9 +235,10 @@ $$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
 
 donde $\hat{b}_i(t)$ es la detección emitida sobre la posición $i$ y
 $\bar{\hat{h}}(t)$ es el promedio del vector predicho. Cada posición con
-$\hat{b}_i(t) = 1$ es un **trigger**: la señal que el detector emite, y lo único
-que un operador vería. El umbral sale del vector predicho porque quien opera un
-corredor no dispone del observado al momento de decidir.
+$\hat{b}_i(t) = 1$ es una **alarma** (*alarm*) [@moreiramatias2016]: la señal
+que el detector emite, y lo único que un operador vería. El umbral sale del
+vector predicho porque quien opera un corredor no dispone del observado al
+momento de decidir.
 
 La fracción $\rho = \tfrac{1}{2}$ del detector es la del evento observado,
 heredada sin cambios, y a esa herencia se le llama aquí el **umbral
@@ -327,40 +330,54 @@ cuando solo se conoce qué posición del vector suele llevar el headway más cor
 Cumple para el AUC la misma función que el baseline siempre positivo cumple para
 el F1, y por eso acompaña a todo AUC reportado.
 
-Sobre esas cantidades se construyen dos cocientes. La tasa de trigger de un
-método es la fracción de sus posiciones con $\hat{b}_i = 1$, y el factor entre
-dos métodos es el cociente de sus F1 bajo el mismo umbral.
+Sobre esas cantidades se construyen dos cocientes. La tasa de alarma de un
+método es la fracción de sus posiciones con $\hat{b}_i = 1$, correspondan o no a
+un evento; no es la tasa de falsa alarma, que cuenta solo las que no
+corresponden. El factor entre dos métodos es el cociente de sus F1 bajo el mismo
+umbral.
 
 ---
 
-## IV. Reparaciones del umbral y de la regla
+## IV. Alternativas al umbral trasladado
 
 ### A. Recalibración fuera de muestra
 
-La primera reparación deja intacta la regla del evento y mueve el umbral del
+La primera alternativa deja intacta la regla del evento y mueve el umbral del
 detector de la Ecuación (5). Ese umbral no se hereda de lo observado: se ajusta
 maximizando el MCC sobre el período de prueba del origen 2 y se aplica sin
 cambios al del origen 3. Los dos períodos son disjuntos y provienen de modelos
 entrenados por separado, de modo que el período publicado no informa su propio
 umbral.
 
-### B. La regla de denominador observado y la regla de cuota
+### B. La regla de denominador observado y el umbral por percentil
 
 La regla de la Sección III-B divide por el promedio del vector predicho, que se
 mueve con la predicción. Se la contrastó con otras dos sobre la misma población
 y el mismo origen. La primera divide por el promedio del último vector
 observado: se recalcula en cada instante y sigue al corredor, pero es el mismo
 número para lo observado y para lo predicho. Se la llama aquí **la regla de
-denominador observado**. La segunda no divide por nada. Marca las posiciones más
-cortas de cada vector, y cuántas marca queda fijado antes de leer los valores.
-Es la longitud del vector por la fracción de posiciones que la regla de la
-Sección III-B marcó en el origen 2, del que la Sección IV-A toma el umbral
-recalibrado. Se la llama aquí **la regla de cuota**. Esa cantidad es un entero y
+denominador observado**. La segunda no divide por nada: es un **umbral por
+percentil** (*percentile threshold*) [@roberts2008]. En lugar de preguntar si un
+headway queda por debajo de cierto número de minutos, pregunta si está entre los
+más cortos de su vector. Marca en cada vector las posiciones más cortas hasta
+cubrir una fracción fija, y esa fracción es la que la regla de la Sección III-B
+marcó en el origen 2, del que la Sección IV-A toma el umbral recalibrado. Como
+solo cuenta el orden y no el valor, marca la misma cantidad de posiciones en lo
+predicho que en lo observado, por más subdisperso que esté lo predicho. Esa
+cantidad es la longitud del vector por la fracción, redondeada a un entero, y
 los vectores llevan entre tres y seis posiciones. En E4 esa fracción queda por
 debajo de un sexto desde el horizonte de tres minutos, de modo que los vectores
 de tres posiciones no marcan ninguna, y el redondeo mueve la frecuencia del
-evento entre -5.0 y +7.0 puntos. La regla de cuota no marca entonces exactamente
-el mismo evento que las otras dos.
+evento entre -5.0 y +7.0 puntos. El umbral por percentil define además su propio
+evento: sobre lo observado también marca las posiciones más cortas de cada
+vector, estén o no por debajo de la mitad de su promedio. Para medir cuánto se
+parece ese evento al de la Sección III-B, se aplican las dos definiciones a los
+mismos headways observados y se cuentan las posiciones que marca cada una. El
+**índice de Jaccard** divide las posiciones que marcan las dos entre las que
+marca al menos una: vale uno si marcan exactamente las mismas posiciones y cero
+si no coinciden en ninguna. Para el umbral por percentil vale 0.58 en la mediana
+de las doce celdas (Tabla 3), de modo que los dos eventos coinciden solo en
+parte.
 
 ---
 
@@ -406,33 +423,33 @@ diez.
 
 La regla de la Sección III-B, aplicada a lo observado, marcó 15 245 eventos en
 E2 a diez minutos. Aplicada a lo predicho por el LSTM, con el mismo umbral,
-emitió **catorce triggers**, y la persistencia emitió 15 083. Puntuada con el F1
+emitió **catorce alarmas**, y la persistencia emitió 15 083. Puntuada con el F1
 de la Sección III-C, la persistencia apareció 253 veces mejor que el LSTM, y en
 las otras celdas el factor va de 1.5 a 36. La Tabla 1 recoge las doce celdas, y
-la Figura 3 muestra el mismo colapso en la tasa de trigger.
+la Figura 3 muestra el mismo colapso en la tasa de alarma.
 
 Leído sin más contexto, ese resultado dice que el LSTM es incapaz de ver el
 fenómeno que se le pidió anticipar. Tres observaciones lo contradicen. La
 primera es que el ganador declarado tampoco detectó bien: el baseline siempre
 positivo de la Sección III-C superó a la persistencia en 5 de las doce celdas, y
 en 15 de las 36 combinaciones de celda y origen. La segunda es que el LSTM
-acertó en las pocas ocasiones en que emitió. De los catorce triggers de E2, diez
+acertó en las pocas ocasiones en que emitió. De las catorce alarmas de E2, diez
 correspondieron a eventos reales, 71 % de precisión contra una tasa base de 30
 %, con el intervalo del Apéndice B entre 42 % y 92 %. Las celdas con más
-triggers estrechan ese intervalo y mantienen la precisión por encima de su tasa
+alarmas estrechan ese intervalo y mantienen la precisión por encima de su tasa
 base.
 
 La tercera es que el factor no se sostiene al cambiar el origen. Entre el primer
 origen y el tercero varía entre 0.90 y 1.58 en diez de las doce celdas. En E2
 valió **126**, **58** y **36** a cinco minutos, y **2 299**, **817** y **253** a
 diez. Son las dos celdas donde el umbral trasladado dejó al detector casi sin
-triggers. Un cociente cuyo denominador se acerca a cero no mide una capacidad
+alarmas. Un cociente cuyo denominador se acerca a cero no mide una capacidad
 del modelo, sino la interacción entre el umbral y la distribución subdispersa de
 la Sección V-A.
 
-![Tasa de trigger contra tasa real del evento](figuras/artefacto-umbral.es.png)
+![Tasa de alarma contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 3.** Fracción de posiciones con trigger de la persistencia y del LSTM,
+**Fig. 3.** Fracción de posiciones con alarma de la persistencia y del LSTM,
 con el umbral del evento observado aplicado sin cambios, contra la tasa real del
 evento (punteada), por horizonte. Un panel por corredor, origen 3.
 
@@ -464,7 +481,7 @@ recalibración de la Sección IV-A, que no toca el modelo, llevó al LSTM a gana
 de las 12 celdas, entre ellas las tres de diez minutos, si bien la de E4 no
 resiste su propio intervalo. Su objetivo es el MCC porque el F1 degenera en este
 dataset: sobre la persistencia en E2, de tres minutos en adelante, el umbral que
-optimiza el F1 emitió un trigger entre el 99.9 % y el 100 % de las posiciones,
+optimiza el F1 emitió alarma en entre el 99.9 % y el 100 % de las posiciones,
 esto es, el baseline siempre positivo de la Tabla 1.
 
 Eliminar el umbral cambia más la comparación. Puntuado mediante el AUC, **el
@@ -519,22 +536,23 @@ indistinguibles.
 La Tabla 3 contrasta, sobre la misma población, el umbral trasladado, las dos
 reglas de la Sección IV-B y el umbral recalibrado de la Sección IV-A. Las dos
 reglas que llevan a lo predicho un umbral fijado sobre lo observado colapsaron:
-dividir por lo observado en lugar de por lo predicho duplicó el disparo del LSTM
-y lo dejó un orden de magnitud por debajo de la frecuencia del evento. El umbral
-recalibrado y la cuota no colapsaron, y la persistencia no colapsó bajo ninguna
-de las cuatro.
+dividir por lo observado en lugar de por lo predicho duplicó la tasa de alarma
+del LSTM y la dejó un orden de magnitud por debajo de la frecuencia del evento.
+El umbral recalibrado y el umbral por percentil no colapsaron, y la persistencia
+no colapsó bajo ninguna de las cuatro.
 
 El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
 minutos, y la Figura 5 lo muestra. Bajo la regla de la Sección III-B, el umbral
 sobre lo predicho quedó a menos de 0.35 minutos del umbral sobre lo observado en
-las doce celdas. Bajo la regla de cuota subió hasta donde quedó la distribución
-subdispersa, y la distancia crece con el horizonte en los tres corredores. Un
-umbral fijado sobre lo observado no puede seguirla, porque su valor no depende
-de la escala de lo que evalúa. La recalibración la sigue por otra vía: la
-fracción ajustada sobre lo predicho del origen 2 quedó entre 0.58 y 0.91 del
-promedio, contra el 0.5 heredado. La subdispersión de la Sección V-A alcanza
-entonces a toda regla cuyo umbral se fija sobre lo observado, y no solo a la que
-divide por lo predicho.
+las doce celdas. Con el percentil, el umbral sobre lo predicho subió por encima
+del de lo observado, hasta alcanzar la distribución subdispersa, y la distancia
+entre los dos crece con el horizonte en los tres corredores. Un umbral fijado
+sobre lo observado no puede seguirla, porque su valor no depende de la escala de
+lo que evalúa. La recalibración la sigue por otra vía: la fracción ajustada
+sobre lo predicho del origen 2 quedó entre 0.58 y 0.91 del promedio, contra el
+0.5 heredado. La subdispersión de la Sección V-A alcanza entonces a toda regla
+cuyo umbral se fija sobre lo observado, y no solo a la que divide por lo
+predicho.
 
 ![Umbral en minutos de cada regla](figuras/umbral-en-minutos.es.png)
 
@@ -542,43 +560,46 @@ divide por lo predicho.
 posiciones, sobre lo observado (discontinua) y sobre lo predicho por el LSTM
 (continua), por horizonte. Un panel por corredor, origen 3.
 
-Un umbral absoluto, sin denominador ni cuota, lo confirma. Se fijó en la cuarta
-parte del headway mediano observado de cada corredor y sentido, entre 1.4 y 2.4
-minutos, a la manera del umbral de un minuto de Sun, Schmöcker y Nakamura
+Un umbral absoluto, sin denominador ni percentil, lo confirma. Se fijó en la
+cuarta parte del headway mediano observado de cada corredor y sentido, entre 1.4
+y 2.4 minutos, a la manera del umbral de un minuto de Sun, Schmöcker y Nakamura
 [@sun2021]. Se calibró sobre el origen 2 y se aplicó sin cambios al origen 3.
-Frente a la regla de la Sección III-B, la tasa de trigger del LSTM cayó por un
+Frente a la regla de la Sección III-B, la tasa de alarma del LSTM cayó por un
 factor de mediana 138 en diez de las doce celdas, y en las otras dos no emitió
-ninguno. Con la mitad del headway mediano el factor fue de 2.0: el umbral
+ninguna. Con la mitad del headway mediano el factor fue de 2.0: el umbral
 dispara menos que una regla ya colapsada.
 
-La consecuencia está en qué método gana. El umbral recalibrado y la regla de
-cuota reproducen la comparación sin umbral de la Sección V-C en once de las doce
-celdas, y las dos reglas que colapsan en la mitad o poco más. La única celda
-donde discrepan es E59 a cinco minutos. El solape no explica esa diferencia: la
-regla de denominador observado es la que más se parece a la de la Sección III-B
-sobre lo observado, y es la que colapsa con ella.
+La consecuencia está en qué método gana. El umbral recalibrado y el umbral por
+percentil reproducen la comparación sin umbral de la Sección V-C en once de las
+doce celdas, el primero sobre el mismo evento y el segundo sobre uno que
+coincide con él en el 58 % de las posiciones, y las dos reglas que colapsan en
+la mitad o poco más. La única celda donde discrepan es E59 a cinco minutos.
+Cuánto se parecen los eventos no explica esa diferencia: la regla de denominador
+observado es la que más se parece a la de la Sección III-B sobre lo observado,
+con un Jaccard de 0.71, y es la que colapsa con ella.
 
-La regla de cuota no convierte al modelo en mejor detector. Su MCC mediano
+El umbral por percentil no convierte al modelo en mejor detector. Su MCC mediano
 duplicó el de la regla de la Sección III-B, y lo superó en las doce celdas. Aun
-así, bajo la cuota el LSTM **sigue por debajo de la persistencia** en siete de
-las doce celdas. Las cinco que gana son las tres de E2 desde los tres minutos, y
-las de diez minutos en E4 y E59. Reparar la regla recupera discriminación y no
-cambia el ganador a un minuto en ninguno de los tres corredores.
+así, bajo el percentil el LSTM **sigue por debajo de la persistencia** en siete
+de las doce celdas. Las cinco que gana son las tres de E2 desde los tres
+minutos, y las de diez minutos en E4 y E59. El percentil recupera discriminación
+y no cambia el ganador a un minuto en ninguno de los tres corredores.
 
-**Tabla 3.** Las cuatro reglas, sobre la misma población y el mismo origen. T/E
-es la tasa de trigger dividida por la tasa del evento, y vale uno cuando el
-detector avisa tan seguido como el evento ocurre; pers. es la persistencia. El
-solape es el índice de Jaccard entre el evento de cada regla y el de la Sección
-III-B, los dos sobre lo observado. Coincide cuenta las celdas donde gana el
-mismo método que sin umbral. Cada valor es la mediana de las doce combinaciones
-de corredor y horizonte, salvo Coincide.
+**Tabla 3.** Las cuatro reglas, sobre la misma población y el mismo origen. A/E
+es la tasa de alarma dividida por la tasa del evento, y vale uno cuando el
+detector avisa tan seguido como el evento ocurre; pers. es la persistencia.
+Jaccard mide cuánto se parece el evento de cada regla al de la Sección III-B,
+los dos sobre lo observado: de las posiciones que marca al menos una de las dos,
+la fracción que marcan ambas; vale uno cuando son el mismo evento. Coincide
+cuenta las celdas donde gana el mismo método que sin umbral. Cada valor es la
+mediana de las doce combinaciones de corredor y horizonte, salvo Coincide.
 
-| Regla | T/E LSTM | T/E pers. | MCC LSTM | Solape | Coincide |
+| Regla | A/E LSTM | A/E pers. | MCC LSTM | Jaccard | Coincide |
 | :--- | ---: | ---: | ---: | ---: | :---: |
 | Umbral trasladado | 0.079 | 1.011 | 0.100 | 1.000 | 6/12 |
 | Denominador observado | 0.153 | 0.980 | 0.143 | 0.710 | 7/12 |
 | Umbral recalibrado | 1.125 | 1.140 | 0.198 | 1.000 | 11/12 |
-| Cuota | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | 11/12 |
+| Percentil | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | 11/12 |
 
 ‡ Vale uno por construcción y no por medición: la cantidad de posiciones
 marcadas queda fijada antes de leer los valores.
@@ -619,12 +640,12 @@ describen un corredor más regular que el real: el mismo corredor queda en nivel
 A del TCQSM según lo predicho y en nivel F según lo observado. Mostró también
 que, por esa subdispersión, aplicar a lo predicho el umbral de bunching fijado
 sobre lo observado cambia qué método detecta mejor, frente a la comparación sin
-umbral. Para corregirlo, propusimos fijar el umbral sobre lo predicho,
-recalibrado en un origen anterior o con la regla de cuota, y ambas formas
-recuperan la comparación sin umbral. Sugerimos además contrastar todo modelo con
-el promedio histórico por posición, que el LSTM no superó en E2 a diez minutos.
-Esperamos que la detección de bunching sobre predicciones se evalúe en adelante
-con el umbral fijado sobre lo predicho.
+umbral. Para corregirlo, fijamos el umbral sobre lo predicho, recalibrado en un
+origen anterior o como un percentil de cada vector [@roberts2008], y ambas
+formas recuperan la comparación sin umbral. Sugerimos además contrastar todo
+modelo con el promedio histórico por posición, que el LSTM no superó en E2 a
+diez minutos. Esperamos que la detección de bunching sobre predicciones se
+evalúe en adelante con el umbral fijado sobre lo predicho.
 
 ---
 
@@ -826,11 +847,11 @@ servicio con reemplazo, por la misma razón: se recalculan ambas cantidades sobr
 cada uno de dos mil remuestreos, con semilla fija, y se toma el intervalo
 percentil al 95 %.
 
-La precisión de la Ecuación (8) puede descansar sobre muy pocos triggers, y con
+La precisión de la Ecuación (8) puede descansar sobre muy pocas alarmas, y con
 conteos pequeños la aproximación normal deja parte de su intervalo fuera del
 rango válido de una proporción. Se acota entonces con el intervalo exacto de
 Clopper–Pearson [@clopper1934] al 95 %, sobre los conteos de TP y de FP de cada
-celda. Una celda sin ningún trigger no recibe intervalo, porque no hay precisión
+celda. Una celda sin ninguna alarma no recibe intervalo, porque no hay precisión
 que acotar.
 
 ---
@@ -946,6 +967,11 @@ empirical agent-based model," arXiv:2004.13022, 2020.
 comprehensive review from demand, supply, and decision-making perspectives,"
 *Transport Reviews*, vol. 44, no. 4, pp. 766–790, 2024,
 doi: 10.1080/01441647.2024.2313969.
+
+`[@roberts2008]` N. M. Roberts and H. W. Lean, "Scale-selective verification of
+rainfall accumulations from high-resolution forecasts of convective events,"
+*Monthly Weather Review*, vol. 136, no. 1, pp. 78–97, 2008, doi:
+10.1175/2007MWR2123.1.
 
 `[@rodrigues2022]` F. Rodrigues, "On the importance of stationarity, strong
 baselines and benchmarks in transport prediction problems," arXiv:2203.02954,

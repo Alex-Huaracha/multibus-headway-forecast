@@ -10,14 +10,14 @@ so a figure can never disagree with the table it illustrates.
                                         escalar.
     contiguo-volatilidad.png            Δ MAE por tercil ex-ante. Que la frontera es
                                         la volatilidad, no el horizonte.
-    contiguo-artefacto-umbral.png       Tasa de trigger contra tasa real del evento.
+    contiguo-artefacto-umbral.png       Tasa de alarma contra tasa real del evento.
                                         El artefacto que se está explicando.
     contiguo-deteccion-sin-umbral.png   Ventaja escalar y AUC de detección, juntas.
                                         El veredicto corregido.
     contiguo-deteccion-contra-baseline.png  AUC de detección contra el promedio histórico por posición.
                                         El veredicto sin umbral, acotado.
     contiguo-umbral-en-minutos.png      Umbral en minutos de cada regla, observado
-                                        contra predicho. Por qué la cuota no colapsa.
+                                        contra predicho. Por qué el percentil no colapsa.
     contiguo-compresion-dispersion.png  CV observado contra CV predicho, a h = 10.
                                         La causa del artefacto.
     contiguo-subdispersion-vs-horizonte.png  El mismo sesgo contra el horizonte. La
@@ -100,7 +100,7 @@ LANG = {
         "base_rate": "Tasa real del evento",
         "persistence_fires": "Persistencia",
         "lstm_silenced": "LSTM",
-        "fire_rate_axis": "Fracción de posiciones con trigger",
+        "fire_rate_axis": "Fracción de posiciones con alarma",
         "scalar_advantage": "Ventaja escalar del LSTM (MAE)",
         "auc_persistence": "AUC de bunching — persistencia",
         "auc_lstm": "AUC de bunching — LSTM",
@@ -108,7 +108,7 @@ LANG = {
         "auc_axis": "AUC de detección de bunching",
         "auc_floor": "Promedio histórico por posición",
         "cut_rule_published": "Regla de la Sección III-B",
-        "cut_rule_quota": "Regla de cuota",
+        "cut_rule_quota": "Umbral por percentil",
         "cut_observed": "sobre lo observado",
         "cut_predicted": "sobre lo predicho",
         "cut_axis": "Umbral aplicado [min]",
@@ -134,7 +134,7 @@ LANG = {
         "base_rate": "Observed event rate",
         "persistence_fires": "Persistence",
         "lstm_silenced": "LSTM",
-        "fire_rate_axis": "Fraction of positions flagged as bunching",
+        "fire_rate_axis": "Fraction of positions with an alarm",
         "scalar_advantage": "LSTM scalar advantage (MAE)",
         "auc_persistence": "Bunching AUC — persistence",
         "auc_lstm": "Bunching AUC — LSTM",
@@ -142,7 +142,7 @@ LANG = {
         "auc_axis": "Bunching detection AUC",
         "auc_floor": "Positional-profile floor",
         "cut_rule_published": "Section III-B rule",
-        "cut_rule_quota": "Quota rule",
+        "cut_rule_quota": "Percentile threshold",
         "cut_observed": "on the observed",
         "cut_predicted": "on the predicted",
         "cut_axis": "Applied threshold [min]",
@@ -662,7 +662,7 @@ def threshold_in_minutes(*, lang: str = "es", chrome: bool = True) -> Path:
     axes[0].set_ylabel(words["cut_axis"])
     if chrome:
         fig.suptitle(
-            "La cuota sube su umbral hasta la distribución comprimida; "
+            "El percentil sube su umbral hasta la distribución subdispersa; "
             "el umbral de la regla publicada no se mueve",
             y=0.99, fontsize=12.5,
         )
@@ -740,7 +740,7 @@ def dispersion_compression(*, lang: str = "es", chrome: bool = True) -> Path:
         _caption(fig, [
             "Horizonte de 10 minutos. La persistencia propaga el vector observado, así que hereda su dispersión y su barra roja iguala a la gris: es el control.",
             "Los dos aprendices la aplanan, y por márgenes comparables — el efecto es del pronóstico puntual, no de una arquitectura.",
-            "Sobre un vector aplanado, un umbral calibrado en la dispersión real cae en la cola izquierda y no produce ningún trigger.",
+            "Sobre un vector aplanado, un umbral calibrado en la dispersión real cae en la cola izquierda y no produce ninguna alarma.",
         ])
     fig.tight_layout(rect=(0, 0.13, 1, 0.88) if chrome else CLEAN_RECT)
 

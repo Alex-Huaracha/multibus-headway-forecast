@@ -571,11 +571,11 @@ def tabla_7() -> str:
         rule_row("pred_mean", "Umbral trasladado"),
         rule_row("obs_mean", "Denominador observado"),
         recalibrated,
-        rule_row("rank", "Cuota"),
+        rule_row("rank", "Percentil"),
     ]
     table = _render(
-        ["Regla", f"T/E {LEARNER}", "T/E pers.", f"MCC {LEARNER}",
-         "Solape", "Coincide"],
+        ["Regla", f"A/E {LEARNER}", "A/E pers.", f"MCC {LEARNER}",
+         "Jaccard", "Coincide"],
         rows,
         aligns="lrrrrc",
     )

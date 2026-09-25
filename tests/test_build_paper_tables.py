@@ -128,7 +128,7 @@ class TestTablaTresComparesEveryOperatingPoint:
     def test_there_is_one_row_per_operating_point(self, rows) -> None:
         assert list(rows) == [
             "Umbral trasladado", "Denominador observado",
-            "Umbral recalibrado", "Cuota",
+            "Umbral recalibrado", "Percentil",
         ]
 
     def test_the_recalibrated_row_is_read_from_the_calibrated_csv(self, rows) -> None:
