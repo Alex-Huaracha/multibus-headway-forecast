@@ -29,18 +29,21 @@ bunching.
 En nuestros datos esa suposición no se cumplió. Un corredor reúne los buses de
 una empresa que circulan sobre una misma ruta, y su vector de headways contiene
 un headway por cada par de buses consecutivos. Se predijo ese vector completo
-con una red recurrente. A diez minutos de anticipación, en el corredor E2, la
-red tuvo un error absoluto medio 1.47 minutos menor que el de la persistencia,
-que repite el último vector observado. Este trabajo usa un umbral relativo: un
-headway es bunching si queda por debajo de la mitad del promedio de su vector en
-ese instante. Sobre el mismo período, ese umbral marcó 15&nbsp;245 eventos en los
-headways observados. Para detectar sobre la predicción, se aplicó la misma regla
-al vector predicho, con la mitad del promedio de ese vector. La fracción de un
-medio pasó así sin cambios del headway observado al headway predicho, y a esa
-herencia se le llama aquí el umbral trasladado. Con él, la red emitió catorce alarmas, los headways
-predichos que el umbral marcó como bunching, y la persistencia emitió
-15&nbsp;083. Puntuada con el F1, la persistencia superó a la red por un factor
-de 253 (Sección V-B).
+con una red LSTM (*long short-term memory*). A diez minutos de anticipación, en
+el corredor E59, el LSTM tuvo un error absoluto medio 1.17 minutos menor que el
+de la persistencia, que repite el último vector observado.
+
+Este trabajo usa un umbral relativo: un headway es bunching si queda por debajo
+de la mitad del promedio de su vector en ese instante. Sobre el mismo período,
+ese umbral marcó bunching en el 20.8 % de las posiciones de los headways
+observados. Para detectar
+sobre la predicción, se aplicó la misma regla al vector predicho, con la mitad
+del promedio de ese vector. La fracción de un medio pasó así sin cambios del
+headway observado al headway predicho, y a esa herencia se le llama aquí el
+umbral trasladado. Con él, la persistencia emitió alarma, un headway predicho
+que el umbral marca como bunching, en el 20.8 % de las posiciones, y el LSTM en
+el 0.75 %. Puntuada con el F1, que premia acertar los eventos sin emitir alarmas
+de más, la persistencia superó al LSTM por un factor de 8.8 (Sección V-B).
 
 La primera etapa introduce el defecto que la segunda hereda. Un modelo entrenado
 con error cuadrático medio, cuando no sabe si un headway será corto o largo,
@@ -50,8 +53,8 @@ parecen entre sí más que los headways observados: la predicción queda
 **subdispersa** (*underdispersion*), con menos dispersión que el headway
 observado [@mayer2023]. El bunching es justamente un headway mucho más corto que
 los demás, y una predicción subdispersa casi no los contiene. Con el umbral
-trasladado, casi ningún headway predicho queda por debajo de él, y de ahí salen
-las catorce alarmas de E2. Que el promedio salga del propio vector predicho no
+trasladado, casi ningún headway predicho queda por debajo de él, y de ahí sale
+el 0.75 % de alarmas de E59. Que el promedio salga del propio vector predicho no
 lo evita: la fracción de un medio se pensó para headways con la dispersión del
 headway observado, y el vector predicho casi no tiene headways tan alejados de
 su promedio.
@@ -66,26 +69,31 @@ el error de la primera etapa a la decisión de la segunda.
 
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta
 el umbral. El umbral relativo convierte el headway predicho en un indicador de
-bunching, y la evaluación puntúa esa detección con y sin umbral. Las dos
-puntuaciones se contradicen: sin umbral, la red ordenó mejor que la persistencia
-en las nueve combinaciones de corredor y origen de evaluación a diez minutos,
-cada una con su propio período de prueba.
+bunching, y la evaluación puntúa esa detección con y sin umbral. Sin umbral no
+se decide qué headway es bunching: se ordenan los headways predichos de más
+corto a más largo, en proporción al promedio de su vector, y se mide si los
+eventos reales quedan al principio. Es lo que mide el área bajo la curva ROC
+(AUC). Las dos puntuaciones se contradicen: sin umbral, el LSTM ordenó mejor
+que la persistencia a diez minutos en los tres corredores y en tres períodos de
+prueba distintos.
 Nuestras contribuciones son tres:
 
-- Medimos esa subdispersión sobre el vector de headways, la aislamos con la
-  persistencia, que no la produce, como control, y la leemos en la escala de
-  nivel de servicio del *Transit Capacity and Quality of Service Manual*
-  (TCQSM). El mismo corredor queda en nivel A según el headway predicho y en
-  nivel F según el headway observado.
+- Medimos esa subdispersión sobre el vector de headways, usamos como control la
+  persistencia, que no la produce, y la leemos en la escala de nivel de servicio
+  del *Transit Capacity and Quality of Service Manual* (TCQSM). El mismo
+  corredor queda en nivel A según el headway predicho y en nivel F según el
+  headway observado.
 - Mostramos que la evaluación en dos etapas, con el umbral trasladado, cambia
   qué método detecta mejor, frente a las mismas predicciones puntuadas sin
   umbral. Acotamos esa comparación con un baseline de promedio histórico por
   posición, que no lee la ventana de entrada.
-- Mostramos que el colapso alcanza a toda regla que aplique al headway predicho
-  un umbral diseñado para el headway observado, sea una fracción del promedio o
-  un valor en minutos. Un umbral ajustado sobre el headway predicho recupera la comparación sin umbral en
-  once de las doce celdas, sea recalibrado sobre un origen anterior o como un
-  percentil de cada vector, que por construcción no puede colapsar.
+- Mostramos que la caída de alarmas alcanza a toda regla que aplique al headway
+  predicho un umbral diseñado para el headway observado, sea una fracción del
+  promedio o un valor en minutos. Un umbral ajustado sobre el headway predicho
+  recupera la comparación sin umbral en once de las doce combinaciones de
+  corredor y horizonte, sea recalibrado sobre un período de prueba anterior o
+  como un percentil de cada vector, que por construcción marca siempre la misma
+  cantidad de posiciones.
 
 ---
 
