@@ -10,14 +10,17 @@ _(pendiente — se escribe al final)_
 
 El headway es el tiempo que separa el paso de dos buses consecutivos por un
 mismo punto de una ruta. El bunching es la circulación conjunta de dos buses que
-ese tiempo debería mantener separados, y desiguala la espera entre los pasajeros
-de esa ruta. La predicción del bunching sigue un procedimiento de dos etapas:
-primero se predice el headway futuro, y después el headway predicho se compara
-contra un umbral (*threshold*), el valor de headway por debajo del cual se
-declara bunching [@yu2016] [@jiao2023]. Con un umbral de dos minutos, un headway
-de un minuto y medio es bunching y uno de tres minutos no lo es. El headway
-observado es el que efectivamente ocurrió, medido sobre los registros GPS de los
-buses. El umbral no tiene un valor acordado: los umbrales publicados van desde
+ese tiempo debería mantener separados, y desiguala la espera entre los pasajeros.
+Para anticiparlo, se siguen dos etapas [@yu2016] [@jiao2023].
+Primero, un modelo estima cuánto valdrá el headway dentro de unos minutos: esa
+estimación es el **headway predicho**. Después, el headway predicho se compara
+contra un umbral (*threshold*): un valor límite, fijado de antemano, que separa
+un headway normal de uno demasiado corto. Si el headway predicho queda por
+debajo, se anuncia bunching. Con un umbral de dos minutos, un
+headway predicho de un minuto y medio anuncia bunching, y uno de tres minutos
+no. Pasados esos minutos, el GPS de los buses registra el headway que realmente
+ocurrió, el **headway observado**, y con él se comprueba si la predicción
+acertó. El umbral no tiene un valor acordado: los umbrales publicados van desde
 veinte segundos hasta un cuarto del headway programado [@rezazada2024]. El
 procedimiento supone que la segunda etapa hereda la mejora de la primera, de
 modo que predecir el headway con menos error debería mejorar la detección del
@@ -28,11 +31,13 @@ una empresa que circulan sobre una misma ruta, y su vector de headways contiene
 un headway por cada par de buses consecutivos. Se predijo ese vector completo
 con una red recurrente. A diez minutos de anticipación, en el corredor E2, la
 red tuvo un error absoluto medio 1.47 minutos menor que el de la persistencia,
-que repite el último vector observado. Este trabajo usa un umbral relativo: la
-mitad del promedio del vector en cada instante. Sobre el mismo período, ese
-umbral marcó 15&nbsp;245 eventos en los headways observados. Se aplicó al
-headway predicho el mismo umbral, sin cambios, y a esa herencia se le llama aquí
-el umbral trasladado. Con él, la red emitió catorce alarmas, los headways
+que repite el último vector observado. Este trabajo usa un umbral relativo: un
+headway es bunching si queda por debajo de la mitad del promedio de su vector en
+ese instante. Sobre el mismo período, ese umbral marcó 15&nbsp;245 eventos en los
+headways observados. Para detectar sobre la predicción, se aplicó la misma regla
+al vector predicho, con la mitad del promedio de ese vector. La fracción de un
+medio pasó así sin cambios del headway observado al headway predicho, y a esa
+herencia se le llama aquí el umbral trasladado. Con él, la red emitió catorce alarmas, los headways
 predichos que el umbral marcó como bunching, y la persistencia emitió
 15&nbsp;083. Puntuada con el F1, la persistencia superó a la red por un factor
 de 253 (Sección V-B).
@@ -46,8 +51,10 @@ parecen entre sí más que los headways observados: la predicción queda
 observado [@mayer2023]. El bunching es justamente un headway mucho más corto que
 los demás, y una predicción subdispersa casi no los contiene. Con el umbral
 trasladado, casi ningún headway predicho queda por debajo de él, y de ahí salen
-las catorce alarmas de E2. Eso ocurre aunque el umbral sea relativo, una
-fracción del promedio del propio vector predicho.
+las catorce alarmas de E2. Que el promedio salga del propio vector predicho no
+lo evita: la fracción de un medio se pensó para headways con la dispersión del
+headway observado, y el vector predicho casi no tiene headways tan alejados de
+su promedio.
 
 El procedimiento de dos etapas deja dos huecos. Usama y Koutsopoulos predicen el
 vector completo de headways de una línea de metro con una red profunda, y
@@ -74,9 +81,9 @@ Nuestras contribuciones son tres:
   qué método detecta mejor, frente a las mismas predicciones puntuadas sin
   umbral. Acotamos esa comparación con un baseline de promedio histórico por
   posición, que no lee la ventana de entrada.
-- Mostramos que el colapso alcanza a toda regla que lleve al headway predicho un
-  umbral fijado sobre la escala del headway observado, relativa o absoluta. Un
-  umbral fijado sobre el headway predicho recupera la comparación sin umbral en
+- Mostramos que el colapso alcanza a toda regla que aplique al headway predicho
+  un umbral diseñado para el headway observado, sea una fracción del promedio o
+  un valor en minutos. Un umbral ajustado sobre el headway predicho recupera la comparación sin umbral en
   once de las doce celdas, sea recalibrado sobre un origen anterior o como un
   percentil de cada vector, que por construcción no puede colapsar.
 
@@ -224,10 +231,10 @@ que el detector emite, y lo único que un operador vería. El umbral sale del
 vector predicho porque quien opera un corredor no dispone del observado al
 momento de decidir.
 
-La fracción $\rho = \tfrac{1}{2}$ del detector es la del evento observado,
-heredada sin cambios, y a esa herencia se le llama aquí el **umbral
-trasladado**. No es neutral. La fracción se fijó sobre vectores con la
-dispersión real, y un vector predicho más regular que el observado deja pocas
+La fracción $\rho = \tfrac{1}{2}$ del detector es la misma del evento
+observado, y pasa sin cambios del headway observado al headway predicho: a esa
+herencia se le llama aquí el **umbral trasladado**. No es neutral. La fracción
+viene del TCQSM, que la pensó para headways con la dispersión real, y un vector predicho más regular que el observado deja pocas
 posiciones por debajo de la mitad de su promedio, aunque ese promedio, y con él
 el umbral en minutos, se parezca al observado. La Sección V-B mide cuántas.
 Dividir por un promedio observado, como el de la Sección II-A, iguala el umbral
@@ -519,8 +526,9 @@ indistinguibles.
 
 La Tabla 3 contrasta, sobre la misma población, el umbral trasladado, las dos
 reglas de la Sección IV-B y el umbral recalibrado de la Sección IV-A. Las dos
-reglas que llevan a lo predicho un umbral fijado sobre lo observado colapsaron:
-dividir por lo observado en lugar de por lo predicho duplicó la tasa de alarma
+reglas que aplican al headway predicho un umbral diseñado para el headway
+observado colapsaron: dividir por el promedio del último vector observado en
+lugar de por el del vector predicho duplicó la tasa de alarma
 del LSTM y la dejó un orden de magnitud por debajo de la frecuencia del evento.
 El umbral recalibrado y el umbral por percentil no colapsaron, y la persistencia
 no colapsó bajo ninguna de las cuatro.
@@ -530,13 +538,13 @@ minutos, y la Figura 5 lo muestra. Bajo la regla de la Sección III-B, el umbral
 sobre lo predicho quedó a menos de 0.35 minutos del umbral sobre lo observado en
 las doce celdas. Con el percentil, el umbral sobre lo predicho subió por encima
 del de lo observado, hasta alcanzar la distribución subdispersa, y la distancia
-entre los dos crece con el horizonte en los tres corredores. Un umbral fijado
-sobre lo observado no puede seguirla, porque su valor no depende de la escala de
-lo que evalúa. La recalibración la sigue por otra vía: la fracción ajustada
+entre los dos crece con el horizonte en los tres corredores. Un umbral diseñado
+para el headway observado no puede seguirla, porque su valor no depende de la
+escala del headway predicho que evalúa. La recalibración la sigue por otra vía: la fracción ajustada
 sobre lo predicho del origen 2 quedó entre 0.58 y 0.91 del promedio, contra el
 0.5 heredado. La subdispersión de la Sección V-A alcanza entonces a toda regla
-cuyo umbral se fija sobre lo observado, y no solo a la que divide por lo
-predicho.
+cuyo umbral se diseñó para el headway observado, y no solo a la que divide por
+el promedio del vector predicho.
 
 ![Umbral en minutos de cada regla](figuras/umbral-en-minutos.es.png)
 
@@ -597,9 +605,9 @@ validó contra un registro de incidentes, que estos corredores no producen. Las
 cifras de detección valen entonces para el evento así definido. Contra el evento
 del umbral absoluto de la Sección V-D, el AUC mediano del LSTM fue 0.60, frente
 a 0.656 contra el de la Sección III-B, y en E2 a diez minutos quedó en 0.493. La
-recomendación de fijar el umbral sobre lo predicho no depende de esa definición:
-en la Sección V-D, el umbral fijado sobre lo observado deja de avisar tanto si
-es relativo como si es absoluto.
+recomendación de ajustar el umbral sobre el headway predicho no depende de esa
+definición: en la Sección V-D, el umbral diseñado para el headway observado deja
+de avisar tanto si es relativo como si es absoluto.
 
 La subdispersión se atribuye al ajuste por error cuadrático y admite dos
 lecturas alternativas. La primera es el ruido de medición: el eje del corredor y
@@ -621,15 +629,16 @@ mientras que las comparaciones entre métodos se replicaron sobre tres.
 
 Este trabajo mostró que las predicciones entrenadas por error cuadrático
 describen un corredor más regular que el real: el mismo corredor queda en nivel
-A del TCQSM según lo predicho y en nivel F según lo observado. Mostró también
-que, por esa subdispersión, aplicar a lo predicho el umbral de bunching fijado
-sobre lo observado cambia qué método detecta mejor, frente a la comparación sin
-umbral. Para corregirlo, fijamos el umbral sobre lo predicho, recalibrado en un
+A del TCQSM según el headway predicho y en nivel F según el headway observado.
+Mostró también que, por esa subdispersión, aplicar al headway predicho un umbral
+de bunching diseñado para el headway observado cambia qué método detecta mejor,
+frente a la comparación sin umbral. Para corregirlo, ajustamos el umbral sobre
+el headway predicho, recalibrado en un
 origen anterior o como un percentil de cada vector [@roberts2008], y ambas
 formas recuperan la comparación sin umbral. Sugerimos además contrastar todo
 modelo con el promedio histórico por posición, que el LSTM no superó en E2 a
 diez minutos. Esperamos que la detección de bunching sobre predicciones se
-evalúe en adelante con el umbral fijado sobre lo predicho.
+evalúe en adelante con el umbral ajustado sobre el headway predicho.
 
 ---
 
