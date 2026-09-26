@@ -553,7 +553,7 @@ la norma y no de la dependencia.
 | Ebert (2008), *Met. Apps* 15(1):51–64 | doi:`10.1002/met.25` | `[CROSSREF]` — verificación *fuzzy*; pasajes de doble penalización de fuentes secundarias |
 | Gilleland et al. (2009), *Wea. Forecasting* 24(5):1416–1430 | doi:`10.1175/2009WAF2222269.1` | `[CROSSREF]` — AMS devuelve 403 |
 | Wernli, Hofmann & Zimmer (2009), *Wea. Forecasting* 24(6):1472–1484 | doi:`10.1175/2009WAF2222271.1` | `[CROSSREF]` — tiene la definición más limpia del mecanismo, pero **la redacción exacta viene de snippet: verificar antes de citar textual** |
-| Roberts & Lean (2008), *MWR* 136(1):78–97 | doi:`10.1175/2007MWR2123.1` | `[CROSSREF]` — Fractions Skill Score |
+| Roberts & Lean (2008), *MWR* 136(1):78–97 | doi:`10.1175/2007MWR2123.1` | `[CROSSREF]` — Fractions Skill Score. Citado en §II-C y §IV-B por el percentil calculado dentro de cada campo, pronosticado y observado por separado (p. 80, lectura del 2026-09-25). **Sin copia en `papers/`: guardar el PDF para pasar a `[TEXTO COMPLETO]`** |
 
 ### Inflación de varianza (downscaling) — debate **abierto**
 

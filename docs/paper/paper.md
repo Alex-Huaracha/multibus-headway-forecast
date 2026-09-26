@@ -12,69 +12,73 @@ El headway es el tiempo que separa el paso de dos buses consecutivos por un
 mismo punto de una ruta. El bunching es la circulación conjunta de dos buses que
 ese tiempo debería mantener separados, y desiguala la espera entre los pasajeros
 de esa ruta. La predicción del bunching sigue un procedimiento de dos etapas:
-primero se estima el headway futuro, y después se lo compara contra un umbral
-que decide si hay evento [@yu2016] [@jiao2023]. La segunda etapa no tiene un
-valor acordado: los umbrales publicados van desde veinte segundos hasta un
-cuarto del headway programado [@rezazada2024]. El procedimiento supone que la
-segunda etapa hereda la mejora de la primera, de modo que predecir el headway
-con menos error debería mejorar la detección del bunching.
+primero se predice el headway futuro, y después el headway predicho se compara
+contra un umbral (*threshold*), el valor de headway por debajo del cual se
+declara bunching [@yu2016] [@jiao2023]. Con un umbral de dos minutos, un headway
+de un minuto y medio es bunching y uno de tres minutos no lo es. El headway
+observado es el que efectivamente ocurrió, medido sobre los registros GPS de los
+buses. El umbral no tiene un valor acordado: los umbrales publicados van desde
+veinte segundos hasta un cuarto del headway programado [@rezazada2024]. El
+procedimiento supone que la segunda etapa hereda la mejora de la primera, de
+modo que predecir el headway con menos error debería mejorar la detección del
+bunching.
 
 En nuestros datos esa suposición no se cumplió. Un corredor reúne los buses de
 una empresa que circulan sobre una misma ruta, y su vector de headways contiene
 un headway por cada par de buses consecutivos. Se predijo ese vector completo
 con una red recurrente. A diez minutos de anticipación, en el corredor E2, la
 red tuvo un error absoluto medio 1.47 minutos menor que el de la persistencia,
-que repite el último vector observado. Sobre el mismo período, la regla de
-bunching de la Sección III-B marcó 15&nbsp;245 eventos en los headways
-observados. Se aplicó a lo predicho el mismo umbral, sin cambios, y a esa
-herencia se le llama aquí el umbral trasladado. Con él, la red emitió catorce
-alarmas, las posiciones predichas que la regla marcó como bunching, y la
-persistencia emitió 15&nbsp;083. Puntuada con el F1, la persistencia superó a la
-red por un factor de 253.
+que repite el último vector observado. Este trabajo usa un umbral relativo: la
+mitad del promedio del vector en cada instante. Sobre el mismo período, ese
+umbral marcó 15&nbsp;245 eventos en los headways observados. Se aplicó al
+headway predicho el mismo umbral, sin cambios, y a esa herencia se le llama aquí
+el umbral trasladado. Con él, la red emitió catorce alarmas, los headways
+predichos que el umbral marcó como bunching, y la persistencia emitió
+15&nbsp;083. Puntuada con el F1, la persistencia superó a la red por un factor
+de 253 (Sección V-B).
 
 La primera etapa introduce el defecto que la segunda hereda. Un modelo entrenado
 con error cuadrático medio, cuando no sabe si un headway será corto o largo,
 predice un valor intermedio, porque así su error promedio es menor
 [@gneiting2011]. Por eso los headways que predice para un mismo instante se
-parecen entre sí más que los reales: la predicción queda **subdispersa**
-(*underdispersion*), con menos dispersión que lo observado [@mayer2023]. El
-bunching es justamente un headway mucho más corto que los demás, y una
-predicción subdispersa casi no los contiene. Con el umbral trasladado, casi
-ninguna posición predicha queda por debajo de él, y de ahí salen las catorce
-alarmas de E2. Eso ocurre aunque el umbral sea relativo, una fracción del
-promedio del propio vector predicho (Sección III-B).
+parecen entre sí más que los headways observados: la predicción queda
+**subdispersa** (*underdispersion*), con menos dispersión que el headway
+observado [@mayer2023]. El bunching es justamente un headway mucho más corto que
+los demás, y una predicción subdispersa casi no los contiene. Con el umbral
+trasladado, casi ningún headway predicho queda por debajo de él, y de ahí salen
+las catorce alarmas de E2. Eso ocurre aunque el umbral sea relativo, una
+fracción del promedio del propio vector predicho.
 
 El procedimiento de dos etapas deja dos huecos. Usama y Koutsopoulos predicen el
 vector completo de headways de una línea de metro con una red profunda, y
-reportan solo el error en minutos, sin convertir lo predicho en un indicador de
-evento [@usama2025]. Sun, Schmöcker y Nakamura sí llegan a la detección, y dejan
-pendiente construir la curva que compararía a los métodos basados en headway sin
-fijar un umbral [@sun2021]. Queda sin medir qué le hace el error de la primera
-etapa a la decisión de la segunda.
+reportan solo el error en minutos, sin convertir el headway predicho en un
+indicador de evento [@usama2025]. Sun, Schmöcker y Nakamura sí llegan a la
+detección, y dejan pendiente construir la curva que compararía a los métodos
+basados en headway sin fijar un umbral [@sun2021]. Queda sin medir qué le hace
+el error de la primera etapa a la decisión de la segunda.
 
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta
-el umbral. La regla de la Sección III-B convierte lo predicho en un indicador de
+el umbral. El umbral relativo convierte el headway predicho en un indicador de
 bunching, y la evaluación puntúa esa detección con y sin umbral. Las dos
 puntuaciones se contradicen: sin umbral, la red ordenó mejor que la persistencia
 en las nueve combinaciones de corredor y origen de evaluación a diez minutos,
-cada una con su propio período de prueba. La Sección II-C delimita cuánto del
-mecanismo que este trabajo mide ya estaba publicado.
+cada una con su propio período de prueba.
 Nuestras contribuciones son tres:
 
 - Medimos esa subdispersión sobre el vector de headways, la aislamos con la
   persistencia, que no la produce, como control, y la leemos en la escala de
   nivel de servicio del *Transit Capacity and Quality of Service Manual*
-  (TCQSM). El mismo corredor queda en nivel A según lo predicho y en nivel F
-  según lo observado.
+  (TCQSM). El mismo corredor queda en nivel A según el headway predicho y en
+  nivel F según el headway observado.
 - Mostramos que la evaluación en dos etapas, con el umbral trasladado, cambia
   qué método detecta mejor, frente a las mismas predicciones puntuadas sin
   umbral. Acotamos esa comparación con un baseline de promedio histórico por
   posición, que no lee la ventana de entrada.
-- Mostramos que el colapso alcanza a toda regla que lleve a lo predicho un
-  umbral fijado sobre la escala de lo observado, relativa o absoluta. Un umbral
-  fijado sobre lo predicho recupera la comparación sin umbral en once de las
-  doce celdas, sea recalibrado sobre un origen anterior o como un percentil de
-  cada vector, que por construcción no puede colapsar.
+- Mostramos que el colapso alcanza a toda regla que lleve al headway predicho un
+  umbral fijado sobre la escala del headway observado, relativa o absoluta. Un
+  umbral fijado sobre el headway predicho recupera la comparación sin umbral en
+  once de las doce celdas, sea recalibrado sobre un origen anterior o como un
+  percentil de cada vector, que por construcción no puede colapsar.
 
 ---
 
@@ -82,67 +86,41 @@ Nuestras contribuciones son tres:
 
 ### A. Predicción de bunching en dos etapas
 
-Yu y colaboradores dan la formulación canónica del procedimiento de dos etapas
-de la Sección I: un headway cuenta como bunching si cae por debajo de la cuarta
-parte del headway observado en la primera parada del mismo viaje [@yu2016].
-Jiao, Shen y Zhang heredan esa misma regla, y su pérdida suma un término de
-clasificación, porque una pérdida atenta solo al error de regresión trata como
-ruido los casos que la regla marca [@jiao2023]. La segunda etapa se evalúa con
-un solo umbral: ninguna de las ocho filas con que Santos y colaboradores resumen
-el subcampo registra una medida que puntúe el ordenamiento sin fijar antes un
-umbral [@santos2022]. Este trabajo puntúa las mismas predicciones con el umbral
-y sin él, para aislar el efecto del umbral.
+El procedimiento de dos etapas de la Sección I tiene una formulación canónica:
+un headway cuenta como bunching si cae por debajo de la cuarta parte del headway
+observado en la primera parada del mismo viaje [@yu2016] [@jiao2023]. El umbral
+se fija así sobre la escala del headway observado y se compara contra el
+headway predicho. Los trabajos previos evalúan la segunda etapa solo con ese
+umbral fijo, sin ninguna medida que puntúe sin él [@santos2022].
 
 ### B. Subdispersión bajo error cuadrático medio
 
-La primera etapa arrastra una propiedad que es un teorema y no una regularidad
-empírica: lo ajustado para minimizar el error cuadrático sale menos disperso que
-la cantidad que predice, y se dice subdisperso. La predicción óptima es la media
-condicional [@gneiting2011], y la varianza del objetivo se descompone en la de
-esa predicción más el error cuadrático esperado, con una subdispersión que crece
-al alargar el horizonte [@patton2012]. Esa subdispersión está medida sobre la
-varianza temporal de una serie escalar [@mayer2023], sobre conjuntos de
-instancias en seis dominios, entre ellos el tráfico [@green2026], y sobre la
-dispersión transversal de un campo espacial [@bonavita2024].
+La subdispersión de la Sección I es un teorema. Un modelo entrenado con error
+cuadrático predice la media condicional [@gneiting2011]. Por eso la varianza del
+headway observado es la del headway predicho más el error cuadrático esperado,
+de modo que el headway predicho sale menos disperso que el headway observado, y
+la brecha crece con el horizonte [@patton2012].
 
-El daño sobre una regla de umbral también está documentado: el método con mejor
-error cuadrático es el que peor detecta los episodios altos de ozono, porque
-subestima la variabilidad [@petetin2022]. Lo que no encontramos es esa medición
-sobre el vector de headways de un corredor, ni un control que separe la
-subdispersión del resto del procedimiento; la Sección V-A usa la persistencia
-para eso.
+### C. Precedentes y delimitación
 
-### C. Correcciones del umbral y delimitación
+La subdispersión ya se midió en series escalares [@mayer2023], en seis dominios,
+entre ellos el tráfico [@green2026], y en campos espaciales [@bonavita2024].
+Petetin y colaboradores muestran su daño sobre una regla de umbral: el método
+con mejor error cuadrático es el que peor detecta los episodios altos de ozono
+[@petetin2022].
 
-El efecto de la subdispersión sobre una regla de umbral tiene dos correcciones
-publicadas fuera del transporte, y ambas alinean cuantiles entre lo predicho y
-lo observado: uno reubica el umbral en el valor que su percentil ocupa dentro de
-lo predicho [@hoffmann2018], y el otro lleva la distribución de lo predicho a la
-de lo observado con el umbral quieto [@petetin2022]. El *Extreme Forecast Index*
-declara extremo un pronóstico comparándolo contra la climatología **del propio
-modelo** [@ecmwffug], así que referir el umbral a lo que el modelo produce no es
-nuevo.
+Las correcciones publicadas actúan después de la predicción y no sobre el
+modelo. Hoffmann y colaboradores recalculan el umbral como el percentil
+equivalente dentro de las predicciones [@hoffmann2018], Petetin y colaboradores
+ajustan la distribución de las predicciones a la de las mediciones
+[@petetin2022], y Roberts y Lean calculan el percentil dentro de cada
+campo de lluvia [@roberts2008].
 
-Hoffmann y colaboradores observan que un indicador definido sobre un percentil
-queda libre de sesgo por definición [@hoffmann2018]. Eso ocurre porque un
-percentil **conserva la frecuencia del evento** bajo cualquier transformación
-monótona de lo predicho. Roberts y Lean calculan ese percentil **dentro de cada
-campo** de lluvia, sobre lo pronosticado y lo observado por separado, para
-quitar el sesgo de intensidad [@roberts2008]. Este trabajo lleva ese umbral por
-percentil al vector de headways: el de la Sección IV-B marca en cada vector una
-fracción fija de sus posiciones, tomada de un origen anterior, y así marca en lo
-predicho la misma cantidad de posiciones que en lo observado.
-
-Dentro del transporte el precedente más cercano es Sun, Schmöcker y Nakamura:
-diagnostican que el paradigma de predecir y umbralizar falla, y reportan el área
-bajo la curva para su clasificador probabilístico [@sun2021]. Su etiqueta es un
-umbral absoluto de un minuto, y la Sección V-D muestra que, en nuestros datos,
-un umbral absoluto del mismo tipo también colapsa bajo la subdispersión. El
-umbral de Jiao y colaboradores es relativo pero se ancla en una observación
-fija, y su corrección cambia el objetivo que el modelo optimiza [@jiao2023].
-Este trabajo corrige la regla y no el modelo: no reentrena, no cambia el
-objetivo y fija lo único que ajusta, el umbral, sobre un período anterior
-disjunto.
+En transporte, Sun, Schmöcker y Nakamura diagnostican que predecir y después
+umbralizar falla, con un umbral absoluto de un minuto, y reportan el área bajo
+la curva solo para su clasificador probabilístico [@sun2021]. Jiao y
+colaboradores corrigen el modelo, con un término de clasificación en la pérdida
+[@jiao2023]. Este trabajo, en cambio, corrige la regla y no reentrena el modelo.
 
 ---
 
@@ -892,11 +870,6 @@ no. 4, pp. 404–413, 1934, doi: 10.1093/biomet/26.4.404.
 `[@diebold1995]` F. X. Diebold and R. S. Mariano, "Comparing Predictive Accuracy,"
 *Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995,
 doi: 10.1080/07350015.1995.10524599.
-
-`[@ecmwffug]` *Forecast User Guide*, European Centre for Medium-Range Weather
-Forecasts, Reading, U.K., §5.3.1 "M-Climate, the Medium Range Model Climate" and
-§8.1.9.2 "Extreme Forecast Index — EFI", accessed Sep. 16, 2026. [Online].
-Available: https://confluence.ecmwf.int/display/FUG/
 
 `[@flach2015]` P. A. Flach and M. Kull, "Precision-Recall-Gain Curves: PR
 Analysis Done Right," in *Advances in Neural Information Processing Systems 28*,
