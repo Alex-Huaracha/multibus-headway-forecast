@@ -75,7 +75,7 @@ bunching, y la evaluación puntúa esa detección con y sin umbral. Sin umbral n
 se decide qué headway es bunching: se ordenan los headways predichos de más
 corto a más largo, en proporción al promedio de su vector, y se mide si los
 eventos reales quedan al principio. Es lo que mide el área bajo la curva ROC
-(AUC). Las dos puntuaciones se contradicen: sin umbral, el LSTM ordenó mejor
+(*receiver operating characteristic*), el AUC. Las dos puntuaciones se contradicen: sin umbral, el LSTM ordenó mejor
 que la persistencia a diez minutos en los tres corredores y en tres períodos de
 prueba distintos.
 Nuestras contribuciones son tres:
@@ -126,8 +126,8 @@ Petetin y colaboradores muestran su daño sobre una regla de umbral: el método
 con mejor error cuadrático es el que peor detecta los episodios altos de ozono
 [@petetin2022].
 
-Las correcciones publicadas actúan después de la predicción y no sobre el
-modelo. Hoffmann y colaboradores recalculan el umbral como el percentil
+Fuera del transporte, las correcciones publicadas actúan después de la
+predicción y no sobre el modelo. Hoffmann y colaboradores recalculan el umbral como el percentil
 equivalente dentro de las predicciones [@hoffmann2018], Petetin y colaboradores
 ajustan la distribución de las predicciones a la de las mediciones
 [@petetin2022], y Roberts y Lean calculan el percentil dentro de cada
@@ -171,15 +171,15 @@ $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 
 donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en
 el instante objetivo, y $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$
-y $h_i$ son el headway predicho y el headway observado en la posición $i$, en la
-escala tipificada por sentido que fija el Apéndice A, sección B.
+
 
 Los registros GPS no traen pasajeros ni estado del tránsito, de modo que el
 evento se define sobre la geometría del vector. La convención del campo marca el
-evento con una fracción del headway programado: un cuarto en las formulaciones
-más citadas [@moreiramatias2016], y la mitad en el TCQSM [@tcqsm2003]. Estos
-corredores no tienen programación, y aquí se la sustituye por el promedio del
-propio vector en ese instante. Ese promedio fija la separación normal del
+evento con una fracción de un headway de referencia, programado u observado
+(Sección II-A): un cuarto en las formulaciones más citadas [@moreiramatias2016],
+y la mitad del programado en el TCQSM [@tcqsm2003]. Estos corredores no tienen
+programación, y aquí la referencia es el promedio del propio vector en ese
+instante. Ese promedio fija la separación normal del
 corredor, que un umbral fijo en minutos no fija entre corredores de frecuencias
 distintas. La fracción de un medio se hereda del TCQSM y la sustitución es
 nuestra. El resultado es el **umbral relativo** del evento.
@@ -190,9 +190,9 @@ su promedio y el umbral del evento son
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
 \qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}, \tag{3}$$
 
-donde $m$ es la cantidad de posiciones con headway resuelto, $h_j(t)$ es el
+donde $m$ es la cantidad de posiciones con headway válido, $h_j(t)$ es el
 headway de la posición $j$ y $\rho$ es la fracción que fija el umbral $\tau(t)$;
-las posiciones «sin valor» del Apéndice A no entran en el cómputo. La posición
+los pares sin headway válido del Apéndice A no entran en el cómputo. La posición
 $i$ cuenta como bunching cuando cae por debajo de ese umbral:
 
 $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
@@ -232,7 +232,8 @@ recall $R$ es la fracción de eventos que reciben alarma.
 ### B. El F1 bajo el umbral trasladado
 
 El F1 de la Ecuación (6) mezcla dos cantidades de naturaleza distinta. Como TP
-es la precisión multiplicada por la cantidad de alarmas, el F1 se reescribe como
+es la precisión multiplicada por la cantidad de alarmas, al dividir por $n$ el F1
+se reescribe como
 
 $$\mathrm{F}_1 \;=\;
 \frac{2\,\mathrm{TP}}{(\mathrm{TP}+\mathrm{FP}) + (\mathrm{TP}+\mathrm{FN})}
@@ -260,9 +261,9 @@ el término $2q/(q+\pi)$ vale casi 1 y el F1 de la persistencia queda igual a su
 precisión.
 
 El LSTM, en cambio, se ajusta con la Ecuación (2), se aproxima a la media
-condicional y queda subdisperso (Sección II-B). Para recibir alarma, un headway predicho
-tiene que alejarse de su promedio, hacia abajo, en más de la mitad de ese
-promedio. Un vector subdisperso casi no tiene headways tan alejados, de modo que
+condicional y queda subdisperso (Sección II-B). Para recibir alarma, un headway
+predicho tiene que alejarse de su promedio, hacia abajo, en más de la mitad de
+ese promedio. Un vector subdisperso casi no tiene headways tan alejados, de modo que
 la tasa de alarma del LSTM cae por debajo de la tasa base y su F1 cae con ella.
 
 Con el umbral trasladado, el F1 ordena entonces a los métodos por la dispersión
@@ -282,13 +283,15 @@ que la tasa de alarma decida el resultado.
 La Ecuación (7) deja el F1 atado a la tasa de alarma, y la tasa de alarma del
 umbral trasladado, a la dispersión del vector predicho. La forma más directa de
 que esa dispersión deje de decidir el resultado es puntuar sin umbral, de modo
-que no quede tasa de alarma que medir. El detector de la Ecuación (5) compara el cociente $\hat{h}_i/\bar{\hat{h}}$
-contra la fracción $\rho$. Sin fijar $\rho$, ese cociente ordena las posiciones
-de cada vector de la más corta a la más larga respecto de su promedio. El área
-bajo la curva ROC (AUC) [@handtill2001] puntúa ese ordenamiento. Vale 1 si todos
-los eventos quedan antes que todas las posiciones sin evento, y 0.5 si el
-ordenamiento no informa. Se calcula por **celda**, una combinación de corredor y
-horizonte, con todas las posiciones y los dos sentidos en un solo ordenamiento.
+que no quede tasa de alarma que medir. El detector de la Ecuación (5) compara
+el cociente $\hat{h}_i/\bar{\hat{h}}$ contra la fracción $\rho$. Sin fijar
+$\rho$, ese cociente, calculado dentro de cada vector, ordena las posiciones de
+la más corta a la más larga respecto del promedio de su vector. El AUC
+[@handtill2001] puntúa ese ordenamiento. Vale 1 si todos los eventos quedan
+antes que todas las posiciones sin evento, y 0.5 si el ordenamiento no informa.
+Se calcula por **celda**, una combinación de corredor y horizonte, juntando en
+un solo ordenamiento las posiciones de todos sus vectores y de los dos
+sentidos.
 
 Un AUC de 0.5 es el piso de una predicción sin ninguna información, pero no el
 de una predicción sin información temporal. Las posiciones del vector no son
@@ -307,18 +310,20 @@ depender de su dispersión. Se prueban dos versiones. La
 **recalibración fuera de muestra** reemplaza la fracción $\rho$ de la Ecuación
 (5) por un valor ajustado para cada método y cada celda. El ajuste usa un
 **origen de evaluación** anterior: una fecha de fin de entrenamiento con su
-propio período de prueba. La evaluación usa tres orígenes y publica el tercero.
+propio período de prueba. La evaluación usa tres orígenes y reporta el tercero como resultado principal.
 El umbral se ajusta sobre el período de prueba del origen 2 y se aplica sin
 cambios al del origen 3. Los dos períodos son disjuntos y provienen de modelos
-entrenados por separado, de modo que el período publicado no informa su propio
+entrenados por separado, de modo que el período reportado no informa su propio
 umbral.
 
 El objetivo del ajuste es el coeficiente de correlación de Matthews (MCC) y no
 el F1. Por la Ecuación (7), el F1 premia subir la tasa de alarma, y maximizarlo
 sobre una predicción sin información conduce al baseline siempre positivo
-[@lipton2014]. El MCC usa además las posiciones sin evento ni alarma, los
-verdaderos negativos (TN). Para el baseline siempre positivo, su cociente queda
-indeterminado y se le asigna cero por extensión por continuidad [@chicco2020].
+[@lipton2014]. El MCC es la correlación entre las alarmas y los eventos: vale 1
+cuando coinciden y 0 cuando las alarmas no informan sobre los eventos, como en
+el baseline siempre positivo [@chicco2020]. Emitir más alarmas no basta para subirlo,
+porque también cuenta las posiciones sin evento ni alarma, los verdaderos
+negativos (TN).
 
 La segunda versión es el **umbral por percentil** (*percentile threshold*)
 [@roberts2008]. No compara el headway contra un valor: marca en cada vector las
@@ -331,8 +336,8 @@ término $2q/(q+\pi)$ de la Ecuación (7) vale 1 para todo método.
 
 Ese evento no es el de la Ecuación (4): marca las posiciones más cortas de cada
 vector, estén o no por debajo de la mitad de su promedio. El **índice de
-Jaccard** mide cuánto coinciden los dos eventos: divide las posiciones que marcan ambos entre las que
-marca al menos uno. Vale 0.58 en la mediana de las doce celdas (Tabla 3), de
+Jaccard** mide cuánto coinciden los dos eventos: divide las posiciones que
+marcan ambos entre las que marca al menos uno. Vale 0.58 en la mediana de las doce celdas (Tabla 3), de
 modo que los dos eventos coinciden solo en parte.
 
 ---
