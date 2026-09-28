@@ -496,7 +496,7 @@ intervalo.
 
 Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
 y el promedio histórico por posición de la Sección IV-A lo acota. En E4 y E59 el
-baseline queda indistinguible del azar, y el LSTM lo supera en las ocho celdas,
+baseline queda cerca del azar, entre 0.49 y 0.52, y el LSTM lo supera en las ocho celdas,
 con las ocho diferencias fuera de su intervalo. En E2 el baseline queda por
 encima del azar en todos los horizontes, y **a diez minutos el LSTM cae por
 debajo de él, 0.565 contra 0.579**, fuera de su intervalo: ahí la ventaja sin
@@ -546,7 +546,7 @@ lugar de por el del vector predicho, de modo que el umbral en minutos es el
 mismo para el headway observado y para el headway predicho. Las dos reglas que
 aplican al headway predicho un umbral diseñado para el headway observado
 colapsaron: la regla de denominador observado duplicó la tasa de alarma del LSTM
-y la dejó un orden de magnitud por debajo de la tasa base. El umbral recalibrado
+y la dejó por debajo de una sexta parte de la tasa base. El umbral recalibrado
 y el umbral por percentil no colapsaron, y la persistencia no colapsó bajo
 ninguna de las cuatro.
 
@@ -576,7 +576,7 @@ y 2.4 minutos, a la manera del umbral de un minuto de Sun, Schmöcker y Nakamura
 [@sun2021]. Se calibró sobre el origen 2 y se aplicó sin cambios al origen 3.
 Frente al umbral trasladado, la tasa de alarma del LSTM fue, en la
 mediana, 138 veces menor en diez de las doce celdas, y en las otras dos no emitió ninguna.
-Con la mitad del headway mediano fue 2.0 veces menor: el umbral dispara menos
+Con la mitad del headway mediano, fue 2.0 veces menor en la mediana: el umbral dispara menos
 que una regla ya colapsada.
 
 La consecuencia está en qué método gana. El umbral recalibrado y el umbral por
@@ -619,28 +619,30 @@ posiciones en cada vector (Sección IV-B).
 
 ## VI. Discusión
 
-El evento sigue la convención del campo, la fracción del promedio, y no se
-validó contra un registro de incidentes, que estos corredores no producen. Las
-cifras de detección valen entonces para el evento así definido. Contra el evento
-del umbral absoluto de la Sección V-E, el AUC mediano del LSTM fue 0.60, frente
-a 0.656 contra el de la Ecuación (4), y en E2 a diez minutos quedó en 0.493. La
-recomendación de ajustar el umbral sobre el headway predicho no depende de esa
-definición: en la Sección V-E, el umbral diseñado para el headway observado deja
-de avisar tanto si es relativo como si es absoluto.
+Con el umbral trasladado, el F1 ordenó a los métodos por la dispersión de su
+vector predicho y no por su acierto. Para evaluar la detección de bunching sobre
+predicciones sugerimos cuatro prácticas: reportar el AUC junto a todo F1
+(Sección V-D); acompañar cada puntuación con un baseline que no use la
+predicción (Secciones V-C y V-D); ajustar sobre el headway predicho todo umbral
+que la operación necesite (Sección V-E); y reportar la tasa de alarma junto a la
+tasa base, porque su cociente dice cuánto del F1 mide la cantidad de alarmas
+(Ecuación 7).
 
-La subdispersión se atribuye al ajuste por error cuadrático y admite dos
-lecturas alternativas. La primera es el ruido de medición: el eje del corredor y
-el sentido de marcha se estiman de los registros, y ese error agranda la
-subdispersión. La descomposición de la Ecuación (9) la acota sin eliminarla, con
-una correlación de 0.993 entre $r$ y $r_0$, de modo que el dataset fija el
-tamaño del efecto y no su existencia. La segunda es el azar: cada modelo se
-entrenó con una sola semilla, y un vector reúne en promedio entre 3.8 y 5.9
-headways. El efecto se repitió en los tres corredores y los tres orígenes, cada
-uno con su propio entrenamiento.
+El evento no se validó contra un registro de incidentes, que estos corredores no
+producen, y las cifras de detección valen para el evento así definido. Contra el
+evento del umbral absoluto de la Sección V-E, el AUC mediano del LSTM fue 0.60,
+frente a 0.656 contra el de la Ecuación (4), y 0.493 en E2 a diez minutos. La
+tercera práctica no depende de esa definición: el umbral diseñado para el
+headway observado deja de avisar tanto si es relativo como si es absoluto.
 
-El dataset cubre tres corredores de una sola ciudad durante 152 días. El
-promedio histórico por posición se ajustó sobre un solo origen anterior,
-mientras que las comparaciones entre métodos se replicaron sobre tres.
+La subdispersión admite dos lecturas alternativas al ajuste por error
+cuadrático. El ruido de medición del eje del corredor y del sentido de marcha la
+agranda, pero la Ecuación (9) la acota, de modo que el dataset fija el tamaño
+del efecto y no su existencia. El azar tampoco la explica: cada modelo se
+entrenó con una sola semilla, y el efecto se repitió en los tres corredores y
+los tres orígenes, cada uno con su propio entrenamiento. El dataset cubre tres
+corredores de una sola ciudad durante 152 días, y el promedio histórico por
+posición se ajustó sobre un solo origen anterior.
 
 ---
 
@@ -649,14 +651,15 @@ mientras que las comparaciones entre métodos se replicaron sobre tres.
 Este trabajo mostró que las predicciones entrenadas por error cuadrático
 describen un corredor más regular que el real: el mismo corredor queda en nivel
 A del TCQSM según el headway predicho y en nivel F según el headway observado.
-Mostró también que, por esa subdispersión, aplicar al headway predicho un umbral
-de bunching diseñado para el headway observado cambia qué método detecta mejor,
-frente a la comparación sin umbral. Para corregirlo, ajustamos el umbral sobre
-el headway predicho, recalibrado en un
-origen anterior o como un percentil de cada vector [@roberts2008], y ambas
-formas recuperan la comparación sin umbral. Sugerimos además contrastar todo
-modelo con el promedio histórico por posición, que el LSTM no superó en E2 a
-diez minutos. Esperamos que la detección de bunching sobre predicciones se
+Mostró también que, por esa subdispersión, el umbral trasladado hace que el F1
+ordene a los métodos por cuántas alarmas emiten y no por cuántas aciertan, y
+que a diez minutos la puntuación sin umbral invierte ese orden. Para corregirlo,
+ajustamos el umbral sobre el headway predicho, recalibrado en un origen anterior
+o como un percentil de cada vector [@roberts2008], y ambas formas recuperan la
+comparación sin umbral. Sugerimos además reportar el AUC y la tasa de alarma
+junto a todo F1, y contrastar cada puntuación con un baseline que no use la
+predicción, como el promedio histórico por posición, que el LSTM no superó en E2
+a diez minutos. Esperamos que la detección de bunching sobre predicciones se
 evalúe en adelante con el umbral ajustado sobre el headway predicho.
 
 ---
