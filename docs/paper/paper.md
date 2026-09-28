@@ -11,20 +11,23 @@ _(pendiente — se escribe al final)_
 El headway es el tiempo que separa el paso de dos buses consecutivos por un
 mismo punto de una ruta. El bunching es la circulación conjunta de dos buses que
 ese tiempo debería mantener separados, y desiguala la espera entre los pasajeros.
-Para anticiparlo, se siguen dos etapas [@yu2016] [@jiao2023].
-Primero, un modelo estima cuánto valdrá el headway dentro de unos minutos: esa
-estimación es el **headway predicho**. Después, el headway predicho se compara
-contra un umbral (*threshold*): un valor límite, fijado de antemano, que separa
-un headway normal de uno demasiado corto. Si el headway predicho queda por
-debajo, se anuncia bunching. Con un umbral de dos minutos, un
-headway predicho de un minuto y medio anuncia bunching, y uno de tres minutos
-no. Pasados esos minutos, el GPS de los buses registra el headway que realmente
-ocurrió, el **headway observado**, y con él se comprueba si la predicción
-acertó. El umbral no tiene un valor acordado: los umbrales publicados van desde
-veinte segundos hasta un cuarto del headway programado [@rezazada2024]. El
-procedimiento supone que la segunda etapa hereda la mejora de la primera, de
-modo que predecir el headway con menos error debería mejorar la detección del
-bunching.
+Para anticiparlo, se siguen dos etapas [@yu2016] [@jiao2023]. Primero, un
+modelo estima cuánto valdrá el headway dentro de unos minutos: esa estimación
+es el **headway predicho**. Después, el headway predicho se compara contra un
+umbral (*threshold*): un valor límite, fijado de antemano, que separa un
+headway normal de uno demasiado corto. Si el headway predicho queda por debajo,
+se anuncia bunching. Con un umbral de dos minutos, un headway predicho de un
+minuto y medio anuncia bunching, y uno de tres minutos no. Pasados esos
+minutos, el GPS de los buses registra el headway que realmente ocurrió, el
+**headway observado**, y con él se comprueba si la predicción acertó.
+
+El umbral no tiene un valor acordado: los umbrales publicados van desde veinte
+segundos hasta un cuarto del headway programado [@rezazada2024]. El
+procedimiento supone que la segunda etapa hereda la mejora de la primera:
+cuanto menor es el error de la predicción, mejor es la detección. Yu y
+colaboradores lo reportan así. Cuando predijeron el headway cinco paradas más
+adelante en lugar de dos, su error subió de dos a seis minutos, y la fracción
+de eventos detectados bajó del 99 % al 73 % [@yu2016] [@sun2021].
 
 En nuestros datos esa suposición no se cumplió. Un corredor reúne los buses de
 una empresa que circulan sobre una misma ruta, y su vector de headways contiene
@@ -171,7 +174,8 @@ $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 
 donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en
 el instante objetivo, y $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$
-
+y $h_i$ son el headway predicho y el headway observado en la posición $i$, en la
+escala tipificada por sentido que fija el Apéndice A, sección B.
 
 Los registros GPS no traen pasajeros ni estado del tránsito, de modo que el
 evento se define sobre la geometría del vector. La convención del campo marca el
@@ -602,9 +606,10 @@ de diez minutos en E4 y E59. El percentil recupera discriminación y no cambia e
 ganador a un minuto en ninguno de los tres corredores.
 
 **Tabla 3.** Las cuatro reglas, sobre la misma población y el mismo origen. A/E
-es la tasa de alarma dividida por la tasa base, el cociente $q/\pi$ de la
-Ecuación (7), y vale uno cuando el detector avisa tan seguido como el evento
-ocurre; pers. es la persistencia. Jaccard es el índice de la Sección IV-B entre
+es el sesgo de frecuencia (*frequency bias*) [@ferro2011]: la tasa de alarma
+dividida por la tasa base, el cociente $q/\pi$ de la Ecuación (7). Vale uno
+cuando el detector avisa tan seguido como el evento ocurre; pers. es la
+persistencia. Jaccard es el índice de la Sección IV-B entre
 el evento de cada regla y el de la Ecuación (4), los dos sobre el headway
 observado. Coincide cuenta las celdas donde gana el mismo método que sin umbral.
 Cada valor es la mediana de las doce combinaciones de corredor y horizonte,
@@ -906,6 +911,11 @@ no. 4, pp. 404–413, 1934, doi: 10.1093/biomet/26.4.404.
 `[@diebold1995]` F. X. Diebold and R. S. Mariano, "Comparing Predictive Accuracy,"
 *Journal of Business & Economic Statistics*, vol. 13, no. 3, pp. 253–263, 1995,
 doi: 10.1080/07350015.1995.10524599.
+
+`[@ferro2011]` C. A. T. Ferro and D. B. Stephenson, "Extremal Dependence
+Indices: Improved Verification Measures for Deterministic Forecasts of Rare
+Binary Events," *Weather and Forecasting*, vol. 26, no. 5, pp. 699–713, 2011,
+doi: 10.1175/WAF-D-10-05030.1.
 
 `[@flach2015]` P. A. Flach and M. Kull, "Precision-Recall-Gain Curves: PR
 Analysis Done Right," in *Advances in Neural Information Processing Systems 28*,
