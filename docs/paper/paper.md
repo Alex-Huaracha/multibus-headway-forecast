@@ -281,46 +281,68 @@ que la tasa de alarma decida el resultado.
 
 ---
 
-## IV. Alternativas al umbral trasladado
+## IV. Puntuación de la detección bajo subdispersión
 
-### A. Recalibración fuera de muestra
+La Ecuación (7) deja el F1 atado a la tasa de alarma, y la tasa de alarma del
+umbral trasladado, a la dispersión del vector predicho. Hay dos formas de que
+esa dispersión deje de decidir el resultado. La primera puntúa la detección sin
+umbral, de modo que no queda tasa de alarma que medir. La segunda ajusta el
+umbral sobre el headway predicho, para que la tasa de alarma deje de depender de
+su dispersión.
 
-La primera alternativa deja intacta la regla del evento y mueve el umbral del
-detector de la Ecuación (5). Ese umbral no se hereda de lo observado: se ajusta
-maximizando el MCC sobre el período de prueba del origen 2 y se aplica sin
+### A. Puntuación sin umbral
+
+El detector de la Ecuación (5) compara el cociente $\hat{h}_i/\bar{\hat{h}}$
+contra la fracción $\rho$. Sin fijar $\rho$, ese cociente ordena las posiciones
+de cada vector de la más corta a la más larga respecto de su promedio. El área
+bajo la curva ROC (AUC) [@handtill2001] puntúa ese ordenamiento. Vale 1 si todos
+los eventos quedan antes que todas las posiciones sin evento, y 0.5 si el
+ordenamiento no informa. Se calcula por **celda**, una combinación de corredor y
+horizonte, con todas las posiciones y los dos sentidos en un solo ordenamiento.
+
+Un AUC de 0.5 es el piso de una predicción sin ninguna información, pero no el
+de una predicción sin información temporal. Las posiciones del vector no son
+intercambiables, y algunas llevan headways más cortos que otras sin que haga
+falta leer la ventana de entrada. El **baseline de promedio histórico por
+posición** del Apéndice A, sección B, repite para cada posición su headway
+promedio de un período anterior y fija ese segundo piso. Cumple para el AUC la
+función que el baseline siempre positivo cumple para el F1, y acompaña a todo
+AUC reportado.
+
+### B. Umbral ajustado sobre el headway predicho
+
+La segunda forma conserva un umbral, pero lo ajusta sobre el headway predicho en
+lugar de heredarlo del headway observado. Se prueban dos versiones. La
+**recalibración fuera de muestra** reemplaza la fracción $\rho$ de la Ecuación
+(5) por un valor ajustado para cada método y cada celda. El ajuste usa un
+**origen de evaluación** anterior: una fecha de fin de entrenamiento con su
+propio período de prueba. La evaluación usa tres orígenes y publica el tercero.
+El umbral se ajusta sobre el período de prueba del origen 2 y se aplica sin
 cambios al del origen 3. Los dos períodos son disjuntos y provienen de modelos
 entrenados por separado, de modo que el período publicado no informa su propio
 umbral.
 
-### B. La regla de denominador observado y el umbral por percentil
+El objetivo del ajuste es el coeficiente de correlación de Matthews (MCC) y no
+el F1. Por la Ecuación (7), el F1 premia subir la tasa de alarma, y maximizarlo
+sobre una predicción sin información conduce al baseline siempre positivo
+[@lipton2014]. El MCC usa además las posiciones sin evento ni alarma, los
+verdaderos negativos (TN). Para el baseline siempre positivo, su cociente queda
+indeterminado y se le asigna cero por extensión por continuidad [@chicco2020].
 
-La regla de la Sección III-B divide por el promedio del vector predicho, que se
-mueve con la predicción. Se la contrastó con otras dos sobre la misma población
-y el mismo origen. La primera divide por el promedio del último vector
-observado: se recalcula en cada instante y sigue al corredor, pero es el mismo
-número para lo observado y para lo predicho. Se la llama aquí **la regla de
-denominador observado**. La segunda no divide por nada: es un **umbral por
-percentil** (*percentile threshold*) [@roberts2008]. En lugar de preguntar si un
-headway queda por debajo de cierto número de minutos, pregunta si está entre los
-más cortos de su vector. Marca en cada vector las posiciones más cortas hasta
-cubrir una fracción fija, y esa fracción es la que la regla de la Sección III-B
-marcó en el origen 2, del que la Sección IV-A toma el umbral recalibrado. Como
-solo cuenta el orden y no el valor, marca la misma cantidad de posiciones en lo
-predicho que en lo observado, por más subdisperso que esté lo predicho. Esa
-cantidad es la longitud del vector por la fracción, redondeada a un entero, y
-los vectores llevan entre tres y seis posiciones. En E4 esa fracción queda por
-debajo de un sexto desde el horizonte de tres minutos, de modo que los vectores
-de tres posiciones no marcan ninguna, y el redondeo mueve la frecuencia del
-evento entre -5.0 y +7.0 puntos. El umbral por percentil define además su propio
-evento: sobre lo observado también marca las posiciones más cortas de cada
-vector, estén o no por debajo de la mitad de su promedio. Para medir cuánto se
-parece ese evento al de la Sección III-B, se aplican las dos definiciones a los
-mismos headways observados y se cuentan las posiciones que marca cada una. El
-**índice de Jaccard** divide las posiciones que marcan las dos entre las que
-marca al menos una: vale uno si marcan exactamente las mismas posiciones y cero
-si no coinciden en ninguna. Para el umbral por percentil vale 0.58 en la mediana
-de las doce celdas (Tabla 3), de modo que los dos eventos coinciden solo en
-parte.
+La segunda versión es el **umbral por percentil** (*percentile threshold*)
+[@roberts2008]. No compara el headway contra un valor: marca en cada vector las
+posiciones más cortas hasta cubrir una fracción fija. Esa fracción es la que la
+regla de la Ecuación (4) marcó en promedio en la celda, sobre el origen 2. Como
+solo cuenta el orden, su tasa de alarma es la misma en el headway predicho que
+en el headway observado, y el segundo factor de la Ecuación (7) queda cerca de 1
+para todo método.
+
+El umbral por percentil define además su propio evento, porque sobre el headway
+observado marca también las posiciones más cortas de cada vector, estén o no por
+debajo de la mitad de su promedio. El **índice de Jaccard** mide cuánto
+coinciden los dos eventos: divide las posiciones que marcan ambos entre las que
+marca al menos uno. Vale 0.58 en la mediana de las doce celdas (Tabla 3), de
+modo que los dos eventos coinciden solo en parte.
 
 ---
 
@@ -420,7 +442,7 @@ lo predicho, con el F1 del baseline siempre positivo al lado.
 
 Si el problema es el umbral, recalibrarlo debería bastar. Con el umbral
 trasladado de la Tabla 1, la persistencia ganaba las doce celdas. La
-recalibración de la Sección IV-A, que no toca el modelo, llevó al LSTM a ganar 5
+recalibración de la Sección IV-B, que no toca el modelo, llevó al LSTM a ganar 5
 de las 12 celdas, entre ellas las tres de diez minutos, si bien la de E4 no
 resiste su propio intervalo. Su objetivo es el MCC porque el F1 degenera en este
 dataset: sobre la persistencia en E2, de tres minutos en adelante, el umbral que
@@ -476,11 +498,13 @@ indistinguibles.
 
 ### D. Formas de fijar el umbral
 
-La Tabla 3 contrasta, sobre la misma población, el umbral trasladado, las dos
-reglas de la Sección IV-B y el umbral recalibrado de la Sección IV-A. Las dos
-reglas que aplican al headway predicho un umbral diseñado para el headway
-observado colapsaron: dividir por el promedio del último vector observado en
-lugar de por el del vector predicho duplicó la tasa de alarma
+La Tabla 3 contrasta, sobre la misma población, el umbral trasladado, los dos
+umbrales de la Sección IV-B y una cuarta regla, la **regla de denominador
+observado**. Esa regla divide por el promedio del último vector observado en
+lugar de por el del vector predicho, de modo que el umbral en minutos es el
+mismo para el headway observado y para el headway predicho. Las dos reglas que
+aplican al headway predicho un umbral diseñado para el headway observado
+colapsaron: la regla de denominador observado duplicó la tasa de alarma
 del LSTM y la dejó un orden de magnitud por debajo de la frecuencia del evento.
 El umbral recalibrado y el umbral por percentil no colapsaron, y la persistencia
 no colapsó bajo ninguna de las cuatro.
@@ -725,7 +749,7 @@ entre 0.017 y 0.074 minutos de MAE en las doce celdas, ninguna ganó las doce, y
 se conservó la más simple.
 
 El **baseline de promedio histórico por posición** no compite con los tres
-métodos: es el baseline del AUC de la Sección III-C. El promedio histórico es un
+métodos: es el baseline del AUC de la Sección IV-A. El promedio histórico es un
 baseline habitual en la predicción de transporte [@rodrigues2022], y aquí se
 agrupa por posición del vector en lugar de por hora. Responde con el headway
 promedio que cada posición del vector registró en un período anterior, y lo
@@ -734,7 +758,7 @@ entrada. Existe porque las posiciones del vector no son intercambiables: las de
 más adelante llevan headways sistemáticamente más cortos, y algunas caen por
 debajo de la mitad del promedio de su vector por la posición que ocupan y no por
 lo que ocurrió ese minuto. Se ajusta sobre el período de prueba del origen 2 y
-se aplica al del origen 3, los mismos dos períodos que la Sección IV-A usa para
+se aplica al del origen 3, los mismos dos períodos que la Sección IV-B usa para
 el umbral y por la misma razón.
 
 ### C. Protocolo de evaluación
