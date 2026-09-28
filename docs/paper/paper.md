@@ -42,8 +42,10 @@ del promedio de ese vector. La fracción de un medio pasó así sin cambios del
 headway observado al headway predicho, y a esa herencia se le llama aquí el
 umbral trasladado. Con él, la persistencia emitió alarma, un headway predicho
 que el umbral marca como bunching, en el 20.8 % de las posiciones, y el LSTM en
-el 0.75 %. Puntuada con el F1, que premia acertar los eventos sin emitir alarmas
-de más, la persistencia superó al LSTM por un factor de 8.8 (Sección V-B).
+el 0.75 %. El F1 vale 1 cuando las alarmas coinciden exactamente con los
+eventos, y cae hacia 0 tanto si sobran alarmas como si hay eventos sin alarma.
+Con esa puntuación, la persistencia superó al LSTM por un factor de 8.8
+(Sección V-B).
 
 La primera etapa introduce el defecto que la segunda hereda. Un modelo entrenado
 con error cuadrático medio, cuando no sabe si un headway será corto o largo,
@@ -139,28 +141,21 @@ colaboradores corrigen el modelo, con un término de clasificación en la pérdi
 
 ---
 
-## III. Formulación y definición del evento
+## III. Defecto de la evaluación con el umbral trasladado
 
-El estudio cubre tres corredores de Arequipa, identificados como E2, E4 y E59,
-con 152 días seguidos de registros GPS. Se comparan tres métodos sobre las
-mismas muestras. El método bajo estudio es una red recurrente (**LSTM**), un
-conjunto de árboles con refuerzo de gradiente (**XGBoost**) [@chen2016] sirve de
-control de arquitectura, y la **persistencia** repite el último vector
-observado. Cada corredor se predice a cuatro horizontes, y cada combinación de
-corredor y horizonte es una **celda**: hay doce. La evaluación se repite sobre
-tres **orígenes de evaluación** (*rolling origin*): tres fechas de fin de
-entrenamiento, cada una con su propio período de prueba. El tercero es el que se
-publica, y el XGBoost se ajusta solo sobre él. El Apéndice A detalla los datos,
-los métodos y el protocolo.
+La Sección II-A describe la predicción de bunching en dos etapas, y la Sección
+II-B, la subdispersión que deja la primera. Esta sección formula las dos etapas
+sobre el vector de headways y muestra que, con el umbral trasladado, el F1 de la
+segunda depende de cuántas alarmas emite el detector antes que de cuántas
+acierta.
 
-### A. Formulación de la tarea de predicción
+### A. Formulación del problema
 
-Lo que predecimos es el **vector de headways** del corredor: un headway por cada
-par de buses consecutivos que circulan en el mismo sentido, todas sus posiciones
-a la vez y no un promedio. El Apéndice A lo construye desde los registros GPS,
-que son la única entrada disponible. Dado el historial de los últimos $T$
-minutos y un contexto de calendario, se busca el vector del corredor $H$ minutos
-más adelante:
+Lo que se predice es el **vector de headways** del corredor: un headway por cada
+par de buses consecutivos que circulan en el mismo sentido, con todas sus
+posiciones a la vez. El Apéndice A lo construye desde los registros GPS. Dado el
+historial de los últimos $T$ minutos y un contexto de calendario, se busca el
+vector del corredor $H$ minutos más adelante:
 
 $$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\;
 c(t-T+1), \dots, c(t)\big), \qquad T = 12, \tag{1}$$
@@ -171,43 +166,32 @@ término $c(t)$ reúne cuatro variables de calendario del minuto $t$: el seno y 
 coseno de la hora, y el seno y el coseno del día de la semana. Aquí $f$ es el
 modelo ajustado.
 
-Se predice a cuatro horizontes —uno, tres, cinco y diez minutos— con un modelo
-ajustado por separado para cada uno, sin recursión. A un minuto la predicción no
-deja margen de intervención, y es el régimen donde la persistencia es difícil de
-superar [@manibardo2022]; ese horizonte queda como referencia, y las
-afirmaciones operativas de la Sección V-D se leen sobre los de cinco y diez. El
-vector no tiene longitud fija, porque $N$ varía minuto a minuto. El modelo emite
-entonces una salida de longitud fija y el error se computa solo sobre las
-posiciones donde hay bus. **El objetivo que se minimiza es el error
-cuadrático**, promediado sobre esas posiciones válidas:
+Se predice a uno, tres, cinco y diez minutos, con un modelo ajustado por
+separado para cada horizonte. El vector no tiene longitud fija, porque la
+cantidad de buses varía minuto a minuto, de modo que el error se computa solo
+sobre las posiciones con bus. **El objetivo que se minimiza es el error
+cuadrático**, promediado sobre esas posiciones:
 
 $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 \big(\hat{h}_i - h_i\big)^{2}, \tag{2}$$
 
 donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en
 el instante objetivo, y $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$
-y $h_i$ son el valor predicho y el observado en la posición $i$, expresados en
-la escala tipificada por sentido que fija el Apéndice A, sección B y no en
-minutos.
+y $h_i$ son el headway predicho y el headway observado en la posición $i$, en la
+escala tipificada por sentido que fija el Apéndice A, sección B.
 
-### B. Definición del evento de bunching
+Los registros GPS no traen pasajeros ni estado del tránsito, de modo que el
+evento se define sobre la geometría del vector. La convención del campo marca el
+evento con una fracción del headway programado: un cuarto en las formulaciones
+más citadas [@moreiramatias2016], y la mitad en el TCQSM [@tcqsm2003]. Estos
+corredores no tienen programación, y aquí se la sustituye por el promedio del
+propio vector en ese instante. Ese promedio fija la separación normal del
+corredor, que un umbral fijo en minutos no fija entre corredores de frecuencias
+distintas. La fracción de un medio se hereda del TCQSM y la sustitución es
+nuestra. El resultado es el **umbral relativo** del evento.
 
-Los registros GPS no traen pasajeros, ocupación ni estado del tránsito, de modo
-que el evento se define sobre la geometría del vector de headways y no sobre sus
-causas. Un mismo instante puede llevar varias posiciones afectadas a la vez.
-
-La convención del campo marca el evento con una fracción del headway programado:
-un cuarto en las formulaciones más citadas [@moreiramatias2016], y la mitad en
-el TCQSM [@tcqsm2003]. Estos corredores no tienen programación. La Sección II-A
-recoge la práctica de sustituirla por un headway observado, y aquí se la
-sustituye por el promedio del propio vector en ese instante. Ese promedio cumple
-la función de la programación, fijar la separación normal del corredor, que un
-umbral fijo en minutos no cumple entre corredores de frecuencias distintas. La
-fracción de un medio se hereda del TCQSM y la sustitución es nuestra. El
-resultado es el **umbral relativo** del evento, que se mueve con cada vector.
-
-El vector de la Sección III-A se escribe por componentes como
-$\mathbf{h}(t) = (h_1, \dots, h_m)$. Su promedio y el umbral del evento son
+Con el vector escrito por componentes como $\mathbf{h}(t) = (h_1, \dots, h_m)$,
+su promedio y el umbral del evento son
 
 $$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
 \qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}, \tag{3}$$
@@ -225,115 +209,75 @@ $b_i(t) = 1$ es un evento, y se dice que la regla la **marca**. La condición
 $m \ge 3$ existe porque con dos headways cualquier medida de irregularidad se
 reduce a la diferencia entre ellos y no describe un patrón.
 
-El detector que este trabajo evalúa es esa misma regla aplicada al vector
-predicho de la Ecuación (1), con el promedio de ese mismo vector fijando el
-umbral:
+El detector aplica esa misma regla al vector predicho de la Ecuación (1), con el
+promedio de ese mismo vector fijando el umbral:
 
 $$\hat{b}_i(t) \;=\; \mathbb{1}\!\left[\, \hat{h}_i(t) < \rho\,\bar{\hat{h}}(t)
 \,\right], \tag{5}$$
 
 donde $\hat{b}_i(t)$ es la detección emitida sobre la posición $i$ y
 $\bar{\hat{h}}(t)$ es el promedio del vector predicho. Cada posición con
-$\hat{b}_i(t) = 1$ es una **alarma** (*alarm*) [@moreiramatias2016]: la señal
-que el detector emite, y lo único que un operador vería. El umbral sale del
-vector predicho porque quien opera un corredor no dispone del observado al
-momento de decidir.
+$\hat{b}_i(t) = 1$ es una **alarma** (*alarm*) [@moreiramatias2016]. El umbral
+sale del vector predicho porque quien opera un corredor no dispone del headway
+observado al momento de decidir. La fracción $\rho = \tfrac{1}{2}$ pasa así sin
+cambios del headway observado al headway predicho, y a esa herencia se le llama
+aquí el **umbral trasladado**.
 
-La fracción $\rho = \tfrac{1}{2}$ del detector es la misma del evento
-observado, y pasa sin cambios del headway observado al headway predicho: a esa
-herencia se le llama aquí el **umbral trasladado**. No es neutral. La fracción
-viene del TCQSM, que la pensó para headways con la dispersión real, y un vector predicho más regular que el observado deja pocas
-posiciones por debajo de la mitad de su promedio, aunque ese promedio, y con él
-el umbral en minutos, se parezca al observado. La Sección V-B mide cuántas.
-Dividir por un promedio observado, como el de la Sección II-A, iguala el umbral
-en minutos de los dos lados, y la Sección V-D mide si eso evita el colapso. La
-Figura 1 ilustra la regla con el mismo headway en dos corredores.
-
-![El mismo headway bajo dos umbrales](figuras/bunching-umbral.es.png)
-
-**Fig. 1.** El mismo headway de 2.0 min bajo el umbral relativo. Cada barra es
-una posición del vector y la línea discontinua es τ = promedio/2. (a) Corredor
-irregular, umbral 3.0 min: el headway de 2.0 min es bunching. (b) Corredor
-regular, umbral 1.6 min: el mismo headway no lo es. Valores ilustrativos, no
-datos reales.
-
-### C. Métricas
-
-El modelo entrega un vector de headways que la regla de la Sección III-B
-convierte en un indicador binario de bunching, y la evaluación mide esos dos
-objetos en cadena. El error del vector es el error absoluto medio (MAE) sobre
-las posiciones válidas de la Ecuación (2), y se reporta en lugar del error
-cuadrático porque expresa el resultado en minutos de headway.
-
-El MAE no describe la forma del vector. El coeficiente de variación (CV) es su
-desviación estándar muestral dividida por su promedio:
-
-$$\mathrm{CV}(\mathbf{h}) \;=\; \frac{1}{\bar{h}}
-\sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\big(h_j - \bar{h}\big)^{2}}, \tag{6}$$
-
-donde $m$, $h_j$ y $\bar{h}$ conservan el significado de la Ecuación (3). Se
-calcula sobre los vectores de tres posiciones o más que exige la Ecuación (4).
-Se reporta porque es adimensional, de modo que corredores de frecuencias
-distintas quedan sobre la misma escala, y porque es la cantidad con que se lee
-la escala de nivel de servicio del TCQSM [@tcqsm2003]: el manual indexa sus
-bandas por la dispersión del headway respecto del programado, y en un corredor
-sin programación esa dispersión es la Ecuación (6). Su sesgo es el CV de lo
-predicho menos el de lo observado, y un valor negativo dice que lo predicho es
-más regular que la realidad.
-
-El CV compara la forma de lo predicho con la de lo observado, pero no dice
-cuánto de esa diferencia se debe al error. La varianza entre las posiciones de
-un mismo vector la reparte:
-
-$$V_h \;=\; V_{\hat h} + V_e + 2\,C_{\hat h e}, \qquad
-r \;=\; \frac{V_{\hat h}}{V_h}, \qquad r_0 \;=\; 1 - \frac{V_e}{V_h}, \tag{7}$$
-
-donde $V_h$, $V_{\hat h}$ y $V_e$ son las varianzas entre posiciones del headway
-observado, del predicho y del error $e_i = h_i - \hat{h}_i$, promediadas sobre
-los vectores de la celda, y $C_{\hat h e}$ es la covarianza entre lo predicho y
-el error. La fracción $r$ es la parte de la dispersión observada que sobrevive
-en lo predicho. La fracción $r_0$ es la que el error deja explicada, y coincide
-con $r$ cuando el error no covaría con lo predicho, como ocurre con la media
-condicional de la Sección II-B.
-
-El indicador derivado se puntúa con tres cantidades, ordenadas por cuánto
-dependen del umbral, sobre la matriz de confusión entre el indicador observado
-de la Ecuación (4) y el detector de la Ecuación (5). Sean TP las posiciones con
-$b_i = \hat{b}_i = 1$, FP las que tienen $\hat{b}_i = 1$ y $b_i = 0$, FN las que
-tienen $b_i = 1$ y $\hat{b}_i = 0$, y TN las restantes. La precisión, el recall
-y el F1 son entonces
+La evaluación compara el detector de la Ecuación (5) contra el indicador de la
+Ecuación (4). Sean TP las posiciones con $b_i = \hat{b}_i = 1$, FP las que
+tienen $\hat{b}_i = 1$ y $b_i = 0$, y FN las que tienen $b_i = 1$ y
+$\hat{b}_i = 0$. La precisión, el recall y el F1 son entonces
 
 $$\mathrm{F}_1 \;=\; \frac{2PR}{P+R}, \qquad
 P \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}, \qquad
-R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{8}$$
+R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{6}$$
 
-El F1 no usa TN [@chicco2020], y premia por eso al **baseline siempre
-positivo**, que marca bunching en toda posición. Maximizar el F1 sobre una
-predicción sin información conduce a ese baseline con independencia de la tasa
-base [@lipton2014]. La tasa base de una celda es la fracción de sus posiciones
-donde el indicador observado vale 1. Ese baseline alcanza recall 1 y precisión
-igual a la tasa base [@flach2015], así que su F1 queda fijado por ella y
-acompaña como baseline a todo F1 reportado. El coeficiente de correlación de
-Matthews (MCC) usa los cuatro conteos. Para ese baseline su cociente queda
-indeterminado, porque numerador y denominador se anulan a la vez, y se le asigna
-cero por extensión por continuidad [@chicco2020]. El área bajo la curva ROC
-(AUC) [@handtill2001] prescinde del umbral y puntúa el ordenamiento del puntaje
-continuo $-\hat{h}_i/\bar{\hat{h}}$, del cual la Ecuación (5) es el umbral en
-$-\rho$. Se calcula por celda, con todas las posiciones y los dos sentidos en un
-solo ordenamiento, y vale 0.5 cuando la predicción no ordena.
+donde la precisión $P$ es la fracción de alarmas que caen sobre un evento, y el
+recall $R$ es la fracción de eventos que reciben alarma.
 
-Ese 0.5 es el baseline de una predicción sin ninguna información, y no el de una
-predicción sin información **temporal**. El **baseline de promedio histórico por
-posición** del Apéndice A, sección B fija el segundo: es lo que alcanza el AUC
-cuando solo se conoce qué posición del vector suele llevar el headway más corto.
-Cumple para el AUC la misma función que el baseline siempre positivo cumple para
-el F1, y por eso acompaña a todo AUC reportado.
+### B. El F1 bajo el umbral trasladado
 
-Sobre esas cantidades se construyen dos cocientes. La tasa de alarma de un
-método es la fracción de sus posiciones con $\hat{b}_i = 1$, correspondan o no a
-un evento; no es la tasa de falsa alarma, que cuenta solo las que no
-corresponden. El factor entre dos métodos es el cociente de sus F1 bajo el mismo
-umbral.
+El F1 de la Ecuación (6) mezcla dos cantidades de naturaleza distinta. Como TP
+es la precisión multiplicada por la cantidad de alarmas, el F1 se reescribe como
+
+$$\mathrm{F}_1 \;=\;
+\frac{2\,\mathrm{TP}}{(\mathrm{TP}+\mathrm{FP}) + (\mathrm{TP}+\mathrm{FN})}
+\;=\; P \cdot \frac{2q}{q+\pi}, \tag{7}$$
+
+donde $n$ es la cantidad de posiciones evaluadas,
+$q = (\mathrm{TP}+\mathrm{FP})/n$ es la **tasa de alarma**, la fracción de
+posiciones con alarma, y $\pi = (\mathrm{TP}+\mathrm{FN})/n$ es la **tasa
+base**, la fracción de posiciones con evento.
+
+El primer factor de la Ecuación (7) mide si las alarmas aciertan. El segundo
+depende solo de cuántas se emiten, y vale 1 cuando la tasa de alarma iguala a la
+tasa base. Si la tasa de alarma cae muy por debajo de la tasa base, el segundo
+factor se acerca a $2q/\pi$ y arrastra el F1 hacia cero, aunque todas las
+alarmas acierten. El **baseline siempre positivo**, que marca bunching en toda
+posición, tiene $q = 1$ y $P = \pi$ [@flach2015]. Alcanza así
+$\mathrm{F}_1 = 2\pi/(1+\pi)$ sin ningún modelo, y acompaña como baseline a
+todo F1 reportado.
+
+Queda por ver qué tasa de alarma recibe cada método. La persistencia predice
+$\hat{\mathbf{h}}(t+H) = \mathbf{h}(t)$, de modo que su detector aplica la regla
+del evento a un vector observado $H$ minutos antes. Su tasa de alarma es la tasa
+base de ese instante anterior. Mientras la tasa base no cambie en $H$ minutos,
+el segundo factor vale casi 1 y el F1 de la persistencia queda igual a su
+precisión.
+
+El LSTM, en cambio, se ajusta con la Ecuación (2), se aproxima a la media
+condicional y queda subdisperso (Sección II-B). Para recibir alarma, un headway predicho
+tiene que alejarse de su promedio, hacia abajo, en más de la mitad de ese
+promedio. Un vector subdisperso casi no tiene headways tan alejados, de modo que
+la tasa de alarma del LSTM cae por debajo de la tasa base y su F1 cae con ella.
+
+Con el umbral trasladado, el F1 ordena entonces a los métodos por la dispersión
+de su vector predicho antes que por su acierto. Un método que predice con más
+error puede superar en F1 a uno que predice con menos, aun con menor precisión,
+porque copia la dispersión del headway observado. La Sección V mide las piezas
+de ese argumento: la subdispersión en la Sección V-A, y la tasa de alarma y la
+precisión en la Sección V-B. La Sección IV propone cómo puntuar la detección sin
+que la tasa de alarma decida el resultado.
 
 ---
 
