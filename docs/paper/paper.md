@@ -9,94 +9,70 @@ _(pendiente — se escribe al final)_
 ## I. Introducción
 
 El headway es el tiempo que separa el paso de dos buses consecutivos por un
-mismo punto de una ruta. El bunching es la circulación conjunta de dos buses que
-ese tiempo debería mantener separados, y desiguala la espera entre los
-pasajeros. Para anticiparlo, se siguen dos etapas [@yu2016] [@jiao2023].
-Primero, un modelo estima cuánto valdrá el headway dentro de unos minutos: esa
-estimación es el **headway predicho**. Después, el headway predicho se compara
-contra un umbral (*threshold*): un valor límite, fijado de antemano, que separa
-un headway normal de uno demasiado corto. Si el headway predicho queda por
-debajo, se anuncia bunching. Con un umbral de dos minutos, un headway predicho
-de un minuto y medio anuncia bunching, y uno de tres minutos no. Pasados esos
-minutos, el GPS de los buses registra el headway que realmente ocurrió, el
-**headway observado**, y con él se comprueba si la predicción acertó.
+mismo punto de una ruta, y el bunching es la circulación conjunta de dos buses
+que ese tiempo debería mantener separados, que desiguala la espera entre los
+pasajeros. Para anticiparlo se siguen dos etapas [@yu2016] [@jiao2023]: un
+modelo estima el headway de dentro de unos minutos, el **headway predicho**, y
+lo compara contra un umbral (*threshold*) que separa un headway normal de uno
+demasiado corto; si queda por debajo, se anuncia bunching. El GPS registra
+después el headway que ocurrió, el **headway observado**, y con él se comprueba
+la predicción.
 
-El umbral no tiene un valor acordado: los umbrales publicados van desde veinte
-segundos hasta un cuarto del headway programado [@rezazada2024]. El
-procedimiento supone que la segunda etapa hereda la mejora de la primera:
-cuanto menor es el error de la predicción, mejor es la detección. Yu y
-colaboradores lo reportan así. Cuando predijeron el headway cinco paradas más
-adelante en lugar de dos, su error subió de dos a seis minutos, y la fracción
-de eventos detectados bajó del 99 % al 73 % [@yu2016] [@sun2021].
+El umbral no tiene un valor acordado: los publicados van desde veinte segundos
+hasta un cuarto del headway programado [@rezazada2024]. El procedimiento supone
+que la segunda etapa hereda la mejora de la primera, y Yu y colaboradores lo
+reportan así: al predecir cinco paradas adelante en lugar de dos, su error subió
+de dos a seis minutos y la fracción de eventos detectados bajó del 99 % al 73 %
+[@yu2016] [@sun2021].
 
-En nuestros datos esa suposición no se cumplió. Un corredor reúne los buses de
-una empresa que circulan sobre una misma ruta, y su vector de headways contiene
-un headway por cada par de buses consecutivos. Se predijo ese vector completo
-con una red LSTM (*long short-term memory*). A diez minutos de anticipación, en
-el corredor E59, el LSTM tuvo un error absoluto medio 1.17 minutos menor que el
-de la persistencia, que repite el último vector observado.
+En nuestros datos esa suposición no se cumplió. Se predijo con una red LSTM
+(*long short-term memory*) el vector de headways de cada corredor: un headway
+por cada par de buses consecutivos de una empresa sobre una misma ruta. A diez minutos, en el corredor
+E59, el LSTM tuvo un error absoluto medio 1.17 minutos menor que el de la
+persistencia, que repite el último vector observado. El evento se define con un
+*event threshold*, la mitad del promedio del vector, que marcó bunching en el
+20.8 % de las posiciones del headway observado. Aplicado sin ajuste al vector
+predicho, como *unadjusted threshold*, la persistencia emitió alarma en el
+20.8 % de las posiciones y el LSTM en el 0.75 %. Con el F1, que vale 1 cuando
+las alarmas coinciden con los eventos y cae hacia 0 si sobran o faltan, la
+persistencia ganó por un factor de 8.8.
 
-Este trabajo define el evento con un *event threshold*: un headway es bunching
-si queda por debajo de la mitad del promedio de su vector en ese instante. Sobre
-el mismo período, ese umbral marcó bunching en el 20.8 % de las posiciones de
-los headways observados. Para detectar sobre la predicción, se aplicó el mismo
-umbral al vector predicho, con la mitad del promedio de ese vector y sin
-ajustarlo a la predicción: es el *unadjusted threshold*. Con él, la persistencia
-emitió alarma, un headway predicho que el umbral marca como bunching, en el 20.8
-% de las posiciones, y el LSTM en el 0.75 %. El F1 vale 1 cuando las alarmas
-coinciden exactamente con los eventos, y cae hacia 0 tanto si sobran alarmas
-como si hay eventos sin alarma. Con esa puntuación, la persistencia superó al
-LSTM por un factor de 8.8 (Sección V-C).
+La causa está en la primera etapa. Un modelo entrenado con error cuadrático
+medio, cuando no sabe si un headway será corto o largo, predice un valor
+intermedio [@gneiting2011], y la predicción queda **subdispersa**
+(*underdispersion*), con menos dispersión que el headway observado
+[@mayer2023]. Casi no contiene headways mucho más cortos que los demás, que es
+lo que el bunching es, y casi ninguno queda bajo un umbral pensado para la
+dispersión del headway observado, aunque el promedio salga del propio vector
+predicho.
 
-La primera etapa introduce el defecto que la segunda hereda. Un modelo entrenado
-con error cuadrático medio, cuando no sabe si un headway será corto o largo,
-predice un valor intermedio, porque así su error promedio es menor
-[@gneiting2011]. Por eso los headways que predice para un mismo instante se
-parecen entre sí más que los headways observados: la predicción queda
-**subdispersa** (*underdispersion*), con menos dispersión que el headway
-observado [@mayer2023]. El bunching es justamente un headway mucho más corto que
-los demás, y una predicción subdispersa casi no los contiene. Con el *unadjusted
-threshold*, casi ningún headway predicho queda por debajo de él, y de ahí sale
-el 0.75 % de alarmas de E59. Que el promedio salga del propio vector predicho no
-lo evita: la fracción de un medio se pensó para headways con la dispersión del
-headway observado, y el vector predicho casi no tiene headways tan alejados de
-su promedio.
+Ese efecto no se ha medido. Usama y Koutsopoulos predicen el vector completo de
+headways de una línea de metro y reportan solo el error en minutos
+[@usama2025]; Sun, Schmöcker y Nakamura llegan a la detección y dejan pendiente
+la curva que compararía a los métodos sin fijar un umbral [@sun2021].
 
-El procedimiento de dos etapas deja dos huecos. Usama y Koutsopoulos predicen el
-vector completo de headways de una línea de metro con una red profunda, y
-reportan solo el error en minutos, sin convertir el headway predicho en un
-indicador de evento [@usama2025]. Sun, Schmöcker y Nakamura sí llegan a la
-detección, y dejan pendiente construir la curva que compararía a los métodos
-basados en headway sin fijar un umbral [@sun2021]. Queda sin medir qué le hace
-el error de la primera etapa a la decisión de la segunda.
+Este trabajo lo mide puntuando la misma detección con y sin umbral. Sin umbral,
+los headways predichos se ordenan de más corto a más largo, en proporción al
+promedio de su vector, y el área bajo la curva ROC (*receiver operating
+characteristic*), el AUC, mide si los eventos reales quedan al principio. Las
+dos puntuaciones se contradicen: sin umbral, el LSTM ordenó mejor que la
+persistencia a diez minutos en los tres corredores y en tres períodos de prueba
+distintos. Nuestras contribuciones son tres:
 
-Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta
-el umbral. El *unadjusted threshold* convierte el headway predicho en un
-indicador de bunching, y la evaluación puntúa esa detección con y sin umbral.
-Sin umbral no se decide qué headway es bunching: se ordenan los headways
-predichos de más corto a más largo, en proporción al promedio de su vector, y se
-mide si los eventos reales quedan al principio. Es lo que mide el área bajo la
-curva ROC (*receiver operating characteristic*), el AUC. Las dos puntuaciones se
-contradicen: sin umbral, el LSTM ordenó mejor que la persistencia a diez minutos
-en los tres corredores y en tres períodos de prueba distintos. Nuestras
-contribuciones son tres:
-
-- Medimos esa subdispersión sobre el vector de headways, usamos como control la
-  persistencia, que no la produce, y la leemos en la escala de nivel de servicio
-  del *Transit Capacity and Quality of Service Manual* (TCQSM). El mismo
-  corredor queda en nivel A según el headway predicho y en nivel F según el
-  headway observado.
-- Mostramos que la evaluación en dos etapas, con el *unadjusted threshold*,
-  cambia qué método detecta mejor, frente a las mismas predicciones puntuadas
-  sin umbral. Acotamos esa comparación con un baseline de promedio histórico por
-  posición, que no lee la ventana de entrada.
+- Medimos la subdispersión del vector de headways, con la persistencia, que no
+  la produce, como control, y la leemos en la escala de nivel de servicio del
+  *Transit Capacity and Quality of Service Manual* (TCQSM): el mismo corredor
+  queda en nivel A según el headway predicho y en nivel F según el headway
+  observado.
+- Mostramos que el *unadjusted threshold* cambia qué método detecta mejor
+  frente a la comparación sin umbral, acotada por un baseline de promedio
+  histórico por posición que no lee la ventana de entrada.
 - Mostramos que la caída de alarmas alcanza a toda regla que aplique al headway
   predicho un umbral diseñado para el headway observado, sea una fracción del
-  promedio o un valor en minutos. Un *adjusted threshold*, ajustado sobre el
-  headway predicho, recupera la comparación sin umbral en once de las doce
-  combinaciones de corredor y horizonte, sea optimizado sobre un período de
-  prueba anterior o como un percentil de cada vector, que por construcción marca
-  siempre la misma cantidad de posiciones.
+  promedio o un valor en minutos, y que un *adjusted threshold*, ajustado sobre
+  el headway predicho, recupera la comparación sin umbral en once de las doce
+  combinaciones de corredor y horizonte, optimizado sobre un período de prueba
+  anterior o como un percentil de cada vector.
 
 ---
 
