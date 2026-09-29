@@ -173,7 +173,7 @@ $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en
 el instante objetivo, y $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$
 y $h_i$ son el headway predicho y el headway observado en la posición $i$, en la
-escala tipificada por sentido que fija el Apéndice A, sección B.
+escala estandarizada por sentido que fija el Apéndice A, sección B.
 
 Los registros GPS no traen pasajeros ni estado del tránsito, de modo que el
 evento se define sobre la geometría del vector. La convención del campo marca el
@@ -432,11 +432,12 @@ arquitectura y el mismo objetivo de ajuste, quedó entre el 4.0 % y el 55 %.
 
 En E59 a diez minutos, la regla de la Ecuación (4) marcó bunching en el 20.8 %
 de las posiciones del headway observado. Con el *unadjusted threshold*, la
-persistencia emitió alarma en el 20.8 % de las posiciones y el LSTM en el
-0.75 %. El LSTM acertó el 49 % de sus alarmas, y la persistencia, el 30 %. El F1
-invirtió ese orden, 0.303 para la persistencia contra 0.034 para el LSTM: el
-F1 de la persistencia fue 8.8 veces el del LSTM. La Ecuación (7) da la causa: el
-término $2q/(q+\pi)$ valió 1.00 para la persistencia y 0.07 para el LSTM, y ninguna diferencia de precisión compensa esa caída.
+persistencia emitió alarma en el 20.8 % de las posiciones y el LSTM en el 0.75
+%. El LSTM acertó el 49 % de sus alarmas, y la persistencia, el 30 %. El F1
+invirtió ese orden, 0.303 para la persistencia contra 0.034 para el LSTM: el F1
+de la persistencia fue 8.8 veces el del LSTM. La Ecuación (7) da la causa: el
+término $2q/(q+\pi)$ valió 1.00 para la persistencia y 0.07 para el LSTM, y
+ninguna diferencia de precisión compensa esa caída.
 
 El patrón se repitió en las doce celdas de la Tabla 1: el LSTM tuvo más
 precisión que la persistencia y una tasa de alarma por debajo de la tasa base, y
@@ -486,21 +487,22 @@ LSTM.
 Sin umbral, el orden de la Tabla 1 se invierte a diez minutos. Puntuado mediante
 el AUC de la Sección IV-A, **el LSTM ganó en las nueve combinaciones de corredor
 y origen a diez minutos**, y en 6 de las 12 celdas del origen 3; los tres
-orígenes coincidieron en el ganador de 11 de ellas. Las nueve diferencias de diez minutos
-sobrevivieron su intervalo, y van de 0.033 a 0.061. La persistencia conservó la
-ventaja a un minuto en los tres corredores y los tres orígenes, donde el MAE
-también la favorecía. La Figura 3 muestra el AUC de los dos métodos junto al
-promedio histórico por posición, y la Tabla 2 da cada diferencia con su
+orígenes coincidieron en el ganador de 11 de ellas. Las nueve diferencias de
+diez minutos sobrevivieron su intervalo, y van de 0.033 a 0.061. La persistencia
+conservó la ventaja a un minuto en los tres corredores y los tres orígenes,
+donde el MAE también la favorecía. La Figura 3 muestra el AUC de los dos métodos
+junto al promedio histórico por posición, y la Tabla 2 da cada diferencia con su
 intervalo.
 
 Ese AUC no basta por sí solo para atribuirle el ordenamiento a la anticipación,
 y el promedio histórico por posición de la Sección IV-A lo acota. En E4 y E59 el
-baseline queda cerca del azar, entre 0.49 y 0.52, y el LSTM lo supera en las ocho celdas,
-con las ocho diferencias fuera de su intervalo. En E2 el baseline queda por
-encima del azar en todos los horizontes, y **a diez minutos el LSTM cae por
-debajo de él, 0.565 contra 0.579**, fuera de su intervalo: ahí la ventaja sin
-umbral no se sostiene contra un método que no lee la ventana de entrada. Es la
-única de las doce celdas donde ocurre, y es el caso extremo de la Sección V-C.
+baseline queda cerca del azar, entre 0.49 y 0.52, y el LSTM lo supera en las
+ocho celdas, con las ocho diferencias fuera de su intervalo. En E2 el baseline
+queda por encima del azar en todos los horizontes, y **a diez minutos el LSTM
+cae por debajo de él, 0.565 contra 0.579**, fuera de su intervalo: ahí la
+ventaja sin umbral no se sostiene contra un método que no lee la ventana de
+entrada. Es la única de las doce celdas donde ocurre, y es el caso extremo de la
+Sección V-C.
 
 ![AUC de detección contra el promedio histórico por posición](figuras/deteccion-contra-baseline.es.png)
 
@@ -622,7 +624,8 @@ producen, y las cifras de detección valen para el evento así definido. Contra 
 evento del umbral fijo en minutos de la Sección V-E, el AUC mediano del LSTM fue
 0.60, frente a 0.656 contra el de la Ecuación (4), y 0.493 en E2 a diez minutos.
 La tercera práctica no depende de esa definición: el umbral diseñado para el
-headway observado deja de avisar tanto si es relativo como si es absoluto.
+headway observado deja de avisar tanto si es una fracción del promedio como si
+es un valor en minutos.
 
 La subdispersión admite dos lecturas alternativas al ajuste por error
 cuadrático. El ruido de medición del eje del corredor y del sentido de marcha la
@@ -750,113 +753,73 @@ posiciones del vector —la primera es la del par que va más adelante—, y un 
 sin headway válido conserva su posición con «sin valor», para que el orden no
 dependa de cuántos pares resolvieron.
 
-El tope de treinta minutos del paso 6 existe porque, sin él, dos calles
+El máximo de treinta minutos del paso 6 existe porque, sin él, dos calles
 paralelas proyectadas sobre un mismo eje producen cruces de horas antes. La
 cobertura —la fracción de pares evaluados con headway válido— es del 63.5 % en
 E2, del 64.8 % en E4 y del 77.1 % en E59: 3 938 174 pares sobre 5 601 738
-evaluados. Casi todo el faltante viene de ese tope, que recorta los intervalos
+evaluados. Casi todo el faltante viene de ese máximo, que recorta los intervalos
 más largos, y la ausencia de cruce explica menos de un punto porcentual en cada
 corredor. Una posición sin headway válido se enmascara.
 
 ### B. Métodos comparados
 
-El XGBoost es un control de arquitectura: si reproduce el patrón del LSTM, ese
-patrón no proviene del aprendizaje profundo sino del objetivo de la Ecuación
-(2). La persistencia no ajusta parámetros y fija el error de referencia, que
-crece con el horizonte.
+El LSTM y el XGBoost se ajustan por separado en cada celda, con un modelo por
+corredor para los dos sentidos. Los estadísticos de estandarización son por
+sentido, y con ellos el headway predicho vuelve a minutos.
 
-El LSTM y el XGBoost se ajustan por separado en cada celda. Los dos sentidos
-comparten el modelo de su corredor y entran juntos al entrenamiento. Lo que se
-separa por sentido son los estadísticos de estandarización, de modo que lo
-predicho se devuelve a minutos con los del sentido que le corresponde. El LSTM
-usa 32 unidades ocultas, una o dos capas según la celda, tasa de aprendizaje de
-5 × 10⁻⁴, lotes de 128 y semilla fija en 42. El XGBoost usa hasta 400 rondas con
-parada temprana tras 30 sin mejora, y la misma semilla. Los presupuestos de
-búsqueda no son iguales: el XGBoost eligió veinticuatro configuraciones por
-celda sobre las muestras definitivas, mientras que el LSTM heredó la suya de una
-búsqueda previa que no se rehízo sobre esas muestras, en dos de los tres
-corredores.
-
-El LSTM se eligió antes de fijar el protocolo de la sección C, frente a dos
-arquitecturas que modelan la relación entre posiciones del vector: una
-convolución sobre las contiguas y una atención entre todas. Las tres quedaron a
-entre 0.017 y 0.074 minutos de MAE en las doce celdas, ninguna ganó las doce, y
-se conservó la más simple.
-
-El **baseline de promedio histórico por posición** no compite con los tres
-métodos: es el baseline del AUC de la Sección IV-A. El promedio histórico es un
-baseline habitual en la predicción de transporte [@rodrigues2022], y aquí se
-agrupa por posición del vector en lugar de por hora. Responde con el headway
-promedio que cada posición del vector registró en un período anterior, y lo
-repite sin cambios en cada minuto del período de prueba, sin leer la ventana de
-entrada. Existe porque las posiciones del vector no son intercambiables: las de
-más adelante llevan headways sistemáticamente más cortos, y algunas caen por
-debajo de la mitad del promedio de su vector por la posición que ocupan y no por
-lo que ocurrió ese minuto. Se ajusta sobre el período de prueba del origen 2 y
-se aplica al del origen 3, los mismos dos períodos que la Sección IV-B usa para
-el umbral y por la misma razón.
+- **LSTM:** 32 unidades ocultas, una o dos capas según la celda, tasa de
+  aprendizaje de 5 × 10⁻⁴, lotes de 128 y semilla 42. En dos de los tres
+  corredores, su configuración viene de una búsqueda previa que no se rehízo
+  sobre las muestras definitivas.
+- **XGBoost:** hasta 400 rondas, parada temprana tras 30 sin mejora y semilla
+  42, con la mejor de veinticuatro configuraciones por celda sobre las muestras
+  definitivas.
+- **Persistencia:** repite el último vector observado y no tiene parámetros.
+- **Promedio histórico por posición** [@rodrigues2022]: repite en cada minuto
+  del período de prueba el headway promedio que cada posición registró en el
+  período de prueba del origen 2, sin leer la ventana de entrada.
 
 ### C. Protocolo de evaluación
 
-La partición es **por fecha y nunca al azar**, porque un operador solo dispone
-del pasado. El protocolo completo se evalúa sobre tres orígenes, numerados aquí
-1, 2 y 3: los tres comienzan el mismo día, alargan el entrenamiento a 61, 83 y
-107 días, y sus períodos de prueba no se solapan entre sí. El primero entrena
-hasta el 30 de noviembre de 2023 y prueba del 23 de diciembre al 13 de enero. El
-segundo entrena hasta el 22 de diciembre y prueba del 14 de enero al 4 de
-febrero. El tercero —el que se publica, con 107 días de entrenamiento, 23 de
-validación y 22 de prueba— entrena hasta el 15 de enero, valida hasta el 7 de
-febrero y prueba del 8 al 29 de febrero de 2024. Como los entrenamientos están
-anidados, esto establece estabilidad frente a la elección del período de prueba
-y no réplica independiente.
+La partición es por fecha y nunca al azar. Los tres orígenes comienzan el 1 de
+octubre de 2023, y sus períodos de prueba no se solapan:
 
-La comparación exige además tres condiciones, cada una sobre una fuente distinta
-de fuga: el tiempo, la población evaluada y los valores extremos. La primera es
-la continuidad estricta: una muestra es válida solo si sus minutos son
-consecutivos. Sin ella la ventana de entrada puede atravesar un hueco de señal,
-y el horizonte mediría un intervalo mayor que el declarado. La regla retiene
-entre el 81.9 % y el 90.2 % de los snapshots del período de prueba.
+| Origen | Entrenamiento | Validación | Prueba |
+| :---: | :--- | :--- | :--- |
+| 1 | hasta el 30 nov 2023 (61 días) | 1–22 dic | 23 dic – 13 ene |
+| 2 | hasta el 22 dic 2023 (83 días) | 23 dic – 13 ene | 14 ene – 4 feb |
+| 3 | hasta el 15 ene 2024 (107 días) | 16 ene – 7 feb | 8–29 feb |
 
-La segunda es la población compartida: los métodos se puntúan sobre exactamente
-las mismas filas, y el entrenamiento aborta si el resumen SHA-256 de su lista de
-muestras no coincide con el registrado. La tercera es el tope al percentil 99
-del headway de entrenamiento, aplicado como techo a las tres particiones.
-Calcularlo por partición dejaría entrar información del período de prueba. El
-techo afecta entre el 0.78 % y el 1.11 % de los objetivos, y las posiciones sin
-headway válido siguen enmascaradas.
+Como los entrenamientos están anidados, los tres orígenes miden estabilidad
+frente al período de prueba y no son réplicas independientes. Tres condiciones
+evitan fugas de información:
+
+- **Continuidad estricta:** una muestra entra solo si sus minutos son
+  consecutivos, para que la ventana no atraviese un hueco de señal. Retiene
+  entre el 81.9 % y el 90.2 % de los snapshots de prueba.
+- **Población compartida:** todos los métodos se puntúan sobre las mismas filas,
+  y el entrenamiento aborta si el resumen SHA-256 de la lista de muestras no
+  coincide con el registrado.
+- **Tope:** el percentil 99 del headway de entrenamiento se aplica como techo a
+  las tres particiones, y afecta entre el 0.78 % y el 1.11 % de los objetivos.
 
 ---
 
 ## Apéndice B. Pruebas estadísticas
 
-Una comparación pareada enfrenta dos métodos sobre las mismas muestras bajo una
-métrica declarada, y consta de tres partes: cuál de los dos gana, por cuánto y
-si la diferencia sobrevive su prueba. Exigir muestras idénticas lo distingue de
-restar dos métricas agregadas, que pueden venir de poblaciones distintas. Este
-trabajo hace comparaciones pareadas sobre el MAE, el MCC y el AUC de la Sección
-IV-A, y la que usa el AUC es sin umbral, porque puntúa todos los umbrales a la
-vez.
+Toda comparación entre métodos es pareada, sobre las mismas muestras, y agrupa
+por día de servicio: las muestras de un mismo día comparten clima, incidentes y
+demanda, y eso lleva el tamaño efectivo de entre 75 747 y 240 907 filas a los 22
+días de prueba.
 
-Una diferencia de MAE puede ser ruido del período de prueba. Se contrasta con la
-prueba de Diebold–Mariano [@diebold1995] sobre el diferencial de pérdida por
-muestra, con la corrección de muestra pequeña de Harvey–Leybourne–Newbold
-[@harvey1997]. La varianza se estima agrupando por día de servicio, porque las
-muestras de un mismo día comparten clima, incidentes y demanda, y eso lleva el
-tamaño efectivo de entre 75 747 y 240 907 filas, según la celda, a los 22 días
-del período de prueba.
-
-El AUC y el MCC no se descomponen en una pérdida por muestra, así que esa prueba
-no les sirve. Su diferencia entre dos métodos se acota remuestreando días de
-servicio con reemplazo, por la misma razón: se recalculan ambas cantidades sobre
-cada uno de dos mil remuestreos, con semilla fija, y se toma el intervalo
-percentil al 95 %.
-
-La precisión de la Ecuación (6) puede descansar sobre muy pocas alarmas, y con
-conteos pequeños la aproximación normal deja parte de su intervalo fuera del
-rango válido de una proporción. Se acota entonces con el intervalo exacto de
-Clopper–Pearson [@clopper1934] al 95 %, sobre los conteos de TP y de FP de cada
-celda. Una celda sin ninguna alarma no recibe intervalo, porque no hay precisión
-que acotar.
+- **MAE:** prueba de Diebold–Mariano [@diebold1995] sobre el diferencial de
+  pérdida por muestra, con la corrección de Harvey–Leybourne–Newbold
+  [@harvey1997].
+- **AUC y MCC:** como no se descomponen en una pérdida por muestra, intervalo
+  percentil al 95 % sobre dos mil remuestreos de días con reemplazo.
+- **Precisión:** intervalo exacto de Clopper–Pearson [@clopper1934] al 95 %,
+  porque puede descansar sobre muy pocas alarmas. Una celda sin alarmas no
+  recibe intervalo.
 
 ---
 
