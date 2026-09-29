@@ -571,7 +571,9 @@ Un umbral fijo en minutos lo confirma: la cuarta parte del headway mediano
 observado de cada corredor y sentido, a la manera de Sun, Schmöcker y Nakamura
 [@sun2021], calibrada sobre el origen 2. Con él, la tasa de alarma del LSTM fue,
 en la mediana, 138 veces menor que con el *unadjusted threshold* en diez de las
-doce celdas, y nula en las otras dos.
+doce celdas, y nula en las otras dos. Contra el evento de ese umbral, el AUC
+mediano del LSTM fue 0.60, frente a 0.656 contra el de la Ecuación (4), y 0.493
+en E2 a diez minutos.
 
 La consecuencia está en qué método gana. Los dos *adjusted thresholds*
 reproducen la comparación sin umbral de la Sección V-D en once de las doce
@@ -621,20 +623,20 @@ tasa base, porque su cociente dice cuánto del F1 mide la cantidad de alarmas
 
 El evento no se validó contra un registro de incidentes, que estos corredores no
 producen, y las cifras de detección valen para el evento así definido. Contra el
-evento del umbral fijo en minutos de la Sección V-E, el AUC mediano del LSTM fue
-0.60, frente a 0.656 contra el de la Ecuación (4), y 0.493 en E2 a diez minutos.
-La tercera práctica no depende de esa definición: el umbral diseñado para el
+evento del umbral fijo en minutos, el LSTM ordenó peor (Sección V-E), pero la
+tercera práctica no depende de esa definición: el umbral diseñado para el
 headway observado deja de avisar tanto si es una fracción del promedio como si
 es un valor en minutos.
 
 La subdispersión admite dos lecturas alternativas al ajuste por error
 cuadrático. El ruido de medición del eje del corredor y del sentido de marcha la
-agranda, pero la Ecuación (9) la acota, de modo que el dataset fija el tamaño
-del efecto y no su existencia. El azar tampoco la explica: cada modelo se
-entrenó con una sola semilla, y el efecto se repitió en los tres corredores y
-los tres orígenes, cada uno con su propio entrenamiento. El dataset cubre tres
-corredores de una sola ciudad durante 152 días, y el promedio histórico por
-posición se ajustó sobre un solo origen anterior.
+agranda, pero la compresión siguió al término del error de la Ecuación (9) en
+las doce celdas (Sección V-B), de modo que el dataset fija el tamaño del efecto
+y no su existencia. El azar tampoco la explica: cada modelo se entrenó con una
+sola semilla, y el efecto se repitió en los tres corredores y los tres orígenes,
+cada uno con su propio entrenamiento. El dataset cubre tres corredores de una
+sola ciudad durante 152 días, y el promedio histórico por posición se ajustó
+sobre un solo origen anterior.
 
 ---
 
