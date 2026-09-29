@@ -107,10 +107,10 @@ LANG = {
         "advantage_axis": "Ventaja en MAE sobre persistencia [min]",
         "auc_axis": "AUC de detección de bunching",
         "auc_floor": "Promedio histórico por posición",
-        "cut_rule_published": "Regla de la Sección III-B",
-        "cut_rule_quota": "Umbral por percentil",
-        "cut_observed": "sobre lo observado",
-        "cut_predicted": "sobre lo predicho",
+        "cut_rule_published": "Unadjusted threshold",
+        "cut_rule_quota": "Percentile threshold",
+        "cut_observed": "sobre el headway observado",
+        "cut_predicted": "sobre el headway predicho",
         "cut_axis": "Umbral aplicado [min]",
         "observed_bars": "Realidad observada",
         "predicted_bars": "Lo que el modelo predice",
@@ -141,10 +141,10 @@ LANG = {
         "advantage_axis": "MAE advantage over persistence [min]",
         "auc_axis": "Bunching detection AUC",
         "auc_floor": "Positional-profile floor",
-        "cut_rule_published": "Section III-B rule",
+        "cut_rule_published": "Unadjusted threshold",
         "cut_rule_quota": "Percentile threshold",
-        "cut_observed": "on the observed",
-        "cut_predicted": "on the predicted",
+        "cut_observed": "on the observed headway",
+        "cut_predicted": "on the predicted headway",
         "cut_axis": "Applied threshold [min]",
         "observed_bars": "Observed",
         "predicted_bars": "Predicted",
@@ -670,13 +670,15 @@ def threshold_in_minutes(*, lang: str = "es", chrome: bool = True) -> Path:
         legend_handles, [line.get_label() for line in legend_handles],
         loc="upper center",
         bbox_to_anchor=(0.5, 0.925 if chrome else CLEAN_LEGEND_Y),
-        ncol=4, frameon=False,
+        # Two columns: the full "<threshold>, sobre el headway <side>" labels
+        # overflow the figure width in a single row of four.
+        ncol=2, frameon=False,
     )
     if chrome:
         _caption(fig, [
             "LSTM, origen 3. El umbral de cada vector, en minutos, promediado sobre sus posiciones.",
         ])
-    fig.tight_layout(rect=(0, 0.06, 1, 0.88) if chrome else CLEAN_RECT)
+    fig.tight_layout(rect=(0, 0.06, 1, 0.84) if chrome else (0, 0, 1, 0.84))
 
     fig.savefig(path, dpi=DPI)
     plt.close(fig)

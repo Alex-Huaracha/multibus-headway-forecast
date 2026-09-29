@@ -36,19 +36,17 @@ con una red LSTM (*long short-term memory*). A diez minutos de anticipación, en
 el corredor E59, el LSTM tuvo un error absoluto medio 1.17 minutos menor que el
 de la persistencia, que repite el último vector observado.
 
-Este trabajo usa un umbral relativo: un headway es bunching si queda por debajo
-de la mitad del promedio de su vector en ese instante. Sobre el mismo período,
-ese umbral marcó bunching en el 20.8 % de las posiciones de los headways
-observados. Para detectar
-sobre la predicción, se aplicó la misma regla al vector predicho, con la mitad
-del promedio de ese vector. La fracción de un medio pasó así sin cambios del
-headway observado al headway predicho, y a esa herencia se le llama aquí el
-umbral trasladado. Con él, la persistencia emitió alarma, un headway predicho
-que el umbral marca como bunching, en el 20.8 % de las posiciones, y el LSTM en
-el 0.75 %. El F1 vale 1 cuando las alarmas coinciden exactamente con los
-eventos, y cae hacia 0 tanto si sobran alarmas como si hay eventos sin alarma.
-Con esa puntuación, la persistencia superó al LSTM por un factor de 8.8
-(Sección V-C).
+Este trabajo define el evento con un *event threshold*: un headway es bunching
+si queda por debajo de la mitad del promedio de su vector en ese instante. Sobre
+el mismo período, ese umbral marcó bunching en el 20.8 % de las posiciones de
+los headways observados. Para detectar sobre la predicción, se aplicó el mismo
+umbral al vector predicho, con la mitad del promedio de ese vector y sin
+ajustarlo a la predicción: es el *unadjusted threshold*. Con él, la persistencia
+emitió alarma, un headway predicho que el umbral marca como bunching, en el 20.8
+% de las posiciones, y el LSTM en el 0.75 %. El F1 vale 1 cuando las alarmas
+coinciden exactamente con los eventos, y cae hacia 0 tanto si sobran alarmas
+como si hay eventos sin alarma. Con esa puntuación, la persistencia superó al
+LSTM por un factor de 8.8 (Sección V-C).
 
 La primera etapa introduce el defecto que la segunda hereda. Un modelo entrenado
 con error cuadrático medio, cuando no sabe si un headway será corto o largo,
@@ -57,8 +55,8 @@ predice un valor intermedio, porque así su error promedio es menor
 parecen entre sí más que los headways observados: la predicción queda
 **subdispersa** (*underdispersion*), con menos dispersión que el headway
 observado [@mayer2023]. El bunching es justamente un headway mucho más corto que
-los demás, y una predicción subdispersa casi no los contiene. Con el umbral
-trasladado, casi ningún headway predicho queda por debajo de él, y de ahí sale
+los demás, y una predicción subdispersa casi no los contiene. Con el *unadjusted
+threshold*, casi ningún headway predicho queda por debajo de él, y de ahí sale
 el 0.75 % de alarmas de E59. Que el promedio salga del propio vector predicho no
 lo evita: la fracción de un medio se pensó para headways con la dispersión del
 headway observado, y el vector predicho casi no tiene headways tan alejados de
@@ -73,32 +71,32 @@ basados en headway sin fijar un umbral [@sun2021]. Queda sin medir qué le hace
 el error de la primera etapa a la decisión de la segunda.
 
 Este trabajo mide ese efecto y separa lo que aporta el modelo de lo que aporta
-el umbral. El umbral relativo convierte el headway predicho en un indicador de
-bunching, y la evaluación puntúa esa detección con y sin umbral. Sin umbral no
-se decide qué headway es bunching: se ordenan los headways predichos de más
-corto a más largo, en proporción al promedio de su vector, y se mide si los
-eventos reales quedan al principio. Es lo que mide el área bajo la curva ROC
-(*receiver operating characteristic*), el AUC. Las dos puntuaciones se contradicen: sin umbral, el LSTM ordenó mejor
-que la persistencia a diez minutos en los tres corredores y en tres períodos de
-prueba distintos.
-Nuestras contribuciones son tres:
+el umbral. El *unadjusted threshold* convierte el headway predicho en un
+indicador de bunching, y la evaluación puntúa esa detección con y sin umbral.
+Sin umbral no se decide qué headway es bunching: se ordenan los headways
+predichos de más corto a más largo, en proporción al promedio de su vector, y se
+mide si los eventos reales quedan al principio. Es lo que mide el área bajo la
+curva ROC (*receiver operating characteristic*), el AUC. Las dos puntuaciones se
+contradicen: sin umbral, el LSTM ordenó mejor que la persistencia a diez minutos
+en los tres corredores y en tres períodos de prueba distintos. Nuestras
+contribuciones son tres:
 
 - Medimos esa subdispersión sobre el vector de headways, usamos como control la
   persistencia, que no la produce, y la leemos en la escala de nivel de servicio
   del *Transit Capacity and Quality of Service Manual* (TCQSM). El mismo
   corredor queda en nivel A según el headway predicho y en nivel F según el
   headway observado.
-- Mostramos que la evaluación en dos etapas, con el umbral trasladado, cambia
-  qué método detecta mejor, frente a las mismas predicciones puntuadas sin
-  umbral. Acotamos esa comparación con un baseline de promedio histórico por
+- Mostramos que la evaluación en dos etapas, con el *unadjusted threshold*,
+  cambia qué método detecta mejor, frente a las mismas predicciones puntuadas
+  sin umbral. Acotamos esa comparación con un baseline de promedio histórico por
   posición, que no lee la ventana de entrada.
 - Mostramos que la caída de alarmas alcanza a toda regla que aplique al headway
   predicho un umbral diseñado para el headway observado, sea una fracción del
-  promedio o un valor en minutos. Un umbral ajustado sobre el headway predicho
-  recupera la comparación sin umbral en once de las doce combinaciones de
-  corredor y horizonte, sea recalibrado sobre un período de prueba anterior o
-  como un percentil de cada vector, que por construcción marca siempre la misma
-  cantidad de posiciones.
+  promedio o un valor en minutos. Un *adjusted threshold*, ajustado sobre el
+  headway predicho, recupera la comparación sin umbral en once de las doce
+  combinaciones de corredor y horizonte, sea optimizado sobre un período de
+  prueba anterior o como un percentil de cada vector, que por construcción marca
+  siempre la misma cantidad de posiciones.
 
 ---
 
@@ -137,14 +135,14 @@ ajustan la distribución de las predicciones a la de las mediciones
 campo de lluvia [@roberts2008].
 
 En transporte, Sun, Schmöcker y Nakamura diagnostican que predecir y después
-umbralizar falla, con un umbral absoluto de un minuto, y reportan el área bajo
+umbralizar falla, con un umbral fijo de un minuto, y reportan el área bajo
 la curva solo para su clasificador probabilístico [@sun2021]. Jiao y
 colaboradores corrigen el modelo, con un término de clasificación en la pérdida
 [@jiao2023]. Este trabajo, en cambio, corrige la regla y no reentrena el modelo.
 
 ---
 
-## III. Defecto de la evaluación con el umbral trasladado
+## III. Defecto de la evaluación con el *unadjusted threshold*
 
 ### A. Formulación del problema
 
@@ -186,7 +184,7 @@ programación, y aquí la referencia es el promedio del propio vector en ese
 instante. Ese promedio fija la separación normal del
 corredor, que un umbral fijo en minutos no fija entre corredores de frecuencias
 distintas. La fracción de un medio se hereda del TCQSM y la sustitución es
-nuestra. El resultado es el **umbral relativo** del evento.
+nuestra. El resultado es el umbral del evento, el ***event threshold***.
 
 Con el vector escrito por componentes como $\mathbf{h}(t) = (h_1, \dots, h_m)$,
 su promedio y el umbral del evento son
@@ -218,8 +216,9 @@ $\bar{\hat{h}}(t)$ es el promedio del vector predicho. Cada posición con
 $\hat{b}_i(t) = 1$ es una **alarma** (*alarm*) [@moreiramatias2016]. El umbral
 sale del vector predicho porque quien opera un corredor no dispone del headway
 observado al momento de decidir. La fracción $\rho = \tfrac{1}{2}$ pasa así sin
-cambios del headway observado al headway predicho, y a esa herencia se le llama
-aquí el **umbral trasladado**.
+cambios del headway observado al headway predicho, y a ese umbral, aplicado sin
+ajustarlo a la predicción, se le llama el ***unadjusted threshold***
+[@provost2000].
 
 La evaluación compara el detector de la Ecuación (5) contra el indicador de la
 Ecuación (4). Sean TP las posiciones con $b_i = \hat{b}_i = 1$, FP las que
@@ -233,7 +232,7 @@ R \;=\; \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}, \tag{6}$$
 donde la precisión $P$ es la fracción de alarmas que caen sobre un evento, y el
 recall $R$ es la fracción de eventos que reciben alarma.
 
-### B. El F1 bajo el umbral trasladado
+### B. El F1 bajo el *unadjusted threshold*
 
 El F1 de la Ecuación (6) mezcla dos cantidades de naturaleza distinta. Como TP
 es la precisión multiplicada por la cantidad de alarmas, al dividir por $n$ el F1
@@ -270,13 +269,13 @@ predicho tiene que alejarse de su promedio, hacia abajo, en más de la mitad de
 ese promedio. Un vector subdisperso casi no tiene headways tan alejados, de modo que
 la tasa de alarma del LSTM cae por debajo de la tasa base y su F1 cae con ella.
 
-Con el umbral trasladado, el F1 ordena entonces a los métodos por la dispersión
-de su vector predicho antes que por su acierto. Un método que predice con más
-error puede superar en F1 a uno que predice con menos, aun con menor precisión,
-porque copia la dispersión del headway observado. La Sección V mide las piezas
-de ese argumento: la subdispersión en la Sección V-B, y la tasa de alarma y la
-precisión en la Sección V-C. La Sección IV propone cómo puntuar la detección sin
-que la tasa de alarma decida el resultado.
+Con el *unadjusted threshold*, el F1 ordena entonces a los métodos por la
+dispersión de su vector predicho antes que por su acierto. Un método que predice
+con más error puede superar en F1 a uno que predice con menos, aun con menor
+precisión, porque copia la dispersión del headway observado. La Sección V mide
+las piezas de ese argumento: la subdispersión en la Sección V-B, y la tasa de
+alarma y la precisión en la Sección V-C. La Sección IV propone cómo puntuar la
+detección sin que la tasa de alarma decida el resultado.
 
 ---
 
@@ -285,17 +284,17 @@ que la tasa de alarma decida el resultado.
 ### A. Puntuación sin umbral
 
 La Ecuación (7) deja el F1 atado a la tasa de alarma, y la tasa de alarma del
-umbral trasladado, a la dispersión del vector predicho. La forma más directa de
-que esa dispersión deje de decidir el resultado es puntuar sin umbral, de modo
-que no quede tasa de alarma que medir. El detector de la Ecuación (5) compara
-el cociente $\hat{h}_i/\bar{\hat{h}}$ contra la fracción $\rho$. Sin fijar
-$\rho$, ese cociente, calculado dentro de cada vector, ordena las posiciones de
-la más corta a la más larga respecto del promedio de su vector. El AUC
-[@handtill2001] puntúa ese ordenamiento. Vale 1 si todos los eventos quedan
-antes que todas las posiciones sin evento, y 0.5 si el ordenamiento no informa.
-Se calcula por **celda**, una combinación de corredor y horizonte, juntando en
-un solo ordenamiento las posiciones de todos sus vectores y de los dos
-sentidos.
+*unadjusted threshold*, a la dispersión del vector predicho. La forma más
+directa de que esa dispersión deje de decidir el resultado es puntuar sin
+umbral, de modo que no quede tasa de alarma que medir. El detector de la
+Ecuación (5) compara el cociente $\hat{h}_i/\bar{\hat{h}}$ contra la fracción
+$\rho$. Sin fijar $\rho$, ese cociente, calculado dentro de cada vector, ordena
+las posiciones de la más corta a la más larga respecto del promedio de su
+vector. El AUC [@handtill2001] puntúa ese ordenamiento. Vale 1 si todos los
+eventos quedan antes que todas las posiciones sin evento, y 0.5 si el
+ordenamiento no informa. Se calcula por **celda**, una combinación de corredor y
+horizonte, juntando en un solo ordenamiento las posiciones de todos sus vectores
+y de los dos sentidos.
 
 Un AUC de 0.5 es el piso de una predicción sin ninguna información, pero no el
 de una predicción sin información temporal. Las posiciones del vector no son
@@ -306,19 +305,19 @@ promedio de un período anterior y fija ese segundo piso. Cumple para el AUC la
 función que el baseline siempre positivo cumple para el F1, y acompaña a todo
 AUC reportado.
 
-### B. Umbral ajustado sobre el headway predicho
+### B. *Adjusted threshold*
 
 La otra forma conserva un umbral, pero lo ajusta sobre el headway predicho en
 lugar de heredarlo del headway observado, para que la tasa de alarma deje de
-depender de su dispersión. Se prueban dos versiones. La
-**recalibración fuera de muestra** reemplaza la fracción $\rho$ de la Ecuación
-(5) por un valor ajustado para cada método y cada celda. El ajuste usa un
-**origen de evaluación** anterior: una fecha de fin de entrenamiento con su
-propio período de prueba. La evaluación usa tres orígenes y reporta el tercero como resultado principal.
-El umbral se ajusta sobre el período de prueba del origen 2 y se aplica sin
-cambios al del origen 3. Los dos períodos son disjuntos y provienen de modelos
-entrenados por separado, de modo que el período reportado no informa su propio
-umbral.
+depender de su dispersión: es el ***adjusted threshold***, que se prueba de dos
+maneras. El ***optimized threshold*** reemplaza la fracción $\rho$ de la
+Ecuación (5) por un valor ajustado para cada método y cada celda. El ajuste usa
+un **origen de evaluación** anterior: una fecha de fin de entrenamiento con su
+propio período de prueba. La evaluación usa tres orígenes y reporta el tercero
+como resultado principal. El umbral se ajusta sobre el período de prueba del
+origen 2 y se aplica sin cambios al del origen 3. Los dos períodos son disjuntos
+y provienen de modelos entrenados por separado, de modo que el período reportado
+no informa su propio umbral.
 
 El objetivo del ajuste es el coeficiente de correlación de Matthews (MCC) y no
 el F1. Por la Ecuación (7), el F1 premia subir la tasa de alarma, y maximizarlo
@@ -329,14 +328,14 @@ el baseline siempre positivo [@chicco2020]. Emitir más alarmas no basta para su
 porque también cuenta las posiciones sin evento ni alarma, los verdaderos
 negativos (TN).
 
-La segunda versión es el **umbral por percentil** (*percentile threshold*)
-[@roberts2008]. No compara el headway contra un valor: marca en cada vector las
-posiciones más cortas hasta cubrir una fracción fija. Esa fracción es la que la
-regla de la Ecuación (4) marcó en promedio en la celda, sobre el origen 2.
-Aplicado al headway observado, el percentil define su propio evento, y el
-detector se puntúa contra él. Como los dos marcan la misma cantidad de
-posiciones en cada vector, la tasa de alarma iguala a la tasa base, y el
-término $2q/(q+\pi)$ de la Ecuación (7) vale 1 para todo método.
+La segunda es el ***percentile threshold*** [@roberts2008]. No compara el
+headway contra un valor: marca en cada vector las posiciones más cortas hasta
+cubrir una fracción fija. Esa fracción es la que la regla de la Ecuación (4)
+marcó en promedio en la celda, sobre el origen 2. Aplicado al headway observado,
+el percentil define su propio evento, y el detector se puntúa contra él. Como
+los dos marcan la misma cantidad de posiciones en cada vector, la tasa de alarma
+iguala a la tasa base, y el término $2q/(q+\pi)$ de la Ecuación (7) vale 1 para
+todo método.
 
 Ese evento no es el de la Ecuación (4): marca las posiciones más cortas de cada
 vector, estén o no por debajo de la mitad de su promedio. El **índice de
@@ -430,10 +429,10 @@ de la varianza del headway observado en E4 a un minuto, y el 4.5 % en E2 a
 diez, con $r_0$ de 49.5 % y 1.3 % en esas mismas celdas. El XGBoost, con otra
 arquitectura y el mismo objetivo de ajuste, quedó entre el 4.0 % y el 55 %.
 
-### C. Tasa de alarma y precisión bajo el umbral trasladado
+### C. Tasa de alarma y precisión bajo el *unadjusted threshold*
 
 En E59 a diez minutos, la regla de la Ecuación (4) marcó bunching en el 20.8 %
-de las posiciones del headway observado. Con el umbral trasladado, la
+de las posiciones del headway observado. Con el *unadjusted threshold*, la
 persistencia emitió alarma en el 20.8 % de las posiciones y el LSTM en el
 0.75 %. El LSTM acertó el 49 % de sus alarmas, y la persistencia, el 30 %. El F1
 invirtió ese orden, 0.303 para la persistencia contra 0.034 para el LSTM: el
@@ -448,29 +447,32 @@ cociente entre los dos F1 de 1.5 a 253, y la Figura 2 muestra cómo cae la tasa 
 alargar el horizonte.
 
 E2 a diez minutos es el caso extremo. La regla de la Ecuación (4) marcó 15 245
-eventos sobre el headway observado. Con el umbral trasladado, la persistencia
-emitió 15 083 alarmas y el LSTM, **catorce**. Diez de esas catorce cayeron sobre
-un evento, una precisión del 71 % contra una tasa base del 30 %, con el
-intervalo del Apéndice B entre 42 % y 92 %. Aun así, el cociente entre los dos F1 llegó a 253.
+eventos sobre el headway observado. Con el *unadjusted threshold*, la
+persistencia emitió 15 083 alarmas y el LSTM, **catorce**. Diez de esas catorce
+cayeron sobre un evento, una precisión del 71 % contra una tasa base del 30 %,
+con el intervalo del Apéndice B entre 42 % y 92 %. Aun así, el cociente entre
+los dos F1 llegó a 253.
 
 El F1 tampoco premia a la persistencia por detectar bien. El baseline siempre
 positivo, que no usa ningún modelo, la superó en 5 de las doce celdas, marcadas
 con † en la Tabla 1, y en 15 de las 36 combinaciones de celda y origen.
 
 Ese cociente tampoco mide una propiedad estable del modelo. En diez de las doce
-celdas, el del primer origen quedó entre 0.90 y 1.58 veces el del tercero. En las otras dos, E2 a cinco y a diez minutos, valió **126**, **58** y
-**36**, y **2 299**, **817** y **253**, en los tres orígenes. Son las celdas
-donde el umbral trasladado dejó al LSTM casi sin alarmas, y un cociente cuyo
+celdas, el del primer origen quedó entre 0.90 y 1.58 veces el del tercero. En
+las otras dos, E2 a cinco y a diez minutos, valió **126**, **58** y **36**, y
+**2 299**, **817** y **253**, en los tres orígenes. Son las celdas donde el
+*unadjusted threshold* dejó al LSTM casi sin alarmas, y un cociente cuyo
 denominador se acerca a cero crece sin que el modelo cambie.
 
 ![Tasa de alarma contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
-**Fig. 2.** Tasa de alarma de la persistencia y del LSTM con el umbral
-trasladado, contra la tasa base (punteada), por horizonte. Un panel por
+**Fig. 2.** Tasa de alarma de la persistencia y del LSTM con el *unadjusted
+threshold*, contra la tasa base (punteada), por horizonte. Un panel por
 corredor, origen 3.
 
-**Tabla 1.** Detección con el umbral trasladado, con el F1 del baseline siempre
-positivo al lado. Factor es el F1 de la persistencia dividido por el del LSTM.
+**Tabla 1.** Detección con el *unadjusted threshold*, con el F1 del baseline
+siempre positivo al lado. Factor es el F1 de la persistencia dividido por el del
+LSTM.
 
 | Corredor | h | Tasa base | F1 baseline | F1 persistencia | F1 LSTM | Factor |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -518,12 +520,11 @@ umbral no se sostiene contra un método que no lee la ventana de entrada. Es la
 histórico por posición (punteado), por horizonte. Un panel por corredor, origen
 3; la línea en 0.5 es el azar.
 
-**Tabla 2.** Diferencias del LSTM, sin umbral y con el umbral recalibrado fuera
-de muestra, con su intervalo de confianza del 95 %. Un signo positivo favorece
-al LSTM, y un intervalo que contiene el cero deja a los dos lados
-indistinguibles.
+**Tabla 2.** Diferencias del LSTM, sin umbral y con el *optimized threshold*,
+con su intervalo de confianza del 95 %. Un signo positivo favorece al LSTM, y un
+intervalo que contiene el cero deja a los dos lados indistinguibles.
 
-| Corredor | h | Δ AUC frente a la persistencia | Δ AUC frente al promedio histórico por posición | Δ MCC recal. frente a la persistencia |
+| Corredor | h | Δ AUC frente a la persistencia | Δ AUC frente al promedio histórico por posición | Δ MCC *optimized* frente a la persistencia |
 | :--- | ---: | :---: | :---: | :---: |
 | E2 | 1 | -0.009 [-0.015, -0.004] | +0.126 [+0.117, +0.138] | -0.091 [-0.106, -0.078] |
 | E2 | 3 | +0.031 [+0.025, +0.036] | +0.050 [+0.040, +0.061] | +0.018 [+0.005, +0.028] |
@@ -538,40 +539,40 @@ indistinguibles.
 | E59 | 5 | +0.017 [+0.012, +0.022] | +0.173 [+0.162, +0.184] | -0.044 [-0.053, -0.036] |
 | E59 | 10 | +0.061 [+0.054, +0.067] | +0.146 [+0.133, +0.159] | +0.042 [+0.033, +0.052] |
 
-### E. Umbral ajustado sobre el headway predicho
+### E. Detección con el *adjusted threshold*
 
-Con el umbral trasladado, la persistencia ganaba en F1 las doce celdas. La
-recalibración de la Sección IV-B, que no toca el modelo, llevó al LSTM a ganar
-en MCC 5 de las 12 celdas, entre ellas las tres de diez minutos, si bien la de
-E4 no resiste su propio intervalo (última columna de la Tabla 2). Ajustar el
-umbral por F1 no habría servido: sobre la persistencia en E2, de tres minutos en
-adelante, el umbral que maximiza el F1 emitió alarma en entre el 99.9 % y el
+Con el *unadjusted threshold*, la persistencia ganaba en F1 las doce celdas. El
+*optimized threshold* de la Sección IV-B, que no toca el modelo, llevó al LSTM a
+ganar en MCC 5 de las 12 celdas, entre ellas las tres de diez minutos, si bien
+la de E4 no resiste su propio intervalo (última columna de la Tabla 2). Ajustar
+el umbral por F1 no habría servido: sobre la persistencia en E2, de tres minutos
+en adelante, el umbral que maximiza el F1 emitió alarma en entre el 99.9 % y el
 100 % de las posiciones, que es el baseline siempre positivo.
 
-La Tabla 3 contrasta, sobre la misma población, el umbral trasladado, los dos
-umbrales de la Sección IV-B y una cuarta regla, la **regla de denominador
-observado**. Esa regla divide por el promedio del último vector observado en
-lugar de por el del vector predicho, de modo que el umbral en minutos es el
+La Tabla 3 contrasta, sobre la misma población, el *unadjusted threshold*, los
+dos *adjusted thresholds* de la Sección IV-B y una variante del primero que
+divide por el promedio del último vector observado en lugar de por el del vector
+predicho, de modo que el umbral en minutos es el
 mismo para el headway observado y para el headway predicho. Las dos reglas que
 aplican al headway predicho un umbral diseñado para el headway observado
-colapsaron: la regla de denominador observado duplicó la tasa de alarma del LSTM
-y la dejó por debajo de una sexta parte de la tasa base. El umbral recalibrado
-y el umbral por percentil no colapsaron, y la persistencia no colapsó bajo
+colapsaron: la variante con el promedio observado duplicó la tasa de alarma del
+LSTM y la dejó por debajo de una sexta parte de la tasa base. Los dos *adjusted
+thresholds* no colapsaron, y la persistencia no colapsó bajo
 ninguna de las cuatro.
 
 El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
-minutos, y la Figura 4 lo muestra. Con el umbral trasladado, el umbral sobre el
-headway predicho quedó a menos de 0.35 minutos del umbral sobre el headway
-observado en las doce celdas. Con el percentil, el umbral sobre el headway
-predicho subió por encima del umbral sobre el headway observado, hasta alcanzar
-la distribución subdispersa, y la distancia entre los dos crece con el horizonte
-en los tres corredores. Un umbral diseñado para el headway observado no puede
-seguirla, porque su valor no depende de la escala del headway predicho que
-evalúa. La recalibración la sigue por otra vía: la fracción ajustada sobre el
-headway predicho del origen 2 quedó entre 0.58 y 0.91 del promedio, contra el
-0.5 heredado. La subdispersión de la Sección V-B alcanza entonces a toda regla
-cuyo umbral se diseñó para el headway observado, y no solo a la que divide por
-el promedio del vector predicho.
+minutos, y la Figura 4 lo muestra. Con el *unadjusted threshold*, el umbral
+sobre el headway predicho quedó a menos de 0.35 minutos del umbral sobre el
+headway observado en las doce celdas. Con el *percentile threshold*, el umbral
+sobre el headway predicho subió por encima del umbral sobre el headway
+observado, hasta alcanzar la distribución subdispersa, y la distancia entre los
+dos crece con el horizonte en los tres corredores. Un umbral diseñado para el
+headway observado no puede seguirla, porque su valor no depende de la escala del
+headway predicho que evalúa. El *optimized threshold* la sigue por otra vía: la
+fracción ajustada sobre el headway predicho del origen 2 quedó entre 0.58 y 0.91
+del promedio, contra el 0.5 heredado. La subdispersión de la Sección V-B alcanza
+entonces a toda regla cuyo umbral se diseñó para el headway observado, y no solo
+a la que divide por el promedio del vector predicho.
 
 ![Umbral en minutos de cada regla](figuras/umbral-en-minutos.es.png)
 
@@ -579,31 +580,31 @@ el promedio del vector predicho.
 posiciones, sobre el headway observado (discontinua) y sobre el headway predicho
 por el LSTM (continua), por horizonte. Un panel por corredor, origen 3.
 
-Un umbral absoluto, sin denominador ni percentil, lo confirma. Se fijó en la
-cuarta parte del headway mediano observado de cada corredor y sentido, entre 1.4
-y 2.4 minutos, a la manera del umbral de un minuto de Sun, Schmöcker y Nakamura
-[@sun2021]. Se calibró sobre el origen 2 y se aplicó sin cambios al origen 3.
-Frente al umbral trasladado, la tasa de alarma del LSTM fue, en la
-mediana, 138 veces menor en diez de las doce celdas, y en las otras dos no emitió ninguna.
-Con la mitad del headway mediano, fue 2.0 veces menor en la mediana: el umbral dispara menos
-que una regla ya colapsada.
+Un umbral fijo en minutos, sin denominador ni percentil, lo confirma. Se fijó en
+la cuarta parte del headway mediano observado de cada corredor y sentido, entre
+1.4 y 2.4 minutos, a la manera del umbral de un minuto de Sun, Schmöcker y
+Nakamura [@sun2021]. Se calibró sobre el origen 2 y se aplicó sin cambios al
+origen 3. Frente al *unadjusted threshold*, la tasa de alarma del LSTM fue, en
+la mediana, 138 veces menor en diez de las doce celdas, y en las otras dos no
+emitió ninguna. Con la mitad del headway mediano, fue 2.0 veces menor en la
+mediana: el umbral dispara menos que una regla ya colapsada.
 
-La consecuencia está en qué método gana. El umbral recalibrado y el umbral por
-percentil reproducen la comparación sin umbral de la Sección V-D en once de las
-doce celdas, el primero sobre el mismo evento y el segundo sobre uno que
-coincide con él en el 58 % de las posiciones. Las dos reglas que colapsan la
-reproducen en la mitad o poco más. La única celda donde los dos umbrales
-ajustados discrepan de la comparación sin umbral es E59 a cinco minutos. Cuánto
-se parecen los eventos no explica esa diferencia: el evento de la regla de
-denominador observado es el que más se parece al de la Ecuación (4), con un
-Jaccard de 0.71, y es una de las reglas que colapsan.
+La consecuencia está en qué método gana. Los dos *adjusted thresholds*
+reproducen la comparación sin umbral de la Sección V-D en once de las doce
+celdas, el primero sobre el mismo evento y el segundo sobre uno que coincide con
+él en el 58 % de las posiciones. Las dos reglas que colapsan la reproducen en la
+mitad o poco más. La única celda donde los dos *adjusted thresholds* discrepan
+de la comparación sin umbral es E59 a cinco minutos. Cuánto se parecen los
+eventos no explica esa diferencia: el evento de la variante con el promedio
+observado es el que más se parece al de la Ecuación (4), con un Jaccard de 0.71,
+y es una de las reglas que colapsan.
 
-El umbral por percentil no convierte al modelo en mejor detector. Su MCC mediano
-duplicó el del umbral trasladado, y lo superó en las doce celdas. Aun así, bajo
-el percentil el LSTM **sigue por debajo de la persistencia** en siete de las
-doce celdas. Las cinco que gana son las tres de E2 desde los tres minutos, y las
-de diez minutos en E4 y E59. El percentil recupera discriminación y no cambia el
-ganador a un minuto en ninguno de los tres corredores.
+El *percentile threshold* no convierte al modelo en mejor detector. Su MCC
+mediano duplicó el del *unadjusted threshold*, y lo superó en las doce celdas.
+Aun así, bajo el percentil el LSTM **sigue por debajo de la persistencia** en
+siete de las doce celdas. Las cinco que gana son las tres de E2 desde los tres
+minutos, y las de diez minutos en E4 y E59. El percentil recupera discriminación
+y no cambia el ganador a un minuto en ninguno de los tres corredores.
 
 **Tabla 3.** Las cuatro reglas, sobre la misma población y el mismo origen. A/E
 es el sesgo de frecuencia (*frequency bias*) [@ferro2011]: la tasa de alarma
@@ -617,10 +618,10 @@ salvo Coincide.
 
 | Regla | A/E LSTM | A/E pers. | MCC LSTM | Jaccard | Coincide |
 | :--- | ---: | ---: | ---: | ---: | :---: |
-| Umbral trasladado | 0.079 | 1.011 | 0.100 | 1.000 | 6/12 |
-| Denominador observado | 0.153 | 0.980 | 0.143 | 0.710 | 7/12 |
-| Umbral recalibrado | 1.125 | 1.140 | 0.198 | 1.000 | 11/12 |
-| Percentil | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | 11/12 |
+| *Unadjusted* | 0.079 | 1.011 | 0.100 | 1.000 | 6/12 |
+| *Unadjusted*, promedio observado | 0.153 | 0.980 | 0.143 | 0.710 | 7/12 |
+| *Optimized* | 1.125 | 1.140 | 0.198 | 1.000 | 11/12 |
+| *Percentile* | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | 11/12 |
 
 ‡ Vale uno por construcción: la alarma y el evento marcan la misma cantidad de
 posiciones en cada vector (Sección IV-B).
@@ -629,9 +630,9 @@ posiciones en cada vector (Sección IV-B).
 
 ## VI. Discusión
 
-Con el umbral trasladado, el F1 ordenó a los métodos por la dispersión de su
-vector predicho y no por su acierto. Para evaluar la detección de bunching sobre
-predicciones sugerimos cuatro prácticas: reportar el AUC junto a todo F1
+Con el *unadjusted threshold*, el F1 ordenó a los métodos por la dispersión de
+su vector predicho y no por su acierto. Para evaluar la detección de bunching
+sobre predicciones sugerimos cuatro prácticas: reportar el AUC junto a todo F1
 (Sección V-D); acompañar cada puntuación con un baseline que no use la
 predicción (Secciones V-C y V-D); ajustar sobre el headway predicho todo umbral
 que la operación necesite (Sección V-E); y reportar la tasa de alarma junto a la
@@ -640,9 +641,9 @@ tasa base, porque su cociente dice cuánto del F1 mide la cantidad de alarmas
 
 El evento no se validó contra un registro de incidentes, que estos corredores no
 producen, y las cifras de detección valen para el evento así definido. Contra el
-evento del umbral absoluto de la Sección V-E, el AUC mediano del LSTM fue 0.60,
-frente a 0.656 contra el de la Ecuación (4), y 0.493 en E2 a diez minutos. La
-tercera práctica no depende de esa definición: el umbral diseñado para el
+evento del umbral fijo en minutos de la Sección V-E, el AUC mediano del LSTM fue
+0.60, frente a 0.656 contra el de la Ecuación (4), y 0.493 en E2 a diez minutos.
+La tercera práctica no depende de esa definición: el umbral diseñado para el
 headway observado deja de avisar tanto si es relativo como si es absoluto.
 
 La subdispersión admite dos lecturas alternativas al ajuste por error
@@ -661,16 +662,16 @@ posición se ajustó sobre un solo origen anterior.
 Este trabajo mostró que las predicciones entrenadas por error cuadrático
 describen un corredor más regular que el real: el mismo corredor queda en nivel
 A del TCQSM según el headway predicho y en nivel F según el headway observado.
-Mostró también que, por esa subdispersión, el umbral trasladado hace que el F1
-ordene a los métodos por cuántas alarmas emiten y no por cuántas aciertan, y
+Mostró también que, por esa subdispersión, el *unadjusted threshold* hace que el
+F1 ordene a los métodos por cuántas alarmas emiten y no por cuántas aciertan, y
 que a diez minutos la puntuación sin umbral invierte ese orden. Para corregirlo,
-ajustamos el umbral sobre el headway predicho, recalibrado en un origen anterior
+ajustamos el umbral sobre el headway predicho, optimizado en un origen anterior
 o como un percentil de cada vector [@roberts2008], y ambas formas recuperan la
 comparación sin umbral. Sugerimos además reportar el AUC y la tasa de alarma
 junto a todo F1, y contrastar cada puntuación con un baseline que no use la
 predicción, como el promedio histórico por posición, que el LSTM no superó en E2
 a diez minutos. Esperamos que la detección de bunching sobre predicciones se
-evalúe en adelante con el umbral ajustado sobre el headway predicho.
+evalúe en adelante con un *adjusted threshold*.
 
 ---
 
@@ -983,6 +984,9 @@ no. 1, pp. 1–17, 2012, doi: 10.1080/07350015.2012.634337.
 `[@pilachowski2009]` J. M. Pilachowski, "An Approach to Reducing Bus Bunching,"
 Ph.D. dissertation, Univ. of California, Berkeley, CA, USA, 2009. [Online].
 Available: https://escholarship.org/uc/item/6zc5j8xg
+
+`[@provost2000]` F. Provost, "Machine Learning from Imbalanced Data Sets 101,"
+in *Proc. AAAI Workshop on Learning from Imbalanced Data Sets*, 2000, pp. 1–3.
 
 `[@quek2020]` W. L. Quek, N. N. Chung, V.-L. Saw, and L. Y. Chew, "Analysis and
 simulation of intervention strategies against bus bunching by means of an

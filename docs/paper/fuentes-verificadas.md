@@ -575,6 +575,16 @@ la norma y no de la dependencia.
 
 ## 4. Métricas de detección con desbalance moderado (nuestra tasa base: 17–30 %)
 
+### 4.0 El nombre del *unadjusted threshold*
+**Provost, F. (2000)**, «Machine Learning from Imbalanced Data Sets 101»,
+*Proc. AAAI Workshop on Learning from Imbalanced Data Sets*, pp. 1–3.
+`[TEXTO COMPLETO]` — PDF en pages.stern.nyu.edu/~fprovost/Papers/skew.PDF,
+leído 2026-09-28. Citado en §III-A por el nombre *unadjusted threshold*.
+
+Literal, p. 1:
+> *"using the classifiers produced by standard machine learning algorithms
+> without adjusting the output threshold may well be a critical mistake."*
+
 ### 4.1 La cita que convierte nuestra degeneración en teorema
 **Lipton, Z. C., Elkan, C., & Naryanaswamy, B. (2014)**, «Optimal Thresholding of
 Classifiers to Maximize F1 Measure», *ECML PKDD 2014*, LNCS 8725:225–239.

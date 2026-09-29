@@ -234,7 +234,7 @@ def tabla_2() -> str:
     return _render(
         ["Corredor", "h", "Δ AUC frente a la persistencia",
          "Δ AUC frente al promedio histórico por posición",
-         "Δ MCC recal. frente a la persistencia"],
+         "Δ MCC *optimized* frente a la persistencia"],
         rows,
         aligns="lrccc",
     )
@@ -559,7 +559,7 @@ def tabla_7() -> str:
     learner = det.filter(pl.col("model") == LEARNER).with_columns(ratio)
     rival = det.filter(pl.col("model") == RIVAL).with_columns(ratio)
     recalibrated = [
-        "Umbral recalibrado",
+        "*Optimized*",
         _num(learner["ratio"].median()),
         _num(rival["ratio"].median()),
         _num(learner["mcc_calibrated"].median()),
@@ -568,10 +568,10 @@ def tabla_7() -> str:
     ]
 
     rows = [
-        rule_row("pred_mean", "Umbral trasladado"),
-        rule_row("obs_mean", "Denominador observado"),
+        rule_row("pred_mean", "*Unadjusted*"),
+        rule_row("obs_mean", "*Unadjusted*, promedio observado"),
         recalibrated,
-        rule_row("rank", "Percentil"),
+        rule_row("rank", "*Percentile*"),
     ]
     table = _render(
         ["Regla", f"A/E {LEARNER}", "A/E pers.", f"MCC {LEARNER}",

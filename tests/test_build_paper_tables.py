@@ -127,16 +127,16 @@ class TestTablaTresComparesEveryOperatingPoint:
 
     def test_there_is_one_row_per_operating_point(self, rows) -> None:
         assert list(rows) == [
-            "Umbral trasladado", "Denominador observado",
-            "Umbral recalibrado", "Percentil",
+            "*Unadjusted*", "*Unadjusted*, promedio observado",
+            "*Optimized*", "*Percentile*",
         ]
 
     def test_the_recalibrated_row_is_read_from_the_calibrated_csv(self, rows) -> None:
         det = _load("contiguous_detection_calibrated.csv")
         lstm = det.filter(pl.col("model") == "LSTM")
         ratio = (lstm["fire_rate_calibrated"] / lstm["base_rate"]).median()
-        assert rows["Umbral recalibrado"][1] == f"{ratio:.3f}"
-        assert rows["Umbral recalibrado"][3] == f"{lstm['mcc_calibrated'].median():.3f}"
+        assert rows["*Optimized*"][1] == f"{ratio:.3f}"
+        assert rows["*Optimized*"][3] == f"{lstm['mcc_calibrated'].median():.3f}"
 
     def test_the_recalibrated_agreement_is_counted_cell_by_cell(self, rows) -> None:
         det = _load("contiguous_detection_calibrated.csv").pivot(
@@ -147,4 +147,4 @@ class TestTablaTresComparesEveryOperatingPoint:
             (pl.col("auc_LSTM") > pl.col("auc_Persistence"))
             == (pl.col("mcc_calibrated_LSTM") > pl.col("mcc_calibrated_Persistence"))
         ).height
-        assert rows["Umbral recalibrado"][5] == f"{agrees}/12"
+        assert rows["*Optimized*"][5] == f"{agrees}/12"
