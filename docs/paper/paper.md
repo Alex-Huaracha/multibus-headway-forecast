@@ -418,10 +418,9 @@ r \;=\; \frac{V_{\hat h}}{V_h}, \qquad r_0 \;=\; 1 - \frac{V_e}{V_h}, \tag{9}$$
 donde $V_h$, $V_{\hat h}$ y $V_e$ son las varianzas entre posiciones del headway
 observado, del headway predicho y del error $e_i = h_i - \hat{h}_i$, promediadas
 sobre los vectores de la celda, y $C_{\hat h e}$ es la covarianza entre el
-headway predicho y el error. La fracción $r$ es la parte de la dispersión del
-headway observado que conserva el headway predicho. La fracción $r_0$ es la que
-predice la Sección II-B a partir del error, y coincide con $r$ cuando el error
-no covaría con el headway predicho.
+headway predicho y el error. La fracción $r$ es la dispersión del headway
+observado que conserva el headway predicho, y $r_0$ la que predice la Sección
+II-B a partir del error; las dos coinciden si esa covarianza es nula.
 
 Sobre las doce celdas, $r$ siguió a $r_0$ con una correlación de 0.993 en el
 LSTM y de 0.996 en el XGBoost. El vector predicho por el LSTM conservó el 55 %
@@ -439,12 +438,10 @@ invirtió ese orden, 0.303 para la persistencia contra 0.034 para el LSTM: el
 F1 de la persistencia fue 8.8 veces el del LSTM. La Ecuación (7) da la causa: el
 término $2q/(q+\pi)$ valió 1.00 para la persistencia y 0.07 para el LSTM, y ninguna diferencia de precisión compensa esa caída.
 
-El patrón se repitió en las doce celdas, que recoge la Tabla 1. La precisión del
-LSTM superó a la de la persistencia en todas. Su tasa de alarma quedó por debajo
-de la tasa base en todas, entre el 0.03 % y el 8.6 %, mientras que la de la
-persistencia la igualó. La persistencia ganó en F1 las doce celdas, con un
-cociente entre los dos F1 de 1.5 a 253, y la Figura 2 muestra cómo cae la tasa de alarma del LSTM al
-alargar el horizonte.
+El patrón se repitió en las doce celdas de la Tabla 1: el LSTM tuvo más
+precisión que la persistencia y una tasa de alarma por debajo de la tasa base, y
+perdió en F1 por un factor de 1.5 a 253. La Figura 2 muestra cómo esa tasa cae
+al alargar el horizonte.
 
 E2 a diez minutos es el caso extremo. La regla de la Ecuación (4) marcó 15 245
 eventos sobre el headway observado. Con el *unadjusted threshold*, la
@@ -456,13 +453,6 @@ los dos F1 llegó a 253.
 El F1 tampoco premia a la persistencia por detectar bien. El baseline siempre
 positivo, que no usa ningún modelo, la superó en 5 de las doce celdas, marcadas
 con † en la Tabla 1, y en 15 de las 36 combinaciones de celda y origen.
-
-Ese cociente tampoco mide una propiedad estable del modelo. En diez de las doce
-celdas, el del primer origen quedó entre 0.90 y 1.58 veces el del tercero. En
-las otras dos, E2 a cinco y a diez minutos, valió **126**, **58** y **36**, y
-**2 299**, **817** y **253**, en los tres orígenes. Son las celdas donde el
-*unadjusted threshold* dejó al LSTM casi sin alarmas, y un cociente cuyo
-denominador se acerca a cero crece sin que el modelo cambie.
 
 ![Tasa de alarma contra tasa real del evento](figuras/artefacto-umbral.es.png)
 
@@ -495,10 +485,8 @@ LSTM.
 
 Sin umbral, el orden de la Tabla 1 se invierte a diez minutos. Puntuado mediante
 el AUC de la Sección IV-A, **el LSTM ganó en las nueve combinaciones de corredor
-y origen a diez minutos**, y en 6 de las 12 celdas del origen 3. Los tres
-orígenes coincidieron en el ganador de 11 de las 12 celdas, incluido el primero,
-que cubre las fiestas de fin de año; la excepción es E4 a cinco minutos, donde
-solo el origen 2 favoreció al LSTM. Las nueve diferencias de diez minutos
+y origen a diez minutos**, y en 6 de las 12 celdas del origen 3; los tres
+orígenes coincidieron en el ganador de 11 de ellas. Las nueve diferencias de diez minutos
 sobrevivieron su intervalo, y van de 0.033 a 0.061. La persistencia conservó la
 ventaja a un minuto en los tres corredores y los tres orígenes, donde el MAE
 también la favorecía. La Figura 3 muestra el AUC de los dos métodos junto al
@@ -549,16 +537,13 @@ el umbral por F1 no habría servido: sobre la persistencia en E2, de tres minuto
 en adelante, el umbral que maximiza el F1 emitió alarma en entre el 99.9 % y el
 100 % de las posiciones, que es el baseline siempre positivo.
 
-La Tabla 3 contrasta, sobre la misma población, el *unadjusted threshold*, los
-dos *adjusted thresholds* de la Sección IV-B y una variante del primero que
-divide por el promedio del último vector observado en lugar de por el del vector
-predicho, de modo que el umbral en minutos es el
-mismo para el headway observado y para el headway predicho. Las dos reglas que
-aplican al headway predicho un umbral diseñado para el headway observado
-colapsaron: la variante con el promedio observado duplicó la tasa de alarma del
-LSTM y la dejó por debajo de una sexta parte de la tasa base. Los dos *adjusted
-thresholds* no colapsaron, y la persistencia no colapsó bajo
-ninguna de las cuatro.
+La Tabla 3 contrasta, sobre la misma población, el *unadjusted threshold*, su
+variante que divide por el promedio del último vector observado y los dos
+*adjusted thresholds* de la Sección IV-B. Las dos primeras aplican al headway
+predicho un umbral diseñado para el headway observado, y colapsaron: la variante
+duplicó la tasa de alarma del LSTM, que siguió por debajo de una sexta parte de
+la tasa base. Los *adjusted thresholds* no colapsaron, y la persistencia no
+colapsó bajo ninguna de las cuatro.
 
 El mecanismo se lee en el umbral que cada regla termina aplicando, medido en
 minutos, y la Figura 4 lo muestra. Con el *unadjusted threshold*, el umbral
@@ -580,24 +565,17 @@ a la que divide por el promedio del vector predicho.
 posiciones, sobre el headway observado (discontinua) y sobre el headway predicho
 por el LSTM (continua), por horizonte. Un panel por corredor, origen 3.
 
-Un umbral fijo en minutos, sin denominador ni percentil, lo confirma. Se fijó en
-la cuarta parte del headway mediano observado de cada corredor y sentido, entre
-1.4 y 2.4 minutos, a la manera del umbral de un minuto de Sun, Schmöcker y
-Nakamura [@sun2021]. Se calibró sobre el origen 2 y se aplicó sin cambios al
-origen 3. Frente al *unadjusted threshold*, la tasa de alarma del LSTM fue, en
-la mediana, 138 veces menor en diez de las doce celdas, y en las otras dos no
-emitió ninguna. Con la mitad del headway mediano, fue 2.0 veces menor en la
-mediana: el umbral dispara menos que una regla ya colapsada.
+Un umbral fijo en minutos lo confirma: la cuarta parte del headway mediano
+observado de cada corredor y sentido, a la manera de Sun, Schmöcker y Nakamura
+[@sun2021], calibrada sobre el origen 2. Con él, la tasa de alarma del LSTM fue,
+en la mediana, 138 veces menor que con el *unadjusted threshold* en diez de las
+doce celdas, y nula en las otras dos.
 
 La consecuencia está en qué método gana. Los dos *adjusted thresholds*
 reproducen la comparación sin umbral de la Sección V-D en once de las doce
 celdas, el primero sobre el mismo evento y el segundo sobre uno que coincide con
-él en el 58 % de las posiciones. Las dos reglas que colapsan la reproducen en la
-mitad o poco más. La única celda donde los dos *adjusted thresholds* discrepan
-de la comparación sin umbral es E59 a cinco minutos. Cuánto se parecen los
-eventos no explica esa diferencia: el evento de la variante con el promedio
-observado es el que más se parece al de la Ecuación (4), con un Jaccard de 0.71,
-y es una de las reglas que colapsan.
+él en el 58 % de las posiciones; la excepción es E59 a cinco minutos. Las dos
+reglas que colapsan la reproducen en la mitad o poco más.
 
 El *percentile threshold* no convierte al modelo en mejor detector. Su MCC
 mediano duplicó el del *unadjusted threshold*, y lo superó en las doce celdas.
