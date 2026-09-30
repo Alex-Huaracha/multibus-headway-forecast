@@ -607,54 +607,29 @@ responsabilidad del contenido final.
 
 ### A.1. Datos y construcción del headway
 
-El trabajo usa los registros GPS de empresas del Sistema Integrado de Transporte
-de Arequipa. Cada bus emite su coordenada **cada 20 segundos**. Se cubren tres
-corredores —identificados aquí como E2, E4 y E59, uno por empresa operadora—
-durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de 2024,
-sin huecos de calendario. Son 90 buses en total. Una empresa entra como corredor
-bajo dos condiciones. La primera es que el desplazamiento de sus buses esté
-dominado por una sola dirección: la varianza de las coordenadas a lo largo de
-esa dirección supera cuatro veces la lateral. La segunda es que circulen al
-menos cinco buses a la vez, sin lo cual un vector de headways no describe nada.
+El trabajo usa los registros GPS de tres corredores del Sistema Integrado de
+Transporte de Arequipa —E2, E4 y E59, uno por empresa operadora—, con 90 buses
+en total. Cada bus emite su coordenada **cada 20 segundos** durante 152 días
+seguidos, del 1 de octubre de 2023 al 29 de febrero de 2024.
 
 Estos registros no traen la lista de paradas ni los horarios de paso con que se
 mide habitualmente el headway: cada bus emite su identificador, el instante y su
-coordenada, y ese **registro GPS** es la única entrada. Andres y Nair construyen
-headways desde registros GPS con una secuencia de pasos, cada uno con su
-parámetro [@andres2017]. Aquí se sigue esa forma, pero el eje se ajusta de los
-propios registros en lugar de la geometría GTFS que su ciudad publica. La
-secuencia tiene seis pasos.
+coordenada. El headway se construye entonces desde la posición de cada bus a lo
+largo del corredor, como en Andres y Nair [@andres2017], con una diferencia: su
+ciudad publica la geometría de la ruta en GTFS y la nuestra no, de modo que el
+eje del corredor —la línea que los buses siguen— se ajusta de los propios
+registros [@quek2020] [@biagioni2012]. Cada coordenada se proyecta sobre ese
+eje, la referenciación lineal de la norma ISO 19148 [@iso19148], y queda su
+**coordenada de arco** $s$: los metros recorridos sobre el eje. El sentido de
+marcha es el signo del cambio de $s$. En E2 y E59 la ida y la vuelta circulan
+por calles paralelas, la dificultad que Andres y Nair señalan para asignar el
+bus de adelante usando solo GPS [@andres2017], y ahí el eje se ajusta una vez
+por sentido. La posición de cada bus se interpola a cada minuto, y cada minuto
+queda descrito por un **snapshot**: la coordenada de todos los buses del
+corredor.
 
-1. **El eje.** No existe una geometría publicada de la ruta, de modo que el eje
-   —la línea que los buses siguen a lo largo del corredor— se ajusta de los
-   propios registros [@quek2020] [@biagioni2012]: componentes principales para
-   la orientación, mediana de la coordenada transversal en 50 tramos y promedio
-   móvil de cinco tramos como suavizado. Solo entran registros a más de
-   10 km/h.
-
-2. **La proyección al eje.** Cada coordenada se lleva a metros con una
-   aproximación plana local y se proyecta al punto más cercano del eje, la
-   referenciación lineal de la norma ISO 19148 [@iso19148]. Quedan la
-   **coordenada de arco** $s$ —los metros recorridos sobre el eje— y el
-   **desvío lateral**, la distancia al eje; el registro se descarta si el
-   desvío pasa de 300 m.
-
-3. **El sentido de marcha.** El sentido es el signo del cambio de la
-   coordenada de arco, promediado sobre los cinco últimos registros; con
-   promedio nulo, el bus queda fuera de los pares de ese minuto.
-
-4. **El eje por sentido.** En dos de los tres corredores la ida y la vuelta
-   circulan por calles paralelas, la dificultad que Andres y Nair señalan para
-   asignar el antecesor usando solo GPS [@andres2017]. Los pasos 1 y 2 se
-   repiten una vez por sentido, ya con el sentido asignado.
-
-5. **La rejilla común.** La coordenada de arco se interpola entre los dos
-   registros vecinos sobre una **rejilla** de sesenta segundos —tres registros
-   por bus y minuto—, y cada minuto queda descrito por un **snapshot**: la
-   coordenada de todos los buses del corredor en ese minuto.
-
-6. **El headway.** Sobre ese snapshot, para un par de buses consecutivos en el
-   mismo sentido —el de adelante $L$, el de atrás $F$— en el instante $T$:
+Sobre ese snapshot, para un par de buses consecutivos en el mismo sentido —el de
+adelante $L$, el de atrás $F$— en el instante $T$:
 
 $$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
 \qquad h = T - t_{c}, \tag{10}$$
@@ -663,10 +638,8 @@ donde $s_{L}$ y $s_{F}$ son las coordenadas de arco del bus de adelante y del de
 atrás. El instante $t_{c}$ es el último en que el de adelante pasó por la
 coordenada que el de atrás ocupa en $T$, y $h$ es el headway resultante. La
 definición es la de Pilachowski [@pilachowski2009], que Andres y Nair evalúan en
-la coordenada del bus de atrás [@andres2017], y la Figura 5 la ilustra. El cruce
-se resuelve sobre los registros originales del bus de adelante; la rejilla solo
-fija el instante $T$ y el orden de los buses. Si no existe tal $t_{c}$, o si $h$
-supera los treinta minutos, se emite «sin valor».
+la coordenada del bus de atrás [@andres2017], y la Figura 5 la ilustra. Si no
+existe tal $t_{c}$, o si $h$ supera los treinta minutos, el par queda sin valor.
 
 ![El headway como cruce hacia atrás](figuras/esquema-headway.es.png)
 
@@ -681,13 +654,11 @@ posiciones del vector —la primera es la del par que va más adelante—, y un 
 sin headway válido conserva su posición con «sin valor», para que el orden no
 dependa de cuántos pares resolvieron.
 
-El máximo de treinta minutos del paso 6 existe porque, sin él, dos calles
-paralelas proyectadas sobre un mismo eje producen cruces de horas antes. La
-cobertura —la fracción de pares evaluados con headway válido— es del 63.5 % en
-E2, del 64.8 % en E4 y del 77.1 % en E59: 3 938 174 pares sobre 5 601 738
-evaluados. Casi todo el faltante viene de ese máximo, que recorta los intervalos
-más largos, y la ausencia de cruce explica menos de un punto porcentual en cada
-corredor. Una posición sin headway válido se enmascara.
+El máximo de treinta minutos existe porque, sin él, dos calles paralelas
+proyectadas sobre un mismo eje producen cruces de horas antes. La cobertura —la
+fracción de pares evaluados con headway válido— es del 63.5 % en E2, del 64.8 %
+en E4 y del 77.1 % en E59: 3 938 174 pares sobre 5 601 738 evaluados. Una
+posición sin headway válido se enmascara.
 
 ### A.2. Métodos comparados
 
