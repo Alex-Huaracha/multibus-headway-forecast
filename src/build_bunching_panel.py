@@ -16,8 +16,8 @@ labels round to one decimal, matching the caption.
 
 Outputs
 -------
-``docs/paper/figuras/bunching-umbral.es.png``
-``docs/paper/figuras/bunching-umbral.en.png``
+``docs/paper/figuras/bunching-threshold.es.png``
+``docs/paper/figuras/bunching-threshold.en.png``
 
 Usage
 -----
@@ -55,7 +55,7 @@ LANG = {
         "headway_axis": "Headway [min]",
         "position_axis": "Posición del vector",
         "mean": "promedio",
-        "tau": "umbral τ = promedio/2",
+        "tau": "threshold τ = promedio/2",
         "bunching": "bunching: headway < τ",
         "no_bunching": "headway ≥ τ",
         "shared": "el mismo\nheadway, 2.0",
@@ -135,7 +135,7 @@ def build(lang: str) -> "plt.Figure":
 def main() -> None:
     for lang in LANG:
         fig = build(lang)
-        path = PAPER_DIR / f"bunching-umbral.{lang}.png"
+        path = PAPER_DIR / f"bunching-threshold.{lang}.png"
         fig.savefig(path, dpi=DPI)
         plt.close(fig)
         print(f"Wrote {path.relative_to(REPO_ROOT)}")

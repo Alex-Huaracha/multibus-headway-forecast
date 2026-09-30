@@ -225,7 +225,7 @@ class TestWhyTheThresholdIsFittedOnMcc:
 
 class TestTheDocumentQuotesTheTables:
     def test_section_5_6_exists_and_names_the_inversion(self, doc):
-        assert "### 5.6 Tampoco es de nuestro umbral" in doc
+        assert "### 5.6 Tampoco es de nuestro threshold" in doc
         section = doc.split("### 5.6")[1].split("### 5.7")[0]
         assert "110" in section, (
             "Section 5.6 no longer quotes the field-convention factor"

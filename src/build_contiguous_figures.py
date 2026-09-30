@@ -10,20 +10,20 @@ so a figure can never disagree with the table it illustrates.
                                         escalar.
     contiguo-volatilidad.png            Δ MAE por tercil ex-ante. Que la frontera es
                                         la volatilidad, no el horizonte.
-    contiguo-artefacto-umbral.png       Tasa de alarma contra tasa real del evento.
+    contiguo-artefacto-threshold.png       Tasa de alarma contra tasa real del evento.
                                         El artefacto que se está explicando.
-    contiguo-deteccion-sin-umbral.png   Ventaja escalar y AUC de detección, juntas.
+    contiguo-deteccion-sin-threshold.png   Ventaja escalar y AUC de detección, juntas.
                                         El veredicto corregido.
     contiguo-deteccion-contra-baseline.png  AUC de detección contra el promedio histórico por posición.
-                                        El veredicto sin umbral, acotado.
-    contiguo-umbral-en-minutos.png      Umbral en minutos de cada regla, observado
+                                        El veredicto sin threshold, acotado.
+    contiguo-threshold-en-minutos.png      Threshold en minutos de cada regla, observado
                                         contra predicho. Por qué el percentil no colapsa.
     contiguo-compresion-dispersion.png  CV observado contra CV predicho, a h = 10.
                                         La causa del artefacto.
     contiguo-subdispersion-vs-horizonte.png  El mismo sesgo contra el horizonte. La
                                         dosis-respuesta.
 
-``contiguo-artefacto-umbral`` and ``contiguo-deteccion-sin-umbral`` are the
+``contiguo-artefacto-threshold`` and ``contiguo-deteccion-sin-threshold`` are the
 paper's headline and they only work as a pair: the first shows a comparison
 decided by its own operating point, the second shows what the same data says
 once the operating point is removed. Publishing either alone would misrepresent
@@ -111,7 +111,7 @@ LANG = {
         "cut_rule_quota": "Percentile threshold",
         "cut_observed": "sobre el headway observado",
         "cut_predicted": "sobre el headway predicho",
-        "cut_axis": "Umbral aplicado [min]",
+        "cut_axis": "Threshold aplicado [min]",
         "observed_bars": "Realidad observada",
         "predicted_bars": "Lo que el modelo predice",
         "cv_axis": "Coeficiente de variación del vector",
@@ -208,14 +208,14 @@ FIGURE_NAMES = {
     "degradation": ("contiguo-degradacion.png", None),
     "volatility": ("contiguo-volatilidad.png", None),
     "threshold_artifact": (
-        "contiguo-artefacto-umbral.png", "artefacto-umbral",
+        "contiguo-artefacto-threshold.png", "artefacto-threshold",
     ),
-    "detection_without_threshold": ("contiguo-deteccion-sin-umbral.png", None),
+    "detection_without_threshold": ("contiguo-deteccion-sin-threshold.png", None),
     "detection_against_floor": (
         "contiguo-deteccion-contra-baseline.png", "deteccion-contra-baseline",
     ),
     "threshold_in_minutes": (
-        "contiguo-umbral-en-minutos.png", "umbral-en-minutos",
+        "contiguo-threshold-en-minutos.png", "threshold-en-minutos",
     ),
     "dispersion_compression": ("contiguo-compresion-dispersion.png", None),
     "dispersion_vs_horizon": (
@@ -366,7 +366,7 @@ def volatility(*, lang: str = "es", chrome: bool = True) -> Path:
     )
     if chrome:
         _caption(fig, [
-            "Terciles de dispersión de la ventana de entrada, con umbrales congelados en train+val: información disponible",
+            "Terciles de dispersión de la ventana de entrada, con thresholds congelados en train+val: información disponible",
             "al predecir, así que el contraste no es circular. Dentro de cada horizonte la ventaja crece del tercil calmo al",
             "volátil en las 12 celdas; alargar el horizonte la empuja hacia los terciles más calmos.",
         ])
@@ -426,7 +426,7 @@ def threshold_artifact(*, lang: str = "es", chrome: bool = True) -> Path:
     axes[0].set_ylabel(words["fire_rate_axis"])
     if chrome:
         fig.suptitle(
-            "El artefacto: con el umbral fijo, la persistencia emite a la tasa base "
+            "El artefacto: con el threshold fijo, la persistencia emite a la tasa base "
             "y el aprendiz enmudece",
             y=0.99, fontsize=12.5,
         )
@@ -439,8 +439,8 @@ def threshold_artifact(*, lang: str = "es", chrome: bool = True) -> Path:
     if chrome:
         _caption(fig, [
             "La regla marca toda posición por debajo de 0.5x la media de su vector. La persistencia propaga el vector observado, así que",
-            "hereda su dispersión y el umbral cae donde fue diseñado: emite casi exactamente tan seguido como ocurre el evento. El",
-            "pronóstico puntual emite un vector comprimido (CV 0.16 contra 0.79), así que el mismo umbral relativo le queda en la cola.",
+            "hereda su dispersión y el threshold cae donde fue diseñado: emite casi exactamente tan seguido como ocurre el evento. El",
+            "pronóstico puntual emite un vector comprimido (CV 0.16 contra 0.79), así que el mismo threshold relativo le queda en la cola.",
         ])
     fig.tight_layout(rect=(0, 0.11, 1, 0.88) if chrome else CLEAN_RECT)
 
@@ -523,7 +523,7 @@ def detection_without_threshold(*, lang: str = "es", chrome: bool = True) -> Pat
 
     if chrome:
         fig.suptitle(
-            "Sin umbral las dos métricas coinciden: la persistencia manda corto, "
+            "Sin threshold las dos métricas coinciden: la persistencia manda corto, "
             "el aprendiz manda largo",
             y=0.99, fontsize=12.5,
         )
@@ -537,7 +537,7 @@ def detection_without_threshold(*, lang: str = "es", chrome: bool = True) -> Pat
         _caption(fig, [
             "Eje izquierdo (azul, ↑ mejor): cuánto MAE le gana el LSTM a la persistencia. Eje derecho (rojo y gris, ↑ mejor): AUC de",
             "detección de bunching, invariante a cualquier reescalado monótono del pronóstico y por lo tanto inmune al artefacto de",
-            "umbral. Las dos fronteras de régimen coinciden y caen en la misma zona; la de detección ocurre igual o algo más tarde",
+            "threshold. Las dos fronteras de régimen coinciden y caen en la misma zona; la de detección ocurre igual o algo más tarde",
             "que la escalar. Ninguna serie está cerca del azar (0.5, punteado): el aprendiz no es ciego al evento en ninguna celda.",
         ])
     fig.tight_layout(rect=(0, 0.11, 1, 0.88) if chrome else CLEAN_RECT)
@@ -590,7 +590,7 @@ def detection_against_floor(*, lang: str = "es", chrome: bool = True) -> Path:
     axes[0].set_ylabel(words["auc_axis"])
     if chrome:
         fig.suptitle(
-            "Sin umbral el LSTM ordena mejor a diez minutos, salvo en E2, donde "
+            "Sin threshold el LSTM ordena mejor a diez minutos, salvo en E2, donde "
             "la posición sola ordena igual",
             y=0.99, fontsize=12.5,
         )
@@ -662,8 +662,8 @@ def threshold_in_minutes(*, lang: str = "es", chrome: bool = True) -> Path:
     axes[0].set_ylabel(words["cut_axis"])
     if chrome:
         fig.suptitle(
-            "El percentil sube su umbral hasta la distribución subdispersa; "
-            "el umbral de la regla publicada no se mueve",
+            "El percentil sube su threshold hasta la distribución subdispersa; "
+            "el threshold de la regla publicada no se mueve",
             y=0.99, fontsize=12.5,
         )
     fig.legend(
@@ -676,7 +676,7 @@ def threshold_in_minutes(*, lang: str = "es", chrome: bool = True) -> Path:
     )
     if chrome:
         _caption(fig, [
-            "LSTM, origen 3. El umbral de cada vector, en minutos, promediado sobre sus posiciones.",
+            "LSTM, origen 3. El threshold de cada vector, en minutos, promediado sobre sus posiciones.",
         ])
     fig.tight_layout(rect=(0, 0.06, 1, 0.84) if chrome else (0, 0, 1, 0.84))
 
@@ -742,7 +742,7 @@ def dispersion_compression(*, lang: str = "es", chrome: bool = True) -> Path:
         _caption(fig, [
             "Horizonte de 10 minutos. La persistencia propaga el vector observado, así que hereda su dispersión y su barra roja iguala a la gris: es el control.",
             "Los dos aprendices la aplanan, y por márgenes comparables — el efecto es del pronóstico puntual, no de una arquitectura.",
-            "Sobre un vector aplanado, un umbral calibrado en la dispersión real cae en la cola izquierda y no produce ninguna alarma.",
+            "Sobre un vector aplanado, un threshold calibrado en la dispersión real cae en la cola izquierda y no produce ninguna alarma.",
         ])
     fig.tight_layout(rect=(0, 0.13, 1, 0.88) if chrome else CLEAN_RECT)
 
@@ -792,7 +792,7 @@ def dispersion_vs_horizon(*, lang: str = "es", chrome: bool = True) -> Path:
 
     if chrome:
         fig.suptitle(
-            "La compresión no es un umbral: se profundiza con cada minuto de horizonte",
+            "La compresión no es un threshold: se profundiza con cada minuto de horizonte",
             y=0.99, fontsize=12.5,
         )
     handles, labels = axes[0].get_legend_handles_labels()

@@ -90,12 +90,12 @@ LANG = {
         "pipeline_band_data": "Partes I y II — fabricar el dato",
         "stage_models": "Modelos:\npersistencia,\nXGBoost, LSTM",
         "stage_forecast": "Predicción del\nvector a 1, 3,\n5 y 10 min",
-        "stage_threshold": "Umbral de\ndecisión sobre\nlo predicho",
+        "stage_threshold": "Threshold de\ndecisión sobre\nlo predicho",
         "stage_trigger": "Alarma\nsí / no",
         "stage_evaluation": "Evaluación\npareada +\nsignificancia",
         "pipeline_band_experiment": "Partes III, IV y V — experimentar y medir",
         "pipeline_caption": (
-            "Las cajas naranjas son el objeto de este trabajo: el umbral de decisión es una capa aparte del modelo, aplicada después,",
+            "Las cajas naranjas son el objeto de este trabajo: el threshold de decisión es una capa aparte del modelo, aplicada después,",
             "y es donde apareció el hallazgo. La ejecución corre en Kaggle sobre GPU; el análisis, local.",
         ),
         # --- 2. corridor axis ---
@@ -148,10 +148,10 @@ LANG = {
         "split_val": "Validación",
         "split_test": "Prueba",
         "origin_3": "Origen 3 — el que se reporta",
-        "origin_2": "Origen 2 — calibra el umbral",
+        "origin_2": "Origen 2 — calibra el threshold",
         "origin_1": "Origen 1 — réplica más antigua",
         "train_days": "  {days} d de entrenamiento",
-        "threshold_note": "el umbral se calibra sobre este origen\ny se aplica hacia adelante",
+        "threshold_note": "el threshold se calibra sobre este origen\ny se aplica hacia adelante",
         "calendar_axis": "2023-10-01 → 2024-02-29 · 152 días seguidos, sin huecos",
         "temporal_split_caption": (
             "Nunca al azar: un operador solo tiene el pasado. Los tres orígenes arrancan el mismo día y el entrenamiento se alarga —61, 83 y 107 días—,",

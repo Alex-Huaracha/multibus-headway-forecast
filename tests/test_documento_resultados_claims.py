@@ -117,8 +117,8 @@ class TestDocumentStructure:
     def test_the_contiguous_figures_are_the_ones_embedded(self, text):
         embedded = set(re.findall(r"!\[[^\]]*\]\(([^)]+)\)", text))
         assert embedded == {
-            "contiguo-artefacto-umbral.png",
-            "contiguo-deteccion-sin-umbral.png",
+            "contiguo-artefacto-threshold.png",
+            "contiguo-deteccion-sin-threshold.png",
             "contiguo-degradacion.png",
             "contiguo-volatilidad.png",
         }, f"unexpected figure set: {sorted(embedded)}"
@@ -143,8 +143,8 @@ class TestDocumentStructure:
         order = [
             text.index(name)
             for name in (
-                "contiguo-artefacto-umbral.png",
-                "contiguo-deteccion-sin-umbral.png",
+                "contiguo-artefacto-threshold.png",
+                "contiguo-deteccion-sin-threshold.png",
                 "contiguo-degradacion.png",
                 "contiguo-volatilidad.png",
             )

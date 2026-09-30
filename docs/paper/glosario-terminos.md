@@ -43,7 +43,7 @@ Aquí solo va la decisión.
 | Cuánto se parecen dos eventos: de las posiciones que marca al menos uno, la fracción que marcan ambos | `índice de Jaccard`, `Jaccard` | 4 | `Jaccard index` | solape |
 | La regla que marca en cada vector una fracción fija de sus posiciones más cortas | `umbral por percentil`, `percentil` | 21 | `percentile threshold` (Roberts y Lean 2008; Hoffmann et al. 2018) | cuota, regla de cuota |
 | Lo que hace la regla sobre lo observado al fijar el evento verdadero | `marcar` | 3 | `mark` ²² | trigger ²⁴ |
-| El valor contra el que se compara el headway | `umbral` | 99 | `threshold` | corte, referencia, punto de operación ²⁵ |
+| El valor contra el que se compara el headway | `threshold` (sin cursiva, como headway; «umbral» salió el 2026-09-29 porque los lectores no lo entendían) | 48 | `threshold` | corte, referencia, punto de operación ²⁵ |
 | El valor del que el umbral es una fracción | `denominador` | 7 | `denominator` ¹² | referencia |
 | El error que fijan los métodos sin ajuste | `error de referencia` | 1 | `reference` | línea base, benchmark, baseline ²⁶ |
 | La regla que marca bunching en toda posición, contra la que se lee todo F1 | `baseline siempre positivo` | 6 | `always-positive baseline` ²⁶ | detector trivial, piso trivial, regla vacía |

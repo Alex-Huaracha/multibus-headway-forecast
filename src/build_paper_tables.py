@@ -4,11 +4,11 @@ Same contract as ``build_contiguous_figures``: every cell traces to a CSV under
 ``docs/resultados/csv-multihorizon/``, so a table can never disagree with the
 figure it sits next to, and no number in the paper is ever typed by hand.
 
-    tabla-1-deteccion-umbral-trasplantado.md   The artifact. Detection scored with
+    tabla-1-deteccion-unadjusted-threshold.md   The artifact. Detection scored with
                                               the threshold carried over from the
                                               observations, next to the floor of
                                               the do-nothing detector.
-    tabla-2-veredicto-sin-umbral.md           The repair. The same predictions
+    tabla-2-veredicto-sin-threshold.md           The repair. The same predictions
                                               scored without a threshold, and with the
                                               threshold refitted out of sample.
     tabla-3-robustez.md                       Does it survive the month, and does
@@ -21,7 +21,7 @@ figure it sits next to, and no number in the paper is ever typed by hand.
                                               definitions the viability probe
                                               compared, on the two dimensions
                                               that decided the discards.
-    tabla-7-reglas-del-umbral.md             The four ways of setting the
+    tabla-7-reglas-del-threshold.md             The four ways of setting the
                                               operating point, and which of
                                               them recover the verdict.
 
@@ -276,7 +276,7 @@ def tabla_3() -> str:
 
     table = _render(
         ["Corredor", "h", "Origen 1", "Origen 2", "Origen 3", "Coinciden",
-         "AUC, umbral absoluto"],
+         "AUC, threshold absoluto"],
         rows,
         aligns="lrlllcr",
     )
@@ -587,13 +587,13 @@ def tabla_7() -> str:
 
 
 TABLES = {
-    "tabla-1-deteccion-umbral-trasplantado.md": tabla_1,
-    "tabla-2-veredicto-sin-umbral.md": tabla_2,
+    "tabla-1-deteccion-unadjusted-threshold.md": tabla_1,
+    "tabla-2-veredicto-sin-threshold.md": tabla_2,
     "tabla-3-robustez.md": tabla_3,
     "tabla-4-cobertura-headway.md": tabla_4,
     "tabla-5-formulaciones-headway.md": tabla_5,
     "tabla-6-ablacion-arquitectura.md": tabla_6,
-    "tabla-7-reglas-del-umbral.md": tabla_7,
+    "tabla-7-reglas-del-threshold.md": tabla_7,
 }
 
 

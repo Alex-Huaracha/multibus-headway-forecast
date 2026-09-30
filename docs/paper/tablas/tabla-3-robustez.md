@@ -1,4 +1,4 @@
-| Corredor | h | Origen 1 | Origen 2 | Origen 3 | Coinciden | AUC, umbral absoluto |
+| Corredor | h | Origen 1 | Origen 2 | Origen 3 | Coinciden | AUC, threshold absoluto |
 | :--- | ---: | :--- | :--- | :--- | :---: | ---: |
 | E2 | 1 | persist. | persist. | persist. | sí | 0.645 |
 | E2 | 3 | LSTM | LSTM | LSTM | sí | 0.582 |
