@@ -274,9 +274,11 @@ class TestTheDocumentDeclaresWhatTheModelExplains:
         assert share.min() < 0.05
         assert share.max() > 0.45
 
-    def test_the_paper_prints_both_ends_as_percentages(self, table, paper):
-        """With the unit attached, so the figure cannot pass by coincidence."""
-        share = table.filter(pl.col("model") == PUBLISHED_MODEL).get_column("explained")
+    @pytest.mark.parametrize("model", MODELS)
+    def test_the_paper_prints_both_ends_as_percentages(self, table, paper, model):
+        """The measured share, with the unit attached, so the figure cannot pass
+        by coincidence; the identity's own ends are carried by the correlation."""
+        share = table.filter(pl.col("model") == model).get_column("ratio_measured")
         for value in (share.min(), share.max()):
             printed = "{:.1f} %".format(100.0 * value)
             assert printed in paper, printed
