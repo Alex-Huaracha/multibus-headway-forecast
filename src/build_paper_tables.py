@@ -506,18 +506,21 @@ def tabla_6() -> str:
     )
 
 
-def _agreement(free: pl.DataFrame, thresholded: pl.DataFrame, column: str) -> int:
+def _agreement(free: pl.DataFrame, rule: pl.DataFrame) -> str:
     """Cells where the thresholded winner is the threshold-free one.
 
-    The winner is the sign of the difference, as in Section V-C, and not the
-    interval: the question is whether the rule inverts the verdict, not whether
-    either verdict is decided.
+    A winner exists only where its difference excludes zero, so the count runs
+    over the cells where both the AUC difference and the rule's MCC difference
+    survive their intervals, and prints that count as the denominator. A cell
+    where either side is undecided has no winner to agree or disagree with.
     """
-    sides = thresholded.pivot(on="model", index=["corridor", "horizon"], values=column)
-    joined = free.join(sides, on=["corridor", "horizon"], how="inner")
-    return joined.filter(
-        pl.col("_free") == (pl.col(LEARNER) > pl.col(RIVAL))
+    joined = free.join(rule, on=["corridor", "horizon"], how="inner").filter(
+        pl.col("auc_survives") & pl.col("survives")
+    )
+    agrees = joined.filter(
+        (pl.col("delta_auc") > 0) == (pl.col("delta_mcc") > 0)
     ).height
+    return f"{agrees}/{joined.height}"
 
 
 def tabla_7() -> str:
@@ -536,10 +539,9 @@ def tabla_7() -> str:
     """
     rules = _load("threshold_denominators.csv")
     det = _load("contiguous_detection_calibrated.csv")
-    free = det.pivot(on="model", index=["corridor", "horizon"], values="auc").select(
-        "corridor", "horizon",
-        (pl.col(LEARNER) > pl.col(RIVAL)).alias("_free"),
-    )
+    bounded = _load("detection_ranking_ci.csv").filter(pl.col("origin") == "main")
+    free = bounded.select("corridor", "horizon", "delta_auc", "auc_survives")
+    rules_ci = _load("threshold_rules_ci.csv")
 
     def rule_row(rule: str, label: str) -> list[str]:
         arm = rules.filter(pl.col("rule") == rule)
@@ -552,7 +554,7 @@ def tabla_7() -> str:
             _num(rival["rate_ratio"].median()) + by_construction,
             _num(learner["mcc"].median()),
             _num(learner["jaccard_truth_vs_published"].median()),
-            f"{_agreement(free, arm, 'mcc')}/12",
+            _agreement(free, rules_ci.filter(pl.col("rule") == rule)),
         ]
 
     ratio = (pl.col("fire_rate_calibrated") / pl.col("base_rate")).alias("ratio")
@@ -564,7 +566,14 @@ def tabla_7() -> str:
         _num(rival["ratio"].median()),
         _num(learner["mcc_calibrated"].median()),
         _num(1.0),
-        f"{_agreement(free, det, 'mcc_calibrated')}/12",
+        _agreement(
+            free,
+            bounded.select(
+                "corridor", "horizon",
+                pl.col("delta_mcc_calibrated").alias("delta_mcc"),
+                pl.col("mcc_calibrated_survives").alias("survives"),
+            ),
+        ),
     ]
 
     rows = [

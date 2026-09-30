@@ -138,13 +138,43 @@ class TestTablaTresComparesEveryOperatingPoint:
         assert rows["*Optimized*"][1] == f"{ratio:.3f}"
         assert rows["*Optimized*"][3] == f"{lstm['mcc_calibrated'].median():.3f}"
 
-    def test_the_recalibrated_agreement_is_counted_cell_by_cell(self, rows) -> None:
-        det = _load("contiguous_detection_calibrated.csv").pivot(
-            on="model", index=["corridor", "horizon"],
-            values=["auc", "mcc_calibrated"],
+    @staticmethod
+    def _decided(free: pl.DataFrame, rule: pl.DataFrame) -> str:
+        """Agreement among the cells where both differences exclude zero."""
+        joined = free.join(rule, on=["corridor", "horizon"], how="inner").filter(
+            pl.col("auc_survives") & pl.col("survives")
         )
-        agrees = det.filter(
-            (pl.col("auc_LSTM") > pl.col("auc_Persistence"))
-            == (pl.col("mcc_calibrated_LSTM") > pl.col("mcc_calibrated_Persistence"))
+        agrees = joined.filter(
+            (pl.col("delta_auc") > 0) == (pl.col("delta_mcc") > 0)
         ).height
-        assert rows["*Optimized*"][5] == f"{agrees}/12"
+        return f"{agrees}/{joined.height}"
+
+    @pytest.fixture(scope="class")
+    def free(self) -> pl.DataFrame:
+        return _load("detection_ranking_ci.csv").filter(pl.col("origin") == "main")
+
+    def test_the_recalibrated_agreement_counts_only_decided_cells(
+        self, rows, free
+    ) -> None:
+        rule = free.select(
+            "corridor", "horizon",
+            pl.col("delta_mcc_calibrated").alias("delta_mcc"),
+            pl.col("mcc_calibrated_survives").alias("survives"),
+        )
+        free = free.select("corridor", "horizon", "delta_auc", "auc_survives")
+        assert rows["*Optimized*"][5] == self._decided(free, rule)
+
+    @pytest.mark.parametrize(
+        ("rule", "label"),
+        [
+            ("pred_mean", "*Unadjusted*"),
+            ("obs_mean", "*Unadjusted*, promedio observado"),
+            ("rank", "*Percentile*"),
+        ],
+    )
+    def test_the_rule_agreement_counts_only_decided_cells(
+        self, rows, free, rule, label
+    ) -> None:
+        arm = _load("threshold_rules_ci.csv").filter(pl.col("rule") == rule)
+        free = free.select("corridor", "horizon", "delta_auc", "auc_survives")
+        assert rows[label][5] == self._decided(free, arm)

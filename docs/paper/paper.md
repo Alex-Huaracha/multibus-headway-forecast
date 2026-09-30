@@ -71,9 +71,10 @@ períodos de prueba distintos. Nuestras contribuciones son tres:
 - Mostramos que la caída de alarmas alcanza a toda regla que aplique al headway
   predicho un threshold diseñado para el headway observado, sea una fracción del
   promedio o un valor en minutos, y que un *adjusted threshold*, ajustado sobre
-  el headway predicho, recupera la comparación sin threshold en once de las doce
-  combinaciones de corredor y horizonte, optimizado sobre un período de prueba
-  anterior o como un percentil de cada vector.
+  el headway predicho, recupera el ganador de la comparación sin threshold en
+  ocho de nueve combinaciones de corredor y horizonte con ganador claro si se
+  optimiza sobre un período de prueba anterior, y en nueve de diez como un
+  percentil de cada vector.
 
 ---
 
@@ -511,9 +512,11 @@ y nula en dos celdas.
 posiciones, sobre el headway observado (discontinua) y sobre el headway predicho
 por el LSTM (continua), por horizonte. Un panel por corredor, origen 3.
 
-Los dos *adjusted thresholds* reproducen la comparación sin threshold de la
-Sección V-D en once de las doce celdas, salvo E59 a cinco minutos; las dos
-reglas que colapsan, en 6 y 7 de las 12 (Tabla 3). Aun así, el percentil no
+Contando solo las celdas donde las dos diferencias excluyen el cero, el
+*optimized threshold* reproduce el ganador de la Sección V-D en 8 de 9 y el
+*percentile threshold* en 9 de 10, con E59 a cinco minutos como única
+discrepancia; el *unadjusted threshold*, en 4 de 10, y su variante con promedio
+observado, en 5 de 7 (Tabla 3). Aun así, el percentil no
 convierte al LSTM en mejor detector: sigue por debajo de la persistencia en
 siete de las doce celdas, entre ellas las tres de un minuto.
 
@@ -524,16 +527,16 @@ cuando el detector avisa tan seguido como el evento ocurre; pers. es la
 persistencia. La variante con promedio observado fija el threshold del evento y
 el de la alarma con el promedio del último vector observado, de modo que cambia
 también el evento. Jaccard es el índice de la Sección IV-B contra el evento de
-la Ecuación (4). Coincide cuenta las celdas donde gana el mismo método que sin
-threshold. Cada valor es la mediana de las doce combinaciones de corredor y
-horizonte, salvo Coincide.
+la Ecuación (4). Coincide cuenta, sobre las celdas donde las dos diferencias
+excluyen el cero, las que tienen el mismo ganador que sin threshold. Cada valor
+es la mediana de las doce combinaciones de corredor y horizonte, salvo Coincide.
 
 | Regla | A/E LSTM | A/E pers. | MCC LSTM | Jaccard | Coincide |
 | :--- | ---: | ---: | ---: | ---: | :---: |
-| *Unadjusted* | 0.079 | 1.011 | 0.100 | 1.000 | 6/12 |
-| *Unadjusted*, promedio observado | 0.153 | 0.980 | 0.143 | 0.710 | 7/12 |
-| *Optimized* | 1.125 | 1.140 | 0.198 | 1.000 | 11/12 |
-| *Percentile* | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | 11/12 |
+| *Unadjusted* | 0.079 | 1.011 | 0.100 | 1.000 | 4/10 |
+| *Unadjusted*, promedio observado | 0.153 | 0.980 | 0.143 | 0.710 | 5/7 |
+| *Optimized* | 1.125 | 1.140 | 0.198 | 1.000 | 8/9 |
+| *Percentile* | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | 9/10 |
 
 ‡ Vale uno por construcción: la alarma y el evento marcan la misma cantidad de
 posiciones en cada vector (Sección IV-B).
