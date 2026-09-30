@@ -23,8 +23,7 @@ en tiempo, entre veinte segundos y tres minutos, y otros como una fracción del
 headway programado, de hasta un cuarto. El procedimiento supone que la segunda
 etapa hereda la mejora de la primera, y Yu y colaboradores lo reportan así: al
 predecir cinco paradas adelante en lugar de dos, su error subió de dos a seis
-minutos y la fracción de eventos detectados bajó del 99 % al 73 % [@yu2016]
-[@sun2021].
+minutos y la fracción de eventos detectados bajó del 100 % al 74 % [@yu2016].
 
 En nuestros datos esa suposición no se cumplió. Se predijo con una red LSTM
 (*long short-term memory*) el vector de headways de cada corredor: un headway
@@ -49,8 +48,9 @@ predicho.
 
 Ese efecto no se ha medido. Usama y Koutsopoulos predicen el vector completo de
 headways de una línea de metro y reportan solo el error en minutos
-[@usama2025]; Sun, Schmöcker y Nakamura llegan a la detección y dejan pendiente
-la curva que compararía a los métodos sin fijar un threshold [@sun2021].
+[@usama2025]; Sun, Schmöcker y Nakamura llegan a la detección, pero puntúan
+sin threshold solo a su clasificador probabilístico, y evalúan los métodos que
+predicen el headway con un threshold fijo [@sun2021].
 
 Este trabajo lo mide puntuando la misma detección con y sin threshold. Sin
 threshold, los headways predichos se ordenan de más corto a más largo, en
@@ -127,11 +127,11 @@ colaboradores corrigen el modelo, con un término de clasificación en la pérdi
 Lo que se predice es el **vector de headways** del corredor: un headway por cada
 par de buses consecutivos que circulan en el mismo sentido, con todas sus
 posiciones a la vez. El Apéndice A lo construye desde los registros GPS. Dado el
-historial de los últimos $T$ minutos y un contexto de calendario, se busca el
+historial de los últimos $L$ minutos y un contexto de calendario, se busca el
 vector del corredor $H$ minutos más adelante:
 
-$$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-T+1), \dots, \mathbf{h}(t);\;
-c(t-T+1), \dots, c(t)\big), \qquad T = 12, \tag{1}$$
+$$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-L+1), \dots, \mathbf{h}(t);\;
+c(t-L+1), \dots, c(t)\big), \qquad L = 12, \tag{1}$$
 
 donde $\mathbf{h}(t)$ es el vector de headways del corredor en el minuto $t$ y
 $\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante. El
@@ -142,13 +142,13 @@ modelo ajustado.
 Se predice a uno, tres, cinco y diez minutos, con un modelo ajustado por
 separado para cada horizonte. El vector no tiene longitud fija, porque la
 cantidad de buses varía minuto a minuto, de modo que el error se computa solo
-sobre las posiciones con bus. **El objetivo que se minimiza es el error
+sobre las posiciones con headway válido. **El objetivo que se minimiza es el error
 cuadrático**, promediado sobre esas posiciones:
 
 $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 \big(\hat{h}_i - h_i\big)^{2}, \tag{2}$$
 
-donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en
+donde $\mathcal{V}$ es el conjunto de posiciones del vector con headway válido en
 el instante objetivo, y $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$
 y $h_i$ son el headway predicho y el headway observado en la posición $i$, en la
 escala estandarizada por sentido que fija el Apéndice A.2.
@@ -156,22 +156,23 @@ escala estandarizada por sentido que fija el Apéndice A.2.
 Los registros GPS no traen pasajeros ni estado del tránsito, de modo que el
 evento se define sobre la geometría del vector. La convención del campo marca el
 evento con una fracción de un headway de referencia, programado u observado
-(Sección II-A); el TCQSM, en cambio, usa la mitad del programado [@tcqsm2003].
+(Secciones I y II-A); el TCQSM, en cambio, usa la mitad del programado [@tcqsm2003].
 Estos corredores no tienen programación, y aquí la referencia es el promedio del
 propio vector en ese instante. Ese promedio refleja la separación normal de cada
 corredor, cosa que un threshold fijo en minutos no hace entre corredores de
 frecuencias distintas. La fracción de un medio se hereda del TCQSM y la
 sustitución es nuestra. El resultado es el ***event threshold***.
 
-Con el vector escrito por componentes como $\mathbf{h}(t) = (h_1, \dots, h_m)$,
-su promedio y el *event threshold* son
+Con $\mathcal{V}(t)$ el conjunto de posiciones con headway válido del vector
+$\mathbf{h}(t)$, su promedio y el *event threshold* son
 
-$$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j=1}^{m} h_j(t),
+$$\bar{h}(t) \;=\; \frac{1}{m}\sum_{j \in \mathcal{V}(t)} h_j(t),
 \qquad \tau(t) \;=\; \rho\,\bar{h}(t), \qquad \rho = \tfrac{1}{2}, \tag{3}$$
 
-donde $m$ es la cantidad de posiciones con headway válido, $h_j(t)$ es el
-headway de la posición $j$ y $\rho$ es la fracción que fija el threshold
-$\tau(t)$; los pares sin headway válido del Apéndice A no entran en el cómputo.
+donde $m = |\mathcal{V}(t)|$ es la cantidad de posiciones con headway válido,
+$h_j(t)$ es el headway de la posición $j$ y $\rho$ es la fracción que fija el
+threshold $\tau(t)$; los pares sin headway válido del Apéndice A no entran en el
+cómputo.
 La posición $i$ cuenta como bunching cuando cae por debajo de ese threshold:
 
 $$b_i(t) \;=\; \mathbb{1}\!\left[\, h_i(t) < \tau(t) \,\right],
@@ -340,7 +341,7 @@ minutos.
 ### B. Error escalar y subdispersión
 
 El error de la predicción se mide con el error absoluto medio (MAE) sobre las
-posiciones con bus de la Ecuación (2). Se reporta en lugar del error cuadrático
+posiciones de la Ecuación (2). Se reporta en lugar del error cuadrático
 porque queda en minutos de headway. A diez minutos, el LSTM bajó el MAE de la
 persistencia entre 21 % y 22 %: 1.47 minutos en E2, 1.38 en E4 y 1.17 en E59.
 A un minuto ganó la persistencia en E4 y E59; en E2 la diferencia, de 0.07
@@ -350,9 +351,9 @@ El MAE no describe la forma del vector. El coeficiente de variación (CV) sí: e
 la desviación estándar del vector dividida por su promedio,
 
 $$\mathrm{CV}(\mathbf{h}) \;=\; \frac{1}{\bar{h}}
-\sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\big(h_j - \bar{h}\big)^{2}}, \tag{8}$$
+\sqrt{\frac{1}{m-1}\sum_{j \in \mathcal{V}}\big(h_j - \bar{h}\big)^{2}}, \tag{8}$$
 
-donde $m$, $h_j$ y $\bar{h}$ son los de la Ecuación (3), y se calcula sobre los
+donde $\mathcal{V}$, $m$, $h_j$ y $\bar{h}$ son los de la Ecuación (3), y se calcula sobre los
 vectores de tres posiciones o más de la Ecuación (4). El CV vale 0 cuando todos
 los buses del corredor van igual de separados, y crece a medida que los
 headways se desigualan. No tiene unidades, de modo que compara corredores de
@@ -452,8 +453,8 @@ Figura 3). Puntuado mediante el AUC de la Sección IV-A, **el LSTM ganó en las
 nueve combinaciones de corredor y origen a diez minutos**, las nueve fuera de su
 intervalo, con diferencias de 0.033 a 0.061. En el origen 3 ganó en 6 de las 12
 celdas, y los tres orígenes coincidieron en el ganador de 11 de las 12. A un
-minuto ganó la persistencia en los tres corredores y los tres orígenes, igual
-que en el MAE.
+minuto ganó la persistencia en los tres corredores y los tres orígenes, como
+en el MAE de E4 y E59.
 
 El promedio histórico por posición de la Sección IV-A, que no lee la ventana de
 entrada, acota esa ventaja. En E4 y E59 el baseline queda cerca del azar, entre
@@ -632,22 +633,22 @@ queda descrito por un **snapshot**: la coordenada de todos los buses del
 corredor.
 
 Sobre ese snapshot, para un par de buses consecutivos en el mismo sentido —el de
-adelante $L$, el de atrás $F$— en el instante $T$:
+adelante $i-1$, el de atrás $i$— en el minuto $t$:
 
-$$t_{c} = \max\{\, t \le T \;:\; s_{L}(t) = s_{F}(T) \,\},
-\qquad h = T - t_{c}, \tag{10}$$
+$$t_{c} = \max\{\, t' \le t \;:\; s_{i-1}(t') = s_{i}(t) \,\},
+\qquad h_i(t) = t - t_{c}, \tag{10}$$
 
-donde $s_{L}$ y $s_{F}$ son las coordenadas de arco del bus de adelante y del de
-atrás. El instante $t_{c}$ es el último en que el de adelante pasó por la
-coordenada que el de atrás ocupa en $T$, y $h$ es el headway resultante. La
+donde $s_{i-1}$ y $s_{i}$ son las coordenadas de arco del bus de adelante y del
+de atrás. El instante $t_{c}$ es el último en que el de adelante pasó por la
+coordenada que el de atrás ocupa en $t$, y $h_i(t)$ es el headway resultante. La
 definición es la de Pilachowski [@pilachowski2009], que Andres y Nair evalúan en
 la coordenada del bus de atrás [@andres2017], y la Figura 5 la ilustra. Si no
-existe tal $t_{c}$, o si $h$ supera los treinta minutos, el par queda sin valor.
+existe tal $t_{c}$, o si $h_i(t)$ supera los treinta minutos, el par queda sin valor.
 
 ![El headway como cruce hacia atrás](figuras/esquema-headway.es.png)
 
 **Fig. 5.** El headway de la Ecuación (10) sobre dos trayectorias ilustrativas:
-el tiempo entre el paso del bus de adelante por la coordenada $s_F(T)$ y la
+el tiempo entre el paso del bus de adelante por la coordenada $s_i(t)$ y la
 llegada del de atrás a ella.
 
 Ese headway describe un solo par. En cada snapshot, los buses de un mismo
@@ -657,8 +658,9 @@ posiciones del vector —la primera es la del par que va más adelante—, y un 
 sin headway válido conserva su posición con «sin valor», para que el orden no
 dependa de cuántos pares resolvieron.
 
-El máximo de treinta minutos existe porque, sin él, dos calles paralelas
-proyectadas sobre un mismo eje producen cruces de horas antes. La cobertura —la
+El máximo de treinta minutos existe porque, cuando la trayectoria del bus de
+adelante tiene huecos, la búsqueda del cruce retrocede hasta una vuelta
+anterior, horas antes. La cobertura —la
 fracción de pares evaluados con headway válido— es del 63.5 % en E2, del 64.8 %
 en E4 y del 77.1 % en E59: 3 938 174 pares sobre 5 601 738 evaluados. Una
 posición sin headway válido se enmascara.
@@ -673,9 +675,9 @@ sentido, y con ellos el headway predicho vuelve a minutos.
   aprendizaje de 5 × 10⁻⁴, lotes de 128 y semilla 42. En dos de los tres
   corredores, su configuración viene de una búsqueda previa que no se rehízo
   sobre las muestras definitivas.
-- **XGBoost:** hasta 400 rondas, parada temprana tras 30 sin mejora y semilla
-  42, con la mejor de veinticuatro configuraciones por celda sobre las muestras
-  definitivas.
+- **XGBoost:** solo en el origen 3, hasta 800 rondas, parada temprana tras 40
+  sin mejora y semilla 42, con la mejor de veinticuatro configuraciones por celda
+  elegida en validación.
 - **Persistencia:** repite el último vector observado y no tiene parámetros.
 - **Promedio histórico por posición** [@rodrigues2022]: repite en cada minuto
   del período de prueba el headway promedio que cada posición registró en el

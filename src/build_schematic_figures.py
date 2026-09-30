@@ -134,8 +134,8 @@ LANG = {
         "leader_before": "el de adelante pasó\npor acá antes",
         "time_axis": "Tiempo [min] →",
         "distance_axis": "Distancia recorrida sobre el eje (s) →",
-        "leading_bus_sym": "Bus de adelante, $L$",
-        "following_bus_sym": "Bus de atrás, $F$",
+        "leading_bus_sym": "Bus de adelante, $i-1$",
+        "following_bus_sym": "Bus de atrás, $i$",
         "headway_caption": (
             "Trayectorias ilustrativas, no datos reales. Es una definición de cruce por coordenada, no por parada: no necesita una tabla de paradas,",
             "que es exactamente lo que falta en estos datos.",
@@ -214,8 +214,8 @@ LANG = {
         "leader_before": "the leader passed\nthrough here earlier",
         "time_axis": "Time [min] →",
         "distance_axis": "Distance travelled along the axis (s) →",
-        "leading_bus_sym": "Leading bus, $L$",
-        "following_bus_sym": "Following bus, $F$",
+        "leading_bus_sym": "Leading bus, $i-1$",
+        "following_bus_sym": "Following bus, $i$",
         "headway_caption": (
             "Illustrative trajectories, not real data. This is a crossing definition by position, not by stop: it needs no stop inventory,",
             "which is exactly what these data lack.",
@@ -590,8 +590,8 @@ def headway(*, lang: str = "es", chrome: bool = True) -> Path:
 
     fig, ax = plt.subplots(figsize=(11, 5.8))
 
-    # The clean variant speaks the notation of Eq. (9) and nothing else: the
-    # paper defines L, F, T, t_c and h, so plain-language callouts would be a
+    # The clean variant speaks the notation of Eq. (10) and nothing else: the
+    # paper defines i-1, i, t, t_c and h_i, so plain-language callouts would be a
     # second, looser definition next to the exact one.
     lead_key, follow_key = (
         ("leading_bus", "following_bus") if chrome
@@ -615,7 +615,7 @@ def headway(*, lang: str = "es", chrome: bool = True) -> Path:
     )
     ax.text(
         (t_now + t_cross) / 2.0, s_now + 13.0,
-        words["headway_callout"] if chrome else r"$h = T - t_c$",
+        words["headway_callout"] if chrome else r"$h_i(t) = t - t_c$",
         ha="center", fontsize=11.5 if chrome else 13.0, color=ACCENT,
         fontweight="bold",
     )
@@ -649,8 +649,8 @@ def headway(*, lang: str = "es", chrome: bool = True) -> Path:
         ax.set_yticks([])
     else:
         ax.set_ylim(bottom=float(follow.min()) - 20.0)
-        ax.set_xticks([t_cross, t_now], [r"$t_c$", r"$T$"], fontsize=12)
-        ax.set_yticks([s_now], [r"$s_F(T)$"], fontsize=12)
+        ax.set_xticks([t_cross, t_now], [r"$t_c$", r"$t$"], fontsize=12)
+        ax.set_yticks([s_now], [r"$s_i(t)$"], fontsize=12)
     ax.legend(loc="upper left", fontsize=9.5, framealpha=0.9)
     ax.grid(True, alpha=0.2)
 
