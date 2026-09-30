@@ -526,10 +526,12 @@ def _agreement(free: pl.DataFrame, rule: pl.DataFrame) -> str:
 def tabla_7() -> str:
     """Every way the paper sets the operating point, on one population.
 
-    Four rows, the two that name a level in minutes first and the two that fit
-    the operating point to the forecast after, so the table reads as the ladder
-    Section V-D argues: the first two collapse, the last two recover the
-    threshold-free verdict. The recalibrated threshold keeps the event of
+    Five rows, the three that carry a threshold designed for the observed
+    headway first and the two that fit it to the forecast after, so the table
+    reads as the ladder Section V-E argues: the first three collapse, the last
+    two recover the threshold-free verdict. The rule in minutes is read from
+    ``threshold_rules_ci.csv``, the only table that scores it on this population
+    with the columns the other rows carry. The recalibrated threshold keeps the event of
     Section III-B, so its overlap with that event is one by construction.
 
     Every cell is the median over the twelve corridor x horizon cells, except
@@ -576,9 +578,20 @@ def tabla_7() -> str:
         ),
     ]
 
+    minutes = rules_ci.filter(pl.col("rule") == "absolute")
+    in_minutes = [
+        "*Unadjusted*, en minutos",
+        _num(minutes["ae_LSTM"].median()),
+        _num(minutes["ae_Persistence"].median()),
+        _num(minutes["mcc_LSTM"].median()),
+        _num(minutes["jaccard"].median()),
+        _agreement(free, minutes),
+    ]
+
     rows = [
         rule_row("pred_mean", "*Unadjusted*"),
         rule_row("obs_mean", "*Unadjusted*, promedio observado"),
+        in_minutes,
         recalibrated,
         rule_row("rank", "*Percentile*"),
     ]

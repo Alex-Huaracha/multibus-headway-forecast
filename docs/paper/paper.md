@@ -495,17 +495,16 @@ El *optimized threshold* de la Sección IV-B, que no toca el modelo, llevó al
 LSTM a ganar en MCC 5 de las 12 celdas, entre ellas las tres de diez minutos,
 si bien la de E4 no resiste su propio intervalo (última columna de la Tabla 2).
 
-La Tabla 3 compara las cuatro reglas sobre la misma población. Las dos que
+La Tabla 3 compara las cinco reglas sobre la misma población. Las tres que
 aplican al headway predicho un threshold diseñado para el headway observado
-colapsaron; los dos *adjusted thresholds* no, y la persistencia no colapsó bajo
-ninguna. La Figura 4 muestra por qué: con el *unadjusted threshold*, el
-threshold sobre el headway predicho quedó a menos de 0.35 minutos del threshold
-sobre el headway observado, mientras que el *percentile threshold* lo sube hasta
-la distribución subdispersa. Un threshold fijo en minutos, como el de Sun,
-Schmöcker y Nakamura [@sun2021], pero escalado a la cuarta parte del headway
-mediano observado de cada corredor y sentido, colapsa igual: la tasa de alarma
-del LSTM fue, en la mediana, 138 veces menor que con el *unadjusted threshold*,
-y nula en dos celdas.
+colapsaron, incluido un threshold fijo en minutos como el de Sun, Schmöcker y
+Nakamura [@sun2021], escalado a la cuarta parte del headway mediano observado de
+cada corredor y sentido: con él, el LSTM tuvo un A/E de 0.001 y no emitió
+ninguna alarma en dos celdas. Los dos *adjusted thresholds* no colapsaron, y la
+persistencia no colapsó bajo ninguna. La Figura 4 muestra por qué: con el
+*unadjusted threshold*, el threshold sobre el headway predicho quedó a menos de
+0.35 minutos del threshold sobre el headway observado, mientras que el
+*percentile threshold* lo sube hasta la distribución subdispersa.
 
 ![Threshold en minutos de cada regla](figuras/threshold-en-minutos.es.png)
 
@@ -516,18 +515,20 @@ por el LSTM (continua), por horizonte. Un panel por corredor, origen 3.
 Contando solo las celdas donde las dos diferencias excluyen el cero, el
 *optimized threshold* reproduce el ganador de la Sección V-D en 8 de 9 y el
 *percentile threshold* en 9 de 10, con E59 a cinco minutos como única
-discrepancia; el *unadjusted threshold*, en 4 de 10, y su variante con promedio
-observado, en 5 de 7 (Tabla 3). Aun así, el percentil no
-convierte al LSTM en mejor detector: sigue por debajo de la persistencia en
+discrepancia; el *unadjusted threshold* y su variante en minutos, en 4 de 10, y
+su variante con promedio observado, en 5 de 7 (Tabla 3). Aun así, el percentil
+no convierte al LSTM en mejor detector: sigue por debajo de la persistencia en
 siete de las doce celdas, entre ellas las tres de un minuto.
 
-**Tabla 3.** Las cuatro reglas, sobre la misma población y el mismo origen. A/E
+**Tabla 3.** Las cinco reglas, sobre la misma población y el mismo origen. A/E
 es el sesgo de frecuencia (*frequency bias*) [@ferro2011]: la tasa de alarma
 dividida por la tasa base, el cociente $q/\pi$ de la Ecuación (7). Vale uno
 cuando el detector avisa tan seguido como el evento ocurre; pers. es la
 persistencia. La variante con promedio observado fija el threshold del evento y
 el de la alarma con el promedio del último vector observado, de modo que cambia
-también el evento. Jaccard es el índice de la Sección IV-B contra el evento de
+también el evento. La variante en minutos marca el evento y la alarma por debajo
+de la cuarta parte del headway mediano observado en el origen 2, por corredor y
+sentido. Jaccard es el índice de la Sección IV-B contra el evento de
 la Ecuación (4). Coincide cuenta, sobre las celdas donde las dos diferencias
 excluyen el cero, las que tienen el mismo ganador que sin threshold. Cada valor
 es la mediana de las doce combinaciones de corredor y horizonte, salvo Coincide.
@@ -536,6 +537,7 @@ es la mediana de las doce combinaciones de corredor y horizonte, salvo Coincide.
 | :--- | ---: | ---: | ---: | ---: | :---: |
 | *Unadjusted* | 0.079 | 1.011 | 0.100 | 1.000 | 4/10 |
 | *Unadjusted*, promedio observado | 0.153 | 0.980 | 0.143 | 0.710 | 5/7 |
+| *Unadjusted*, en minutos | 0.001 | 1.062 | 0.004 | 0.351 | 4/10 |
 | *Optimized* | 1.125 | 1.140 | 0.198 | 1.000 | 8/9 |
 | *Percentile* | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | 9/10 |
 
@@ -589,15 +591,6 @@ predicciones se evalúe en adelante con un *adjusted threshold*.
 ---
 
 ## VIII. Declaraciones
-
-Los datos primarios son registros GPS del Sistema Integrado de Transporte de
-Arequipa, cuya fuente es la Municipalidad Provincial de Arequipa. El dataset
-crudo y el procesado están disponibles en Kaggle, en
-`kaggle.com/datasets/alexhuaracha/multibus-headway-forecast-raw` y
-`kaggle.com/datasets/alexhuaracha/multibus-headway-forecast-clean`. El código de
-preprocesamiento, entrenamiento y análisis, junto con los guiones que generan
-cada tabla y cada figura de este documento, está disponible en
-`github.com/Alex-Huaracha/multibus-headway-forecast`.
 
 Se usaron herramientas asistidas por inteligencia artificial generativa para la
 redacción del texto y para la verificación de las citas contra sus fuentes. El
