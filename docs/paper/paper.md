@@ -150,7 +150,7 @@ $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 donde $\mathcal{V}$ es el conjunto de posiciones del vector con bus asignado en
 el instante objetivo, y $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$
 y $h_i$ son el headway predicho y el headway observado en la posición $i$, en la
-escala estandarizada por sentido que fija el Apéndice A, sección B.
+escala estandarizada por sentido que fija el Apéndice A.2.
 
 Los registros GPS no traen pasajeros ni estado del tránsito, de modo que el
 evento se define sobre la geometría del vector. La convención del campo marca el
@@ -274,10 +274,9 @@ Un AUC de 0.5 es el piso de una predicción sin ninguna información, pero no el
 de una predicción sin información temporal. Las posiciones del vector no son
 intercambiables, y algunas llevan headways más cortos que otras sin que haga
 falta leer la ventana de entrada. El **baseline de promedio histórico por
-posición** del Apéndice A, sección B, repite para cada posición su headway
-promedio de un período anterior y fija ese segundo piso. Cumple para el AUC la
-función que el baseline siempre positivo cumple para el F1, y acompaña a todo
-AUC reportado.
+posición** del Apéndice A.2, repite para cada posición su headway promedio de un
+período anterior y fija ese segundo piso. Cumple para el AUC la función que el
+baseline siempre positivo cumple para el F1, y acompaña a todo AUC reportado.
 
 ### B. *Adjusted threshold*
 
@@ -579,12 +578,9 @@ Mostró también que, por esa subdispersión, el *unadjusted threshold* hace que
 F1 ordene a los métodos por cuántas alarmas emiten y no por cuántas aciertan, y
 que a diez minutos la puntuación sin threshold invierte ese orden. Para
 corregirlo, ajustamos el threshold sobre el headway predicho, optimizado en un
-origen anterior o como un percentil de cada vector [@roberts2008], y ambas
-formas recuperan la comparación sin threshold. Sugerimos además reportar el AUC
-y la tasa de alarma junto a todo F1, y contrastar cada puntuación con un
-baseline que no use la predicción, como el promedio histórico por posición, que
-el LSTM no superó en E2 a diez minutos. Esperamos que la detección de bunching
-sobre predicciones se evalúe en adelante con un *adjusted threshold*.
+origen anterior o como un percentil de cada vector, y ambas formas recuperan la
+comparación sin threshold. Esperamos que la detección de bunching sobre
+predicciones se evalúe en adelante con un *adjusted threshold*.
 
 ---
 
@@ -609,7 +605,7 @@ responsabilidad del contenido final.
 
 ## Apéndice A. Datos, métodos comparados y protocolo
 
-### A. Datos y construcción del headway
+### A.1. Datos y construcción del headway
 
 El trabajo usa los registros GPS de empresas del Sistema Integrado de Transporte
 de Arequipa. Cada bus emite su coordenada **cada 20 segundos**. Se cubren tres
@@ -693,7 +689,7 @@ evaluados. Casi todo el faltante viene de ese máximo, que recorta los intervalo
 más largos, y la ausencia de cruce explica menos de un punto porcentual en cada
 corredor. Una posición sin headway válido se enmascara.
 
-### B. Métodos comparados
+### A.2. Métodos comparados
 
 El LSTM y el XGBoost se ajustan por separado en cada celda, con un modelo por
 corredor para los dos sentidos. Los estadísticos de estandarización son por
@@ -711,7 +707,7 @@ sentido, y con ellos el headway predicho vuelve a minutos.
   del período de prueba el headway promedio que cada posición registró en el
   período de prueba del origen 2, sin leer la ventana de entrada.
 
-### C. Protocolo de evaluación
+### A.3. Protocolo de evaluación
 
 La partición es por fecha y nunca al azar. Los tres orígenes comienzan el 1 de
 octubre de 2023, y sus períodos de prueba no se solapan:
