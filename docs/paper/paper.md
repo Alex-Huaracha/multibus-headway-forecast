@@ -1,8 +1,8 @@
-# _(título pendiente)_
+# Un threshold diseñado para el headway observado hace que la persistencia gane la detección de bunching
 
 ## Resumen
 
-_(pendiente — se escribe al final)_
+Para anticipar el bunching, un modelo predice el headway y lo compara contra un threshold, el valor por debajo del cual un headway cuenta como demasiado corto. Se predijo con una red LSTM el vector de headways de tres corredores de Arequipa, a partir de 152 días de registros GPS, y se comparó contra la persistencia, que repite el último vector observado. A diez minutos, en el corredor E59, el LSTM tuvo un error absoluto medio 1.17 minutos menor, pero el F1 de la persistencia fue 8.8 veces el suyo: el LSTM emitió alarma en el 0.75 % de las posiciones y la persistencia en el 20.8 %. El entrenamiento por error cuadrático deja el headway predicho menos disperso que el headway observado: el mismo corredor queda en nivel A del TCQSM según el headway predicho y en nivel F según el headway observado. Con un threshold pensado para el headway observado, sea la mitad del promedio del vector o un valor fijo en minutos, la persistencia ganó en las doce combinaciones de corredor y horizonte. El área bajo la curva ROC (AUC), que no usa threshold, dio como ganador al LSTM en seis de ellas. Al ajustar el threshold sobre el headway predicho, el ganador volvió a coincidir con el del AUC en casi todos los casos. Por eso, la detección de bunching sobre predicciones debe evaluarse con un threshold ajustado al headway predicho.
 
 ---
 
