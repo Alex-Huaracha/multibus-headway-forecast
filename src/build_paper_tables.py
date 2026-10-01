@@ -580,7 +580,7 @@ def tabla_7() -> str:
 
     minutes = rules_ci.filter(pl.col("rule") == "absolute")
     in_minutes = [
-        "*Unadjusted*, en minutos",
+        "Fijo",
         _num(minutes["ae_LSTM"].median()),
         _num(minutes["ae_Persistence"].median()),
         _num(minutes["mcc_LSTM"].median()),

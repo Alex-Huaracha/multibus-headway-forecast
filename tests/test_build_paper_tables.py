@@ -128,12 +128,12 @@ class TestTablaTresComparesEveryOperatingPoint:
     def test_there_is_one_row_per_operating_point(self, rows) -> None:
         assert list(rows) == [
             "*Unadjusted*", "*Unadjusted*, promedio observado",
-            "*Unadjusted*, en minutos", "*Optimized*", "*Percentile*",
+            "Fijo", "*Optimized*", "*Percentile*",
         ]
 
     def test_the_minutes_row_is_read_from_the_rules_ci_csv(self, rows) -> None:
         arm = _load("threshold_rules_ci.csv").filter(pl.col("rule") == "absolute")
-        row = rows["*Unadjusted*, en minutos"]
+        row = rows["Fijo"]
         assert row[1] == f"{arm['ae_LSTM'].median():.3f}"
         assert row[2] == f"{arm['ae_Persistence'].median():.3f}"
         assert row[3] == f"{arm['mcc_LSTM'].median():.3f}"
@@ -178,7 +178,7 @@ class TestTablaTresComparesEveryOperatingPoint:
             ("pred_mean", "*Unadjusted*"),
             ("obs_mean", "*Unadjusted*, promedio observado"),
             ("rank", "*Percentile*"),
-            ("absolute", "*Unadjusted*, en minutos"),
+            ("absolute", "Fijo"),
         ],
     )
     def test_the_rule_agreement_counts_only_decided_cells(
