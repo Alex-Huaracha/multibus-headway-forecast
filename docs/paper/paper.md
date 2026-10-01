@@ -35,7 +35,8 @@ marcó bunching en el 20.8 % de las posiciones del headway observado. Aplicado
 sin ajuste al vector predicho, como *unadjusted threshold*, la persistencia
 emitió alarma en el 20.8 % de las posiciones y el LSTM en el 0.75 %. Con el F1,
 que vale 1 cuando las alarmas coinciden con los eventos y cae hacia 0 si sobran
-o faltan, el de la persistencia fue 8.8 veces el del LSTM.
+o faltan, el de la persistencia fue 8.8 veces el del LSTM. Así, el F1 premió al
+método que más alarmas emitió y no al que menos se equivocó en minutos.
 
 La causa está en la primera etapa. Un modelo entrenado con error cuadrático
 medio, cuando no sabe si un headway será corto o largo, predice un valor
@@ -58,23 +59,16 @@ proporción al promedio de su vector, y el área bajo la curva ROC (*receiver
 operating characteristic*), el AUC, mide si los eventos reales quedan al
 principio. Las dos puntuaciones se contradicen: sin threshold, el LSTM ordenó
 mejor que la persistencia a diez minutos en los tres corredores y en tres
-períodos de prueba distintos. Nuestras contribuciones son tres:
+períodos de prueba distintos.
 
-- Medimos la subdispersión del vector de headways, con la persistencia, que no
-  la produce, como control, y la leemos en la escala de nivel de servicio del
-  *Transit Capacity and Quality of Service Manual* (TCQSM): el mismo corredor
-  queda en nivel A según el headway predicho y en nivel F según el headway
-  observado.
-- Mostramos que el *unadjusted threshold* cambia qué método detecta mejor
-  frente a la comparación sin threshold, acotada por un baseline de promedio
-  histórico por posición que no lee la ventana de entrada.
-- Mostramos que la caída de alarmas alcanza a toda regla que aplique al headway
-  predicho un threshold diseñado para el headway observado, sea una fracción del
-  promedio o un valor en minutos, y que un *adjusted threshold*, ajustado sobre
-  el headway predicho, recupera el ganador de la comparación sin threshold en
-  ocho de nueve combinaciones de corredor y horizonte con ganador claro si se
-  optimiza sobre un período de prueba anterior, y en nueve de diez como un
-  percentil de cada vector.
+Mostramos tres cosas. Primero, el headway predicho describe un corredor más
+regular que el real: en la escala del *Transit Capacity and Quality of Service
+Manual* (TCQSM), el headway predicho queda en nivel A y el headway observado en
+nivel F. Segundo, por esa subdispersión, un threshold pensado para el headway
+observado, sea la mitad del promedio del vector o un valor fijo en minutos, hace
+que el LSTM casi no emita alarmas y que la persistencia gane la evaluación.
+Tercero, ajustar el threshold sobre el headway predicho corrige el defecto: el
+ganador vuelve a coincidir con el que da el AUC en casi todos los casos.
 
 ---
 
@@ -86,8 +80,8 @@ El procedimiento de dos etapas de la Sección I tiene una formulación canónica
 un headway cuenta como bunching si cae por debajo de la cuarta parte del headway
 observado en la primera parada del mismo viaje [@yu2016] [@jiao2023]. El
 threshold se fija así sobre la escala del headway observado y se compara contra
-el headway predicho. Los trabajos previos evalúan la segunda etapa solo con ese
-threshold fijo, sin ninguna medida que puntúe sin él [@santos2022].
+el headway predicho. Los trabajos previos evalúan la segunda etapa solo con un
+threshold, sin ninguna medida que puntúe sin él [@santos2022].
 
 ### B. Subdispersión bajo error cuadrático medio
 
@@ -336,10 +330,9 @@ prueba del Apéndice B: un intervalo del 95 % que no incluye el cero o, en el
 MAE, una prueba de Diebold–Mariano con p < 0.05. Si no la pasa, los dos
 **empatan**.
 
-Con cuatro horizontes por corredor hay doce celdas. A un minuto no hay margen
-para intervenir y la persistencia es más difícil de superar [@manibardo2022];
-por eso ese horizonte queda como referencia y la detección se lee a cinco y diez
-minutos.
+Con cuatro horizontes por corredor hay doce celdas, y se reportan todas. A un
+minuto no hay margen para intervenir y la persistencia es más difícil de superar
+[@manibardo2022].
 
 ### B. Error escalar y subdispersión
 
@@ -499,10 +492,12 @@ a empatar en E4 a diez minutos (última columna de la Tabla 2).
 
 La Tabla 3 compara las cinco reglas sobre la misma población. Las tres que
 aplican al headway predicho un threshold diseñado para el headway observado
-colapsaron, incluido un threshold fijo en minutos como el de Sun, Schmöcker y
-Nakamura [@sun2021], escalado a la cuarta parte del headway mediano observado de
-cada corredor y sentido: con él, el LSTM tuvo un A/E de 0.001 y no emitió
-ninguna alarma en dos celdas. Los dos *adjusted thresholds* no colapsaron, y la
+colapsaron. Una de ellas es un threshold fijo en minutos. Moreira-Matias y
+colaboradores lo fijan en la cuarta parte del headway programado
+[@moreiramatias2016]. Estos corredores no tienen horario, así que aquí se usó la
+cuarta parte del headway mediano observado de cada corredor y sentido. Con ese
+threshold, el LSTM tuvo un A/E de 0.001 y no emitió ninguna alarma en dos
+celdas. Los dos *adjusted thresholds* no colapsaron, y la
 persistencia no colapsó bajo ninguna. La Figura 4 muestra por qué: con el
 *unadjusted threshold*, el threshold sobre el headway predicho quedó a menos de
 0.35 minutos del threshold sobre el headway observado, mientras que el
@@ -587,8 +582,8 @@ Mostró también que, por esa subdispersión, el *unadjusted threshold* hace que
 F1 ordene a los métodos por cuántas alarmas emiten y no por cuántas aciertan, y
 que a diez minutos la puntuación sin threshold invierte ese orden. Para
 corregirlo, ajustamos el threshold sobre el headway predicho, optimizado en un
-origen anterior o como un percentil de cada vector, y ambas formas recuperan la
-comparación sin threshold. Esperamos que la detección de bunching sobre
+origen anterior o como un percentil de cada vector, y con ambas el ganador
+vuelve a coincidir con el que da el AUC en casi todos los casos. Esperamos que la detección de bunching sobre
 predicciones se evalúe en adelante con un *adjusted threshold*.
 
 ---
