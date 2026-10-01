@@ -488,7 +488,7 @@ class TestTheDocumentReportsTheExperiment:
     def test_it_reports_the_limit_and_not_only_the_recovery(self, paper):
         """A section that published the 11 of 12 and withheld the eight cells
         the learner still loses would be selective."""
-        assert "sigue por debajo de la persistencia" in paper
+        assert "pierde contra la persistencia" in paper
 
 
 class TestBuildIsDeterministic:

@@ -35,7 +35,7 @@ marcó bunching en el 20.8 % de las posiciones del headway observado. Aplicado
 sin ajuste al vector predicho, como *unadjusted threshold*, la persistencia
 emitió alarma en el 20.8 % de las posiciones y el LSTM en el 0.75 %. Con el F1,
 que vale 1 cuando las alarmas coinciden con los eventos y cae hacia 0 si sobran
-o faltan, la persistencia ganó por un factor de 8.8.
+o faltan, el de la persistencia fue 8.8 veces el del LSTM.
 
 La causa está en la primera etapa. Un modelo entrenado con error cuadrático
 medio, cuando no sabe si un headway será corto o largo, predice un valor
@@ -331,7 +331,10 @@ de gradiente (**XGBoost**) [@chen2016] sirve de control: se ajusta con el mismo
 error cuadrático y no comparte la arquitectura del LSTM, de modo que lo que los
 dos tengan en común se debe al ajuste. La persistencia no se ajusta. Salvo
 aviso, las cifras son del origen 3, el único sobre el que se ajustó el XGBoost;
-el Apéndice A da el detalle.
+el Apéndice A da el detalle. Un método **gana** solo si la diferencia pasa su
+prueba del Apéndice B: un intervalo del 95 % que no incluye el cero o, en el
+MAE, una prueba de Diebold–Mariano con p < 0.05. Si no la pasa, los dos
+**empatan**.
 
 Con cuatro horizontes por corredor hay doce celdas. A un minuto no hay margen
 para intervenir y la persistencia es más difícil de superar [@manibardo2022];
@@ -344,8 +347,8 @@ El error de la predicción se mide con el error absoluto medio (MAE) sobre las
 posiciones de la Ecuación (2). Se reporta en lugar del error cuadrático
 porque queda en minutos de headway. A diez minutos, el LSTM bajó el MAE de la
 persistencia entre 21 % y 22 %: 1.47 minutos en E2, 1.38 en E4 y 1.17 en E59.
-A un minuto ganó la persistencia en E4 y E59; en E2 la diferencia, de 0.07
-minutos, no resistió la prueba agrupada por día de servicio (Apéndice B).
+A un minuto ganó la persistencia en E4 y E59, y en E2 empataron, con una
+diferencia de 0.07 minutos.
 
 El MAE no describe la forma del vector. El coeficiente de variación (CV) sí: es
 la desviación estándar del vector dividida por su promedio,
@@ -376,8 +379,8 @@ ajuste, no en los datos ni en el corredor.
 
 ![Sesgo de dispersión contra el horizonte](figuras/subdispersion-vs-horizonte.es.png)
 
-**Fig. 1.** Sesgo del CV, el headway predicho menos el headway observado, por
-método y horizonte. Un panel por corredor, origen 3; un valor negativo es un
+**Fig. 1.** Sesgo del CV, el CV del vector predicho menos el del vector
+observado, por método y horizonte. Un panel por corredor, origen 3; un valor negativo es un
 vector predicho más regular que el observado.
 
 La Sección II-B da la causa: la varianza del headway observado es la del
@@ -407,17 +410,17 @@ diferencia de precisión compensa esa caída.
 
 El patrón se repitió en las doce celdas de la Tabla 1: el LSTM tuvo más
 precisión que la persistencia y una tasa de alarma por debajo de la tasa base, y
-perdió en F1 por un factor de 1.5 a 253. La Figura 2 muestra cómo esa tasa cae
+el F1 de la persistencia fue de 1.5 a 253 veces el suyo. La Figura 2 muestra cómo esa tasa cae
 al alargar el horizonte.
 
 E2 a diez minutos es el caso extremo: sobre 15 245 eventos, la persistencia
 emitió 15 083 alarmas y el LSTM, **catorce**. Diez de las catorce acertaron, una
 precisión del 71 % (intervalo del Apéndice B, 42 % a 92 %) contra una tasa base
-del 30 %, y aun así el LSTM perdió en F1 por un factor de 253.
+del 30 %, y aun así el F1 de la persistencia fue 253 veces el suyo.
 
 El F1 tampoco premia a la persistencia por detectar bien. El baseline siempre
-positivo, que no usa ningún modelo, la superó en 5 de las doce celdas, marcadas
-con † en la Tabla 1, y en 15 de las 36 combinaciones de celda y origen.
+positivo, que no usa ningún modelo, tuvo un F1 mayor que el de ella en 5 de las
+doce celdas, marcadas con † en la Tabla 1, y en 15 de las 36 combinaciones de celda y origen.
 
 ![Tasa de alarma contra tasa real del evento](figuras/artefacto-threshold.es.png)
 
@@ -444,24 +447,23 @@ LSTM.
 | E59 | 5 | 0.208 | 0.344 | 0.405 | 0.083 | 4.9× |
 | E59 | 10 | 0.208 | 0.344 | 0.303&nbsp;† | 0.034 | 8.8× |
 
-† El baseline siempre positivo supera a la persistencia en estas celdas.
+† El F1 del baseline siempre positivo es mayor que el de la persistencia en estas celdas.
 
 ### D. Detección sin threshold, acotada por el promedio histórico por posición
 
 Sin threshold, el orden de la Tabla 1 se invierte a diez minutos (Tabla 2 y
 Figura 3). Puntuado mediante el AUC de la Sección IV-A, **el LSTM ganó en las
-nueve combinaciones de corredor y origen a diez minutos**, las nueve fuera de su
-intervalo, con diferencias de 0.033 a 0.061. En el origen 3 ganó en 6 de las 12
-celdas, y los tres orígenes coincidieron en el ganador de 11 de las 12. A un
+nueve combinaciones de corredor y origen a diez minutos**, con diferencias de
+0.033 a 0.061. En el origen 3 ganó en 6 de las 12 celdas, y los tres orígenes
+coincidieron en el resultado de 10 de las 12. A un
 minuto ganó la persistencia en los tres corredores y los tres orígenes, como
 en el MAE de E4 y E59.
 
 El promedio histórico por posición de la Sección IV-A, que no lee la ventana de
 entrada, acota esa ventaja. En E4 y E59 el baseline queda cerca del azar, entre
-0.49 y 0.52, y el LSTM lo supera en las ocho celdas, con las ocho diferencias
-fuera de su intervalo. En E2 el baseline queda por encima del azar en todos los
-horizontes, y **a diez minutos el LSTM cae por debajo de él, 0.565 contra
-0.579**, fuera de su intervalo. Es la única celda donde ocurre, la misma del
+0.49 y 0.52, y el LSTM le ganó en las ocho celdas. En E2 el baseline queda por
+encima del azar en todos los horizontes, y **a diez minutos el LSTM pierde
+contra él, 0.565 contra 0.579**. Es la única celda donde ocurre, la misma del
 caso extremo de la Sección V-C.
 
 ![AUC de detección contra el promedio histórico por posición](figuras/deteccion-contra-baseline.es.png)
@@ -472,7 +474,7 @@ histórico por posición (punteado), por horizonte. Un panel por corredor, orige
 
 **Tabla 2.** Diferencias del LSTM, sin threshold y con el *optimized threshold*,
 con su intervalo de confianza del 95 %. Un signo positivo favorece al LSTM, y un
-intervalo que contiene el cero deja a los dos lados indistinguibles.
+intervalo que contiene el cero es un empate (Sección V-A).
 
 | Corredor | h | Δ AUC frente a la persistencia | Δ AUC frente al promedio histórico por posición | Δ MCC *optimized* frente a la persistencia |
 | :--- | ---: | :---: | :---: | :---: |
@@ -492,8 +494,8 @@ intervalo que contiene el cero deja a los dos lados indistinguibles.
 ### E. Detección con el *adjusted threshold*
 
 El *optimized threshold* de la Sección IV-B, que no toca el modelo, llevó al
-LSTM a ganar en MCC 5 de las 12 celdas, entre ellas las tres de diez minutos,
-si bien la de E4 no resiste su propio intervalo (última columna de la Tabla 2).
+LSTM a ganar en MCC 4 de las 12 celdas, entre ellas E2 y E59 a diez minutos, y
+a empatar en E4 a diez minutos (última columna de la Tabla 2).
 
 La Tabla 3 compara las cinco reglas sobre la misma población. Las tres que
 aplican al headway predicho un threshold diseñado para el headway observado
@@ -504,7 +506,8 @@ ninguna alarma en dos celdas. Los dos *adjusted thresholds* no colapsaron, y la
 persistencia no colapsó bajo ninguna. La Figura 4 muestra por qué: con el
 *unadjusted threshold*, el threshold sobre el headway predicho quedó a menos de
 0.35 minutos del threshold sobre el headway observado, mientras que el
-*percentile threshold* lo sube hasta la distribución subdispersa.
+*percentile threshold* lo sube entre 1.4 y 4.1 minutos por encima, hasta donde
+caen los headways predichos.
 
 ![Threshold en minutos de cada regla](figuras/threshold-en-minutos.es.png)
 
@@ -512,12 +515,12 @@ persistencia no colapsó bajo ninguna. La Figura 4 muestra por qué: con el
 posiciones, sobre el headway observado (discontinua) y sobre el headway predicho
 por el LSTM (continua), por horizonte. Un panel por corredor, origen 3.
 
-Contando solo las celdas donde las dos diferencias excluyen el cero, el
+Contando solo las celdas sin empate, el
 *optimized threshold* reproduce el ganador de la Sección V-D en 8 de 9 y el
 *percentile threshold* en 9 de 10, con E59 a cinco minutos como única
 discrepancia; el *unadjusted threshold* y su variante en minutos, en 4 de 10, y
 su variante con promedio observado, en 5 de 7 (Tabla 3). Aun así, el percentil
-no convierte al LSTM en mejor detector: sigue por debajo de la persistencia en
+no convierte al LSTM en mejor detector: pierde contra la persistencia en
 siete de las doce celdas, entre ellas las tres de un minuto.
 
 **Tabla 3.** Las cinco reglas, sobre la misma población y el mismo origen. A/E
@@ -529,8 +532,8 @@ el de la alarma con el promedio del último vector observado, de modo que cambia
 también el evento. La variante en minutos marca el evento y la alarma por debajo
 de la cuarta parte del headway mediano observado en el origen 2, por corredor y
 sentido. Jaccard es el índice de la Sección IV-B contra el evento de
-la Ecuación (4). Coincide cuenta, sobre las celdas donde las dos diferencias
-excluyen el cero, las que tienen el mismo ganador que sin threshold. Cada valor
+la Ecuación (4). Coincide cuenta, sobre las celdas sin empate, las que tienen el
+mismo ganador que sin threshold. Cada valor
 es la mediana de las doce combinaciones de corredor y horizonte, salvo Coincide.
 
 | Regla | A/E LSTM | A/E pers. | MCC LSTM | Jaccard | Coincide |
