@@ -11,12 +11,12 @@ Para anticipar el bunching, un modelo predice el headway y lo compara contra un 
 El headway es el tiempo que separa el paso de dos buses consecutivos por un
 mismo punto de una ruta. El bunching ocurre cuando ese tiempo se acorta tanto
 que los dos buses circulan juntos, y deja a los pasajeros con esperas
-desiguales. Para anticiparlo se siguen dos etapas [@yu2016] [@jiao2023]: un
-modelo estima el headway de dentro de unos minutos, el **headway predicho**, y
-lo compara contra un **threshold**: el valor por debajo del cual un headway
-cuenta como demasiado corto. Si queda por debajo, se anuncia bunching. El GPS
-registra después el headway que ocurrió, el **headway observado**, y con él se
-comprueba la predicción.
+desiguales. Para anticiparlo se siguen dos etapas [@yu2016] [@jiao2023].
+Primero, un modelo estima el headway de dentro de unos minutos, el **headway
+predicho**. Después, ese headway predicho se compara contra un **threshold**:
+el valor por debajo del cual un headway cuenta como demasiado corto. Si queda
+por debajo, se anuncia bunching. El GPS registra después el headway que
+ocurrió, el **headway observado**, y con él se comprueba la predicción.
 
 El threshold no tiene un valor acordado [@rezazada2024]: unos trabajos lo fijan
 en tiempo, entre veinte segundos y tres minutos, y otros como una fracción del
@@ -48,11 +48,9 @@ los que marcan el bunching. Por eso casi ninguno queda bajo un threshold pensado
 para la dispersión del headway observado, aunque ese threshold se calcule con el
 promedio del propio vector predicho.
 
-Ese efecto no se ha medido. Usama y Koutsopoulos predicen el vector completo de
-headways de una línea de metro y reportan solo el error en minutos
-[@usama2025]; Sun, Schmöcker y Nakamura llegan a la detección, pero puntúan
-sin threshold solo a su clasificador probabilístico, y evalúan los métodos que
-predicen el headway con un threshold fijo [@sun2021].
+Ese efecto no se ha medido. Sun, Schmöcker y Nakamura llegan a la detección,
+pero puntúan sin threshold solo a su clasificador probabilístico, y evalúan los
+métodos que predicen el headway con un threshold fijo [@sun2021].
 
 Este trabajo lo mide puntuando la misma detección con y sin threshold. Sin
 threshold, los headways predichos se ordenan de más corto a más largo, en
@@ -94,8 +92,8 @@ la brecha crece con el horizonte [@patton2012].
 
 ### C. Precedentes y delimitación
 
-La subdispersión ya se midió en series escalares [@mayer2023], en seis dominios,
-entre ellos el tráfico [@green2026], y en campos espaciales [@bonavita2023].
+La subdispersión ya se midió en series escalares [@mayer2023], en cinco dominios,
+entre ellos el tráfico [@green2026], y en campos espaciales [@bonavita2024].
 Petetin y colaboradores muestran su daño sobre una regla de threshold: el método
 con mejor error cuadrático es el que peor detecta los episodios altos de ozono
 [@petetin2022].
@@ -190,7 +188,7 @@ threshold sale del vector predicho porque quien opera una ruta no dispone del
 headway observado al momento de decidir. La fracción $\rho = \tfrac{1}{2}$ pasa
 así sin cambios del headway observado al headway predicho, y a ese threshold,
 aplicado sin ajustarlo a la predicción, se le llama el ***unadjusted
-threshold*** [@provost2000].
+threshold*** [@hoffmann2018].
 
 La evaluación compara el detector de la Ecuación (5) contra el indicador de la
 Ecuación (4). Sean TP las posiciones con $b_i = \hat{b}_i = 1$, FP las que
@@ -613,7 +611,7 @@ coordenada. El headway se construye entonces desde la posición de cada bus a lo
 largo de la ruta, como en Andres y Nair [@andres2017], con una diferencia: su
 ciudad publica la geometría de la ruta en GTFS y la nuestra no, de modo que el
 eje de la ruta —la línea que los buses siguen— se ajusta de los propios
-registros [@quek2020] [@biagioni2012]. Cada coordenada se proyecta sobre ese
+registros [@quek2021] [@biagioni2012]. Cada coordenada se proyecta sobre ese
 eje, la referenciación lineal de la norma ISO 19148 [@iso19148], y queda su
 **coordenada de arco** $s$: los metros recorridos sobre el eje. El sentido de
 marcha es el signo del cambio de $s$. En las rutas A y C la ida y la vuelta circulan
@@ -670,7 +668,7 @@ sentido, y con ellos el headway predicho vuelve a minutos.
   sin mejora y semilla 42, con la mejor de veinticuatro configuraciones por celda
   elegida en validación.
 - **Persistencia:** repite el último vector observado y no tiene parámetros.
-- **Promedio histórico por posición** [@rodrigues2022]: repite en cada minuto
+- **Promedio histórico por posición** [@rodrigues2023]: repite en cada minuto
   del período de prueba el headway promedio que cada posición registró en el
   período de prueba del origen 2, sin leer la ventana de entrada.
 
@@ -728,8 +726,9 @@ pp. 123–148, 2017, doi: 10.1016/j.trb.2017.06.013.
 Positioning System Traces: Survey and Comparative Evaluation," *Transportation
 Research Record*, vol. 2291, no. 1, pp. 61–71, 2012, doi: 10.3141/2291-08.
 
-`[@bonavita2023]` M. Bonavita, "On some limitations of data-driven weather
-forecasting models," arXiv:2309.08473, 2023.
+`[@bonavita2024]` M. Bonavita, "On Some Limitations of Current Machine Learning
+Weather Prediction Models," *Geophysical Research Letters*, vol. 51, no. 12,
+art. e2023GL107377, 2024, doi: 10.1029/2023GL107377.
 
 `[@chen2016]` T. Chen and C. Guestrin, "XGBoost: A Scalable Tree Boosting System,"
 in *Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
@@ -762,9 +761,11 @@ Analysis Done Right," in *Advances in Neural Information Processing Systems 28*,
 of the American Statistical Association*, vol. 106, no. 494, pp. 746–762, 2011,
 doi: 10.1198/jasa.2011.r10138.
 
-`[@green2026]` S. Green, Z. Abdallah, and T. Silva Filho, "Expectations vs.
-Realities: The Cost of MSE-Optimal Forecasting Under Conditional Uncertainty,"
-arXiv:2606.04342, 2026.
+`[@green2026]` R. Green, Z. S. Abdallah, and T. M. Silva Filho, "Expectations
+vs. Realities: The Cost of MSE-Optimal Forecasting Under Conditional
+Uncertainty," in *Proceedings of the 32nd ACM SIGKDD Conference on Knowledge
+Discovery and Data Mining*, Jeju, Republic of Korea, 2026, pp. 1298–1309,
+doi: 10.1145/3770855.3818087.
 
 `[@handtill2001]` D. J. Hand and R. J. Till, "A Simple Generalisation of the Area
 Under the ROC Curve for Multiple Class Classification Problems," *Machine
@@ -787,8 +788,9 @@ on Intelligent Transportation Engineering (ICITE)*, 2023, pp. 451–458,
 doi: 10.1109/ICITE59717.2023.10733869.
 
 `[@lipton2014]` Z. C. Lipton, C. Elkan, and B. Naryanaswamy, "Optimal
-Thresholding of Classifiers to Maximize F1 Measure," in *ECML PKDD 2014*, Lecture
-Notes in Computer Science, vol. 8725, 2014, pp. 225–239,
+Thresholding of Classifiers to Maximize F1 Measure," in *Machine
+Learning and Knowledge Discovery in Databases (ECML PKDD 2014)*, Lecture Notes in
+Computer Science, vol. 8725, Nancy, France, 2014, pp. 225–239,
 doi: 10.1007/978-3-662-44851-9_15.
 
 `[@manibardo2022]` E. L. Manibardo, I. Laña, and J. Del Ser, "Deep Learning for
@@ -811,7 +813,7 @@ J. Mateu Armengol, M. Samso Cabre, K. Serradell, A. Soret, and C. Pérez
 Garcia-Pando, "Model output statistics (MOS) applied to Copernicus Atmospheric
 Monitoring Service (CAMS) O₃ forecasts: trade-offs between continuous and
 categorical skill scores," *Atmospheric Chemistry and Physics*, vol. 22,
-pp. 11603–11630, 2022, doi: 10.5194/acp-22-11603-2022.
+no. 17, pp. 11603–11630, 2022, doi: 10.5194/acp-22-11603-2022.
 
 `[@patton2012]` A. J. Patton and A. Timmermann, "Forecast Rationality Tests Based
 on Multi-Horizon Bounds," *Journal of Business & Economic Statistics*, vol. 30,
@@ -821,12 +823,10 @@ no. 1, pp. 1–17, 2012, doi: 10.1080/07350015.2012.634337.
 Ph.D. dissertation, Univ. of California, Berkeley, CA, USA, 2009. [Online].
 Available: https://escholarship.org/uc/item/6zc5j8xg
 
-`[@provost2000]` F. Provost, "Machine Learning from Imbalanced Data Sets 101,"
-in *Proc. AAAI Workshop on Learning from Imbalanced Data Sets*, 2000, pp. 1–3.
-
-`[@quek2020]` W. L. Quek, N. N. Chung, V.-L. Saw, and L. Y. Chew, "Analysis and
-simulation of intervention strategies against bus bunching by means of an
-empirical agent-based model," arXiv:2004.13022, 2020.
+`[@quek2021]` W. L. Quek, N. N. Chung, V.-L. Saw, and L. Y. Chew, "Analysis and
+Simulation of Intervention Strategies against Bus Bunching by means of an
+Empirical Agent-Based Model," *Complexity*, vol. 2021, art. 2606191, 2021,
+doi: 10.1155/2021/2606191.
 
 `[@rezazada2024]` M. Rezazada, N. Nassir, E. Tanin, and A. Ceder, "Bus bunching: a
 comprehensive review from demand, supply, and decision-making perspectives,"
@@ -838,9 +838,10 @@ rainfall accumulations from high-resolution forecasts of convective events,"
 *Monthly Weather Review*, vol. 136, no. 1, pp. 78–97, 2008, doi:
 10.1175/2007MWR2123.1.
 
-`[@rodrigues2022]` F. Rodrigues, "On the importance of stationarity, strong
-baselines and benchmarks in transport prediction problems," arXiv:2203.02954,
-2022.
+`[@rodrigues2023]` F. Rodrigues, "On the Importance of Stationarity, Strong
+Baselines and Benchmarks in Transport Prediction Problems," in *2023 IEEE 26th
+International Conference on Intelligent Transportation Systems (ITSC)*, Bilbao,
+Spain, 2023, pp. 4927–4932, doi: 10.1109/ITSC57777.2023.10422030.
 
 `[@santos2022]` V. B. Santos, C. E. S. Pires, D. C. Nascimento, and A. R. M. de
 Queiroz, "A Decision Tree Ensemble Model for Predicting Bus Bunching," *The
@@ -855,10 +856,6 @@ doi: 10.1080/15472450.2020.1725887.
 `[@tcqsm2003]` *Transit Capacity and Quality of Service Manual*, 2nd ed., TCRP
 Report 100, Transportation Research Board, 2003, Part 3, ch. 3, p. 3-48,
 Exhibit 3-30.
-
-`[@usama2025]` M. Usama and H. Koutsopoulos, "Real Time Headway Predictions in
-Urban Rail Systems and Implications for Service Control: A Deep Learning
-Approach," arXiv:2510.03121, 2025.
 
 `[@yu2016]` H. Yu, D. Chen, Z. Wu, X. Ma, and Y. Wang, "Headway-based bus bunching
 prediction using transit smart card data," *Transportation Research Part C:
