@@ -372,7 +372,7 @@ orígenes**, y creció sin excepción con el horizonte (Figura 1). El de la
 persistencia, que no se ajusta, quedó dentro de ±0.022: el efecto está en el
 ajuste, no en los datos ni en el corredor.
 
-![Sesgo de dispersión contra el horizonte](figuras/subdispersion-vs-horizonte.es.png)
+![Sesgo del CV contra el horizonte](figuras/subdispersion-vs-horizonte.es.png)
 
 **Fig. 1.** Sesgo del CV, el CV del vector predicho menos el del vector
 observado, por método y horizonte. Un panel por corredor, origen 3; un valor negativo es un
@@ -424,7 +424,7 @@ El F1 tampoco premia a la persistencia por detectar bien. El baseline siempre
 positivo, que no usa ningún modelo, tuvo un F1 mayor que el de ella en 5 de las
 doce celdas, marcadas con † en la Tabla 1, y en 15 de las 36 combinaciones de celda y origen.
 
-![Tasa de alarma contra tasa real del evento](figuras/artefacto-threshold.es.png)
+![Tasa de alarma contra tasa base](figuras/artefacto-threshold.es.png)
 
 **Fig. 2.** Tasa de alarma de la persistencia y del LSTM con el *unadjusted
 threshold*, contra la tasa base (punteada), por horizonte. Un panel por
