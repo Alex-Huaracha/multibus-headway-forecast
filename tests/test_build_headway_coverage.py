@@ -146,6 +146,6 @@ class TestTabla4:
         """
         table = build_paper_tables.tabla_4()
 
-        assert "| E2 |" in table and "63.5 %" in table
-        assert "| E4 |" in table and "64.8 %" in table
-        assert "| E59 |" in table and "77.1 %" in table
+        assert "| A |" in table and "63.5 %" in table
+        assert "| B |" in table and "64.8 %" in table
+        assert "| C |" in table and "77.1 %" in table

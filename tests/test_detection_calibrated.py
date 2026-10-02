@@ -362,4 +362,4 @@ class TestThePaperReportsBothInstrumentsSymmetrically:
         )
         if failing.height == 0:
             pytest.skip("no h=10 MCC win fails its interval any more")
-        assert "a empatar en E4 a diez minutos" in paper
+        assert "a empatar en la ruta B a diez minutos" in paper

@@ -1,4 +1,4 @@
-| Formulación | Autocorr. 5 min E2 | Autocorr. 5 min E59 | Info. mutua E2 | Info. mutua E59 | Dimensiones pasadas |
+| Formulación | Autocorr. 5 min ruta A | Autocorr. 5 min ruta C | Info. mutua ruta A | Info. mutua ruta C | Dimensiones pasadas |
 | :--- | ---: | ---: | ---: | ---: | ---: |
 | Puntos virtuales del eje | 0.167 | -0.005 | 1.145 | 0.567 | 5 de 7 |
 | Distancia en metros | 0.351 | 0.545 | 0.266 | 0.371 | 6 de 7 |

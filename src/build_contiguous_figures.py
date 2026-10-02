@@ -80,9 +80,8 @@ TERCILES = ("low", "mid", "high")
 
 # Every user-facing string lives here, keyed by language: the paper needs the
 # same axes in Spanish and in English, and duplicating the plotting code to get
-# them would let the two drift. Panel titles are corridor codes (E2/E4/E59) and
-# stay out of this table — they are language-neutral, and so are the horizon
-# legend labels (``h = 1 min``), which are built from a format string.
+# them would let the two drift. The horizon legend labels (``h = 1 min``) stay
+# out of this table: they are language-neutral, built from a format string.
 LANG = {
     "es": {
         "horizon_axis": "Horizonte de predicción [min]",
@@ -117,6 +116,7 @@ LANG = {
         "cv_axis": "Coeficiente de variación del vector",
         "cv_bias_axis": "Sesgo del CV (CV predicho − CV observado)",
         "compression_hint": "vector predicho más regular ▼",
+        "route": "Ruta",
     },
     "en": {
         "horizon_axis": "Prediction horizon [min]",
@@ -151,8 +151,14 @@ LANG = {
         "cv_axis": "Vector coefficient of variation",
         "cv_bias_axis": "CV bias (predicted − observed CV)",
         "compression_hint": "more regular predicted vector ▼",
+        "route": "Route",
     },
 }
+
+# The paper names each corridor as a route with a letter, the convention of
+# Yu et al. (2016). The chrome variant belongs to documento-resultados.md, which
+# keeps the operator codes; the equivalence is in docs/paper/equivalencias-rutas.md.
+ROUTE_LABELS = {"E2": "A", "E4": "B", "E59": "C"}
 
 TERCILE_LABEL_KEYS = {"low": "tercile_low", "mid": "tercile_mid", "high": "tercile_high"}
 
@@ -258,6 +264,13 @@ def _resolve(figure: str, lang: str, chrome: bool) -> Path:
     return PAPER_DIR / f"{paper_stem}.{lang}.png"
 
 
+def _panel_title(corridor: str, lang: str, chrome: bool) -> str:
+    """Operator code in the results document, route letter in the paper."""
+    if chrome:
+        return corridor
+    return f"{LANG[lang]['route']} {ROUTE_LABELS[corridor]}"
+
+
 def _load(name: str) -> pl.DataFrame:
     path = CSV_DIR / name
     if not path.exists():
@@ -284,7 +297,7 @@ def degradation(*, lang: str = "es", chrome: bool = True) -> Path:
                 label=words[label_key], color=color, marker=marker, linestyle=style,
                 linewidth=1.9, markersize=7,
             )
-        ax.set_title(corridor)
+        ax.set_title(_panel_title(corridor, lang, chrome))
         ax.set_xticks(list(HORIZONS))
         ax.set_xlabel(words["horizon_axis"])
         ax.grid(True, alpha=0.3)
@@ -337,7 +350,7 @@ def volatility(*, lang: str = "es", chrome: bool = True) -> Path:
                 linestyle="-", linewidth=1.9, markersize=7,
             )
         ax.axhline(0.0, color="black", linewidth=1.0, linestyle="--", alpha=0.7)
-        ax.set_title(corridor)
+        ax.set_title(_panel_title(corridor, lang, chrome))
         ax.set_xticks(xs)
         ax.set_xticklabels([words[TERCILE_LABEL_KEYS[name]] for name in TERCILES])
         ax.set_xlabel(words["volatility_axis"])
@@ -417,7 +430,7 @@ def threshold_artifact(*, lang: str = "es", chrome: bool = True) -> Path:
         if ax is axes[0]:
             legend_handles.append(base_line)
 
-        ax.set_title(corridor)
+        ax.set_title(_panel_title(corridor, lang, chrome))
         ax.set_xticks(list(HORIZONS))
         ax.set_xlabel(words["horizon_axis"])
         ax.set_ylim(0, 0.35)
@@ -484,7 +497,7 @@ def detection_without_threshold(*, lang: str = "es", chrome: bool = True) -> Pat
         if ax is axes[0]:
             legend_handles.append(scalar_line)
         ax.axhline(0.0, color="tab:blue", linewidth=1.0, linestyle=":", alpha=0.6)
-        ax.set_title(corridor)
+        ax.set_title(_panel_title(corridor, lang, chrome))
         ax.set_xticks(list(HORIZONS))
         ax.set_xlabel(words["horizon_axis"])
         ax.grid(True, alpha=0.3)
@@ -582,7 +595,7 @@ def detection_against_floor(*, lang: str = "es", chrome: bool = True) -> Path:
         # caption. Shared limits keep the three corridors on one scale.
         ax.axhline(0.5, color="tab:gray", linewidth=0.8, alpha=0.6)
         ax.set_ylim(0.45, 0.85)
-        ax.set_title(corridor)
+        ax.set_title(_panel_title(corridor, lang, chrome))
         ax.set_xticks(list(HORIZONS))
         ax.set_xlabel(words["horizon_axis"])
         ax.grid(True, alpha=0.3)
@@ -649,7 +662,7 @@ def threshold_in_minutes(*, lang: str = "es", chrome: bool = True) -> Path:
                 )
                 if ax is axes[0]:
                     legend_handles.append(line)
-        ax.set_title(corridor)
+        ax.set_title(_panel_title(corridor, lang, chrome))
         ax.set_xticks(list(HORIZONS))
         ax.set_xlabel(words["horizon_axis"])
         ax.grid(True, alpha=0.3)
@@ -722,7 +735,7 @@ def dispersion_compression(*, lang: str = "es", chrome: bool = True) -> Path:
             ax.text(i - bar_w / 2, t + 0.018, f"{t:.2f}", ha="center", fontsize=8.5)
             ax.text(i + bar_w / 2, pr + 0.018, f"{pr:.2f}", ha="center", fontsize=8.5)
 
-        ax.set_title(corridor)
+        ax.set_title(_panel_title(corridor, lang, chrome))
         ax.set_xticks(list(x))
         ax.set_xticklabels([words[VECTOR_MODEL_STYLE[m][0]] for m in models])
         ax.set_ylim(0, 1.0)
@@ -779,7 +792,7 @@ def dispersion_vs_horizon(*, lang: str = "es", chrome: bool = True) -> Path:
                 linewidth=1.9, markersize=7,
             )
         ax.axhline(0.0, color="black", linewidth=1.0, linestyle="--", alpha=0.7)
-        ax.set_title(corridor)
+        ax.set_title(_panel_title(corridor, lang, chrome))
         ax.set_xticks(list(HORIZONS))
         ax.set_xlabel(words["horizon_axis"])
         ax.grid(True, alpha=0.3)

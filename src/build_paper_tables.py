@@ -57,6 +57,11 @@ OUT_DIR = REPO_ROOT / "docs" / "paper" / "tablas"
 CORRIDORS = ("E2", "E4", "E59")
 HORIZONS = (1, 3, 5, 10)
 
+# The paper names each corridor as a route with a letter, the convention of
+# Yu et al. (2016). The CSVs keep the operator codes; only the printed cell
+# changes. The equivalence is recorded in docs/paper/equivalencias-rutas.md.
+ROUTE_LABELS = {"E2": "A", "E4": "B", "E59": "C"}
+
 # The learner the paper carries. XGBoost appears in the figures as the
 # architecture control, but the tables compare the published pair.
 LEARNER = "LSTM"
@@ -161,14 +166,14 @@ def tabla_1() -> str:
             ratio = f1_rival / f1_learner if f1_learner else None
             beaten = floor is not None and f1_rival is not None and f1_rival < floor
             rows.append([
-                corridor, str(horizon), _num(base), _num(floor),
+                ROUTE_LABELS[corridor], str(horizon), _num(base), _num(floor),
                 _num(f1_rival) + ("&nbsp;†" if beaten else ""),
                 _num(f1_learner),
                 _factor(ratio),
             ])
 
     table = _render(
-        ["Corredor", "h", "Tasa base", "F1 baseline", "F1 persistencia",
+        ["Ruta", "h", "Tasa base", "F1 baseline", "F1 persistencia",
          f"F1 {LEARNER}", "Factor"],
         rows,
         aligns="lrrrrrr",
@@ -213,7 +218,7 @@ def tabla_2() -> str:
         for horizon in HORIZONS:
             keys = {"corridor": corridor, "horizon": horizon}
             rows.append([
-                corridor, str(horizon),
+                ROUTE_LABELS[corridor], str(horizon),
                 _band(
                     _cell(ci, "delta_auc", **keys),
                     _cell(ci, "auc_ci_low", **keys),
@@ -232,7 +237,7 @@ def tabla_2() -> str:
             ])
 
     return _render(
-        ["Corredor", "h", "Δ AUC frente a la persistencia",
+        ["Ruta", "h", "Δ AUC frente a la persistencia",
          "Δ AUC frente al promedio histórico por posición",
          "Δ MCC *optimized* frente a la persistencia"],
         rows,
@@ -268,14 +273,14 @@ def tabla_3() -> str:
             auc_abs = _cell(absolute, "auc_absolute", **keys)
             chance = auc_abs is not None and auc_abs < 0.52
             rows.append([
-                corridor, str(horizon),
+                ROUTE_LABELS[corridor], str(horizon),
                 *[label.get(w, w) for w in winners],
                 "sí" if agrees else "**no**",
                 _num(auc_abs) + ("&nbsp;‡" if chance else ""),
             ])
 
     table = _render(
-        ["Corredor", "h", "Origen 1", "Origen 2", "Origen 3", "Coinciden",
+        ["Ruta", "h", "Origen 1", "Origen 2", "Origen 3", "Coinciden",
          "AUC, threshold absoluto"],
         rows,
         aligns="lrlllcr",
@@ -299,7 +304,7 @@ def tabla_4() -> str:
 
     rows = [
         [
-            row["corridor"],
+            ROUTE_LABELS[row["corridor"]],
             _int(row["valid_pairs"]),
             _int(row["total_pairs"]),
             _num(row["coverage_pct"], 1) + " %",
@@ -307,7 +312,7 @@ def tabla_4() -> str:
         for row in aggregate.to_dicts()
     ]
     return _render(
-        ["Corredor", "Pares con headway", "Pares evaluados", "Cobertura"],
+        ["Ruta", "Pares con headway", "Pares evaluados", "Cobertura"],
         rows,
         aligns="lrrr",
     )
@@ -392,8 +397,8 @@ def tabla_5() -> str:
     labels = dict(FORMULATIONS)
 
     return _render(
-        ["Formulación", "Autocorr. 5 min E2", "Autocorr. 5 min E59",
-         "Info. mutua E2", "Info. mutua E59", "Dimensiones pasadas"],
+        ["Formulación", "Autocorr. 5 min ruta A", "Autocorr. 5 min ruta C",
+         "Info. mutua ruta A", "Info. mutua ruta C", "Dimensiones pasadas"],
         [
             [
                 labels[row["formulation"]],
@@ -498,9 +503,12 @@ def tabla_6() -> str:
     widest gap of the row, which is what carries the answer: the spatial
     component moves the scalar error by less than the rounding of a second.
     """
-    rows = ablation_rows(load_frozen_results())
+    rows = [
+        [ROUTE_LABELS[row[0]], *row[1:]]
+        for row in ablation_rows(load_frozen_results())
+    ]
     return _render(
-        ["Corredor", "h", *(name for name, _ in ARCHITECTURES), "Rango"],
+        ["Ruta", "h", *(name for name, _ in ARCHITECTURES), "Rango"],
         rows,
         aligns="lr" + "r" * (len(ARCHITECTURES) + 1),
     )

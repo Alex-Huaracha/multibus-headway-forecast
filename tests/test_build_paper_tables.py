@@ -26,6 +26,7 @@ import pytest
 from src.build_paper_tables import (
     CORRIDORS,
     HORIZONS,
+    ROUTE_LABELS,
     _load,
     tabla_1,
     tabla_2,
@@ -91,7 +92,7 @@ class TestTablaDosPrintsWhatItsSourcesPublished:
     def test_the_floor_band_is_the_one_the_null_builder_published(self, rows) -> None:
         printed = {(cells[0], int(cells[1])): cells[3] for cells in rows}
         for row in _load("positional_null.csv").iter_rows(named=True):
-            key = (row["corridor"], row["horizon"])
+            key = (ROUTE_LABELS[row["corridor"]], row["horizon"])
             for column in ("lstm_vs_null_delta", "lstm_vs_null_ci_low", "lstm_vs_null_ci_high"):
                 assert f"{row[column]:+.3f}" in printed[key], (key, column)
 
@@ -99,7 +100,7 @@ class TestTablaDosPrintsWhatItsSourcesPublished:
         printed = {(cells[0], int(cells[1])): (cells[2], cells[4]) for cells in rows}
         intervals = _load("detection_ranking_ci.csv").filter(pl.col("origin") == "main")
         for row in intervals.iter_rows(named=True):
-            key = (row["corridor"], row["horizon"])
+            key = (ROUTE_LABELS[row["corridor"]], row["horizon"])
             for band, columns in (
                 (printed[key][0], ("delta_auc", "auc_ci_low", "auc_ci_high")),
                 (
