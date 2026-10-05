@@ -18,26 +18,28 @@ el valor por debajo del cual un headway cuenta como demasiado corto. Si queda
 por debajo, se anuncia bunching. El GPS registra después el headway que
 ocurrió, el **headway observado**, y con él se comprueba la predicción.
 
-El threshold no tiene un valor acordado [@rezazada2024]: unos trabajos lo fijan
+El threshold no tiene un valor acordado [@rezazada2024]. Unos trabajos lo fijan
 en tiempo, entre veinte segundos y tres minutos, y otros como una fracción del
 headway programado, de hasta un cuarto. El procedimiento supone que la
-detección sigue al error: si la predicción mejora, la detección también. Yu y
-colaboradores lo observan así: al predecir cinco paradas adelante en lugar de
-dos, el error de su modelo en una de sus rutas subió de dos a seis minutos, y la
-fracción de eventos detectados bajó del 100 % al 74 % [@yu2016].
+detección sigue al error. Si la predicción empeora, la detección también
+empeora. Yu y colaboradores lo observan así. Al predecir cinco paradas
+adelante en lugar de dos, el error de su modelo en una de sus rutas subió de dos
+a seis minutos, y la fracción de eventos detectados bajó del 100 % al 74 %
+[@yu2016].
 
-En nuestros datos esa suposición no se cumplió. Se predijo con una red LSTM
-(*long short-term memory*) el vector de headways de tres rutas de Arequipa, A, B y
-C: un headway por cada par de buses consecutivos. A diez
-minutos, en la ruta C, el LSTM tuvo un error absoluto medio 1.17 minutos
-menor que el de la persistencia, que repite el último vector observado. El
-evento se define con un *event threshold*, la mitad del promedio del vector, que
-marcó bunching en el 20.8 % de las posiciones del headway observado. Aplicado
-sin ajuste al vector predicho, como *unadjusted threshold*, la persistencia
-emitió alarma en el 20.8 % de las posiciones y el LSTM en el 0.75 %. Con el F1,
-que vale 1 cuando las alarmas coinciden con los eventos y cae hacia 0 si sobran
-o faltan, el de la persistencia fue 8.8 veces el del LSTM. Así, el F1 premió al
-método que más alarmas emitió y no al que menos se equivocó en minutos.
+En nuestros datos esa suposición no se cumplió. Se comparó una red LSTM
+(*long short-term memory*) con la persistencia, el método más simple, que
+predice que los headways de dentro de unos minutos serán iguales a los de
+ahora. Los dos métodos predicen a la vez todos los headways de una ruta, su
+**vector de headways**, en tres rutas de Arequipa, A, B y C. A diez minutos, en
+la ruta C, el error promedio del LSTM fue 1.17 minutos menor que el de la
+persistencia. Pero el LSTM detectó peor el bunching. El threshold fue la mitad
+del promedio del vector, y con él uno de cada cinco headways observados fue
+bunching. La persistencia emitió alarma en uno de cada cinco headways
+predichos, igual que en la realidad. El LSTM, en menos de uno de cada cien. El
+F1, que mide cuánto coinciden las alarmas con el bunching ocurrido, fue 8.8
+veces mayor para la persistencia. Esa cifra significa que el LSTM casi nunca
+emitió alarma.
 
 La causa está en la primera etapa. Un modelo entrenado con error cuadrático
 medio, cuando no sabe si un headway será corto o largo, predice un valor
@@ -48,26 +50,33 @@ los que marcan el bunching. Por eso casi ninguno queda bajo un threshold pensado
 para la dispersión del headway observado, aunque ese threshold se calcule con el
 promedio del propio vector predicho.
 
-Ese efecto no se ha medido. Sun, Schmöcker y Nakamura llegan a la detección,
-pero puntúan sin threshold solo a su clasificador probabilístico, y evalúan los
-métodos que predicen el headway con un threshold fijo [@sun2021].
+Ese efecto no se ha medido. Sun, Schmöcker y Nakamura comparan la predicción
+del headway con un clasificador de bunching [@sun2021]. Al clasificador lo
+evalúan con una curva ROC (*receiver operating characteristic*), que no necesita
+threshold, y a la predicción del headway solo con un threshold fijo de un
+minuto. Así, su comparación no separa el error de la predicción del efecto del
+threshold.
 
 Este trabajo lo mide puntuando la misma detección con y sin threshold. Sin
-threshold, los headways predichos se ordenan de más corto a más largo, en
-proporción al promedio de su vector, y el área bajo la curva ROC (*receiver
-operating characteristic*), el AUC, mide si los eventos reales quedan al
-principio. Las dos puntuaciones se contradicen: sin threshold, el LSTM ordenó
-mejor que la persistencia a diez minutos en las tres rutas y en tres
-períodos de prueba distintos.
+threshold, los headways predichos de cada vector se ordenan del más corto al más
+largo, cada uno medido como fracción del promedio de su vector. El área bajo la
+curva ROC, el AUC, mide si el bunching real queda al principio de ese orden.
+Vale 1 si queda todo al principio y 0.5 si el orden no informa nada. Las dos
+puntuaciones se contradicen. Con el threshold, la persistencia ganó en todas las
+rutas y horizontes. Sin threshold, el LSTM ordenó mejor que la persistencia a
+diez minutos en las tres rutas y en tres períodos de prueba distintos.
 
 Mostramos tres cosas. Primero, el headway predicho describe una ruta más
-regular que la real: en la escala del *Transit Capacity and Quality of Service
-Manual* (TCQSM), el headway predicho queda en nivel A y el headway observado en
-nivel F. Segundo, por esa subdispersión, un threshold pensado para el headway
+regular que la real. El *Transit Capacity and Quality of Service Manual*
+(TCQSM) califica la regularidad de un servicio de A a F. A diez minutos, en la
+ruta A, el headway predicho la pone en nivel A, el de un servicio que funciona
+como un reloj, y el headway observado en nivel F, el de un servicio con casi
+todos los buses agrupados. Segundo, por esa subdispersión, un threshold pensado para el headway
 observado, sea la mitad del promedio del vector o un valor fijo en minutos, hace
 que el LSTM casi no emita alarmas y que la persistencia gane la evaluación.
-Tercero, ajustar el threshold sobre el headway predicho corrige el defecto: el
-ganador vuelve a coincidir con el que da el AUC en casi todos los casos.
+Tercero, ajustar el threshold sobre el headway predicho corrige el defecto. Se
+probaron dos formas de ajustarlo, y con ellas el ganador coincide con el que da
+el AUC en 8 de 9 casos y en 9 de 10.
 
 ---
 
@@ -75,8 +84,8 @@ ganador vuelve a coincidir con el que da el AUC en casi todos los casos.
 
 ### A. Predicción de bunching en dos etapas
 
-El procedimiento de dos etapas de la Sección I tiene una formulación canónica:
-un headway cuenta como bunching si cae por debajo de la cuarta parte del headway
+El procedimiento de dos etapas de la Sección I tiene una formulación canónica.
+Un headway cuenta como bunching si cae por debajo de la cuarta parte del headway
 observado en la primera parada del mismo viaje [@yu2016] [@jiao2023]. El
 threshold se fija así sobre la escala del headway observado y se compara contra
 el headway predicho. Los trabajos previos evalúan la segunda etapa solo con un
@@ -84,11 +93,13 @@ threshold, sin ninguna medida que puntúe sin él [@santos2022].
 
 ### B. Subdispersión bajo error cuadrático medio
 
-La subdispersión de la Sección I es un teorema. Un modelo entrenado con error
-cuadrático predice la media condicional [@gneiting2011]. Por eso la varianza del
-headway observado es la del headway predicho más el error cuadrático esperado,
-de modo que el headway predicho sale menos disperso que el headway observado, y
-la brecha crece con el horizonte [@patton2012].
+La subdispersión de la Sección I está demostrada. Gneiting muestra que un modelo
+entrenado con error cuadrático predice la media condicional, el valor intermedio
+de la Sección I [@gneiting2011]. Patton y Timmermann muestran que, para esa
+predicción, la varianza del valor observado es la varianza de la predicción más
+el error cuadrático medio [@patton2012]. Por eso la predicción es menos dispersa
+que el valor observado, y la diferencia crece con el horizonte, porque el error
+crece.
 
 ### C. Precedentes y delimitación
 
@@ -204,16 +215,15 @@ recall $R$ es la fracción de eventos que reciben alarma.
 
 ### B. El F1 bajo el *unadjusted threshold*
 
-El F1 de la Ecuación (6) mezcla dos cantidades de naturaleza distinta. Como TP
-es la precisión multiplicada por la cantidad de alarmas, al dividir por $n$ el
-F1 se reescribe como
+El F1 de la Ecuación (6) mezcla dos cantidades de naturaleza distinta. Sea $n$
+la cantidad de posiciones evaluadas. Como TP es la precisión multiplicada por la
+cantidad de alarmas, al dividir por $n$ el F1 se reescribe como
 
 $$\mathrm{F}_1 \;=\;
 \frac{2\,\mathrm{TP}}{(\mathrm{TP}+\mathrm{FP}) + (\mathrm{TP}+\mathrm{FN})}
 \;=\; P \cdot \frac{2q}{q+\pi}, \tag{7}$$
 
-donde $n$ es la cantidad de posiciones evaluadas,
-$q = (\mathrm{TP}+\mathrm{FP})/n$ es la **tasa de alarma**, la fracción de
+donde $q = (\mathrm{TP}+\mathrm{FP})/n$ es la **tasa de alarma**, la fracción de
 posiciones con alarma, y $\pi = (\mathrm{TP}+\mathrm{FN})/n$ es la **tasa
 base**, la fracción de posiciones con evento.
 
@@ -278,15 +288,20 @@ AUC reportado.
 
 La otra forma conserva un threshold, pero lo ajusta sobre el headway predicho en
 lugar de heredarlo del headway observado, para que la tasa de alarma deje de
-depender de su dispersión: es el ***adjusted threshold***, que se prueba de dos
-maneras. El ***optimized threshold*** reemplaza la fracción $\rho$ de la
-Ecuación (5) por un valor ajustado para cada método y cada celda. El ajuste usa
-un **origen de evaluación** anterior: una fecha de fin de entrenamiento con su
-propio período de prueba. La evaluación usa tres orígenes y reporta el tercero
-como resultado principal. El threshold se ajusta sobre el período de prueba del
-origen 2 y se aplica sin cambios al del origen 3. Los dos períodos son disjuntos
-y provienen de modelos entrenados por separado, de modo que el período reportado
-no informa su propio threshold.
+depender de su dispersión. A ese threshold se le llama ***adjusted threshold***,
+y se prueba de dos maneras.
+
+Las dos usan los **orígenes de evaluación**. Un origen es una fecha de corte. El
+modelo se entrena con los datos anteriores a ella, se valida y se prueba en un
+período posterior de 22 días (Apéndice A.3). Hay tres orígenes, y los resultados
+principales son los del origen 3, el más reciente.
+
+La primera manera es el ***optimized threshold***. Reemplaza la fracción $\rho$
+de la Ecuación (5) por un valor elegido para cada método y cada celda. Ese valor
+se elige en el período de prueba del origen 2 y se aplica sin cambios al del
+origen 3. Los dos períodos no se solapan y sus modelos se entrenaron por
+separado, de modo que el período reportado no interviene en la elección de su
+propio threshold.
 
 El objetivo del ajuste es el coeficiente de correlación de Matthews (MCC) y no
 el F1. Por la Ecuación (7), el F1 premia subir la tasa de alarma, y maximizarlo
@@ -297,14 +312,14 @@ el baseline siempre positivo [@chicco2020]. Emitir más alarmas no basta para
 subirlo, porque también cuenta las posiciones sin evento ni alarma, los
 verdaderos negativos (TN).
 
-La segunda es el ***percentile threshold*** [@roberts2008]. No compara el
-headway contra un valor: marca en cada vector las posiciones más cortas hasta
-cubrir una fracción fija. Esa fracción es la que la regla de la Ecuación (4)
-marcó en promedio en la celda, sobre el origen 2. Aplicado al headway observado,
-el percentil define su propio evento, y el detector se puntúa contra él. Como
-los dos marcan la misma cantidad de posiciones en cada vector, la tasa de alarma
-iguala a la tasa base, y el término $2q/(q+\pi)$ de la Ecuación (7) vale 1 para
-todo método.
+La segunda manera es el ***percentile threshold*** [@roberts2008]. En lugar de
+comparar cada headway contra un valor, marca en cada vector una fracción fija de
+posiciones, las más cortas. Esa fracción es la que la regla de la Ecuación (4)
+marcó en promedio en la celda, en el origen 2. La regla se aplica igual a los dos
+vectores. En el vector predicho, sus marcas son las alarmas. En el vector
+observado, son los eventos contra los que se puntúan esas alarmas. Como los dos
+vectores reciben la misma cantidad de marcas, la tasa de alarma iguala a la tasa
+base, y el término $2q/(q+\pi)$ de la Ecuación (7) vale 1 para todo método.
 
 Ese evento no es el de la Ecuación (4): marca las posiciones más cortas de cada
 vector, estén o no por debajo de la mitad de su promedio. El **índice de
@@ -319,16 +334,16 @@ doce celdas (Tabla 3), de modo que los dos eventos coinciden solo en parte.
 ### A. Datos y métodos comparados
 
 Los datos son 152 días seguidos de registros GPS de las rutas A, B y C. Se
-comparan tres métodos sobre las mismas
-muestras. El LSTM es el método bajo estudio. Un conjunto de árboles con refuerzo
-de gradiente (**XGBoost**) [@chen2016] sirve de control: se ajusta con el mismo
-error cuadrático y no comparte la arquitectura del LSTM, de modo que lo que los
-dos tengan en común se debe al ajuste. La persistencia no se ajusta. Salvo
-aviso, las cifras son del origen 3, el único sobre el que se ajustó el XGBoost;
-el Apéndice A da el detalle. Un método **gana** solo si la diferencia pasa su
-prueba del Apéndice B: un intervalo del 95 % que no incluye el cero o, en el
-MAE, una prueba de Diebold–Mariano con p < 0.05. Si no la pasa, los dos
-**empatan**.
+comparan tres métodos sobre las mismas muestras. El LSTM es el método bajo
+estudio. Un conjunto de árboles con refuerzo de gradiente (**XGBoost**)
+[@chen2016] sirve de control. Se ajusta con el mismo error cuadrático y no
+comparte la arquitectura del LSTM, de modo que lo que los dos tengan en común se
+debe al ajuste. La persistencia no se ajusta. Salvo aviso, las cifras son del
+origen 3, el único sobre el que se ajustó el XGBoost, y el Apéndice A da el
+detalle. Un método **gana** solo si la diferencia pasa su prueba del Apéndice B.
+Esa prueba es un intervalo del 95 % que no incluye el cero o, en el error
+absoluto medio (MAE), una prueba de Diebold–Mariano con p < 0.05. Si no la pasa,
+los dos **empatan**.
 
 Con cuatro horizontes por ruta hay doce celdas, y se reportan todas. A un
 minuto no hay margen para intervenir y la persistencia es más difícil de superar
@@ -336,10 +351,11 @@ minuto no hay margen para intervenir y la persistencia es más difícil de super
 
 ### B. Error escalar y subdispersión
 
-El error de la predicción se mide con el error absoluto medio (MAE) sobre las
+El error de la predicción se mide con el MAE sobre las
 posiciones de la Ecuación (2). Se reporta en lugar del error cuadrático
 porque queda en minutos de headway. A diez minutos, el LSTM bajó el MAE de la
-persistencia entre 21 % y 22 %: 1.47 minutos en la ruta A, 1.38 en la B y 1.17 en la C.
+persistencia entre 21 % y 22 %. La reducción fue de 1.47 minutos en la ruta A,
+1.38 en la B y 1.17 en la C.
 A un minuto ganó la persistencia en las rutas B y C, y en la A empataron, con una
 diferencia de 0.07 minutos.
 
@@ -367,7 +383,8 @@ predicho, y en nivel F —«most vehicles bunched»— según el headway observa
 
 El sesgo del CV del LSTM fue negativo en **las doce celdas y los tres
 orígenes**, y creció sin excepción con el horizonte (Figura 1). El de la
-persistencia, que no se ajusta, quedó dentro de ±0.022: el efecto está en el
+persistencia, que no se ajusta, quedó dentro de ±0.022, es decir, su vector
+predicho conservó la dispersión del observado. Por eso el efecto está en el
 ajuste, no en los datos ni en la ruta.
 
 ![Sesgo del CV contra el horizonte](figuras/subdispersion-vs-horizonte.es.png)
@@ -385,28 +402,34 @@ r \;=\; \frac{V_{\hat h}}{V_h}, \qquad r_0 \;=\; 1 - \frac{V_e}{V_h}, \tag{9}$$
 donde $V_h$, $V_{\hat h}$ y $V_e$ son las varianzas entre posiciones del headway
 observado, del headway predicho y del error $e_i = h_i - \hat{h}_i$, promediadas
 sobre los vectores de la celda, y $C_{\hat h e}$ es la covarianza entre el
-headway predicho y el error. La fracción $r$ es la dispersión del headway
-observado que conserva el headway predicho, y $r_0$ la que predice el error;
-coinciden si esa covarianza es nula. Sobre las doce celdas, $r$ siguió a $r_0$
-con una correlación de 0.993 en el LSTM y de 0.996 en el XGBoost, y fue del
-4.5 % (ruta A a diez minutos) al 55.2 % (ruta B a un minuto) en el LSTM, y del 4.0 % al
-54.7 % en el XGBoost.
+headway predicho y el error. La fracción $r$ es la parte de la varianza
+del headway observado que conserva el headway predicho. La fracción $r_0$ es la
+que la Sección II-B anticipa a partir del tamaño del error, y las dos coinciden
+si esa covarianza es nula. En el LSTM, $r$ fue del 55.2 % en la ruta B a un
+minuto y bajó al 4.5 % en la ruta A a diez minutos. En esa celda, el headway
+predicho conservó menos de una vigésima parte de la variación real entre los
+buses. En el XGBoost, $r$ fue del 54.7 % al 4.0 %. Sobre las doce celdas, $r$
+siguió a $r_0$ con una correlación de 0.993 en el LSTM y de 0.996 en el
+XGBoost. Cada celda perdió la dispersión que el tamaño de su error anticipa.
 
-Dos causas ajenas al ajuste podrían producir la subdispersión. El ruido de
-medición del eje de la ruta y del sentido de marcha la agranda, pero $r$
-siguió a $r_0$ en las doce celdas, de modo que los datos fijan el tamaño del
-efecto y no su existencia. El azar tampoco la explica: cada modelo se entrenó con
-una sola semilla, y el sesgo del CV fue negativo en las tres rutas y los
-tres orígenes, cada uno con su propio entrenamiento.
+Dos causas ajenas al ajuste podrían producir la subdispersión. La primera es el
+ruido de medición del eje de la ruta y del sentido de marcha. Ese ruido agranda
+el error y, con él, la subdispersión. Pero $r$ siguió a $r_0$ en las doce
+celdas, de modo que el headway predicho perdió solo la dispersión que su error
+anticipa. El ruido cambia cuánto se comprime el vector, pero no explica que se
+comprima. La segunda es el azar. Cada modelo se entrenó con una sola semilla,
+pero el sesgo del CV fue negativo en las tres rutas y los tres orígenes, cada
+uno con su propio entrenamiento.
 
 ### C. Tasa de alarma y precisión bajo el *unadjusted threshold*
 
-En la ruta C a diez minutos, el caso de la Sección I, el LSTM emitió alarma en el 0.75
-% de las posiciones, contra una tasa base del 20.8 %. Acertó el 49 % de sus
-alarmas y la persistencia el 30 %, pero el F1 invirtió ese orden: 0.303 para la
-persistencia contra 0.034 para el LSTM. La Ecuación (7) da la causa: el término
-$2q/(q+\pi)$ valió 1.00 para la persistencia y 0.07 para el LSTM, y ninguna
-diferencia de precisión compensa esa caída.
+En la ruta C a diez minutos, el caso de la Sección I, el LSTM emitió alarma en el
+0.75 % de las posiciones, contra una tasa base del 20.8 %. Acertó el 49 % de sus
+alarmas y la persistencia el 30 %, pero el F1 invirtió ese orden, con 0.303 para
+la persistencia contra 0.034 para el LSTM. La Ecuación (7) da la causa. El
+término $2q/(q+\pi)$ valió 1.00 para la persistencia y 0.07 para el LSTM. El F1
+de la persistencia quedó igual a su precisión, y el del LSTM quedó en el 7 % de
+la suya.
 
 El patrón se repitió en las doce celdas de la Tabla 1: el LSTM tuvo más
 precisión que la persistencia y una tasa de alarma por debajo de la tasa base, y
@@ -418,9 +441,11 @@ emitió 15 083 alarmas y el LSTM, **catorce**. Diez de las catorce acertaron, un
 precisión del 71 % (intervalo del Apéndice B, 42 % a 92 %) contra una tasa base
 del 30 %, y aun así el F1 de la persistencia fue 253 veces el suyo.
 
-El F1 tampoco premia a la persistencia por detectar bien. El baseline siempre
-positivo, que no usa ningún modelo, tuvo un F1 mayor que el de ella en 5 de las
-doce celdas, marcadas con † en la Tabla 1, y en 15 de las 36 combinaciones de celda y origen.
+Que la persistencia tenga más F1 que el LSTM tampoco significa que detecte bien.
+El baseline siempre positivo, que marca bunching en todas las posiciones sin
+usar ningún modelo, tuvo un F1 mayor que el de ella en 5 de las doce celdas,
+marcadas con † en la Tabla 1, y en 15 de las 36 combinaciones de celda y origen.
+En esas celdas, marcar todo puntúa mejor que la persistencia.
 
 ![Tasa de alarma contra tasa base](figuras/artefacto-threshold.es.png)
 
@@ -502,19 +527,21 @@ dividida por la tasa base, el cociente $q/\pi$ de la Ecuación (7). Vale uno
 cuando el detector avisa tan seguido como ocurre el evento.
 
 Tres reglas aplican al headway predicho un threshold diseñado para el headway
-observado: el *unadjusted threshold*, una variante que fija el threshold del
-evento y el de la alarma con el promedio del último vector observado, y el
+observado. La primera es el *unadjusted threshold*. La segunda es una variante
+suya que usa un solo threshold para el evento y para la alarma, la mitad del
+promedio del último vector observado antes de predecir. La tercera es el
 **threshold fijo**. Moreira-Matias y colaboradores fijan este último en la
 cuarta parte del headway programado [@moreiramatias2016]. Estas rutas no
 tienen horario, así que aquí se usó la cuarta parte del headway mediano
 observado de cada ruta y sentido, en el origen 2. Las tres dejaron al LSTM
-casi sin alarmas: su A/E mediano fue de 0.001 a 0.153, y el de la persistencia,
-de 0.980 a 1.062. Con el threshold fijo, el LSTM no emitió ninguna alarma en dos
+casi sin alarmas. Su A/E mediano fue de 0.001 a 0.153, es decir, el LSTM emitió
+entre 1 y 153 alarmas por cada mil eventos. El de la persistencia fue de 0.980
+a 1.062, casi una alarma por evento. Con el threshold fijo, el LSTM no emitió ninguna alarma en dos
 celdas. Con el *unadjusted threshold* y con el threshold fijo, la persistencia
 ganó en MCC en las doce celdas. Con los dos *adjusted thresholds*, el A/E
-mediano del LSTM fue de 1.125 y 1.000.
+mediano del LSTM fue de 1.125 y 1.000, también cerca de una alarma por evento.
 
-La Figura 4 muestra por qué: con el *unadjusted threshold*, el valor aplicado al
+La Figura 4 muestra por qué. Con el *unadjusted threshold*, el valor aplicado al
 headway predicho quedó a menos de 0.35 minutos del aplicado al headway
 observado, mientras que el *percentile threshold* lo sube entre 1.4 y 4.1
 minutos, hasta donde caen los headways predichos.
@@ -572,14 +599,15 @@ threshold diseñado para el headway observado dejó al LSTM casi sin alarmas.
 ## VII. Conclusión
 
 Este trabajo mostró que las predicciones entrenadas por error cuadrático
-describen una ruta más regular que la real: la misma ruta queda en nivel
-A del TCQSM según el headway predicho y en nivel F según el headway observado.
+describen una ruta más regular que la real. A diez minutos, la ruta A queda en
+nivel A del TCQSM según el headway predicho y en nivel F según el headway
+observado.
 Mostró también que, por esa subdispersión, el *unadjusted threshold* hace que el
 F1 ordene a los métodos por cuántas alarmas emiten y no por cuántas aciertan, y
 que a diez minutos la puntuación sin threshold invierte ese orden. Para
-corregirlo, ajustamos el threshold sobre el headway predicho, optimizado en un
-origen anterior o como un percentil de cada vector, y con ambas el ganador
-vuelve a coincidir con el que da el AUC en casi todos los casos. El dataset cubre tres rutas de una sola ciudad
+corregirlo, ajustamos el threshold sobre el headway predicho de dos maneras,
+optimizado en un origen anterior o como un percentil de cada vector. Con ambas,
+el ganador vuelve a coincidir con el que da el AUC en 8 de 9 casos y en 9 de 10. El dataset cubre tres rutas de una sola ciudad
 durante 152 días, y el promedio histórico por posición se ajustó sobre un solo
 origen anterior. Queda por repetir la medición en otras ciudades. Esperamos que
 la detección de bunching sobre predicciones se evalúe en adelante con un *adjusted threshold*.
