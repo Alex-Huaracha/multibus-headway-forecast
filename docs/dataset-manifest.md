@@ -206,6 +206,8 @@ si sus bytes no matchean, la corrida falla.
 | `headways_E2.parquet` | 11/12/13 | `82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4` |
 | `headways_E59.parquet` | 11/12/13 | `0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448` |
 | `headways_E4.parquet` | 17/18/19 | `1dde7f38eea9bc7d9941c17cbc3d326cb864e70be815a1a7e3d0ae2691f19273` |
+| `headways_E2.parquet` (NB04 v10, pasada 2 corregida) | 21/22 | `6b2ef565330535982062fbb058ad014ae4a56e6c9dfe5011d089381abdbab01c` |
+| `headways_E59.parquet` (NB04 v10, pasada 2 corregida) | 21/22 | `d693850b7d49f8de6428add55d15e440fc273be403a3d322ba9442ccec700bd3` |
 | `atypical_days.csv` | todas | `2054245cc830e58b9397b75ea3b55d034581046b64e73b1630ca7d464e3ecb86` |
 
 Validación por-log de las 24 corridas: `Atypical days loaded: 17 dates`, umbral de

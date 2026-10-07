@@ -339,40 +339,54 @@ class TestProjectPerDirection:
             f"than to cl[-1] (mean {mean_lateral_other:.2f} m)"
         )
 
-    def test_directionless_pings_get_nan(self, centerlines: dict[int, np.ndarray]):
-        """T2.8: pings with direction=0 (key not in centerlines dict) yield NaN
-        for s and lateral_m, but are kept in the output (not dropped).
+    def test_directionless_pings_take_the_closer_centerline(
+        self, dual_filar: pl.DataFrame, centerlines: dict[int, np.ndarray]
+    ):
+        """T2.8: a direction=0 ping (a stopped bus) keeps a position.
+
+        It used to get NaN s, and the second infer_direction then read NaN > 0 as
+        True and labelled it +1 with no position. It now takes the arc coordinate
+        of whichever per-direction centerline it lies closer to.
         """
-        from datetime import datetime
+        from src.preprocessing.projection import _project_arc_length, project_per_direction
+
+        stopped = dual_filar.filter(pl.col("direction") == -1).head(5).with_columns(
+            pl.lit(0, dtype=pl.Int64).alias("direction")
+        )
+        result = project_per_direction(stopped, centerlines, empresaid=59)
+
+        pts = stopped.select(["lat", "lon"]).to_numpy()
+        s_plus, lat_plus = _project_arc_length(pts, centerlines[1], chunk_size=10_000)
+        s_minus, lat_minus = _project_arc_length(pts, centerlines[-1], chunk_size=10_000)
+        expected_s = np.where(lat_minus < lat_plus, s_minus, s_plus)
+
+        assert result.height == stopped.height
+        assert np.isfinite(result["s"].to_numpy()).all()
+        np.testing.assert_allclose(result["s"].to_numpy(), expected_s, rtol=1e-5)
+        np.testing.assert_allclose(
+            result["lateral_m"].to_numpy(), np.minimum(lat_plus, lat_minus), rtol=1e-5
+        )
+
+    def test_off_route_dropped_and_rows_time_sorted(
+        self, dual_filar: pl.DataFrame, centerlines: dict[int, np.ndarray]
+    ):
+        """T2.10: pass 2 applies the same 300 m off-route filter as pass 1, and
+        returns rows in (empresaid, unidadid, time) order.
+
+        Both were missing: pings far off the route kept a valid s, and the second
+        infer_direction differenced rows concatenated by direction block.
+        """
         from src.preprocessing.projection import project_per_direction
-        import math
-        # Build a minimal frame with direction=0 pings
-        directionless = pl.DataFrame({
-            "empresaid": pl.Series([59, 59], dtype=pl.Int64),
-            "unidadid": pl.Series([5901, 5901], dtype=pl.Int64),
-            "time": pl.Series(
-                [datetime(2024, 1, 23, 7, 0, 0), datetime(2024, 1, 23, 7, 0, 20)],
-                dtype=pl.Datetime("us"),
-            ),
-            "lat": pl.Series([-16.4, -16.4], dtype=pl.Float64),
-            "lon": pl.Series([-71.52, -71.51], dtype=pl.Float64),
-            "direction": pl.Series([0, 0], dtype=pl.Int64),
-            "speed_kmh": pl.Series([20.0, 20.0], dtype=pl.Float64),
-            "s": pl.Series([0.0, 0.0], dtype=pl.Float64),
-            "lateral_m": pl.Series([0.0, 0.0], dtype=pl.Float64),
-        })
-        result = project_per_direction(directionless, centerlines, empresaid=59)
-        assert result.height == 2, f"Expected 2 rows kept; got {result.height}"
-        s_vals = result["s"].to_list()
-        lat_vals = result["lateral_m"].to_list()
-        for v in s_vals:
-            assert v is None or (isinstance(v, float) and math.isnan(v)), (
-                f"Expected NaN s for direction=0; got {v}"
-            )
-        for v in lat_vals:
-            assert v is None or (isinstance(v, float) and math.isnan(v)), (
-                f"Expected NaN lateral_m for direction=0; got {v}"
-            )
+
+        off_route = dual_filar.head(1).with_columns(
+            (pl.col("lat") + 0.01).alias("lat")  # ~1.1 km north of the route
+        )
+        frame = pl.concat([dual_filar, off_route]).sample(fraction=1.0, shuffle=True, seed=0)
+        result = project_per_direction(frame, centerlines, empresaid=59)
+
+        assert result.height == dual_filar.height
+        assert (result["lateral_m"] <= 300.0).all()
+        assert result.equals(result.sort(["empresaid", "unidadid", "time"]))
 
     def test_schema_preserved(
         self, dual_filar: pl.DataFrame, centerlines: dict[int, np.ndarray]
