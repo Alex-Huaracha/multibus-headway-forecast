@@ -128,37 +128,44 @@ colaboradores corrigen el modelo, con un término de clasificación en la pérdi
 
 ### A. Formulación del problema
 
-Lo que se predice es el **vector de headways** de la ruta: un headway por cada
-par de buses consecutivos que circulan en el mismo sentido, con todas sus
-posiciones a la vez. El Apéndice A lo construye desde los registros GPS. Dado el
-historial de los últimos $L$ minutos y un contexto de calendario, se busca el
-vector de la ruta $H$ minutos más adelante:
+Lo que se predice es el **vector de headways** de la ruta. El vector tiene un
+headway por cada par de buses consecutivos que circulan en el mismo sentido,
+ordenados a lo largo de la ruta. Cada lugar del vector es una posición. La
+posición 1 es el headway del primer par, la posición 2 el del segundo, y así.
+El Apéndice A lo construye desde los registros GPS. El
+modelo recibe los vectores de headways de los últimos $L$ minutos y, para cada
+uno de esos minutos, la hora y el día de la semana. Con eso predice el vector
+de la ruta $H$ minutos más adelante:
 
 $$\hat{\mathbf{h}}(t+H) \;=\; f\big(\mathbf{h}(t-L+1), \dots, \mathbf{h}(t);\;
-c(t-L+1), \dots, c(t)\big), \qquad L = 12, \tag{1}$$
+\mathbf{c}(t-L+1), \dots, \mathbf{c}(t)\big), \qquad L = 12, \tag{1}$$
 
 donde $\mathbf{h}(t)$ es el vector de headways de la ruta en el minuto $t$ y
 $\hat{\mathbf{h}}(t+H)$ es el vector predicho para $H$ minutos más adelante. El
-término $c(t)$ reúne cuatro variables de calendario del minuto $t$: el seno y el
-coseno de la hora, y el seno y el coseno del día de la semana. Aquí $f$ es el
-modelo ajustado.
+vector $\mathbf{c}(t)$ tiene cuatro valores. Los dos primeros son el seno y el
+coseno de la hora del minuto $t$, y los dos últimos, el seno y el coseno del día
+de la semana. Aquí $f$ es el modelo ajustado. El valor $L = 12$ se eligió de
+forma arbitraria. Al reentrenar el XGBoost con historias de 5, 10 y 20 minutos, el
+error y la subdispersión no cambiaron, y la persistencia siguió ganando la
+detección con el threshold.
 
 Se predice a uno, tres, cinco y diez minutos, con un modelo ajustado por
 separado para cada horizonte. El vector no tiene longitud fija, porque la
-cantidad de buses varía minuto a minuto, de modo que el error se computa solo
-sobre las posiciones con headway válido. **El objetivo que se minimiza es el error
+cantidad de buses varía minuto a minuto. Una posición no tiene headway válido
+cuando ese minuto hay menos buses o cuando falta el dato, y el error se computa
+solo sobre las posiciones con headway válido. **El objetivo que se minimiza es el error
 cuadrático**, promediado sobre esas posiciones:
 
 $$\mathcal{L} \;=\; \frac{1}{|\mathcal{V}|}\sum_{i \in \mathcal{V}}
 \big(\hat{h}_i - h_i\big)^{2}, \tag{2}$$
 
 donde $\mathcal{V}$ es el conjunto de posiciones del vector con headway válido en
-el instante objetivo, y $|\mathcal{V}|$ es su cardinal. Los términos $\hat{h}_i$
+el instante objetivo, y $|\mathcal{V}|$ es la cantidad de esas posiciones. Los términos $\hat{h}_i$
 y $h_i$ son el headway predicho y el headway observado en la posición $i$, en la
 escala estandarizada por sentido que fija el Apéndice A.2.
 
 Los registros GPS no traen pasajeros ni estado del tránsito, de modo que el
-evento se define sobre la geometría del vector. La convención del campo marca el
+bunching se decide solo con los headways del vector. La convención del campo marca el
 evento con una fracción de un headway de referencia, programado u observado
 (Secciones I y II-A); el TCQSM, en cambio, usa la mitad del programado [@tcqsm2003].
 Estas rutas no tienen programación, y aquí la referencia es el promedio del
@@ -628,59 +635,35 @@ responsabilidad del contenido final.
 
 ### A.1. Datos y construcción del headway
 
-El trabajo usa los registros GPS de tres rutas del Sistema Integrado de
-Transporte de Arequipa —A, B y C, una por empresa operadora—, con 90 buses
-en total. Cada bus emite su coordenada **cada 20 segundos** durante 152 días
-seguidos, del 1 de octubre de 2023 al 29 de febrero de 2024.
+Los datos son los registros GPS de tres rutas del Sistema Integrado de Transporte de Arequipa, A, B y C, con 90 buses en total. Cada bus emite su posición cada 20 segundos durante 152 días seguidos, del 1 de octubre de 2023 al 29 de febrero de 2024. Los registros no traen paradas ni horarios de paso. Por eso el headway se mide sobre la posición de cada bus a lo largo de la ruta, como en Andres y Nair [@andres2017]. El procedimiento se aplica a cada ruta por separado.
 
-Estos registros no traen la lista de paradas ni los horarios de paso con que se
-mide habitualmente el headway: cada bus emite su identificador, el instante y su
-coordenada. El headway se construye entonces desde la posición de cada bus a lo
-largo de la ruta, como en Andres y Nair [@andres2017], con una diferencia: su
-ciudad publica la geometría de la ruta en GTFS y la nuestra no, de modo que el
-eje de la ruta —la línea que los buses siguen— se ajusta de los propios
-registros [@quek2021] [@biagioni2012]. Cada coordenada se proyecta sobre ese
-eje, la referenciación lineal de la norma ISO 19148 [@iso19148], y queda su
-**coordenada de arco** $s$: los metros recorridos sobre el eje. El sentido de
-marcha es el signo del cambio de $s$. En las rutas A y C la ida y la vuelta circulan
-por calles paralelas, la dificultad que Andres y Nair señalan para asignar el
-bus de adelante usando solo GPS [@andres2017], y ahí el eje se ajusta una vez
-por sentido. La posición de cada bus se interpola a cada minuto, y cada minuto
-queda descrito por un **snapshot**: la coordenada de todos los buses de la
-ruta.
+1. **Limpieza.** Se elimina el registro repetido de un mismo bus en el mismo instante, el registro sin instante y el registro con latitud o longitud nula o igual a cero.
+2. **Coordenadas en metros.** La latitud $\phi$ y la longitud $\lambda$, en grados, pasan a metros con $x = 111\,000\,\phi$ y $y = 111\,000\cos(16.4^\circ)\,\lambda$, con 16.4° la latitud de Arequipa.
+3. **Velocidad.** La velocidad de cada registro es la distancia al registro anterior del mismo bus dividida por el tiempo entre ambos. Se elimina el registro con velocidad mayor a 80 km/h y el que se desplaza más de 500 m en 60 segundos o menos.
+4. **Eje de la ruta.** Se toman los registros con velocidad de al menos 10 km/h, hasta 50 000 elegidos al azar con semilla 42. Se descartan los que quedan fuera de los percentiles 0.5 y 99.5 de la latitud o de la longitud. Un análisis de componentes principales da la dirección en que se alarga la nube de puntos. Se descarta el 2.5 % de los puntos en cada extremo de esa dirección, y el resto se divide en 50 intervalos de igual largo. En cada intervalo con al menos 5 puntos se toma la mediana de la coordenada perpendicular. Esa mediana se suaviza con una media móvil de 5 intervalos. El eje es la línea quebrada que une los puntos resultantes, de vértices $P_1, \dots, P_m$.
+5. **Coordenada de arco.** Cada registro $p$ se proyecta sobre el segmento del eje más cercano, la referenciación lineal de la norma ISO 19148 [@iso19148]. Sobre el segmento de $P_k$ a $P_{k+1}$,
 
-Sobre ese snapshot, para un par de buses consecutivos en el mismo sentido —el de
-adelante $i-1$, el de atrás $i$— en el minuto $t$:
+   $$\tau = \min\!\left(1,\ \max\!\left(0,\ \frac{(p-P_k)\cdot(P_{k+1}-P_k)}{\lVert P_{k+1}-P_k\rVert^{2}}\right)\right), \qquad s = \sum_{j<k}\lVert P_{j+1}-P_j\rVert + \tau\,\lVert P_{k+1}-P_k\rVert. \tag{10}$$
+
+   La coordenada de arco $s$ son los metros recorridos sobre el eje. La distancia lateral es la distancia entre $p$ y su proyección. Se elimina el registro a más de 300 m del eje. Desde este paso, la posición de cada registro tiene una sola dimensión, $s$, la distancia a lo largo de la ruta, en lugar de las dos coordenadas $x$ e $y$, como en Quek et al. [@quek2021].
+6. **Sentido de marcha.** Con los registros de cada bus ordenados por instante, $\Delta s$ es la diferencia de $s$ con el registro anterior. El sentido es el signo del promedio de los últimos 5 valores de $\Delta s$. Vale +1 si $s$ crece, −1 si decrece y 0 si el promedio es cero.
+7. **Segunda pasada, solo en las rutas A y C.** Se ajusta un eje por sentido con los pasos 4 y 5, usando solo los registros de ese sentido. Si un sentido tiene menos de 1 000 registros, se usa el eje del paso 4. Cada registro se proyecta sobre el eje de su sentido. El registro de sentido 0 se proyecta sobre los dos ejes y se queda con el más cercano. Se elimina de nuevo el registro a más de 300 m y se recalcula el sentido con el paso 6.
+8. **Posición a cada minuto.** Para cada bus y día, $s$ se interpola linealmente a cada minuto exacto entre el primer y el último registro del día. La interpolación no se interrumpe cuando faltan registros. El sentido en cada minuto es el del último registro anterior. Los buses de una ruta en un mismo minuto forman un **snapshot**.
+9. **Pares.** Se descartan los buses de sentido 0 y los minutos con menos de 2 buses en un sentido. En cada snapshot, los buses de un mismo sentido se ordenan desde el que va más adelante, que es el de mayor $s$ en el sentido +1 y el de menor $s$ en el sentido −1. Cada bus forma par con el que va inmediatamente delante. Con $N$ buses quedan $N-1$ pares, numerados de 1 a $N-1$ desde el frente. Ese número es la posición del par en el vector de headways.
+10. **Headway.** Para el par del minuto $t$, con el bus de adelante $i-1$ y el de atrás $i$, el headway es el de la Ecuación (11). El cruce se busca en los registros del bus de adelante con el mismo sentido, cada 20 segundos y no en los minutos exactos. El instante del cruce se interpola linealmente entre los dos registros entre los que $s_{i-1}$ pasa por $s_i(t)$. Si no hay cruce, o si el cruce ocurrió hace más de 30 minutos, el par queda sin valor y conserva su posición.
 
 $$t_{c} = \max\{\, t' \le t \;:\; s_{i-1}(t') = s_{i}(t) \,\},
-\qquad h_i(t) = t - t_{c}, \tag{10}$$
+\qquad h_i(t) = t - t_{c}. \tag{11}$$
 
-donde $s_{i-1}$ y $s_{i}$ son las coordenadas de arco del bus de adelante y del
-de atrás. El instante $t_{c}$ es el último en que el de adelante pasó por la
-coordenada que el de atrás ocupa en $t$, y $h_i(t)$ es el headway resultante. La
-definición es la de Pilachowski [@pilachowski2009], que Andres y Nair evalúan en
-la coordenada del bus de atrás [@andres2017], y la Figura 5 la ilustra. Si no
-existe tal $t_{c}$, o si $h_i(t)$ supera los treinta minutos, el par queda sin valor.
+El instante $t_{c}$ es el último en que el bus de adelante pasó por la coordenada que ocupa el de atrás en $t$. La definición es la de Pilachowski [@pilachowski2009], que Andres y Nair evalúan en la coordenada del bus de atrás [@andres2017]. La Figura 5 la ilustra.
 
 ![El headway como cruce hacia atrás](figuras/esquema-headway.es.png)
 
-**Fig. 5.** El headway de la Ecuación (10) sobre dos trayectorias ilustrativas:
+**Fig. 5.** El headway de la Ecuación (11) sobre dos trayectorias ilustrativas:
 el tiempo entre el paso del bus de adelante por la coordenada $s_i(t)$ y la
 llegada del de atrás a ella.
 
-Ese headway describe un solo par. En cada snapshot, los buses de un mismo
-sentido se ordenan por su coordenada de arco, y con $N$ buses quedan $N-1$
-pares: el vector de headways ordenado desde el frente. Ese orden numera las
-posiciones del vector —la primera es la del par que va más adelante—, y un par
-sin headway válido conserva su posición con «sin valor», para que el orden no
-dependa de cuántos pares resolvieron.
-
-El máximo de treinta minutos existe porque, cuando la trayectoria del bus de
-adelante tiene huecos, la búsqueda del cruce retrocede hasta una vuelta
-anterior, horas antes. La cobertura —la
-fracción de pares evaluados con headway válido— es del 63.5 % en la ruta A, del 64.8 %
-en la B y del 77.1 % en la C: 3 938 174 pares sobre 5 601 738 evaluados. Una
-posición sin headway válido se enmascara.
+El eje se ajusta de los registros porque la ciudad no publica el trazado de las rutas, a diferencia de la de Andres y Nair, que lo publica en GTFS. Quek et al. trazan la ruta del mismo modo, con una línea ajustada a la nube de coordenadas [@quek2021], e inferir la geometría de las calles desde registros GPS es un problema estudiado [@biagioni2012]. La segunda pasada existe porque en las rutas A y C la ida y la vuelta van por calles paralelas. Un eje único queda entre las dos calles y mezcla los buses de ambos sentidos. Andres y Nair advierten que, solo con GPS, asignar a cada bus el de adelante es difícil cuando los buses de una ruta circulan por trazados distintos [@andres2017]. En la ruta B los dos sentidos comparten las calles, y un eje por sentido coincide con el eje único. El límite de 30 minutos existe porque, cuando faltan registros del bus de adelante, la búsqueda del cruce retrocede hasta una vuelta anterior, horas antes. Los pares con headway válido son el 65.0 % en la ruta A, el 64.8 % en la B y el 66.5 % en la C, 4 441 065 de 6 754 075 pares. La posición sin headway válido se enmascara.
 
 ### A.2. Métodos comparados
 
