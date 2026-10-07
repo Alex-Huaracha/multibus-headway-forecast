@@ -57,8 +57,8 @@ CORRIDORS = [("E2", 2), ("E59", 59), ("E4", 4)]
 HORIZONS = [1, 3, 5, 10]
 
 PARQUET_HASHES = {
-    "headways_E2.parquet": "82a34eaffc79cd82346d4595a2e72f5d3ffb751ed37fa0fc0cde3a8f8fb345d4",
-    "headways_E59.parquet": "0b5f5593caaa94e4e6af7da672bc2cad7b49b69b7cbd0a22092f15700a89a448",
+    "headways_E2.parquet": "6b2ef565330535982062fbb058ad014ae4a56e6c9dfe5011d089381abdbab01c",
+    "headways_E59.parquet": "d693850b7d49f8de6428add55d15e440fc273be403a3d322ba9442ccec700bd3",
     "headways_E4.parquet": "1dde7f38eea9bc7d9941c17cbc3d326cb864e70be815a1a7e3d0ae2691f19273",
 }
 
@@ -73,7 +73,9 @@ KERNEL_META = {
     "enable_internet": True,
     "keywords": [],
     "dataset_sources": [],
-    "kernel_sources": ["alexhuaracha/04-preprocessing"],
+    # 04-preprocessing v10 publishes only E2/E59; E4 (single pass, unchanged) is
+    # read from 16-e4-data-baselines, byte-identical to the frozen hash.
+    "kernel_sources": ["alexhuaracha/04-preprocessing", "alexhuaracha/16-e4-data-baselines"],
     "competition_sources": [],
 }
 
