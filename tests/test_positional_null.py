@@ -245,10 +245,13 @@ class TestTheDocumentDeclaresTheFloor:
     def test_the_paper_names_the_positional_floor(self, paper):
         assert "promedio histórico por posición" in paper
 
-    def test_the_paper_declares_the_e2_exception(self, paper):
+    def test_the_paper_declares_the_e2_exception(self, table, paper):
         """The sentence that costs the showcase cell. Its absence is the
         selective-reporting failure this whole file exists to prevent."""
-        assert "0.579" in paper
+        row = table.filter(
+            (pl.col("corridor") == "E2") & (pl.col("horizon") == 10)
+        ).row(0, named=True)
+        assert f"{row['auc_lstm']:.3f} contra {row['auc_null']:.3f}" in paper
 
     def test_the_paper_bounds_that_exception(self, table, paper):
         """Reporting the sign without the bound is the defect Section IV-E names."""

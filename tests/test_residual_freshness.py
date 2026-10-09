@@ -56,16 +56,16 @@ RESID_DIR = REPO_ROOT / "docs" / "resultados" / "residuos-multihorizon"
 # The rolling values are transcribed from the `<corridor>: winsor threshold=`
 # lines of each kernel log, printed at four decimals. That rounding is at most
 # 5e-5, comfortably inside `CEILING_TOL` even after the float32 round-trip. The
-# same lines reproduce `main`'s six-decimal entries (28.4679 / 27.9969 /
+# same lines reproduce `main`'s six-decimal entries (28.3020 / 28.5911 /
 # 29.0984), which is what makes the transcription trustworthy.
 #
 # The ceilings do NOT order with the length of the train window: E4 clips higher
 # at r1 (29.1026) than at the published fold (29.098441). Reusing one origin's
 # ceiling for another is wrong in both directions, not just conservative.
 P99_CEILING = {
-    "main": {"E2": 28.467923, "E59": 27.996949, "E4": 29.098441},
-    "r1": {"E2": 28.4230, "E59": 28.0000, "E4": 29.1026},
-    "r2": {"E2": 28.4252, "E59": 27.9693, "E4": 29.0794},
+    "main": {"E2": 28.301985, "E59": 28.591118, "E4": 29.098441},
+    "r1": {"E2": 28.2415, "E59": 28.5823, "E4": 29.1026},
+    "r2": {"E2": 28.2770, "E59": 28.5659, "E4": 29.0794},
 }
 
 

@@ -100,7 +100,7 @@ el F1.
 **Ecuación (8). El coeficiente de variación (CV).** Mide qué tan desiguales son
 los headways de un vector. Vale 0 si todos los buses van igual de separados.
 Sirve para mostrar que el vector predicho es mucho más parejo que el real, por
-ejemplo 0.16 contra 0.79 en la ruta A a diez minutos.
+ejemplo 0.18 contra 0.74 en la ruta A a diez minutos.
 
 **Ecuación (9). Cuánta variación conserva la predicción.** Reparte la variación
 del headway observado entre la del predicho y la del error. La fracción $r$ es

@@ -254,7 +254,8 @@ class TestTheCompressionIsNotTheArchitecture:
             .sort("ratio_measured")
             .row(0, named=True)
         )
-        assert f"{worst['ratio_measured']:.3f}" in paper, worst
+        # The paper writes the share as a percentage with one decimal.
+        assert f"{100 * worst['ratio_measured']:.1f} %" in paper, worst
 
 
 class TestTheDocumentDeclaresWhatTheModelExplains:

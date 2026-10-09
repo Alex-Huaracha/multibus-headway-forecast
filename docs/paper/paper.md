@@ -2,7 +2,7 @@
 
 ## Resumen
 
-Para anticipar el bunching, un modelo predice el headway de los próximos minutos y lo compara contra un threshold, el valor por debajo del cual un headway cuenta como demasiado corto. Se da por hecho que una predicción con menos error detecta mejor el bunching. Sin embargo, ese threshold se diseña para el headway observado y se aplica sin cambios al headway predicho. Mostramos que un modelo entrenado con error cuadrático predice headways más parejos que los reales, y que por eso casi ninguno queda por debajo de ese threshold. Con 152 días de registros GPS de tres rutas de Arequipa, una red LSTM predijo a diez minutos con menos error que la persistencia, que repite los últimos headways observados, pero emitió muy pocas alarmas. La persistencia ganó la detección en las doce combinaciones de ruta y horizonte. La evaluación premia así al método que emite más alarmas y no al que acierta más. Sin threshold, ordenando los headways predichos del más corto al más largo, el LSTM ubicó mejor el bunching a diez minutos en las tres rutas. Proponemos ajustar el threshold sobre el headway predicho. Con las dos formas de ajuste probadas, ambas evaluaciones vuelven a elegir el mismo ganador en 17 de 19 casos. Esperamos que la detección de bunching sobre predicciones se evalúe en adelante con un threshold ajustado a la predicción.
+Para anticipar el bunching, un modelo predice el headway de los próximos minutos y lo compara contra un threshold, el valor por debajo del cual un headway cuenta como demasiado corto. Se da por hecho que una predicción con menos error detecta mejor el bunching. Sin embargo, ese threshold se diseña para el headway observado y se aplica sin cambios al headway predicho. Mostramos que un modelo entrenado con error cuadrático predice headways más parejos que los reales, y que por eso casi ninguno queda por debajo de ese threshold. Con 152 días de registros GPS de tres rutas de Arequipa, una red LSTM predijo a diez minutos con menos error que la persistencia, que repite los últimos headways observados, pero emitió muy pocas alarmas. La persistencia ganó la detección en las doce combinaciones de ruta y horizonte. La evaluación premia así al método que emite más alarmas y no al que acierta más. Sin threshold, ordenando los headways predichos del más corto al más largo, el LSTM ubicó mejor el bunching a diez minutos en las tres rutas. Proponemos ajustar el threshold sobre el headway predicho. Con las dos formas de ajuste probadas, ambas evaluaciones vuelven a elegir el mismo ganador en 16 de 18 casos. Esperamos que la detección de bunching sobre predicciones se evalúe en adelante con un threshold ajustado a la predicción.
 
 ---
 
@@ -32,12 +32,12 @@ En nuestros datos esa suposición no se cumplió. Se comparó una red LSTM
 predice que los headways de dentro de unos minutos serán iguales a los de
 ahora. Los dos métodos predicen a la vez todos los headways de una ruta, su
 **vector de headways**, en tres rutas de Arequipa, A, B y C. A diez minutos, en
-la ruta C, el error promedio del LSTM fue 1.17 minutos menor que el de la
+la ruta C, el error promedio del LSTM fue 1.26 minutos menor que el de la
 persistencia. Pero el LSTM detectó peor el bunching. El threshold fue la mitad
-del promedio del vector, y con él uno de cada cinco headways observados fue
-bunching. La persistencia emitió alarma en uno de cada cinco headways
-predichos, igual que en la realidad. El LSTM, en menos de uno de cada cien. El
-F1, que mide cuánto coinciden las alarmas con el bunching ocurrido, fue 8.8
+del promedio del vector, y con él algo más de uno de cada cinco headways
+observados fue bunching. La persistencia emitió alarma en una proporción casi
+igual de headways predichos. El LSTM, en menos de dos de cada mil. El
+F1, que mide cuánto coinciden las alarmas con el bunching ocurrido, fue 45
 veces mayor para la persistencia. Esa cifra significa que el LSTM casi nunca
 emitió alarma.
 
@@ -70,13 +70,13 @@ Mostramos tres cosas. Primero, el headway predicho describe una ruta más
 regular que la real. El *Transit Capacity and Quality of Service Manual*
 (TCQSM) califica la regularidad de un servicio de A a F. A diez minutos, en la
 ruta A, el headway predicho la pone en nivel A, el de un servicio que funciona
-como un reloj, y el headway observado en nivel F, el de un servicio con casi
-todos los buses agrupados. Segundo, por esa subdispersión, un threshold pensado para el headway
+como un reloj, y el headway observado en nivel E, el de un servicio con buses
+agrupados con frecuencia. Segundo, por esa subdispersión, un threshold pensado para el headway
 observado, sea la mitad del promedio del vector o un valor fijo en minutos, hace
 que el LSTM casi no emita alarmas y que la persistencia gane la evaluación.
 Tercero, ajustar el threshold sobre el headway predicho corrige el defecto. Se
 probaron dos formas de ajustarlo, y con ellas el ganador coincide con el que da
-el AUC en 8 de 9 casos y en 9 de 10.
+el AUC en 7 de 8 casos y en 9 de 10.
 
 ---
 
@@ -331,7 +331,7 @@ base, y el término $2q/(q+\pi)$ de la Ecuación (7) vale 1 para todo método.
 Ese evento no es el de la Ecuación (4): marca las posiciones más cortas de cada
 vector, estén o no por debajo de la mitad de su promedio. El **índice de
 Jaccard** mide cuánto coinciden los dos eventos: divide las posiciones que
-marcan ambos entre las que marca al menos uno. Vale 0.58 en la mediana de las
+marcan ambos entre las que marca al menos uno. Vale 0.62 en la mediana de las
 doce celdas (Tabla 3), de modo que los dos eventos coinciden solo en parte.
 
 ---
@@ -361,10 +361,10 @@ minuto no hay margen para intervenir y la persistencia es más difícil de super
 El error de la predicción se mide con el MAE sobre las
 posiciones de la Ecuación (2). Se reporta en lugar del error cuadrático
 porque queda en minutos de headway. A diez minutos, el LSTM bajó el MAE de la
-persistencia entre 21 % y 22 %. La reducción fue de 1.47 minutos en la ruta A,
-1.38 en la B y 1.17 en la C.
+persistencia entre 21 % y 23 %. La reducción fue de 1.55 minutos en la ruta A,
+1.38 en la B y 1.26 en la C.
 A un minuto ganó la persistencia en las rutas B y C, y en la A empataron, con una
-diferencia de 0.07 minutos.
+diferencia de 0.01 minutos.
 
 El MAE no describe la forma del vector. El coeficiente de variación (CV) sí: es
 la desviación estándar del vector dividida por su promedio,
@@ -380,13 +380,13 @@ frecuencias distintas. Su **sesgo** es el CV del vector predicho menos el del
 vector observado en el mismo instante, y un valor negativo indica un vector
 predicho más regular que el observado.
 
-En la ruta A a diez minutos, el CV valió 0.79 sobre el headway observado y 0.16 sobre
+En la ruta A a diez minutos, el CV valió 0.74 sobre el headway observado y 0.18 sobre
 el headway predicho por el LSTM. El TCQSM califica la regularidad de un
 servicio en niveles de A a F según la dispersión del headway respecto del
 programado [@tcqsm2003], y en una ruta sin programación esa dispersión es la
 de la Ecuación (8). Leídas en esa escala, las dos cifras ponen a la misma
 ruta en nivel A —«service provided like clockwork»— según el headway
-predicho, y en nivel F —«most vehicles bunched»— según el headway observado.
+predicho, y en nivel E —«frequent bunching»— según el headway observado.
 
 El sesgo del CV del LSTM fue negativo en **las doce celdas y los tres
 orígenes**, y creció sin excepción con el horizonte (Figura 1). El de la
@@ -413,10 +413,10 @@ headway predicho y el error. La fracción $r$ es la parte de la varianza
 del headway observado que conserva el headway predicho. La fracción $r_0$ es la
 que la Sección II-B anticipa a partir del tamaño del error, y las dos coinciden
 si esa covarianza es nula. En el LSTM, $r$ fue del 55.2 % en la ruta B a un
-minuto y bajó al 4.5 % en la ruta A a diez minutos. En esa celda, el headway
-predicho conservó menos de una vigésima parte de la variación real entre los
-buses. En el XGBoost, $r$ fue del 54.7 % al 4.0 %. Sobre las doce celdas, $r$
-siguió a $r_0$ con una correlación de 0.993 en el LSTM y de 0.996 en el
+minuto y bajó al 6.3 % en la ruta A a diez minutos. En esa celda, el headway
+predicho conservó solo el 6 % de la variación real entre los
+buses. En el XGBoost, $r$ fue del 54.7 % al 5.3 %. Sobre las doce celdas, $r$
+siguió a $r_0$ con una correlación de 0.998 en el LSTM y también en el
 XGBoost. Cada celda perdió la dispersión que el tamaño de su error anticipa.
 
 Dos causas ajenas al ajuste podrían producir la subdispersión. La primera es el
@@ -431,22 +431,21 @@ uno con su propio entrenamiento.
 ### C. Tasa de alarma y precisión bajo el *unadjusted threshold*
 
 En la ruta C a diez minutos, el caso de la Sección I, el LSTM emitió alarma en el
-0.75 % de las posiciones, contra una tasa base del 20.8 %. Acertó el 49 % de sus
-alarmas y la persistencia el 30 %, pero el F1 invirtió ese orden, con 0.303 para
-la persistencia contra 0.034 para el LSTM. La Ecuación (7) da la causa. El
-término $2q/(q+\pi)$ valió 1.00 para la persistencia y 0.07 para el LSTM. El F1
-de la persistencia quedó igual a su precisión, y el del LSTM quedó en el 7 % de
+0.18 % de las posiciones, contra una tasa base del 22.6 %. Acertó el 44 % de sus
+alarmas y la persistencia el 31 %, pero el F1 invirtió ese orden, con 0.315 para
+la persistencia contra 0.007 para el LSTM. La Ecuación (7) da la causa. El
+término $2q/(q+\pi)$ valió 1.01 para la persistencia y 0.02 para el LSTM. El F1
+de la persistencia quedó igual a su precisión, y el del LSTM quedó en el 1.6 % de
 la suya.
 
-El patrón se repitió en las doce celdas de la Tabla 1: el LSTM tuvo más
-precisión que la persistencia y una tasa de alarma por debajo de la tasa base, y
-el F1 de la persistencia fue de 1.5 a 253 veces el suyo. La Figura 2 muestra cómo esa tasa cae
+El patrón se repitió en las otras celdas de la Tabla 1. En once de las doce, el
+LSTM tuvo más precisión que la persistencia y una tasa de alarma por debajo de
+la tasa base, y el F1 de la persistencia fue de 1.5 a 209 veces el suyo. La Figura 2 muestra cómo esa tasa cae
 al alargar el horizonte.
 
-La ruta A a diez minutos es el caso extremo: sobre 15 245 eventos, la persistencia
-emitió 15 083 alarmas y el LSTM, **catorce**. Diez de las catorce acertaron, una
-precisión del 71 % (intervalo del Apéndice B, 42 % a 92 %) contra una tasa base
-del 30 %, y aun así el F1 de la persistencia fue 253 veces el suyo.
+La celda restante, la ruta A a diez minutos, es el caso extremo. Sobre 22 468
+eventos, la persistencia emitió 22 426 alarmas y el LSTM **ninguna**, de modo que
+su F1 fue cero.
 
 Que la persistencia tenga más F1 que el LSTM tampoco significa que detecte bien.
 El baseline siempre positivo, que marca bunching en todas las posiciones sin
@@ -466,18 +465,18 @@ LSTM.
 
 | Ruta | h | Tasa base | F1 baseline | F1 persistencia | F1 LSTM | Factor |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| A | 1 | 0.299 | 0.460 | 0.581 | 0.207 | 2.8× |
-| A | 3 | 0.301 | 0.462 | 0.414&nbsp;† | 0.038 | 11× |
-| A | 5 | 0.300 | 0.462 | 0.375&nbsp;† | 0.011 | 36× |
-| A | 10 | 0.303 | 0.465 | 0.332&nbsp;† | 0.001 | 253× |
+| A | 1 | 0.283 | 0.441 | 0.553 | 0.196 | 2.8× |
+| A | 3 | 0.285 | 0.444 | 0.406&nbsp;† | 0.019 | 21× |
+| A | 5 | 0.283 | 0.442 | 0.356&nbsp;† | 0.002 | 209× |
+| A | 10 | 0.284 | 0.442 | 0.315&nbsp;† | 0.000 | — |
 | B | 1 | 0.183 | 0.310 | 0.686 | 0.466 | 1.5× |
 | B | 3 | 0.173 | 0.295 | 0.486 | 0.177 | 2.7× |
 | B | 5 | 0.172 | 0.294 | 0.381 | 0.066 | 5.8× |
 | B | 10 | 0.179 | 0.304 | 0.268&nbsp;† | 0.015 | 18× |
-| C | 1 | 0.212 | 0.350 | 0.620 | 0.308 | 2.0× |
-| C | 3 | 0.209 | 0.345 | 0.469 | 0.130 | 3.6× |
-| C | 5 | 0.208 | 0.344 | 0.405 | 0.083 | 4.9× |
-| C | 10 | 0.208 | 0.344 | 0.303&nbsp;† | 0.034 | 8.8× |
+| C | 1 | 0.234 | 0.379 | 0.674 | 0.379 | 1.8× |
+| C | 3 | 0.227 | 0.371 | 0.499 | 0.148 | 3.4× |
+| C | 5 | 0.225 | 0.368 | 0.414 | 0.062 | 6.7× |
+| C | 10 | 0.226 | 0.369 | 0.315&nbsp;† | 0.007 | 45× |
 
 † El F1 del baseline siempre positivo es mayor que el de la persistencia en estas celdas.
 
@@ -486,15 +485,15 @@ LSTM.
 Sin threshold, el orden de la Tabla 1 se invierte a diez minutos (Tabla 2 y
 Figura 3). Puntuado mediante el AUC de la Sección IV-A, **el LSTM ganó en las
 nueve combinaciones de ruta y origen a diez minutos**, con diferencias de
-0.033 a 0.061. En el origen 3 ganó en 6 de las 12 celdas. A un
-minuto ganó la persistencia en las tres rutas y los tres orígenes, como
-en el MAE de las rutas B y C.
+0.029 a 0.051. En el origen 3 ganó en 6 de las 12 celdas. A un
+minuto ganó la persistencia en las rutas B y C en los tres orígenes, y en la A
+empataron, como en el MAE.
 
 El promedio histórico por posición de la Sección IV-A, que no lee la ventana de
 entrada, acota esa ventaja. En las rutas B y C el baseline queda cerca del azar, entre
-0.49 y 0.52, y el LSTM le ganó en las ocho celdas. En la ruta A el baseline queda por
+0.50 y 0.52, y el LSTM le ganó en las ocho celdas. En la ruta A el baseline queda por
 encima del azar en todos los horizontes, y **a diez minutos el LSTM pierde
-contra él, 0.565 contra 0.579**. Es la única celda donde ocurre, la misma del
+contra él, 0.570 contra 0.582**. Es la única celda donde ocurre, la misma del
 caso extremo de la Sección V-C.
 
 ![AUC de detección contra el promedio histórico por posición](figuras/deteccion-contra-baseline.es.png)
@@ -509,24 +508,25 @@ intervalo que contiene el cero es un empate (Sección V-A).
 
 | Ruta | h | Δ AUC frente a la persistencia | Δ AUC frente al promedio histórico por posición | Δ MCC *optimized* frente a la persistencia |
 | :--- | ---: | :---: | :---: | :---: |
-| A | 1 | -0.009 [-0.015, -0.004] | +0.126 [+0.117, +0.138] | -0.091 [-0.106, -0.078] |
-| A | 3 | +0.031 [+0.025, +0.036] | +0.050 [+0.040, +0.061] | +0.018 [+0.005, +0.028] |
-| A | 5 | +0.037 [+0.031, +0.042] | +0.021 [+0.013, +0.031] | +0.037 [+0.026, +0.046] |
-| A | 10 | +0.037 [+0.026, +0.047] | -0.013 [-0.023, -0.003] | +0.058 [+0.039, +0.073] |
+| A | 1 | -0.003 [-0.008, +0.001] | +0.124 [+0.116, +0.134] | -0.075 [-0.088, -0.065] |
+| A | 3 | +0.026 [+0.020, +0.032] | +0.045 [+0.039, +0.052] | +0.006 [-0.008, +0.018] |
+| A | 5 | +0.039 [+0.030, +0.048] | +0.019 [+0.013, +0.026] | +0.032 [+0.018, +0.044] |
+| A | 10 | +0.042 [+0.034, +0.050] | -0.011 [-0.018, -0.004] | +0.057 [+0.042, +0.070] |
 | B | 1 | -0.022 [-0.027, -0.016] | +0.288 [+0.273, +0.305] | -0.140 [-0.150, -0.130] |
 | B | 3 | -0.017 [-0.025, -0.009] | +0.182 [+0.167, +0.199] | -0.106 [-0.122, -0.086] |
 | B | 5 | -0.001 [-0.010, +0.008] | +0.128 [+0.113, +0.144] | -0.064 [-0.083, -0.043] |
 | B | 10 | +0.047 [+0.030, +0.063] | +0.083 [+0.068, +0.097] | +0.015 [-0.005, +0.033] |
-| C | 1 | -0.021 [-0.025, -0.016] | +0.262 [+0.253, +0.271] | -0.154 [-0.164, -0.144] |
-| C | 3 | 0.000 [-0.005, +0.005] | +0.195 [+0.186, +0.204] | -0.091 [-0.100, -0.081] |
-| C | 5 | +0.017 [+0.012, +0.022] | +0.173 [+0.162, +0.184] | -0.044 [-0.053, -0.036] |
-| C | 10 | +0.061 [+0.054, +0.067] | +0.146 [+0.133, +0.159] | +0.042 [+0.033, +0.052] |
+| C | 1 | -0.034 [-0.037, -0.030] | +0.271 [+0.259, +0.283] | -0.172 [-0.180, -0.164] |
+| C | 3 | -0.008 [-0.011, -0.004] | +0.181 [+0.170, +0.193] | -0.099 [-0.109, -0.089] |
+| C | 5 | +0.011 [+0.006, +0.016] | +0.148 [+0.138, +0.159] | -0.048 [-0.058, -0.039] |
+| C | 10 | +0.044 [+0.038, +0.051] | +0.113 [+0.103, +0.123] | +0.021 [+0.011, +0.032] |
 
 ### E. Detección con el *adjusted threshold*
 
 El *optimized threshold* de la Sección IV-B, que no toca el modelo, llevó al
-LSTM a ganar en MCC 4 de las 12 celdas, entre ellas las rutas A y C a diez minutos, y
-a empatar en la ruta B a diez minutos (última columna de la Tabla 2).
+LSTM a ganar en MCC 3 de las 12 celdas, entre ellas las rutas A y C a diez minutos, y
+a empatar en la ruta B a diez minutos y en la A a tres minutos (última columna de
+la Tabla 2).
 
 La Tabla 3 compara las cinco reglas sobre la misma población. Su columna A/E
 es el sesgo de frecuencia (*frequency bias*) [@ferro2011]: la tasa de alarma
@@ -541,12 +541,12 @@ promedio del último vector observado antes de predecir. La tercera es el
 cuarta parte del headway programado [@moreiramatias2016]. Estas rutas no
 tienen horario, así que aquí se usó la cuarta parte del headway mediano
 observado de cada ruta y sentido, en el origen 2. Las tres dejaron al LSTM
-casi sin alarmas. Su A/E mediano fue de 0.001 a 0.153, es decir, el LSTM emitió
-entre 1 y 153 alarmas por cada mil eventos. El de la persistencia fue de 0.980
-a 1.062, casi una alarma por evento. Con el threshold fijo, el LSTM no emitió ninguna alarma en dos
+casi sin alarmas. Su A/E mediano fue de 0.000 a 0.143, es decir, el LSTM emitió
+como mucho 143 alarmas por cada mil eventos. El de la persistencia fue de 0.989
+a 1.065, casi una alarma por evento. Con el threshold fijo, el LSTM no emitió ninguna alarma en cinco
 celdas. Con el *unadjusted threshold* y con el threshold fijo, la persistencia
 ganó en MCC en las doce celdas. Con los dos *adjusted thresholds*, el A/E
-mediano del LSTM fue de 1.125 y 1.000, también cerca de una alarma por evento.
+mediano del LSTM fue de 1.202 y 1.000, también cerca de una alarma por evento.
 
 La Figura 4 muestra por qué. Con el *unadjusted threshold*, el valor aplicado al
 headway predicho quedó a menos de 0.35 minutos del aplicado al headway
@@ -561,7 +561,7 @@ por el LSTM (continua), por horizonte. Un panel por ruta, origen 3.
 
 La columna Coincide de la Tabla 3 cuenta, sobre las celdas sin empate en AUC ni
 en MCC, aquellas en que los dos dan el mismo ganador. Con el *optimized
-threshold* coincidieron en 8 de 9, y con el *percentile threshold*, en 9 de 10.
+threshold* coincidieron en 7 de 8, y con el *percentile threshold*, en 9 de 10.
 Con el *unadjusted threshold* y con el threshold fijo, la persistencia ganó
 siempre en MCC, de modo que solo coincidieron en las 4 celdas donde también ganó
 en AUC. Aun así, el percentil no convierte al LSTM en mejor detector: pierde
@@ -574,11 +574,11 @@ Jaccard es el índice de la Sección IV-B contra el evento de la Ecuación (4).
 
 | Regla | A/E LSTM | A/E pers. | MCC LSTM | Jaccard | Coincide |
 | :--- | ---: | ---: | ---: | ---: | :---: |
-| *Unadjusted* | 0.079 | 1.011 | 0.100 | 1.000 | 4/10 |
-| *Unadjusted*, promedio observado | 0.153 | 0.980 | 0.143 | 0.710 | 5/7 |
-| Fijo | 0.001 | 1.062 | 0.004 | 0.351 | 4/10 |
-| *Optimized* | 1.125 | 1.140 | 0.198 | 1.000 | 8/9 |
-| *Percentile* | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | 9/10 |
+| *Unadjusted* | 0.065 | 1.015 | 0.093 | 1.000 | 4/10 |
+| *Unadjusted*, promedio observado | 0.143 | 0.989 | 0.142 | 0.719 | 5/9 |
+| Fijo | 0.000 | 1.065 | 0.000 | 0.351 | 4/10 |
+| *Optimized* | 1.202 | 1.117 | 0.193 | 1.000 | 7/8 |
+| *Percentile* | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.218 | 0.623 | 9/10 |
 
 ‡ Vale uno por construcción: la alarma y el evento marcan la misma cantidad de
 posiciones en cada vector (Sección IV-B).
@@ -607,14 +607,14 @@ threshold diseñado para el headway observado dejó al LSTM casi sin alarmas.
 
 Este trabajo mostró que las predicciones entrenadas por error cuadrático
 describen una ruta más regular que la real. A diez minutos, la ruta A queda en
-nivel A del TCQSM según el headway predicho y en nivel F según el headway
+nivel A del TCQSM según el headway predicho y en nivel E según el headway
 observado.
 Mostró también que, por esa subdispersión, el *unadjusted threshold* hace que el
 F1 ordene a los métodos por cuántas alarmas emiten y no por cuántas aciertan, y
 que a diez minutos la puntuación sin threshold invierte ese orden. Para
 corregirlo, ajustamos el threshold sobre el headway predicho de dos maneras,
 optimizado en un origen anterior o como un percentil de cada vector. Con ambas,
-el ganador vuelve a coincidir con el que da el AUC en 8 de 9 casos y en 9 de 10. El dataset cubre tres rutas de una sola ciudad
+el ganador vuelve a coincidir con el que da el AUC en 7 de 8 casos y en 9 de 10. El dataset cubre tres rutas de una sola ciudad
 durante 152 días, y el promedio histórico por posición se ajustó sobre un solo
 origen anterior. Queda por repetir la medición en otras ciudades. Esperamos que
 la detección de bunching sobre predicciones se evalúe en adelante con un *adjusted threshold*.
@@ -700,12 +700,12 @@ evitan fugas de información:
 
 - **Continuidad estricta:** una muestra entra solo si sus minutos son
   consecutivos, para que la ventana no atraviese un hueco de señal. Retiene
-  entre el 81.9 % y el 90.2 % de los snapshots de prueba.
+  entre el 81.9 % y el 91.2 % de los snapshots de prueba.
 - **Población compartida:** todos los métodos se puntúan sobre las mismas filas,
   y el entrenamiento aborta si el resumen SHA-256 de la lista de muestras no
   coincide con el registrado.
 - **Tope:** el percentil 99 del headway de entrenamiento se aplica como techo a
-  las tres particiones, y afecta entre el 0.78 % y el 1.11 % de los objetivos.
+  las tres particiones, y afecta entre el 0.84 % y el 1.10 % de los objetivos.
 
 ---
 
@@ -713,7 +713,7 @@ evitan fugas de información:
 
 Toda comparación entre métodos es pareada, sobre las mismas muestras, y agrupa
 por día de servicio: las muestras de un mismo día comparten clima, incidentes y
-demanda, y eso lleva el tamaño efectivo de entre 75 747 y 240 907 filas a los 22
+demanda, y eso lleva el tamaño efectivo de entre 83 190 y 277 430 filas a los 22
 días de prueba.
 
 - **MAE:** prueba de Diebold–Mariano [@diebold1995] sobre el diferencial de

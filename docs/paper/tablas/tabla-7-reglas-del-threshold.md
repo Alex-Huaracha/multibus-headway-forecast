@@ -1,9 +1,9 @@
 | Regla | A/E LSTM | A/E pers. | MCC LSTM | Jaccard | Coincide |
 | :--- | ---: | ---: | ---: | ---: | :---: |
-| *Unadjusted* | 0.079 | 1.011 | 0.100 | 1.000 | 4/10 |
-| *Unadjusted*, promedio observado | 0.153 | 0.980 | 0.143 | 0.710 | 5/7 |
-| Fijo | 0.001 | 1.062 | 0.004 | 0.351 | 4/10 |
-| *Optimized* | 1.125 | 1.140 | 0.198 | 1.000 | 8/9 |
-| *Percentile* | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.210 | 0.580 | 9/10 |
+| *Unadjusted* | 0.065 | 1.015 | 0.093 | 1.000 | 4/10 |
+| *Unadjusted*, promedio observado | 0.143 | 0.989 | 0.142 | 0.719 | 5/9 |
+| Fijo | 0.000 | 1.065 | 0.000 | 0.351 | 4/10 |
+| *Optimized* | 1.202 | 1.117 | 0.193 | 1.000 | 7/8 |
+| *Percentile* | 1.000&nbsp;‡ | 1.000&nbsp;‡ | 0.218 | 0.623 | 9/10 |
 
 ‡ Vale uno por construcción y no por medición: la cantidad de posiciones marcadas queda fijada antes de leer los valores.
