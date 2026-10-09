@@ -14,7 +14,7 @@
 
 ### El problema
 
-Una empresa de transporte quiere que le avisen cuándo dos buses se le van a juntar. Eso es el *bunching*[^bunching]: un *headway* que colapsa hacia cero mientras el de al lado se abre. Es la falla que le arruina el servicio y ocurre en el **17 % al 30 %** de las celdas de estos corredores — no es un evento raro.
+Una empresa de transporte quiere que le avisen cuándo dos buses se le van a juntar. Eso es el *bunching*[^bunching]: un *headway* que colapsa hacia cero mientras el de al lado se abre. Es la falla que le arruina el servicio y ocurre en el **17 % al 29 %** de las celdas de estos corredores — no es un evento raro.
 
 La receta obvia es: entrenar un modelo que prediga los *headways*, definir la regla de alarma sobre esa predicción, y despachar. Nosotros la ejecutamos. Entrenamos un LSTM[^lstm] y un XGBoost[^xgboost] nivelado sobre tres corredores reales, los medimos contra la persistencia[^persistencia] sobre muestras idénticas, y aplicamos una regla de threshold relativo: **marcar toda celda cuyo *headway* caiga por debajo de la mitad de la media de su propio vector**.
 
@@ -24,28 +24,28 @@ La receta obvia es: entrenar un modelo que prediga los *headways*, definir la re
 >
 > **Y esa diferencia es justamente el mecanismo.** La referencia de Yu et al. es el *headway* observado en la primera parada: un número **fijo** una vez que arranca la corrida, que **no se mueve** con el pronóstico. La nuestra es la media del **vector predicho**, que **sí** se mueve. Por eso en nuestro caso el coeficiente de variación gobierna el resultado, y por eso el artefacto aparece con toda su fuerza.
 >
-> Y la pregunta obvia —si el colapso no es más que un artefacto de esa forma auto-referencial— **está medida**, no argumentada. La Sección 5.6 repite toda la detección con un corte **absoluto en minutos** calibrado fuera de muestra. El resultado va en contra de lo que esperábamos: **el colapso empeora**, y con la convención dominante del campo (un cuarto del *headway* programado) es **110 veces peor** que con nuestra regla. El alcance del hallazgo es entonces más ancho que los thresholds auto-referenciales — nuestra elección de threshold resultó ser la **conservadora**.
+> Y la pregunta obvia —si el colapso no es más que un artefacto de esa forma auto-referencial— **está medida**, no argumentada. La Sección 5.6 repite toda la detección con un corte **absoluto en minutos** calibrado fuera de muestra. El resultado va en contra de lo que esperábamos: **el colapso empeora**, y con la convención dominante del campo (un cuarto del *headway* programado) es **234 veces peor** que con nuestra regla. El alcance del hallazgo es entonces más ancho que los thresholds auto-referenciales — nuestra elección de threshold resultó ser la **conservadora**.
 
-El resultado escalar salió como se esperaba: a partir de 5 minutos de anticipación los aprendices le ganan a la persistencia con holgura creciente, hasta **1.47 min de MAE**[^mae] a 10 minutos.
+El resultado escalar salió como se esperaba: a partir de 5 minutos de anticipación los aprendices le ganan a la persistencia con holgura creciente, hasta **1.55 min de MAE**[^mae] a 10 minutos.
 
 La alarma, en cambio, no sonó nunca.
 
 | E2, a 10 minutos de anticipación | LSTM | Persistencia |
 |---|---|---|
-| MAE (menor es mejor) | **5.32 min** | 6.79 min |
-| *Bunching* — F1[^f1] con el threshold fijo | 0.0013 | **0.332** |
-| Veces que disparó, en 50 356 oportunidades | **14** | 15 084 |
-| Eventos reales que había que agarrar | 15 245 | 15 245 |
+| MAE (menor es mejor) | **5.17 min** | 6.72 min |
+| *Bunching* — F1[^f1] con el threshold fijo | 0.000 | **0.315** |
+| Veces que disparó, en 79 153 oportunidades | **0** | 22 426 |
+| Eventos reales que había que agarrar | 22 468 | 22 468 |
 
-Catorce disparos donde había quince mil eventos. Un factor de **253** contra la persistencia. La lectura inmediata —y la que este documento sostuvo en versiones anteriores— es que el modelo se volvió ciego a la irregularidad.
+Ningún disparo donde había más de veintidós mil eventos. El F1 del LSTM es cero, así que el factor contra la persistencia ni siquiera es finito. Un horizonte antes, en E2 h=5, el LSTM dispara 30 veces y el factor ya es **209**. La lectura inmediata —y la que este documento sostuvo en versiones anteriores— es que el modelo se volvió ciego a la irregularidad.
 
 ### Por qué esa lectura es falsa
 
 Dos cosas la desarman, y las dos salen de los mismos datos.
 
-**Primera: la persistencia no estaba detectando nada.** Disparó 15 084 veces y acertó 5 036 — un **33 % de precisión contra una tasa base del 30 %**. Estaba disparando a la frecuencia correcta con acierto de casi-azar, y el F1 premia exactamente eso. La prueba: *marcar todas las celdas* saca F1 = 0.465 en esa misma celda, **más** que los 0.332 de la persistencia. El ganador declarado perdía contra una regla constante, en los tres corredores a h=10.
+**Primera: la persistencia no estaba detectando nada.** Disparó 22 426 veces y acertó 7 079 — un **32 % de precisión contra una tasa base del 28 %**. Estaba disparando a la frecuencia correcta con acierto de casi-azar, y el F1 premia exactamente eso. La prueba: *marcar todas las celdas* saca F1 = 0.442 en esa misma celda, **más** que los 0.315 de la persistencia. El ganador declarado perdía contra una regla constante, en los tres corredores a h=10.
 
-**Segunda: el threshold publicado era el threshold óptimo de la persistencia.** La persistencia propaga el vector observado, así que hereda su dispersión real (CV[^cv] ≈ 0.79) y el corte del 0.5 cae donde fue diseñado para caer. Un pronóstico puntual emite un vector comprimido (CV ≈ 0.16), así que ese mismo corte *relativo* le queda a tres desviaciones estándar dentro de la cola izquierda. Y esto no es una conjetura: ajustando el corte libremente sobre una ventana anterior, **la persistencia recupera 0.5× en 11 de las 12 celdas**, mientras que el LSTM necesita entre 0.58× y 0.91×. La regla estaba escrita en las unidades de un competidor.
+**Segunda: el threshold publicado era el threshold óptimo de la persistencia.** La persistencia propaga el vector observado, así que hereda su dispersión real (CV[^cv] ≈ 0.74) y el corte del 0.5 cae donde fue diseñado para caer. Un pronóstico puntual emite un vector comprimido (CV ≈ 0.18), así que ese mismo corte *relativo* le queda a tres desviaciones estándar dentro de la cola izquierda. Y esto no es una conjetura: ajustando el corte libremente sobre una ventana anterior, **la persistencia vuelve a un corte cercano a 0.5× (entre 0.47× y 0.63×) en las 12 celdas**, mientras que el LSTM necesita entre 0.58× y 0.96×. La regla estaba escrita en las unidades de un competidor.
 
 ![El artefacto de threshold](contiguo-artefacto-threshold.png)
 
@@ -57,15 +57,13 @@ Sacale el threshold de encima y el veredicto se da vuelta.
 
 | E2, a 10 minutos | LSTM | Persistencia |
 |---|---|---|
-| AUC[^auc] (sin threshold) | **0.565** | 0.528 |
-| MCC[^mcc] con threshold calibrado fuera de muestra | **0.085** | 0.027 |
-| Precisión cuando dispara, con el threshold fijo | **71 %** (10 de 14) | 33 % (5 036 de 15 084) |
+| AUC[^auc] (sin threshold) | **0.570** | 0.528 |
+| MCC[^mcc] con threshold calibrado fuera de muestra | **0.098** | 0.042 |
+| Precisión cuando dispara, con el threshold fijo | no dispara | 32 % (7 079 de 22 426) |
 
-Esa última fila es la que cierra el caso. Los catorce disparos del LSTM aciertan al **71 %** contra una tasa base del 30 %; los quince mil de la persistencia aciertan al 33 %. El modelo no está equivocado cuando habla: está callado. Y estar callado es lo que arregla un threshold.
+En E2 h=10 el LSTM no dispara nunca, así que su precisión no está definida. Ahí el caso lo cierran el AUC y el MCC calibrado. La precisión se mide donde el LSTM sí dispara. En E59 h=10 dispara **429** veces y acierta **191**. Es un 45 % (IC 95 %: 40 %–49 %) contra una tasa base del 23 %, o sea **2.0× el azar**. La persistencia acierta ahí el 31 %. En E4 h=10 el LSTM acierta 75 de 150, un 50 % contra el 18 %. El modelo no está equivocado cuando habla: está callado. Y estar callado es lo que arregla un threshold.
 
-*Con la salvedad obvia:* 10 de 14 tiene un intervalo de confianza ancho (≈ 42 %–92 % al 95 %). El punto no descansa en esa celda. En E59 h=10, donde el LSTM dispara **1 573** veces, acierta **777** — un 49 % contra una tasa base del 21 %, o sea **2.4× el azar** con muestra de sobra. En E4 h=10: 75 de 150, un 50 % contra el 18 %. El patrón es el mismo en los tres y el volumen lo sostiene en dos.
-
-**A 10 minutos el LSTM discrimina el *bunching* mejor que la persistencia, en los tres corredores, con y sin threshold.** A 1 minuto la persistencia gana, también en los tres — y también gana el MAE ahí. Las dos métricas **coinciden** una vez removido el artefacto: la persistencia manda en el horizonte corto, el aprendiz en el largo. No hay disociación.
+**A 10 minutos el LSTM discrimina el *bunching* mejor que la persistencia, en los tres corredores, con y sin threshold.** A 1 minuto la persistencia gana en E4 y E59, y también gana el MAE ahí. En E2, a 1 minuto, empatan en MAE y casi empatan en AUC (0.710 contra 0.712). Las dos métricas **coinciden** una vez removido el artefacto: la persistencia manda en el horizonte corto, el aprendiz en el largo. No hay disociación.
 
 ![El veredicto sin threshold](contiguo-deteccion-sin-threshold.png)
 
@@ -73,12 +71,12 @@ Esa última fila es la que cierra el caso. Los catorce disparos del LSTM acierta
 
 ### Qué queda en pie, y por qué importa
 
-Lo que sobrevive intacto es el aplanamiento: **el sesgo del coeficiente de variación es negativo en las 36 celdas** de corredor × horizonte × ventana, y empeora monotónicamente con el horizonte. El LSTM predice un corredor con CV de 0.16 cuando el real es 0.79. Eso es real, es sistemático, y el MAE agregado no lo ve.
+Lo que sobrevive intacto es el aplanamiento: **el sesgo del coeficiente de variación es negativo en las 36 celdas** de corredor × horizonte × ventana, y empeora monotónicamente con el horizonte. En E2 a 10 minutos, el LSTM predice un corredor con CV de 0.18 cuando el real es 0.74. Eso es real, es sistemático, y el MAE agregado no lo ve.
 
 Pero su costo no es informativo, es **de unidades**. El aporte de este trabajo es esa distinción, medida:
 
 1. **Todo pronóstico puntual está sub-disperso**, porque toda pérdida puntual apunta a un funcional central de la distribución condicional — la mediana si es MAE, la media si es error cuadrático. No es un defecto del LSTM ni del MAE en particular.
-2. **Por eso una regla de evento calibrada en el espacio de las observaciones no es transportable al espacio del pronóstico.** Trasplantarla fabrica una degradación aparente de hasta 253× que no existe en la información.
+2. **Por eso una regla de evento calibrada en el espacio de las observaciones no es transportable al espacio del pronóstico.** Trasplantarla fabrica una degradación aparente de hasta 209×, o un modelo que no dispara nunca, sin que falte la información.
 3. **Y por eso el despliegue ingenuo falla por un motivo que no tiene nada que ver con lo que el modelo sabe** — con un arreglo concreto y barato: calibrar el corte sobre una ventana anterior, o puntuar sin threshold.
 
 Para la empresa la diferencia es todo. "El modelo no sirve para anticipar *bunching*" cierra la línea de trabajo. "El modelo sirve, pero la alarma está mal seteada" es un ajuste de un escalar sobre datos que ya tenés.
@@ -117,11 +115,11 @@ Una auditoría adversarial previa encontró que la comparación anterior no era 
 | **C2 — Contigüidad temporal** | Los `12 + h` instantes de una ventana son minutos **consecutivos**. El horizonte es tiempo, no posición de fila. | Verificado al materializar; una violación aborta. |
 | **C3 — Frontera de información** | Ninguna variable usa información posterior al instante de predicción. Se eliminó la bandera de día atípico, que era un agregado del día completo. | El gate de entrada falla cerrado si la variable reaparece. |
 
-**Costo de exigir contigüidad:** entre el 81.9 % y el 90.2 % de los *snapshots*[^snapshot] sobreviven. Se perdió menos del 20 % de los datos y se ganó que el horizonte signifique lo que dice.
+**Costo de exigir contigüidad:** entre el 81.9 % y el 91.2 % de los *snapshots*[^snapshot] sobreviven. Se perdió menos del 20 % de los datos y se ganó que el horizonte signifique lo que dice.
 
 **Verificación del contrato C1.** Cada modelo se puntúa dos veces: sobre sus propias filas y sobre la intersección de los tres. Si C1 se cumple, restringir a la intersección no debe mover nada.
 
-> Sesgo de encuadre medido: **0.001 min** como máximo, sobre 36 filas. En el pipeline anterior era de **0.28 a 0.53 min** — más grande que la mayoría de los márgenes que se reclamaban encima. La comparación ahora es atribuible; antes no lo era.
+> Sesgo de encuadre medido: **0.0022 min** como máximo, sobre 36 filas. En el pipeline anterior era de **0.28 a 0.53 min** — más grande que la mayoría de los márgenes que se reclamaban encima. La comparación ahora es atribuible; antes no lo era.
 
 ---
 
@@ -131,23 +129,23 @@ Una auditoría adversarial previa encontró que la comparación anterior no era 
 
 *Figura 3 — MAE frente al horizonte, por corredor. Cuanto más bajo, mejor. La persistencia parte abajo a h = 1 y termina arriba a h = 10: ese es el cruce, y el XGBoost lo recorre igual que el LSTM.*
 
-Medido sobre la población pareada a tres bandas (entre 75 747 y 240 907 predicciones escalares por celda):
+Medido sobre la población pareada a tres bandas (entre 83 190 y 277 430 predicciones escalares por celda):
 
 **Δ MAE contra la persistencia** (negativo = el aprendiz gana):
 
 | Corredor | h=1 | h=3 | h=5 | h=10 |
 |---|---|---|---|---|
-| E2 | +0.067 | −0.851 | −1.109 | **−1.473** |
-| E59 | +0.334 | −0.186 | −0.491 | **−1.173** |
+| E2 | −0.011 | −0.884 | −1.232 | **−1.548** |
+| E59 | +0.538 | −0.073 | −0.486 | **−1.259** |
 | E4 | +0.464 | −0.064 | −0.536 | **−1.381** |
 
 Dos lecturas que cambian el titular respecto de versiones anteriores de este documento:
 
-**El XGBoost reproduce el patrón completo.** Contra persistencia, a h=10: −1.585 en E2, −0.787 en E59, −1.085 en E4. El cruce **no es una propiedad del Deep Learning**, es una propiedad del problema: existe un threshold de anticipación a partir del cual el último valor observado deja de ser suficiente, y cualquier aprendiz razonable lo cruza.
+**El XGBoost reproduce el patrón completo.** Contra persistencia, a h=10: −1.566 en E2, −0.972 en E59, −1.085 en E4. El cruce **no es una propiedad del Deep Learning**, es una propiedad del problema: existe un threshold de anticipación a partir del cual el último valor observado deja de ser suficiente, y cualquier aprendiz razonable lo cruza.
 
-**El LSTM contra el XGBoost se parte por corredor**, con signos opuestos que el horizonte amplifica: a h=10 el XGBoost gana en E2 (+0.113) y el LSTM gana en E59 (−0.385) y E4 (−0.295). No hay un ganador global.
+**El LSTM contra el XGBoost se parte por corredor.** A h=10 el LSTM gana en E59 (−0.286) y E4 (−0.295). En E2 el XGBoost queda adelante por +0.018, una diferencia que no es significativa (*p* = 0.15 agrupado por día). No hay un ganador global.
 
-> ⚠️ **Y ese contraste no está nivelado.** El XGBoost recibió **24 configuraciones por celda** elegidas en validación; el LSTM recibió **1** en E2/E59 y **3** en E4, heredadas de una fase previa. La asimetría corre **en contra** de la red. Consecuencia directa: *"el LSTM gana en E59"* es seguro, porque gana con menos presupuesto; *"el XGBoost gana en E2"* **no es atribuible a la clase de modelo**. Nivelar cuesta unas 14 horas de GPU y no se hizo.
+> ⚠️ **Y ese contraste no está nivelado.** El XGBoost recibió **24 configuraciones por celda** elegidas en validación; el LSTM recibió **1** en E2/E59 y **3** en E4, heredadas de una fase previa. La asimetría corre **en contra** de la red. Consecuencia directa: *"el LSTM gana en E59"* es seguro, porque gana con menos presupuesto; la ventaja del XGBoost en E2, además de no ser significativa, **no es atribuible a la clase de modelo**. Nivelar cuesta unas 14 horas de GPU y no se hizo.
 
 ### A h=1 el MAE y el error cuadrático nombran ganadores opuestos
 
@@ -155,13 +153,13 @@ Hay una inversión de signo en la tabla de significancia que las versiones anter
 
 | Corredor | Δ MAE | Gana | *p* | Δ error cuadrático[^rmse] | Gana | *p* |
 |---|---|---|---|---|---|---|
-| E2 | +0.067 min | persistencia | 0.062 | −15.36 min² | **LSTM** | 7.3e−18 |
+| E2 | −0.011 min | empate | 0.72 | −15.94 min² | **LSTM** | 1.2e−19 |
 | E4 | +0.464 min | persistencia | 1.0e−13 | −6.49 min² | **LSTM** | 2.7e−14 |
-| E59 | +0.334 min | persistencia | 2.6e−13 | −8.35 min² | **LSTM** | 8.4e−16 |
+| E59 | +0.538 min | persistencia | 1.1e−16 | −7.86 min² | **LSTM** | 4.8e−16 |
 
 *(Varianza agrupada por día de servicio, G = 22.)*
 
-El LSTM aplanado **pierde** el error absoluto y **gana** el cuadrático, en los tres corredores, con significancia holgada en cinco de las seis celdas. Es el comportamiento esperable de un pronóstico contraído: la contracción evita los errores grandes —que el cuadrático castiga desproporcionadamente— al costo de fallar más seguido por poco, que es lo único que el absoluto cuenta.
+En E4 y E59 el LSTM aplanado **pierde** el error absoluto y **gana** el cuadrático, las cuatro celdas con significancia holgada. En E2 empata el absoluto y gana el cuadrático. Es el comportamiento esperable de un pronóstico contraído: la contracción evita los errores grandes —que el cuadrático castiga desproporcionadamente— al costo de fallar más seguido por poco, que es lo único que el absoluto cuenta.
 
 **Y desmiente una afirmación que este documento hacía.** Versiones anteriores explicaban el aplanamiento diciendo que "el MAE premia contraer". Si eso fuera cierto, el vector aplanado no podría perder el MAE y ganar el cuadrático a la vez. El pronóstico que minimiza el error absoluto es la **mediana** condicional y el que minimiza el cuadrático es la **media**: las dos son medidas de centro, así que la sub-dispersión no viene de elegir una pérdida sobre la otra — viene de emitir **un solo número por celda**. La afirmación se corrige acá y en el glosario, y su consecuencia se desarrolla en la Sección 5.2.
 
@@ -177,12 +175,12 @@ Estratificamos cada predicción por la **dispersión de su propia ventana de ent
 
 | Celda | Ventana calma | Ventana media | Ventana volátil |
 |---|---|---|---|
-| E2 h=1 | +0.218 | +0.086 | −0.080 |
+| E2 h=1 | +0.160 | +0.052 | −0.235 |
 | E4 h=3 | **+0.370** | +0.006 | **−0.451** |
-| E59 h=3 | +0.159 | −0.157 | −0.559 |
+| E59 h=3 | +0.274 | −0.000 | −0.469 |
 | E4 h=10 | −0.659 | −1.116 | −2.172 |
 
-En **11 de las 12 celdas** la ventaja crece de forma ordenada del tercil calmo al volátil, y dentro de cada tercil crece con el horizonte. La excepción es E59 h=1, donde el tercil medio y el volátil quedan empatados (+0.29502 contra +0.29531): la diferencia es de **tres diezmilésimas de minuto**, dos órdenes de magnitud por debajo del ruido de semilla (±0.024 min), así que es un empate y no una inversión. El gradiente calmo → medio sí se cumple en las 12.
+En **las 12 celdas** la ventaja crece de forma ordenada del tercil calmo al volátil, y dentro de cada tercil crece con el horizonte.
 
 > **El cruce no es un threshold de horizonte: es un threshold de volatilidad que el horizonte va cruzando.** El aprendiz gana donde el corredor está inestable; la persistencia gana donde está calmo. Alargar el horizonte empuja la ventaja del aprendiz hacia los terciles cada vez más calmos, hasta cubrirlos todos.
 
@@ -196,15 +194,15 @@ Eso explica de dónde sale el agregado engañoso de E4 a h=3: **−0.064 min** e
 
 Las muestras del mismo día de servicio comparten clima, incidentes y demanda: un accidente a las 08:00 moldea toda la mañana. Tratarlas como independientes infla la significancia. La varianza correcta se agrupa por **día de servicio**, y el conjunto de prueba tiene **22 días**. Ese es el tamaño de muestra real.
 
-Al corregirlo, tres verdictos se caen:
+Al corregirlo, dos veredictos se caen. Un tercero, el LSTM en E2 h=1, ya no era significativo sin agrupar:
 
 | Celda | *p* sin agrupar | *p* agrupado por día |
 |---|---|---|
-| E2 h=1, LSTM vs persistencia | 0.000129 | **0.0619** |
 | E4 h=3, LSTM vs persistencia | 0.00084 | **0.1849** |
-| E2 h=1, XGBoost vs persistencia | 0.0285 | **0.2320** |
+| E2 h=1, XGBoost vs persistencia | 0.0244 | **0.2484** |
+| E2 h=1, LSTM vs persistencia | 0.4586 | **0.7175** |
 
-A h≥5 todo sigue significativo con márgenes amplios (*p* < 1e-9 en las nueve celdas). El daño está concentrado en h=1 y h=3.
+A h≥5 todo sigue significativo con márgenes amplios (*p* < 1e-9 en las seis celdas del LSTM contra la persistencia). El daño está concentrado en h=1 y h=3.
 
 ### A h=3 no hay victoria declarable
 
@@ -212,9 +210,9 @@ Cuatro métodos independientes convergen en lo mismo:
 
 | Método | Qué dice de h=3 |
 |---|---|
-| **Media contra mediana** | En E4 y E59 el LSTM gana el MAE promedio pero **pierde en la mayoría de las muestras individuales**: gana el 46.0 % y el 47.3 % de las veces, con medianas de +0.185 y +0.155 min. El Wilcoxon[^wilcoxon] unilateral en la dirección que afirma la media da *p* = 1.000 y *p* = 0.952. |
+| **Media contra mediana** | En E4 y E59 el LSTM gana el MAE promedio pero **pierde en la mayoría de las muestras individuales**: gana el 46.0 % y el 45.7 % de las veces, con medianas de +0.185 y +0.246 min. El Wilcoxon[^wilcoxon] unilateral en la dirección que afirma la media da *p* = 1.000 en los dos. En E59 la media sí es significativa (*p* = 0.020 agrupado por día), y aun así la mediana la contradice. |
 | **Terciles de volatilidad** | Pierde en el tercil calmo, empata en el medio, gana en el volátil (Sección 3). |
-| **Direcciones** | En E4 los dos sentidos se contradicen: +0.078 en uno, −0.170 en el otro. En E59 un sentido prácticamente empata (−0.019). |
+| **Direcciones** | En E4 los dos sentidos se contradicen: +0.078 en uno, −0.170 en el otro. En E59 también: −0.160 en uno, +0.008 en el otro. |
 | **Enrutador** | Es el **único** horizonte donde conmutar entre modelos paga (Sección 6). |
 
 La lectura honesta —el aprendiz cambia muchas pérdidas chicas por pocas ganancias grandes— es más informativa que "el DL gana", y encaja con todo lo demás del documento.
@@ -223,7 +221,7 @@ La lectura honesta —el aprendiz cambia muchas pérdidas chicas por pocas ganan
 
 | Horizonte | Qué se puede afirmar |
 |---|---|
-| **h=1** | Gana la persistencia. Firme en E4 y E59; **al borde en E2** (*p* = 0.062). |
+| **h=1** | Gana la persistencia en E4 y E59. **En E2 empatan** (Δ = −0.011 min, *p* = 0.72). |
 | **h=3** | **Zona de transición.** Sin victoria declarable. |
 | **h≥5** | **El aprendiz gana en media y en mediana, con significancia amplia, en los tres corredores.** Esta es la afirmación sólida. |
 
@@ -237,18 +235,18 @@ Todo lo anterior sale de **una** ventana de prueba de 22 días. La objeción inm
 | `r2` | 83 días | 2024-01-14 → 2024-02-04 |
 | `main` | 107 días | 2024-02-08 → 2024-02-29 (la publicada) |
 
-**11 de las 12 celdas ponen la victoria del mismo lado en los tres orígenes.** El signo de Δ MAE, donde negativo es victoria del aprendiz:
+**9 de las 12 celdas ponen la victoria del mismo lado en los tres orígenes.** El signo de Δ MAE, donde negativo es victoria del aprendiz:
 
 | Celda | `r1` | `r2` | `main` | ¿Coincide? |
 |---|---|---|---|---|
-| E2 h=1 | +0.041 | +0.054 | +0.066 | sí |
-| E2 h=3 | −0.734 | −0.794 | −0.851 | sí |
-| E2 h=5 | −0.993 | −1.074 | −1.109 | sí |
-| E2 h=10 | −1.398 | −1.413 | −1.473 | sí |
-| E59 h=1 | +0.374 | +0.409 | +0.334 | sí |
-| E59 h=3 | −0.134 | −0.120 | −0.186 | sí |
-| E59 h=5 | −0.429 | −0.405 | −0.491 | sí |
-| E59 h=10 | −1.046 | −1.073 | −1.173 | sí |
+| **E2 h=1** | **+0.048** | **+0.010** | **−0.011** | **no** |
+| E2 h=3 | −0.758 | −0.843 | −0.884 | sí |
+| E2 h=5 | −1.104 | −1.166 | −1.232 | sí |
+| E2 h=10 | −1.444 | −1.537 | −1.548 | sí |
+| E59 h=1 | +0.566 | +0.614 | +0.538 | sí |
+| **E59 h=3** | **+0.015** | **+0.037** | **−0.073** | **no** |
+| E59 h=5 | −0.390 | −0.433 | −0.486 | sí |
+| E59 h=10 | −1.145 | −1.233 | −1.258 | sí |
 | E4 h=1 | +0.459 | +0.424 | +0.464 | sí |
 | **E4 h=3** | **+0.167** | **−0.017** | **−0.064** | **no** |
 | E4 h=5 | −0.286 | −0.520 | −0.536 | sí |
@@ -256,13 +254,13 @@ Todo lo anterior sale de **una** ventana de prueba de 22 días. La objeción inm
 
 **La afirmación sólida se sostiene entera.** A h≥5 las **18 celdas** —tres corredores por dos horizontes por tres orígenes— dan ventaja al aprendiz, y las 18 son significativas con la varianza agrupada por día. Ninguna depende del mes.
 
-**La única que se da vuelta es la que nunca fue una afirmación.** E4 h=3 es la celda que esta misma sección ya declaraba no significativa en la ventana publicada. Fuera de ella se comporta igual: *p* = 0.183 en `main` y 0.720 en `r2`, y solo en `r1` alcanza significancia, del lado de la persistencia. El desacuerdo no tumba un resultado — confirma que ahí, para ese corredor, el cruce está justo en el medio y no hay victoria que reclamar. Coincide con lo que ya decían los otros cuatro métodos.
+**Las tres que se dan vuelta son celdas que nunca fueron una afirmación.** E4 h=3 es la celda que esta misma sección ya declaraba no significativa en la ventana publicada. Fuera de ella se comporta igual: *p* = 0.183 en `main` y 0.720 en `r2`, y solo en `r1` alcanza significancia, del lado de la persistencia. E59 h=3 es la otra celda de h=3. En `main` la media favorece al aprendiz (*p* = 0.019), pero la mediana la contradice, y en `r1` y `r2` la persistencia queda adelante sin significancia (*p* = 0.677 y 0.169). Los desacuerdos no tumban un resultado. Confirman que ahí el cruce está justo en el medio y no hay victoria que reclamar. Coincide con lo que ya decían los otros cuatro métodos.
 
-**Y el borde de E2 h=1 tampoco era del mes.** No alcanza significancia en ninguno de los tres orígenes (*p* = 0.299 en `r1`, 0.068 en `r2`, 0.064 en `main`). La ventaja de la persistencia ahí es de cuatro segundos: la dirección es estable, el tamaño no se distingue de cero. La salvedad del titular pasa de "al borde en esta ventana" a **"al borde en las tres"**, que es una afirmación más fuerte, no más débil.
+**Y el empate de E2 h=1 tampoco es del mes.** No alcanza significancia en ninguno de los tres orígenes (*p* = 0.227 en `r1`, 0.684 en `r2`, 0.718 en `main`). La diferencia es de a lo sumo tres segundos y cambia de signo entre ventanas. El tamaño no se distingue de cero en ninguna. La salvedad del titular es entonces **"empate en las tres ventanas"**.
 
 Hay algo más que la tabla de signos no muestra: **en los nueve pares (corredor, origen), Δ MAE cae monótonamente con el horizonte.** No solo aparece el cruce en las tres ventanas — aparece con la misma forma. Es el horizonte el que mueve la ventaja, y lo hace igual en diciembre, en enero y en febrero.
 
-> Una advertencia de lectura. Esta tabla puntúa sobre la población completa del LSTM, mientras que las tablas de significancia de esta sección puntúan sobre la población LSTM∩XGBoost, porque el XGBoost no se re-corrió en los orígenes de rolling. La diferencia es de unas 11 filas en 90 000 y mueve el tercer decimal de *p* (E2 h=1: 0.0619 publicado contra 0.0638 acá). Se eligió comparabilidad **entre** ventanas antes que con la tabla publicada: restringir un origen y no los otros dos habría vaciado de sentido la comparación.
+> Una advertencia de lectura. Esta tabla puntúa sobre la población completa del LSTM, mientras que las tablas de significancia de esta sección puntúan sobre la población LSTM∩XGBoost, porque el XGBoost no se re-corrió en los orígenes de rolling. La diferencia es de a lo sumo 196 filas en 277 000 (E59 h=1) y mueve el *p* en el tercer o cuarto decimal (E2 h=1: 0.7175 publicado contra 0.7179 acá). Se eligió comparabilidad **entre** ventanas antes que con la tabla publicada: restringir un origen y no los otros dos habría vaciado de sentido la comparación.
 
 ---
 
@@ -270,16 +268,16 @@ Hay algo más que la tabla de signos no muestra: **en los nueve pares (corredor,
 
 La afirmación de predecir "el vector completo de *headways*" no puede sostenerse con MAE agregado, porque el MAE agregado no distingue un pronóstico vectorial de N pronósticos escalares sueltos. Medimos tres cosas que sí lo distinguen — y una de las tres nos hizo retirar el titular anterior.
 
-> **Nota de retractación.** Las versiones previas de este documento titulaban "la métrica decide el ganador" y sostenían que el aprendiz pierde la detección de *bunching* en las 12 celdas por factores de hasta 253×. Ese número es reproducible y está acá abajo, pero **la lectura era incorrecta**: dependía por completo de un threshold calibrado en el espacio de las observaciones. Las secciones 5.3 y 5.4 se reescribieron enteras; 5.1 y 5.2 se sostienen.
+> **Nota de retractación.** Las versiones previas de este documento titulaban "la métrica decide el ganador" y sostenían que el aprendiz pierde la detección de *bunching* en las 12 celdas por factores de hasta 253×. Con el preprocesamiento corregido de E2 y E59 el factor llega a 209×, y en E2 h=10 el LSTM no dispara nunca. El número cambió, pero **la lectura era incorrecta** igual: dependía por completo de un threshold calibrado en el espacio de las observaciones. Las secciones 5.3 y 5.4 se reescribieron enteras; 5.1 y 5.2 se sostienen.
 
 ### 5.1 La posición dentro del vector sí importa
 
-El MAE por posición no es plano: la dispersión relativa entre la mejor y la peor posición va de 0.14 a 1.35 según la celda. Hay estructura posicional que el promedio estaba borrando.
+El MAE por posición no es plano: la dispersión relativa entre la mejor y la peor posición va de 0.14 a 1.05 según la celda. Hay estructura posicional que el promedio estaba borrando.
 
-**Pero este resultado no soporta el peso que se le puso, y conviene desarmarlo acá antes que un revisor lo haga.** Dos objeciones, las dos válidas:
+**Pero este resultado no soporta el peso que se le puso, y conviene desarmarlo acá antes que un revisor lo haga.** Una versión anterior planteaba dos objeciones. Con los datos corregidos, una ya no se sostiene y la otra sí:
 
-- **El techo lo fija la cola.** El 1.35 sale de posiciones con casi ningún dato: en E2 h=10 la posición de peor MAE es la 14, con **n = 2** (MAE 13.28) contra 7.09 en la posición 12, que tiene n = 78. El bin más chico de todo el CSV tiene **n = 1**. Exigiendo n ≥ 100 el rango se desploma a **0.14–0.53**, y el perfil que queda es una **U** —mínimo en el medio del vector— y no un gradiente.
-- **No es una propiedad del aprendiz.** La persistencia dispersa **más** que el LSTM (0.17–1.84 contra 0.14–1.35; con n ≥ 100, 0.55 contra 0.53), y el XGBoost más todavía. Si el modelo aprendido no dispersa más que copiar el último valor, la estructura posicional es del **dato**, no de lo que el modelo aprendió sobre las posiciones.
+- **El techo ya no lo fija la cola.** Antes, el máximo salía de posiciones con casi ningún dato. Ahora la posición menos poblada tiene n = 17 (E2 h=10, posición 15), y exigir n ≥ 100 no mueve el rango: sigue en **0.14–1.05**. El máximo sale de E59, cuyas 20 posiciones tienen al menos 160 muestras cada una. El perfil tampoco tiene una sola forma. En E2 es una **U**, con el mínimo en la posición 4. En E59 el MAE baja casi sin pausa de la primera posición a la última (de 7.48 a 3.04 min a h=10), junto con el *headway* medio de cada posición.
+- **No es una propiedad del aprendiz.** La persistencia dispersa **lo mismo** que el LSTM (0.17–1.05 contra 0.14–1.05), y el XGBoost queda en el mismo rango (0.15–0.99). Si el modelo aprendido no dispersa más que copiar el último valor, la estructura posicional es del **dato**, no de lo que el modelo aprendió sobre las posiciones.
 
 Lo que queda en pie es acotado: el MAE agregado borra estructura posicional real, y por eso reportarlo solo es insuficiente. Lo que **no** queda en pie es leerlo como evidencia de que los modelos aprendieron algo específico del vector. La afirmación de versiones anteriores —que este era el resultado que apoyaba el encuadre original— **se retira**.
 
@@ -306,10 +304,10 @@ Es una propiedad **del vector como un todo**: un modelo puede acertar razonablem
 
 | | CV real | CV que predice el LSTM | Sesgo |
 |---|---|---|---|
-| E2 h=1 | 0.777 | 0.362 | −0.415 |
-| E2 h=10 | 0.787 | **0.161** | **−0.626** |
+| E2 h=1 | 0.736 | 0.357 | −0.379 |
+| E2 h=10 | 0.742 | **0.179** | **−0.563** |
 | E4 h=10 | 0.577 | 0.213 | −0.365 |
-| E59 h=10 | 0.614 | 0.260 | −0.354 |
+| E59 h=10 | 0.633 | 0.229 | −0.404 |
 
 El sesgo es negativo en las 12 celdas y **empeora monotónicamente con el horizonte**. La persistencia tiene sesgo ≈ 0 — propaga el vector observado, así que conserva su forma por construcción. Eso no es un truco: es exactamente la propiedad que los aprendices pierden.
 
@@ -325,36 +323,36 @@ Es el mismo fenómeno que en meteorología incentiva el suavizado a través del 
 
 ### 5.3 El threshold fijo no mide al modelo, se mide a sí mismo
 
-Marcamos como *bunching* toda celda cuyo *headway* cae por debajo de la mitad de la media de su propio vector. El threshold es relativo al estado del corredor, no un valor absoluto en minutos, y para una predicción se calcula contra la media del **vector predicho** — un operador no tiene acceso a la media real. Ocurre en el **17 % al 30 %** de las celdas.
+Marcamos como *bunching* toda celda cuyo *headway* cae por debajo de la mitad de la media de su propio vector. El threshold es relativo al estado del corredor, no un valor absoluto en minutos, y para una predicción se calcula contra la media del **vector predicho** — un operador no tiene acceso a la media real. Ocurre en el **17 % al 29 %** de las celdas.
 
 Con ese corte, la persistencia gana las 12 celdas por márgenes que crecen con el horizonte:
 
 | Corredor | h=1 | h=3 | h=5 | h=10 |
 |---|---|---|---|---|
-| E2 | 2.8× | 10.9× | 35.6× | **253.4×** |
-| E4 | 1.5× | 2.8× | 5.8× | 17.7× |
-| E59 | 2.0× | 3.6× | 4.9× | 8.8× |
+| E2 | 2.8× | 21.4× | 209.0× | **—** |
+| E4 | 1.5× | 2.7× | 5.8× | 17.7× |
+| E59 | 1.8× | 3.4× | 6.7× | 44.8× |
 
-*(Cuántas veces mejor es el F1 de la persistencia que el del LSTM, con el corte de 0.5×.)*
+*(Cuántas veces mejor es el F1 de la persistencia que el del LSTM, con el corte de 0.5×. En E2 h=10 el LSTM no dispara nunca, su F1 es cero y el factor no es finito.)*
 
 **Tres hechos vacían esa tabla de contenido**, y los tres salen del mismo CSV que la produjo.
 
-**Uno. El corte de 0.5× *es* el óptimo de la persistencia.** Ajustándolo libremente por MCC[^mcc] sobre una ventana anterior y disjunta —`r2`, con un modelo entrenado por separado—, la persistencia vuelve a **0.5× en 11 de las 12 celdas** (rango 0.46×–0.60×; la excepción es E2 h=10). El LSTM aterriza entre **0.58× y 0.91×**, siempre más laxo, porque su vector está comprimido. La regla publicada estaba escrita en las unidades de uno de los dos competidores.
+**Uno. El corte de 0.5× *es* el óptimo de la persistencia.** Ajustándolo libremente por MCC[^mcc] sobre una ventana anterior y disjunta —`r2`, con un modelo entrenado por separado—, la persistencia vuelve a un corte cercano a **0.5× en las 12 celdas** (rango 0.47×–0.63×). El LSTM aterriza entre **0.58× y 0.96×**, más laxo que la persistencia en cada celda, porque su vector está comprimido. La regla publicada estaba escrita en las unidades de uno de los dos competidores.
 
 **Dos. El ganador declarado pierde contra una regla constante.** Marcar *todas* las celdas da F1 = 2*b*/(1+*b*), y ese piso supera al F1 de la persistencia en **5 de las 12 celdas — incluidas las tres de h=10**:
 
 | Celda | F1 persistencia | F1 de "marcar todo" | ¿La persistencia supera el piso? |
 |---|---|---|---|
-| E2 h=10 | 0.332 | **0.465** | no |
+| E2 h=10 | 0.315 | **0.442** | no |
 | E4 h=10 | 0.268 | **0.304** | no |
-| E59 h=10 | 0.303 | **0.344** | no |
-| E2 h=1 | **0.581** | 0.460 | sí |
+| E59 h=10 | 0.315 | **0.369** | no |
+| E2 h=1 | **0.553** | 0.441 | sí |
 
 El MCC de "marcar todo" es **0 por convención**, y conviene ser preciso porque la formulación descuidada es atacable: con esa regla FN = TN = 0, así que el numerador *y* el denominador del MCC valen cero y el cociente queda indeterminado. Cero es el valor de la extensión por continuidad, el que adopta la convención estándar para matrices de confusión degeneradas, y coincide con el valor esperado del MCC para un clasificador al azar. El F1, en cambio, vale 2*b*/(1+*b*) > 0 para esa misma regla. Una métrica que pone una regla sin contenido por encima de los dos modelos no puede ser la métrica que decida cuál de los dos detecta *bunching*. **El F1 era el resumen equivocado**, y lo era porque ignora los verdaderos negativos: premia disparar a la frecuencia correcta, no acertar.
 
-**Tres. Cuando el aprendiz habla, acierta más.** En E2 h=10 el LSTM dispara 14 veces y acierta 10 — **71 % de precisión** contra una tasa base del 30 %. La persistencia dispara 15 084 veces y acierta 5 036: **33 %**, tres puntos por encima del azar. El *recall* del LSTM colapsa; su precisión, no. **El modelo no se equivoca: está callado.** Eso es la firma de un corte mal puesto, no de información ausente.
+**Tres. Cuando el aprendiz habla, acierta más.** En las 11 celdas donde el LSTM dispara, su precisión supera a la de la persistencia y a la tasa base. En E59 h=10 dispara 429 veces y acierta 191: **45 % de precisión** contra una tasa base del 23 %. La persistencia dispara 54 308 veces y acierta 16 942: **31 %**, nueve puntos por encima del azar. La celda restante es E2 h=10, donde el LSTM no dispara nunca y su precisión no está definida. El *recall* del LSTM colapsa; su precisión, no. **El modelo no se equivoca: está callado.** Eso es la firma de un corte mal puesto, no de información ausente.
 
-> **Por qué el ajuste se hace por MCC y no por F1.** En E2 la tasa base es del 30 %, así que "marcar todo" ya saca F1 = 0.46 y el corte que maximiza F1 **colapsa a esa regla para los dos modelos**. Con precisión de celda, porque una versión anterior de esta nota mezclaba horizontes: en **E2 h=10** dispara el **99.9 %** de las veces en la persistencia y el **97.6 %** en el LSTM; sobre la persistencia el corte por F1 pasa del 99.9 % en los tres horizontes largos de ese corredor (99.99 % en h=3, **100 %** en h=5, 99.94 % en h=10). Un threshold sin contenido discriminativo que igual reporta un F1 presentable. El MCC vale 0 para esa regla, así que maximizarlo no puede elegirla. Las dos variantes quedan en el CSV (`fire_rate_f1fit` contra `fire_rate_calibrated`) para que la elección sea auditable y no una afirmación.
+> **Por qué el ajuste se hace por MCC y no por F1.** En E2 la tasa base es del 28 %, así que "marcar todo" ya saca F1 = 0.44 y el corte que maximiza F1 **se acerca a esa regla en los dos modelos**. Con precisión de celda, porque una versión anterior de esta nota mezclaba horizontes: en **E2 h=10** dispara el **99.99 %** de las veces en la persistencia y el **84.5 %** en el LSTM. Sobre la persistencia, el corte por F1 pasa del 99.9 % en h=5 y h=10 de ese corredor (99.93 % y 99.99 %) y se queda en el 73.0 % en h=3. Un threshold sin contenido discriminativo que igual reporta un F1 presentable. El MCC vale 0 para esa regla, así que maximizarlo no puede elegirla. Las dos variantes quedan en el CSV (`fire_rate_f1fit` contra `fire_rate_calibrated`) para que la elección sea auditable y no una afirmación.
 
 ### 5.4 Sin threshold, el veredicto se da vuelta
 
@@ -362,44 +360,44 @@ Dos instrumentos que un corte no puede mover: el **AUC**[^auc] y la **precisión
 
 | Celda | AUC LSTM | AUC persist. | MCC cal. LSTM | MCC cal. persist. | Ganador |
 |---|---|---|---|---|---|
-| E2 h=1 | 0.714 | **0.723** | 0.310 | **0.401** | persistencia |
-| E2 h=3 | **0.629** | 0.598 | **0.178** | 0.160 | LSTM |
-| E2 h=5 | **0.604** | 0.567 | **0.139** | 0.102 | LSTM |
-| E2 h=10 | **0.565** | 0.528 | **0.085** | 0.027 | LSTM |
+| E2 h=1 | 0.710 | **0.712** | 0.301 | **0.376** | persistencia |
+| E2 h=3 | **0.625** | 0.599 | **0.173** | 0.167 | LSTM |
+| E2 h=5 | **0.601** | 0.562 | **0.133** | 0.102 | LSTM |
+| E2 h=10 | **0.570** | 0.528 | **0.098** | 0.042 | LSTM |
 | E4 h=1 | 0.811 | **0.833** | 0.476 | **0.615** | persistencia |
 | E4 h=10 | **0.604** | 0.558 | **0.126** | 0.111 | LSTM |
-| E59 h=1 | 0.760 | **0.781** | 0.363 | **0.517** | persistencia |
-| E59 h=10 | **0.632** | 0.571 | **0.161** | 0.119 | LSTM |
+| E59 h=1 | 0.776 | **0.810** | 0.401 | **0.574** | persistencia |
+| E59 h=10 | **0.608** | 0.564 | **0.134** | 0.113 | LSTM |
 
 Cuatro cosas que esta tabla establece:
 
-- **El aprendiz no es ciego en ninguna celda.** Su AUC va de 0.565 a 0.811 y su *ap_lift* de 1.19 a 3.16. El azar es 0.5 y 1.0. Un modelo sin información sobre el evento no puede dar esos números.
-- **A h=10 el LSTM gana la detección en los tres corredores**, con y sin threshold, exactamente donde la tabla anterior le daba 253× en contra.
-- **A h=1 la persistencia gana la detección en los tres corredores** — y también gana el MAE ahí. Las dos métricas **coinciden**.
+- **El aprendiz no es ciego en ninguna celda.** Su AUC va de 0.570 a 0.811 y su *ap_lift* de 1.20 a 3.16. El azar es 0.5 y 1.0. Un modelo sin información sobre el evento no puede dar esos números.
+- **A h=10 el LSTM gana la detección en los tres corredores**, con y sin threshold, exactamente donde la tabla anterior le daba en contra factores de 18× y 45×, y en E2 un F1 de cero.
+- **A h=1 la persistencia gana la detección en E4 y E59** — y también gana el MAE ahí. Las dos métricas **coinciden**. En E2 el AUC casi empata (0.710 contra 0.712), igual que el MAE, y la persistencia gana el MCC calibrado.
 - **En el agregado: 6 de las 12** celdas van al LSTM por AUC y 5 por MCC calibrado, contra 0 de 12 con el corte fijo. Un veredicto que pasa de unánime a repartido según el punto de operación es, por definición, un veredicto sobre el punto de operación.
 
 **Lo que esto retira.** La afirmación de que "alargar el horizonte mejora la ventaja escalar y destruye la fidelidad vectorial" era mitad cierta. La primera mitad se sostiene. La segunda confundía la fidelidad de *forma* del vector —que sí se destruye, Sección 5.2, 36 de 36 celdas— con la capacidad de *discriminar el evento*, que no se destruye: se reordena, y a favor del aprendiz en el horizonte largo.
 
-**Lo que esto deja en pie, y es más útil.** Una regla de evento calibrada sobre observaciones no es transportable a un pronóstico puntual, y trasplantarla fabrica una degradación aparente de hasta 253× que no existe en la información. Eso es un resultado sobre cómo se evalúa, no sobre qué modelo gana — y tiene un arreglo de un solo escalar.
+**Lo que esto deja en pie, y es más útil.** Una regla de evento calibrada sobre observaciones no es transportable a un pronóstico puntual, y trasplantarla fabrica una degradación aparente de hasta 209×, o un modelo que no dispara nunca, sin que falte la información. Eso es un resultado sobre cómo se evalúa, no sobre qué modelo gana — y tiene un arreglo de un solo escalar.
 
 ### 5.5 Nada de esto es de febrero
 
 La Sección 4 mostró que el resultado **escalar** aguanta en tres ventanas. Las secciones 5.2 a 5.4 se midieron en una, y una afirmación de una sola ventana es exactamente lo que un revisor ataca primero. Así que las recalculamos en los tres orígenes, sobre residuos que ya estaban en disco — sin GPU y sin volver a entrenar, porque la exportación ya traía todo lo que hacía falta. Esto vale tanto para el artefacto como para su corrección.
 
-**El aplanamiento: 36 de 36.** El sesgo del coeficiente de variación es negativo en las 36 combinaciones de corredor × horizonte × origen. El LSTM predice un corredor más regular que el real en todas, siempre, y el sesgo es notablemente estable entre ventanas (en E2 h=10: −0.664, −0.647, −0.626). La persistencia se mantiene en un sesgo de a lo sumo **0.022** en valor absoluto. Esta es la parte del hallazgo que no depende de ninguna elección de threshold, y es la que sobrevive entera.
+**El aplanamiento: 36 de 36.** El sesgo del coeficiente de variación es negativo en las 36 combinaciones de corredor × horizonte × origen. El LSTM predice un corredor más regular que el real en todas, siempre, y el sesgo es notablemente estable entre ventanas (en E2 h=10: −0.598, −0.564, −0.563). La persistencia se mantiene en un sesgo de a lo sumo **0.022** en valor absoluto. Esta es la parte del hallazgo que no depende de ninguna elección de threshold, y es la que sobrevive entera.
 
 **El artefacto: 12 de 12, y de tamaño arbitrario.** Con el corte fijo la persistencia gana las 36 celdas. Pero el *tamaño* de la ventaja se mueve entre ventanas de una forma que ninguna propiedad del modelo explicaría:
 
 | Celda | `r1` | `r2` | `main` |
 |---|---|---|---|
-| E2 h=5 | 125.9× | 57.6× | 35.6× |
-| **E2 h=10** | **2299×** | **817×** | **253×** |
+| **E2 h=5** | **404.1×** | **128.3×** | **209.0×** |
+| E2 h=10 | — | 255.0× | — |
 | E4 h=10 | 21.3× | 46.4× | 17.7× |
-| E59 h=10 | 11.1× | 9.9× | 8.8× |
+| E59 h=10 | 50.1× | 92.7× | 44.8× |
 
-*(Cuántas veces mejor es el F1 de la persistencia que el del LSTM, con el corte de 0.5×.)*
+*(Cuántas veces mejor es el F1 de la persistencia que el del LSTM, con el corte de 0.5×. "—" indica que el LSTM no disparó nunca en esa ventana y el factor no es finito.)*
 
-Un factor que va de 253 a 2299 según el mes en la misma celda no es la medida de una capacidad: es la medida de cuán lejos cayó el corte en la cola del pronóstico esa ventana en particular. La divergencia se agranda justo donde el denominador se hace chico, que es la firma aritmética de una razón sin sentido. **En 15 de las 36 celdas la persistencia ni siquiera supera al detector trivial.**
+Un factor que va de 128× a 404× según el mes en la misma celda no es la medida de una capacidad: es la medida de cuán lejos cayó el corte en la cola del pronóstico esa ventana en particular. En E2 h=10 el corte cae tan lejos que en dos de las tres ventanas el LSTM no dispara ni una vez. La divergencia se agranda justo donde el denominador se hace chico, que es la firma aritmética de una razón sin sentido. **En 15 de las 36 celdas la persistencia ni siquiera supera al detector trivial.**
 
 **La corrección: 11 de 12, y unánime donde importa.** El mismo cálculo sin threshold, en los tres orígenes:
 
@@ -413,7 +411,7 @@ Un factor que va de 253 a 2299 según el mes en la misma celda no es la medida d
 | E59 h=10 | **LSTM** | **LSTM** | **LSTM** | sí |
 
 - **A h=10 el LSTM gana el AUC en los tres corredores y en los tres orígenes.** Nueve de nueve. La inversión del veredicto no es de febrero.
-- **A h=1 la persistencia gana en los tres corredores y en los tres orígenes.** También nueve de nueve. El cruce es real en las dos direcciones.
+- **A h=1 la persistencia gana en los tres corredores y en los tres orígenes.** También nueve de nueve. En E2 la ventaja es de a lo sumo 0.003 de AUC, un empate práctico. En E4 y E59 es clara. El cruce es real en las dos direcciones.
 - **La única celda que se parte es E4 h=5**, y es la esperable: en `main` los dos AUC son 0.6476 contra 0.6486 — **una milésima**. Esa celda está sobre el cruce y no hay victoria que reclamar, igual que E4 h=3 en la Sección 4. Un desacuerdo ahí confirma el mecanismo en vez de contradecirlo.
 
 *Advertencia de lectura, la misma que la Sección 4.* Esta tabla puntúa sobre la población completa del LSTM, no sobre la intersección con el XGBoost, porque el XGBoost no se re-corrió en los orígenes de rolling. Se eligió comparabilidad **entre** ventanas.
@@ -436,15 +434,17 @@ con ρ = 0.5 para quedar comparable con nuestra regla, y ρ = 0.25 para igualar 
 
 | Regla | Sub-disparo | Peor celda |
 |---|---|---|
-| Auto-referencial, 0.5× la media del vector | 0.079 | — |
-| **Absoluto, 0.5× la mediana de `r2`** | **0.040** | 0.00028 |
-| **Absoluto, 0.25× la mediana de `r2`** (convención del campo) | **0.0007** | 0.000000 |
+| Auto-referencial, 0.5× la media del vector | 0.065 | 0.000000 |
+| **Absoluto, 0.5× la mediana de `r2`** | **0.050** | 0.00014 |
+| **Absoluto, 0.25× la mediana de `r2`** (convención del campo) | **0.00028** | 0.000000 |
 
-**El resultado va en contra de lo que esperábamos, y refuerza el argumento.** El colapso no se atenúa con un corte absoluto: **empeora**. Con la convención del campo es **110 veces peor** que con la nuestra. La razón es geométrica: un corte absoluto en 1.4–2.4 minutos vive en la cola lejana, y es exactamente ahí donde la compresión muerde más fuerte; nuestra regla auto-referencial al menos mueve su denominador con el nivel del vector, así que algo agarra.
+*(La peor celda de la regla auto-referencial es E2 h=10, donde el LSTM no dispara nunca.)*
+
+**El resultado va en contra de lo que esperábamos, y refuerza el argumento.** El colapso no se atenúa con un corte absoluto: **empeora**. Con la convención del campo es **234 veces peor** que con la nuestra. La razón es geométrica: un corte absoluto en 1.7–2.4 minutos vive en la cola lejana, y es exactamente ahí donde la compresión muerde más fuerte; nuestra regla auto-referencial al menos mueve su denominador con el nivel del vector, así que algo agarra.
 
 > **Lo que esto cierra.** La objeción "el threshold es invención suya, así que el hallazgo no aplica al campo" queda no solo respondida sino **invertida**: de haber usado la convención dominante, el colapso aparente habría sido dos órdenes de magnitud mayor. El alcance del hallazgo es más ancho que thresholds auto-referenciales, y la afirmación de la §1 sobre ese alcance queda corregida hacia arriba.
 
-**Y una salvedad que corre en contra, y hay que decirla.** El aprendiz carga **menos** información sobre el evento absoluto que sobre el relativo. Con ρ = 0.25 el AUC mediano baja a **0.599** (contra 0.63–0.81 del evento relativo) y en E2 h=10 llega a **0.4934** — indistinguible del azar. Así que la afirmación "el aprendiz no es ciego en ninguna celda" **se sostiene para el evento relativo y no se sostiene para el absoluto en esa celda**. Con ρ = 0.5 el cuadro es mejor: mediana 0.655, mínimo 0.518, una sola celda en o por debajo de 0.55.
+**Y una salvedad que corre en contra, y hay que decirla.** El aprendiz carga **menos** información sobre el evento absoluto que sobre el relativo. Con ρ = 0.25 el AUC mediano baja a **0.564** (contra 0.649 del evento relativo, con rango 0.570–0.811) y en E2 h=10 llega a **0.5008** — indistinguible del azar. E59 h=10 queda casi igual, en 0.503. Así que la afirmación "el aprendiz no es ciego en ninguna celda" **se sostiene para el evento relativo y no se sostiene para el absoluto en esas celdas**. Con ρ = 0.5 el cuadro es mejor: mediana 0.622, mínimo 0.526, una sola celda en o por debajo de 0.55.
 
 ### 5.7 Por qué el threshold se ajusta por MCC, medido en vez de citado
 
@@ -452,17 +452,17 @@ La §5.3 justifica calibrar por MCC con un teorema: Lipton et al. (2014) prueban
 
 | | Objetivo MCC | Objetivo F1 |
 |---|---|---|
-| Rango del corte entre los tres orígenes, mediana | 0.0357 | **0.0226** |
-| Rango del corte, peor celda | **0.864** | 3.688 |
-| Celdas con rango > 0.5 | **1 de 24** | 4 de 24 |
-| MCC logrado en `main` según la ventana de calibración, mediana del rango | **0.00071** | 0.00242 |
-| Ídem, peor celda | **0.018** | 0.098 |
+| Rango del corte entre los tres orígenes, mediana | **0.0272** | 0.0464 |
+| Rango del corte, peor celda | **0.188** | 3.873 |
+| Celdas con rango > 0.5 | **0 de 24** | 3 de 24 |
+| MCC logrado en `main` según la ventana de calibración, mediana del rango | **0.00062** | 0.00188 |
+| Ídem, peor celda | **0.0051** | 0.0206 |
 
-**El resultado es mixto y conviene no maquillarlo.** En la **mediana**, el corte ajustado por F1 es *más* estable, no menos. Lo que distingue al MCC son las **colas**: el F1 tiene cuatro celdas con rango mayor a 0.5 y tres por encima de 1.0 —E2 h=3, E2 h=5 y E59 h=10, todas de persistencia, o sea los colapsos degenerados de la §5.3—, mientras que al MCC le pasa en una sola.
+**El resultado ya no es mixto.** Una versión anterior encontraba el corte por F1 más estable en la mediana. Con los datos corregidos de E2 y E59, el corte por MCC es más estable también en la mediana (0.027 contra 0.046). En las **colas** la diferencia es mayor. El F1 tiene tres celdas con rango mayor a 0.5 y dos por encima de 1.0. Son E2 h=3 y E2 h=5, las dos de persistencia, o sea los colapsos degenerados de la §5.3. Al MCC no le pasa en ninguna.
 
-Y lo que decide es la última fila: **cuánto se mueve el desempeño realmente desplegado según qué ventana te tocó calibrar.** Ahí el MCC es **3.4× más estable en la mediana y 5.6× en el peor caso**. Un operador no elige un threshold, elige un procedimiento; el procedimiento por F1 funciona casi siempre y falla catastróficamente a veces, el de MCC es apenas más laxo y no tiene ese modo de falla.
+La última fila mide **cuánto se mueve el desempeño realmente desplegado según qué ventana te tocó calibrar.** Ahí el MCC es **3.0× más estable en la mediana y 4.0× en el peor caso**. Un operador no elige un threshold, elige un procedimiento. El procedimiento por F1 tiene un modo de falla catastrófico y el de MCC no lo tiene.
 
-La formulación defendible, entonces, no es "el MCC es más estable" —sería falso en la mediana— sino: **el ajuste por F1 tiene un modo de falla degenerado que el de MCC no tiene, y el costo fuera de muestra favorece al MCC por un factor de 3 a 6.**
+La formulación defendible es entonces: **el ajuste por MCC es más estable en las cinco medidas, el de F1 tiene un modo de falla degenerado que el de MCC no tiene, y el costo fuera de muestra favorece al MCC por un factor de 3 a 4.**
 
 ---
 
@@ -472,40 +472,40 @@ La formulación defendible, entonces, no es "el MCC es más estable" —sería f
 
 El contrato de entrenamiento recorta los *headways* en el percentil 99 de train. La objeción evidente: el 1 % recortado es la cola extrema, justo donde se juega el argumento. Repuntuamos todo contra objetivos **crudos** recuperados del parquet, y con una persistencia también recalculada sin techo, que es la competidora justa.
 
-- Recorta entre **0.78 % y 1.11 %** de los objetivos.
+- Recorta entre **0.84 % y 1.10 %** de los objetivos.
 - **Ningún signo cambia** en las 12 celdas; el margen se mueve **menos de 0.01 min** en todas.
-- E2 h=1 y E4 h=3 siguen sin ser significativas (*p* = 0.078 y 0.170).
-- El F1 de *bunching* cambia **menos de 0.005**.
+- E2 h=1 y E4 h=3 siguen sin ser significativas (*p* = 0.613 y 0.170).
+- El F1 de *bunching* cambia **menos de 0.001**.
 
 Hay una razón para esto último y conviene decirla: **lo que el techo recorta es la cola alta, o sea huecos de servicio, no *bunching*.** El *bunching* es un *headway* que colapsa hacia cero y ningún techo puede tocarlo.
 
-> **Un hallazgo lateral, y una corrección de mecanismo.** El techo **ayuda** a la persistencia en vez de perjudicarla: propaga la última observación, y recortar un extremo de 35 min a 28.5 acerca esa predicción al grueso de los objetivos, así que **baja** el MAE. Es contracción por preprocesamiento en vez de por función de pérdida, y el efecto sobre el error agregado es el mismo. **Pero no es cierto que "el MAE premia contraer"**, y versiones anteriores de este documento lo afirmaban: el pronóstico que minimiza el MAE es la mediana condicional, no un valor contraído hacia el promedio global. La prueba está en nuestros propios datos: a h=1 el LSTM aplanado **pierde** el MAE contra la persistencia en los tres corredores (*p* = 0.062 / 1e−13 / 2.6e−13) y **gana** el error cuadrático (*p* = 7.3e−18 / 2.7e−14 / 8.4e−16). Si el MAE premiara contraer, ese par de signos sería imposible. Lo que aplana el vector no es la elección de MAE sobre RMSE: es emitir un solo número por celda, que es siempre una medida de centro.
+> **Un hallazgo lateral, y una corrección de mecanismo.** El techo **ayuda** a la persistencia en vez de perjudicarla: propaga la última observación, y recortar un extremo de 35 min a 28.3 acerca esa predicción al grueso de los objetivos, así que **baja** el MAE. Es contracción por preprocesamiento en vez de por función de pérdida, y el efecto sobre el error agregado es el mismo. **Pero no es cierto que "el MAE premia contraer"**, y versiones anteriores de este documento lo afirmaban: el pronóstico que minimiza el MAE es la mediana condicional, no un valor contraído hacia el promedio global. La prueba está en nuestros propios datos: a h=1 el LSTM aplanado **pierde** el MAE contra la persistencia en E4 y E59 (*p* = 1.0e−13 / 1.1e−16) y **gana** el error cuadrático (*p* = 2.7e−14 / 4.8e−16). En E2 empata el MAE y gana el cuadrático. Si el MAE premiara contraer, ese par de signos sería imposible. Lo que aplana el vector no es la elección de MAE sobre RMSE: es emitir un solo número por celda, que es siempre una medida de centro.
 
 ### El enrutador ex-ante: dos párrafos, que es lo que amerita
 
 Si cada modelo domina un régimen distinto, una política que conmute entre ellos usando la volatilidad de la ventana —conocida al predecir— debería ganar algo. Lo construimos con tres candidatos, aprendiendo la política sobre los primeros 13 días de servicio del test y puntuándola sobre los 9 restantes, que es el único corte que imita el despliegue. Un barrido de 20 semillas mide cuánto se mueve la ganancia con la partición.
 
-Supera el ruido de partición en **2 de 12 celdas, ambas a h=3** (E4 −0.073 min, E59 −0.042 min), y en ninguna a h≥5, donde el aprendiz ya domina los tres terciles y no queda nada que conmutar. **7 de 12 políticas son degeneradas** — eligen el mismo modelo en los tres terciles, o sea que el "enrutador" **es** un modelo puro disfrazado. Y en E2 h=1 la política ayuda bajo partición aleatoria (−0.028 de mediana) pero **perjudica** bajo corte temporal (+0.037): no generaliza hacia adelante en el tiempo, que es la única dirección que importa. La conclusión es acotada y honesta: **conmutar paga solo donde ningún modelo puro domina**, o sea en la zona de transición, y ahí paga unos pocos segundos de MAE. Vale como demostración de ejecutabilidad, no como contribución.
+Ayuda por encima del ruido de partición en **3 de 12 celdas**: E2 h=1 (−0.053 min), E4 h=3 (−0.073 min) y E59 h=3 (−0.094 min). Las tres son celdas donde ningún modelo puro domina: E2 h=1 es el empate de la Sección 4, y h=3 es la zona de transición. A h≥5 el aprendiz ya domina los tres terciles y no queda nada que conmutar. **6 de 12 políticas son degeneradas** — eligen el mismo modelo en los tres terciles, o sea que el "enrutador" **es** un modelo puro disfrazado. Y en E2 h=10 la política ayuda apenas bajo partición aleatoria (−0.001 de mediana) pero **perjudica** bajo corte temporal (+0.019): no generaliza hacia adelante en el tiempo, que es la única dirección que importa. La conclusión es acotada y honesta: **conmutar paga solo donde ningún modelo puro domina**, o sea en la zona de transición, y ahí paga unos pocos segundos de MAE. Vale como demostración de ejecutabilidad, no como contribución.
 
 ---
 
 ## 7. Conclusión
 
-> **Un pronóstico puntual predice un corredor más regular que el real, siempre, en las 36 celdas medidas. Eso no lo vuelve ciego al *bunching*: le cambia las unidades. Una regla de alarma calibrada sobre observaciones y trasplantada a ese pronóstico fabrica una degradación aparente de hasta 253× que no existe en la información — y el arreglo es un escalar.**
+> **Un pronóstico puntual predice un corredor más regular que el real, siempre, en las 36 celdas medidas. Eso no lo vuelve ciego al *bunching*: le cambia las unidades. Una regla de alarma calibrada sobre observaciones y trasplantada a ese pronóstico fabrica una degradación aparente de hasta 209×, o un modelo que no dispara nunca, sin que falte la información — y el arreglo es un escalar.**
 
 Cuatro afirmaciones sostenidas por la evidencia de este documento:
 
-1. **El cruce existe, no es del Deep Learning, y su frontera real es la volatilidad.** El XGBoost lo reproduce entero. Dentro de cada horizonte, la ventaja del aprendiz crece de forma ordenada del tercil calmo al volátil, en 11 de las 12 celdas y con un empate en la doceava.
+1. **El cruce existe, no es del Deep Learning, y su frontera real es la volatilidad.** El XGBoost lo reproduce entero. Dentro de cada horizonte, la ventaja del aprendiz crece de forma ordenada del tercil calmo al volátil, en las 12 celdas.
 
-2. **El aplanamiento es real, universal y estructural.** El sesgo del coeficiente de variación es negativo en las 36 celdas de corredor × horizonte × ventana y empeora monotónicamente con el horizonte. No es un vicio del MAE —a h=1 el MAE es justamente la métrica que **castiga** al vector aplanado, mientras el error cuadrático lo premia— sino la consecuencia de emitir un solo número por celda, que es siempre una medida de centro.
+2. **El aplanamiento es real, universal y estructural.** El sesgo del coeficiente de variación es negativo en las 36 celdas de corredor × horizonte × ventana y empeora monotónicamente con el horizonte. No es un vicio del MAE —a h=1, en E4 y E59, el MAE es justamente la métrica que **castiga** al vector aplanado, mientras el error cuadrático lo premia— sino la consecuencia de emitir un solo número por celda, que es siempre una medida de centro.
 
-3. **El costo del aplanamiento es de unidades, no de información.** Con el corte relativo fijo la persistencia gana la detección en las 36 celdas por factores de hasta 2299×, y en 15 de esas 36 ni siquiera supera a marcar todas las celdas. Sin threshold, el veredicto se da vuelta: a h=10 el LSTM discrimina mejor en los tres corredores y en los tres orígenes, y a h=1 la persistencia gana en los tres y en los tres. El AUC del aprendiz nunca baja de 0.565 — nada cerca del azar.
+3. **El costo del aplanamiento es de unidades, no de información.** Con el corte relativo fijo la persistencia gana la detección en las 36 celdas por factores de hasta 404×, y en E2 h=10 el LSTM no dispara en dos de las tres ventanas. En 15 de esas 36 celdas la persistencia ni siquiera supera a marcar todas las celdas. Sin threshold, el veredicto se da vuelta: a h=10 el LSTM discrimina mejor en los tres corredores y en los tres orígenes, y a h=1 la persistencia gana en los tres y en los tres, aunque en E2 por un margen de empate. El AUC del aprendiz nunca baja de 0.570 — nada cerca del azar.
 
 4. **Por lo tanto: la calibración del threshold, no el modelo, decide quién parece ver el evento.** Un veredicto que pasa de unánime a repartido según el punto de operación es un veredicto sobre el punto de operación. Cualquier trabajo que evalúe detección de eventos trasplantando un corte relativo sobre un pronóstico puntual está midiendo su propio corte.
 
 Lo que este trabajo **no** afirma: que estos modelos estén listos para operar una alarma de *bunching*. Un AUC de 0.60 es información real y muy lejos de un sistema de despacho; falta la función de costo que traduzca eso a una decisión (limitación 8). Lo que sí afirma es que la línea de trabajo **no está cerrada**, y la versión anterior de este documento la cerraba por un artefacto de medición.
 
-**Y una retractación explícita.** Este documento sostuvo que "la métrica decide el ganador" en el sentido de que el escalar y el vector nombran ganadores opuestos. Eso era falso: nombran el mismo ganador una vez removido el artefacto. También sostuvo que "el MAE premia contraer", que contradice nuestros propios datos a h=1. Las dos afirmaciones se retiran, con las mediciones que las desmienten al lado.
+**Y una retractación explícita.** Este documento sostuvo que "la métrica decide el ganador" en el sentido de que el escalar y el vector nombran ganadores opuestos. Eso era falso: nombran el mismo ganador una vez removido el artefacto. También sostuvo que "el MAE premia contraer", que contradice nuestros propios datos a h=1 en E4 y E59. Las dos afirmaciones se retiran, con las mediciones que las desmienten al lado.
 
 ---
 
@@ -522,10 +522,10 @@ Lo que este trabajo **no** afirma: que estos modelos estén listos para operar u
 5. **El nulo espacial es previo.** Se estableció sobre las familias congeladas, que arrastran el sesgo de encuadre. No se rehízo bajo el pipeline contiguo.
 6. **La política del enrutador se calibra sobre una porción del test**, no sobre train+val, porque los kernels solo exportaron predicciones del split de prueba. Política y evaluación son disjuntas, así que la ganancia no está contaminada, pero los niveles de MAE del enrutador no son comparables con los del test completo.
 7. **Sin estratificar por magnitud del *headway*.** Un error de 1 min sobre un *headway* de 3 min y sobre uno de 15 min no pesan igual, y esa heterogeneidad queda en el promedio.
-8. **Valor operativo argumentado, no modelado.** No hay función de costo que muestre que 1.47 min de MAE, o un AUC de detección de 0.60, cambien una decisión concreta de despacho. Es la limitación que más pesa sobre la lectura optimista de la Sección 5.4: mostramos que la información está ahí, no que alcance para operar.
-9. **El threshold de *bunching* no está calibrado contra incidentes registrados, y su forma es una elección declarada.** La convención dominante es una fracción del *headway* programado; nosotros normalizamos por la media del propio vector porque no hay horario — la misma sustitución que hacen Yu et al. (2016), que usan el *headway* observado en la primera parada por el mismo motivo, con otro punto de referencia. Rezazada et al. (2024) confirman que **"no existe un único valor de threshold"** en este campo y que los publicados van de 20 s a un cuarto del programado. La verificación de la §5.6 muestra además que nuestra elección fue la **conservadora**: con un corte absoluto el colapso es peor. Lo que sigue sin medir es el caso de una referencia observada y fija como la de Yu et al., que es la tercera forma posible. El documento depende de esa elección menos que antes, no más: los veredictos se apoyan en el AUC y la precisión media, que **no usan threshold**, y el corte calibrado se ajusta fuera de muestra. Lo que **no** se puede sostener es la lectura anterior: los factores de F1 (253×, 2299×) son artefactos de esa elección y se reportan como tales.
+8. **Valor operativo argumentado, no modelado.** No hay función de costo que muestre que 1.55 min de MAE, o un AUC de detección de 0.60, cambien una decisión concreta de despacho. Es la limitación que más pesa sobre la lectura optimista de la Sección 5.4: mostramos que la información está ahí, no que alcance para operar.
+9. **El threshold de *bunching* no está calibrado contra incidentes registrados, y su forma es una elección declarada.** La convención dominante es una fracción del *headway* programado; nosotros normalizamos por la media del propio vector porque no hay horario — la misma sustitución que hacen Yu et al. (2016), que usan el *headway* observado en la primera parada por el mismo motivo, con otro punto de referencia. Rezazada et al. (2024) confirman que **"no existe un único valor de threshold"** en este campo y que los publicados van de 20 s a un cuarto del programado. La verificación de la §5.6 muestra además que nuestra elección fue la **conservadora**: con un corte absoluto el colapso es peor. Lo que sigue sin medir es el caso de una referencia observada y fija como la de Yu et al., que es la tercera forma posible. El documento depende de esa elección menos que antes, no más: los veredictos se apoyan en el AUC y la precisión media, que **no usan threshold**, y el corte calibrado se ajusta fuera de muestra. Lo que **no** se puede sostener es la lectura anterior: los factores de F1 (209×, 404×) y el silencio total del LSTM en E2 h=10 son artefactos de esa elección y se reportan como tales.
 10. **La calibración fuera de muestra usa dos ventanas, no validación cruzada.** El corte se ajusta en `r2` y se aplica a `main`. Son disjuntas y `r2` es anterior, que es la dirección correcta, pero los conjuntos de **entrenamiento** de los dos modelos están anidados (Sección 4), así que no son independientes en sentido estricto. Un esquema de *k* ventanas rotativas sería más fuerte y no se hizo.
-11. **Un desajuste de ancho de vector, declarado.** El LSTM se dimensiona con un `max_N` global por corredor y el XGBoost con el de cada dirección, así que la red predice unas pocas posiciones de cola que el XGBoost no emite. Afecta al 0.05 % de las filas en el peor caso, quedan fuera de la intersección y de todo verdicto, y el sesgo de encuadre medido (0.001 min) confirma que no mueven nada.
+11. **Un desajuste de ancho de vector, declarado.** El LSTM se dimensiona con un `max_N` global por corredor y el XGBoost con el de cada dirección, así que la red predice unas pocas posiciones de cola que el XGBoost no emite. Afecta al 0.05 % de las filas en el peor caso, quedan fuera de la intersección y de todo verdicto, y el sesgo de encuadre medido (0.0022 min) confirma que no mueven nada.
 
 **Trazabilidad.** Las cuatro figuras de este documento se generan desde los CSV versionados con `uv run python -m src.build_contiguous_figures`, no desde los residuos crudos: así una figura no puede discrepar de la tabla que ilustra. La figura `contiguo-disociacion.png` de versiones anteriores **fue eliminada**: graficaba el F1 con threshold fijo como si midiera a los modelos, o sea el artefacto que la Sección 5.3 desarma. Sus sucesoras son `contiguo-artefacto-threshold.png` y `contiguo-deteccion-sin-threshold.png`, y solo funcionan como par. Las figuras `curva-degradacion.png` y `volatilidad-crossover.png` que quedan en este directorio corresponden a las **familias congeladas** y no a este pipeline; se conservan solo como registro de esa comparación.
 
@@ -543,17 +543,17 @@ Lo que este trabajo **no** afirma: que estos modelos estén listos para operar u
 
 [^xgboost]: **XGBoost** — biblioteca de *gradient boosting*: construye árboles de decisión donde cada uno corrige el error del anterior. Acá es el competidor aprendido, nivelado con la misma ventana de entrada que la red.
 
-[^mae]: **MAE (Error Absoluto Medio)** — promedio de la diferencia absoluta entre lo predicho y lo real, en minutos. Trata todos los errores por igual. El pronóstico que lo minimiza es la **mediana** condicional; el que minimiza el error cuadrático es la **media** condicional. Las dos son medidas de centro, así que la sub-dispersión del pronóstico no es un vicio del MAE en particular: es propiedad de reportar un solo número por celda. En estos datos, además, el MAE es la métrica que **castiga** al vector aplanado a h=1, mientras el error cuadrático lo premia (ver §3).
+[^mae]: **MAE (Error Absoluto Medio)** — promedio de la diferencia absoluta entre lo predicho y lo real, en minutos. Trata todos los errores por igual. El pronóstico que lo minimiza es la **mediana** condicional; el que minimiza el error cuadrático es la **media** condicional. Las dos son medidas de centro, así que la sub-dispersión del pronóstico no es un vicio del MAE en particular: es propiedad de reportar un solo número por celda. En estos datos, además, el MAE es la métrica que **castiga** al vector aplanado a h=1 en E4 y E59, mientras el error cuadrático lo premia (ver §3).
 
-[^rmse]: **RMSE (Raíz del Error Cuadrático Medio)** — como el MAE pero elevando los errores al cuadrado antes de promediar, así que penaliza más los errores grandes. Por eso favorece al pronóstico contraído cuando la alternativa arriesga: a h=1 el LSTM aplanado **pierde** el MAE y **gana** el error cuadrático contra la persistencia, en los tres corredores.
+[^rmse]: **RMSE (Raíz del Error Cuadrático Medio)** — como el MAE pero elevando los errores al cuadrado antes de promediar, así que penaliza más los errores grandes. Por eso favorece al pronóstico contraído cuando la alternativa arriesga: a h=1 el LSTM aplanado **pierde** el MAE y **gana** el error cuadrático contra la persistencia en E4 y E59. En E2 empata el MAE y gana el cuadrático.
 
 [^auc]: **AUC (área bajo la curva ROC)** — probabilidad de que el modelo le asigne más "riesgo de *bunching*" a una celda donde el evento realmente ocurrió que a una donde no. 0.5 es azar, 1.0 es perfecto. Su propiedad clave acá es que **no usa threshold** y es invariante a cualquier reescalado monótono del puntaje, así que comprimir un pronóstico hacia su media no puede moverla — a diferencia de un corte relativo fijo, que se rompe.
 
-[^mcc]: **MCC (coeficiente de correlación de Matthews)** — resume una matriz de confusión en un número de −1 a 1 usando las cuatro celdas, incluidos los **verdaderos negativos** que el F1 ignora. Para la regla degenerada "marcar todo" vale **0 por convención** (el cociente es 0/0; cero es la extensión por continuidad y el valor esperado de un clasificador al azar), mientras que el F1 de esa misma regla es 2*b*/(1+*b*), o sea 0.30 a 0.46 en estos corredores. Por eso acá reemplaza al F1 como resumen y como objetivo de calibración.
+[^mcc]: **MCC (coeficiente de correlación de Matthews)** — resume una matriz de confusión en un número de −1 a 1 usando las cuatro celdas, incluidos los **verdaderos negativos** que el F1 ignora. Para la regla degenerada "marcar todo" vale **0 por convención** (el cociente es 0/0; cero es la extensión por continuidad y el valor esperado de un clasificador al azar), mientras que el F1 de esa misma regla es 2*b*/(1+*b*), o sea 0.29 a 0.44 en estos corredores. Por eso acá reemplaza al F1 como resumen y como objetivo de calibración.
 
 [^cv]: **Coeficiente de variación (CV)** — desviación estándar dividida por la media. En castellano: **un número que dice cuán desparejo está el corredor**. Cero significa buses perfectamente espaciados; alto significa que hay huecos largos y buses pegados. Dos corredores con el mismo *headway* promedio de 10 min pueden tener CV de 0.07 (huecos de 9-10-11-10) o de 0.85 (huecos de 1-19-2-18): el promedio no los distingue y el CV sí. Se divide por la media para que sea comparable entre corredores de distinta frecuencia. Es una propiedad del vector como un todo, no de cada *headway* por separado. El TCQSM la prescribe como medida de fiabilidad para servicio de alta frecuencia (≤10 min) y le asigna una escala de nivel de servicio; **no** es, en cambio, la métrica que usan los operadores en la práctica (ver §5.2). Y su definición en el manual normaliza por el *headway* **programado**, que nosotros no tenemos: lo nuestro es σ(*h*)/media(*h*) sobre el vector observado.
 
-[^f1]: **F1** — media armónica entre precisión (de lo que el modelo marcó, cuánto era cierto) y *recall* (de lo que era cierto, cuánto marcó el modelo). Resume la detección en un número entre 0 y 1. Un F1 bajo con precisión alta, como el del LSTM acá, indica un modelo que acierta cuando habla pero que casi no habla. **Su defecto en este documento:** ignora los verdaderos negativos, así que premia disparar a la frecuencia del evento aunque el acierto sea de casi-azar. Con una tasa base del 30 %, "marcar todo" saca F1 = 0.46 y supera al ganador declarado (§5.3). Se reporta por continuidad con las versiones anteriores, pero los veredictos de este documento descansan en el AUC[^auc] y el MCC[^mcc].
+[^f1]: **F1** — media armónica entre precisión (de lo que el modelo marcó, cuánto era cierto) y *recall* (de lo que era cierto, cuánto marcó el modelo). Resume la detección en un número entre 0 y 1. Un F1 bajo con precisión alta, como el del LSTM acá, indica un modelo que acierta cuando habla pero que casi no habla. **Su defecto en este documento:** ignora los verdaderos negativos, así que premia disparar a la frecuencia del evento aunque el acierto sea de casi-azar. Con una tasa base del 28 %, "marcar todo" saca F1 = 0.44 y supera al ganador declarado (§5.3). Se reporta por continuidad con las versiones anteriores, pero los veredictos de este documento descansan en el AUC[^auc] y el MCC[^mcc].
 
 [^split]: **División train / validación / prueba** — los datos se separan en tres bloques **temporales**: entrenamiento, validación (ajuste de hiperparámetros) y prueba (evaluación final sobre datos nunca vistos, y posteriores en el tiempo).
 

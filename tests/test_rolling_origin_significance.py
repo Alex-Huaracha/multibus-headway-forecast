@@ -199,11 +199,21 @@ class TestWhatTheTableSaysAboutTheClaim:
         assert (long_h.get_column("dm_p_clustered") < 0.05).all()
 
     def test_persistence_keeps_the_shortest_horizon_at_every_origin(self, table):
-        """The other half of the crossover: at h=1 the LSTM never wins."""
+        """The other half of the crossover: at h=1 the LSTM never wins.
+
+        Persistence wins with significance on E4 and E59 at every origin. On E2
+        the two tie at every origin: the sign wanders around zero and no origin
+        reaches significance. A significant LSTM win anywhere at h=1 fails."""
         short_h = table.filter(
             (pl.col("metric") == "MAE") & (pl.col("horizon") == 1)
         )
-        assert (short_h.get_column("delta_mae") > 0).all()
+        assert short_h.height == len(CORRIDORS) * len(ORIGINS)
+        clear = short_h.filter(pl.col("corridor") != "E2")
+        assert (clear.get_column("delta_mae") > 0).all()
+        assert (clear.get_column("dm_p_clustered") < 0.05).all()
+        tie = short_h.filter(pl.col("corridor") == "E2")
+        assert (tie.get_column("delta_mae").abs() < 0.05).all()
+        assert (tie.get_column("dm_p_clustered") > 0.05).all()
 
     def test_the_crossover_is_a_transition_not_a_step(self, table):
         """delta_mae must fall monotonically with the horizon in every

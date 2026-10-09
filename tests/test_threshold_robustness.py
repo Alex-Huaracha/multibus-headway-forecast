@@ -9,7 +9,7 @@ that is exactly the kind of result a later refactor tends to smooth away.
     Our 0.5x-of-own-vector-mean rule is not the field's convention (the field
     uses a fraction of the SCHEDULED headway). If the collapse were an artifact
     of the self-reference, the finding would say nothing about published
-    practice. Measured: the collapse is WORSE under an absolute cut, and ~110x
+    practice. Measured: the collapse is WORSE under an absolute cut, and ~230x
     worse under the field's quarter-of-schedule convention.
 
 ``TestTheAbsoluteEventIsHarder``
@@ -18,9 +18,10 @@ that is exactly the kind of result a later refactor tends to smooth away.
     Pinned so the "never blind" claim cannot silently over-extend.
 
 ``TestWhyTheThresholdIsFittedOnMcc``
-    Mixed result, deliberately pinned as mixed: F1-fitted cuts are TIGHTER in the
-    median. What favours MCC is the absence of a degenerate tail and the
-    out-of-sample cost. A test that asserted "MCC is more stable" would be false.
+    Formerly mixed (F1-fitted cuts were tighter in the median). Since the E2/E59
+    preprocessing fix, MCC-fitted cuts are tighter in the median too, and the
+    section says so. MCC still wins on the degenerate tail and the
+    out-of-sample cost; a reversal of any of the three fails here.
 """
 from __future__ import annotations
 
@@ -174,16 +175,17 @@ class TestTheAbsoluteEventIsHarder:
 
 
 class TestWhyTheThresholdIsFittedOnMcc:
-    """Mixed evidence, pinned as mixed. Do not let this drift into a clean win."""
+    """Section 5.7 used to be mixed; the corrected data made it a clean win.
+    Pinned in that direction so a reversal fails instead of being renarrated."""
 
-    def test_f1_fitting_is_tighter_in_the_median(self, stability):
-        """Deliberately asserting the INCONVENIENT direction. Section 5.7 says so
-        explicitly; if a future change makes MCC tighter in the median, the
-        section's careful hedging becomes wrong and must be revisited."""
+    def test_mcc_fitting_is_tighter_in_the_median(self, stability):
+        """The direction flipped with the E2/E59 preprocessing fix. Section 5.7
+        now says the result is no longer mixed; if F1 becomes tighter in the
+        median again, that sentence is wrong and must be revisited."""
         assert (
-            stability.get_column("spread_f1").median()
-            < stability.get_column("spread_mcc").median()
-        ), "MCC is now tighter in the median — Section 5.7 needs rewriting"
+            stability.get_column("spread_mcc").median()
+            < stability.get_column("spread_f1").median()
+        ), "F1 is tighter in the median again — Section 5.7 needs rewriting"
 
     def test_f1_fitting_has_a_degenerate_tail_that_mcc_does_not(self, stability):
         """The real reason for the choice: F1's worst case is catastrophic."""
@@ -214,8 +216,9 @@ class TestWhyTheThresholdIsFittedOnMcc:
         which is exactly where Section 5.3 showed the F1-optimal cut collapsing
         to always-fire. If they landed elsewhere, the explanation is wrong."""
         wild = stability.filter(pl.col("spread_f1") > 1.0)
-        assert wild.height >= 3, "the degenerate cells vanished"
+        assert wild.height >= 2, "the degenerate cells vanished"
         assert set(wild.get_column("model").unique()) == {"Persistence"}
+        assert set(wild.get_column("corridor").unique()) <= {"E2", "E59"}
 
     def test_both_objectives_are_recorded(self, stability):
         for objective in OBJECTIVES:
@@ -224,10 +227,17 @@ class TestWhyTheThresholdIsFittedOnMcc:
 
 
 class TestTheDocumentQuotesTheTables:
-    def test_section_5_6_exists_and_names_the_inversion(self, doc):
+    def test_section_5_6_exists_and_names_the_inversion(self, absolute, doc):
         assert "### 5.6 Tampoco es de nuestro threshold" in doc
         section = doc.split("### 5.6")[1].split("### 5.7")[0]
-        assert "110" in section, (
+        lstm = absolute.filter(
+            (pl.col("model") == "LSTM") & (pl.col("absolute_ratio") == 0.25)
+        )
+        factor = (
+            lstm.get_column("underfire_relative").median()
+            / lstm.get_column("underfire_absolute").median()
+        )
+        assert f"**{factor:.0f} veces peor**" in section, (
             "Section 5.6 no longer quotes the field-convention factor"
         )
         assert "empeora" in section, (
@@ -235,15 +245,17 @@ class TestTheDocumentQuotesTheTables:
             "inversion is the whole point of the measurement"
         )
 
-    def test_section_5_7_does_not_overclaim_stability(self, doc):
-        """The sentence that must survive: F1 is tighter in the median. A version
-        that only says "MCC is more stable" is false and this catches it."""
+    def test_section_5_7_does_not_overclaim_stability(self, stability, doc):
+        """The sentence must match the CSV's direction in the median. It used to
+        be F1; since the E2/E59 fix it is MCC, and the section has to say that
+        the earlier mixed reading no longer holds rather than silently drop it."""
         assert "### 5.7" in doc
         section = doc.split("### 5.7")[1].split("## 6.")[0]
-        assert "más estable" in section and "mediana" in section
-        assert "no es \"el MCC es más estable\"" in section or (
-            "sería falso en la mediana" in section
-        ), "Section 5.7 lost the hedge that makes it honest"
+        mcc = stability.get_column("spread_mcc").median()
+        f1 = stability.get_column("spread_f1").median()
+        assert mcc < f1
+        assert "ya no es mixto" in section
+        assert f"en la mediana ({mcc:.3f} contra {f1:.3f})" in section
 
     def test_the_scope_correction_reached_section_1(self, doc):
         """Section 1 previously scoped the finding to self-referential

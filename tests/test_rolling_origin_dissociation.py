@@ -196,7 +196,11 @@ class TestWhatTheTableSaysAboutTheClaim:
         (corridor, origin) pairs. Read correctly this is a property of the CUT,
         not of detection: the horizon compresses the forecast further, so the
         0.5x cut sits deeper in its tail. It is pinned because that monotonicity
-        is what makes the units explanation predictive rather than post hoc."""
+        is what makes the units explanation predictive rather than post hoc.
+
+        Where the LSTM never fires its F1 is zero and the gap is infinite (E2
+        h=10 at two origins since the E2/E59 fix): the end of the same trend,
+        not an exception to it. Persistence must still fire there."""
         for corridor in CORRIDORS:
             for origin in ORIGINS:
                 cell = table.filter(
@@ -210,8 +214,11 @@ class TestWhatTheTableSaysAboutTheClaim:
                             named=True
                         )
                     }
+                    persistence_f1 = at["Persistence"]["bunching_f1"]
+                    lstm_f1 = at["LSTM"]["bunching_f1"]
+                    assert persistence_f1 > 0
                     ratios.append(
-                        at["Persistence"]["bunching_f1"] / at["LSTM"]["bunching_f1"]
+                        persistence_f1 / lstm_f1 if lstm_f1 > 0 else float("inf")
                     )
                 assert ratios == sorted(ratios), (
                     f"{corridor}@{origin} detection gap is not monotone: {ratios}"

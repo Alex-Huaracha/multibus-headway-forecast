@@ -159,25 +159,45 @@ class TestScalarClaims:
         audit = _csv("contiguous_paired_audit.csv").filter(
             pl.col("direction") == "aggregate"
         )
-        for corridor, claimed in (("E2", -1.473), ("E59", -1.173), ("E4", -1.381)):
+        for corridor, claimed in (("E2", -1.548), ("E59", -1.259), ("E4", -1.381)):
             actual = _cell(audit, "delta_lstm_persist", corridor=corridor, horizon=10)
             assert actual == pytest.approx(claimed, abs=0.001)
             assert f"{abs(claimed):.3f}" in text
+        best = audit.filter(pl.col("horizon") == 10).get_column("delta_lstm_persist").min()
+        assert f"hasta **{abs(best):.2f} min de MAE**" in text
 
-    def test_persistence_wins_at_one_step_everywhere(self, text):
+    def test_persistence_wins_at_one_step_except_on_e2(self, text):
+        """At h=1 persistence wins on E4 and E59; on E2 the two tie.
+
+        The E2 tie is a claim, not an absence of one: the margin must stay
+        below a hundredth of a minute in size AND fail the day-clustered test.
+        A regenerated table that makes E2 a real win for either side fails here.
+        """
         audit = _csv("contiguous_paired_audit.csv").filter(
             pl.col("direction") == "aggregate"
         )
-        h1 = audit.filter(pl.col("horizon") == 1)
-        assert (h1.get_column("delta_lstm_persist") > 0).all()
+        significance = _csv("contiguous_significance.csv").filter(
+            (pl.col("metric") == "MAE") & (pl.col("comparison") == "LSTM_vs_PERSIST")
+        )
+        for corridor in ("E4", "E59"):
+            assert _cell(audit, "delta_lstm_persist", corridor=corridor, horizon=1) > 0
+            assert _cell(
+                significance, "dm_p_clustered", corridor=corridor, horizon=1
+            ) < 0.05
+        e2_delta = _cell(audit, "delta_lstm_persist", corridor="E2", horizon=1)
+        e2_p = _cell(significance, "dm_p_clustered", corridor="E2", horizon=1)
+        assert abs(e2_delta) < 0.02 and e2_p > 0.05
+        assert f"Δ = −{abs(e2_delta):.3f} min, *p* = {e2_p:.2f}" in text
+        assert "En E2 empatan" in text
 
     def test_xgboost_reproduces_the_crossover(self, text):
         audit = _csv("contiguous_paired_audit.csv").filter(
             pl.col("direction") == "aggregate"
         )
-        for corridor, claimed in (("E2", -1.585), ("E59", -0.787), ("E4", -1.085)):
+        for corridor, claimed in (("E2", -1.566), ("E59", -0.972), ("E4", -1.085)):
             actual = _cell(audit, "delta_xgb_persist", corridor=corridor, horizon=10)
             assert actual == pytest.approx(claimed, abs=0.001)
+            assert f"−{abs(claimed):.3f} en {corridor}" in text
 
     def test_the_framing_bias_figure(self, text):
         audit = _csv("contiguous_paired_audit.csv")
@@ -185,8 +205,8 @@ class TestScalarClaims:
             audit.get_column("framing_delta_lstm").abs().max(),
             audit.get_column("framing_delta_xgb").abs().max(),
         )
-        assert worst < 0.001 + 1e-9
-        assert "0.001 min" in text
+        assert worst < 0.0025
+        assert f"{worst:.4f} min" in text
 
     def test_the_contiguity_cost_range(self, text):
         """Scoped to the PUBLISHED fold.
@@ -200,9 +220,9 @@ class TestScalarClaims:
         )
         assert manifest.height == 12, "expected 3 corridors x 4 horizons"
         usable = manifest.get_column("pct_snapshots_usable")
-        assert round(float(usable.min()), 1) == 81.9
-        assert round(float(usable.max()), 1) == 90.2
-        assert "81.9" in text and "90.2" in text
+        low, high = round(float(usable.min()), 1), round(float(usable.max()), 1)
+        assert (low, high) == (81.9, 91.2)
+        assert f"entre el {low} % y el {high} %" in text
 
 
 class TestSignificanceClaims:
@@ -216,38 +236,61 @@ class TestSignificanceClaims:
         assert set(significance.get_column("n_service_days")) == {22}
         assert "22 días" in text
 
-    def test_the_two_verdicts_that_fall(self, significance, text):
-        e2 = _cell(significance, "dm_p_clustered", corridor="E2", horizon=1)
-        e4 = _cell(significance, "dm_p_clustered", corridor="E4", horizon=3)
-        assert e2 == pytest.approx(0.0619, abs=0.0005)
-        assert e4 == pytest.approx(0.1849, abs=0.0005)
-        assert "0.0619" in text and "0.1849" in text
+    def test_the_two_verdicts_that_fall(self, text):
+        """Exactly two comparisons against persistence lose significance when
+        the variance is clustered by service day: LSTM on E4 h=3 and XGBoost on
+        E2 h=1. Derived from the CSV, so a third one appearing fails here."""
+        mae = _csv("contiguous_significance.csv").filter(
+            (pl.col("metric") == "MAE")
+            & pl.col("comparison").is_in(["LSTM_vs_PERSIST", "XGB_vs_PERSIST"])
+        )
+        falling = mae.filter(
+            (pl.col("dm_p_hac") < 0.05) & (pl.col("dm_p_clustered") >= 0.05)
+        )
+        assert set(
+            zip(
+                falling.get_column("comparison"),
+                falling.get_column("corridor"),
+                falling.get_column("horizon"),
+            )
+        ) == {("LSTM_vs_PERSIST", "E4", 3), ("XGB_vs_PERSIST", "E2", 1)}
+        for row in falling.iter_rows(named=True):
+            assert f"**{row['dm_p_clustered']:.4f}**" in text
+        assert "dos veredictos se caen" in text
+
+    def test_e2_one_step_was_never_significant(self, significance, text):
+        """The old third verdict (LSTM on E2 h=1) no longer falls: it is not
+        significant even before clustering, which the document must say."""
+        hac = _cell(significance, "dm_p_hac", corridor="E2", horizon=1)
+        clustered = _cell(significance, "dm_p_clustered", corridor="E2", horizon=1)
+        assert 0.05 <= hac <= clustered
+        assert f"| {hac:.4f} | **{clustered:.4f}** |" in text
+        assert "ya no era significativo sin agrupar" in text
 
     def test_the_clustering_is_what_kills_them(self, significance):
-        for corridor, horizon in (("E2", 1), ("E4", 3)):
-            hac = _cell(significance, "dm_p_hac", corridor=corridor, horizon=horizon)
-            clustered = _cell(
-                significance, "dm_p_clustered", corridor=corridor, horizon=horizon
-            )
-            assert hac < 0.05 <= clustered
+        hac = _cell(significance, "dm_p_hac", corridor="E4", horizon=3)
+        clustered = _cell(significance, "dm_p_clustered", corridor="E4", horizon=3)
+        assert hac < 0.05 <= clustered
 
     def test_long_horizons_survive_clustering(self, significance):
         long = significance.filter(pl.col("horizon") >= 5)
         assert long.get_column("dm_p_clustered").max() < 1e-9
 
     def test_the_h3_win_rates(self, significance, text):
-        for corridor, claimed in (("E4", 0.4598), ("E59", 0.4726)):
+        for corridor, claimed in (("E4", 0.4598), ("E59", 0.4572)):
             actual = _cell(significance, "win_rate", corridor=corridor, horizon=3)
             assert actual == pytest.approx(claimed, abs=0.0005)
+            assert f"{100 * actual:.1f} %" in text
 
     def test_the_h3_wilcoxon_contradicts_the_mean(self, significance, text):
-        assert _cell(
-            significance, "wilcoxon_p_one_sided", corridor="E4", horizon=3
-        ) == pytest.approx(1.0, abs=1e-6)
-        assert _cell(
-            significance, "wilcoxon_p_one_sided", corridor="E59", horizon=3
-        ) == pytest.approx(0.952, abs=0.001)
-        assert "0.952" in text
+        for corridor in ("E4", "E59"):
+            assert _cell(
+                significance, "delta_loss", corridor=corridor, horizon=3
+            ) < 0
+            assert _cell(
+                significance, "wilcoxon_p_one_sided", corridor=corridor, horizon=3
+            ) == pytest.approx(1.0, abs=1e-6)
+        assert "*p* = 1.000 en los dos" in text
 
 
 class TestVectorClaims:
@@ -256,35 +299,66 @@ class TestVectorClaims:
         return _csv("contiguous_vector_metrics.csv")
 
     def test_the_headline_f1_pair(self, vector, text):
+        """E2 h=10: the LSTM never fires, so its F1 is zero and the ratio
+        against persistence is not finite. The largest finite ratio is E2 h=5."""
         persistence = _cell(
             vector, "bunching_f1", model="Persistence", corridor="E2", horizon=10
         )
-        lstm = _cell(vector, "bunching_f1", model="LSTM", corridor="E2", horizon=10)
-        assert persistence == pytest.approx(0.332, abs=0.001)
-        assert lstm == pytest.approx(0.0013, abs=0.0001)
-        assert round(persistence / lstm, 1) == pytest.approx(253.4, abs=0.5)
-        assert "253" in text
+        e2 = vector.filter(
+            (pl.col("model") == "LSTM") & (pl.col("corridor") == "E2")
+            & (pl.col("horizon") == 10)
+        ).row(0, named=True)
+        assert e2["bunching_tp"] + e2["bunching_fp"] == 0
+        assert e2["bunching_f1"] == 0.0
+        assert persistence == pytest.approx(0.315, abs=0.001)
+        assert f"| 0.000 | **{persistence:.3f}** |" in text
+        h5_ratio = _cell(
+            vector, "bunching_f1", model="Persistence", corridor="E2", horizon=5
+        ) / _cell(vector, "bunching_f1", model="LSTM", corridor="E2", horizon=5)
+        assert round(h5_ratio, 1) == pytest.approx(209.0, abs=0.5)
+        assert "209" in text
 
     def test_the_flattening_figures(self, vector, text):
         true_cv = _cell(vector, "mean_cv_true", model="LSTM", corridor="E2", horizon=10)
         pred_cv = _cell(vector, "mean_cv_pred", model="LSTM", corridor="E2", horizon=10)
-        assert true_cv == pytest.approx(0.787, abs=0.001)
-        assert pred_cv == pytest.approx(0.161, abs=0.001)
-        assert "0.16" in text and "0.79" in text
+        assert true_cv == pytest.approx(0.742, abs=0.001)
+        assert pred_cv == pytest.approx(0.179, abs=0.001)
+        assert f"CV de {pred_cv:.2f} cuando el real es {true_cv:.2f}" in text
 
     def test_precision_holds_while_recall_collapses(self, vector, text):
+        """Where the LSTM fires, it is right more often than persistence and
+        than the base rate; where it does not fire (E2 h=10) precision is
+        undefined, and the document has to say so rather than average it in."""
         lstm = vector.filter(pl.col("model") == "LSTM")
+        persistence = vector.filter(pl.col("model") == "Persistence").select(
+            "corridor", "horizon",
+            pl.col("bunching_precision").alias("persist_precision"),
+        )
+        fires = lstm.filter(pl.col("bunching_tp") + pl.col("bunching_fp") > 0)
+        silent = lstm.filter(pl.col("bunching_tp") + pl.col("bunching_fp") == 0)
+        assert set(zip(silent.get_column("corridor"), silent.get_column("horizon"))) == {
+            ("E2", 10)
+        }
+        assert fires.height == 11
+        joined = fires.join(persistence, on=["corridor", "horizon"])
+        assert (joined.get_column("bunching_precision")
+                > joined.get_column("persist_precision")).all()
+        assert (joined.get_column("bunching_precision")
+                > joined.get_column("bunching_rate_true")).all()
         firing = lstm.filter(pl.col("bunching_tp") + pl.col("bunching_fp") > 100)
-        assert firing.get_column("bunching_precision").min() > 0.49
-        assert firing.get_column("bunching_precision").max() < 0.74
+        low = firing.get_column("bunching_precision").min()
+        assert round(100 * low) == 45
+        assert "**45 % de precisión**" in text
+        assert "precisión no está definida" in text
         assert lstm.filter(pl.col("horizon") == 10).get_column(
             "bunching_recall"
         ).max() < 0.02
 
     def test_the_bunching_base_rate_range(self, vector, text):
         rates = vector.get_column("bunching_rate_true")
-        assert 0.17 < rates.min() and rates.max() < 0.31
-        assert "17 %" in text and "30 %" in text
+        low, high = round(100 * rates.min()), round(100 * rates.max())
+        assert (low, high) == (17, 29)
+        assert f"**{low} % al {high} %**" in text
 
     def test_persistence_wins_every_vector_cell(self, vector):
         best = (
@@ -299,9 +373,9 @@ class TestRobustnessClaims:
     def test_the_clipping_footprint(self, text):
         sensitivity = _csv("contiguous_winsorization_sensitivity.csv")
         pct = sensitivity.get_column("pct_clipped_targets")
-        assert round(float(pct.min()), 2) == 0.78
-        assert round(float(pct.max()), 2) == 1.11
-        assert "0.78" in text and "1.11" in text
+        low, high = round(float(pct.min()), 2), round(float(pct.max()), 2)
+        assert (low, high) == (0.84, 1.10)
+        assert f"**{low:.2f} % y {high:.2f} %**" in text
 
     def test_no_margin_moves_by_a_hundredth_of_a_minute(self, text):
         sensitivity = _csv("contiguous_winsorization_sensitivity.csv").filter(
@@ -317,14 +391,34 @@ class TestRobustnessClaims:
         router = _csv("contiguous_router.csv").filter(
             pl.col("split_mode") == "temporal"
         )
-        assert _cell(
-            router, "gain_vs_best_pure", corridor="E4", horizon=3
-        ) == pytest.approx(-0.073, abs=0.001)
-        assert _cell(
-            router, "gain_vs_best_pure", corridor="E59", horizon=3
-        ) == pytest.approx(-0.042, abs=0.001)
-        assert int(router.get_column("policy_degenerate").sum()) == 7
-        assert "7 de 12" in text
+        for corridor, horizon, claimed in (
+            ("E2", 1, -0.053), ("E4", 3, -0.073), ("E59", 3, -0.094),
+        ):
+            assert _cell(
+                router, "gain_vs_best_pure", corridor=corridor, horizon=horizon
+            ) == pytest.approx(claimed, abs=0.001)
+            assert f"{corridor} h={horizon} (−{abs(claimed):.3f} min)" in text
+        degenerate = int(router.get_column("policy_degenerate").sum())
+        assert degenerate == 6
+        assert f"{degenerate} de 12" in text
+
+    def test_where_the_router_beats_seed_noise(self, text):
+        """The cells the document names are exactly the ones whose temporal
+        gain exceeds the random-split spread, split by sign."""
+        from src.build_contiguous_router import seed_sweep_summary
+
+        summary = seed_sweep_summary(_csv("contiguous_router.csv"))
+        beats = summary.filter(pl.col("exceeds_seed_noise"))
+        helps = beats.filter(pl.col("gain_temporal") < 0)
+        hurts = beats.filter(pl.col("gain_temporal") > 0)
+        assert set(zip(helps.get_column("corridor"), helps.get_column("horizon"))) == {
+            ("E2", 1), ("E4", 3), ("E59", 3)
+        }
+        assert set(zip(hurts.get_column("corridor"), hurts.get_column("horizon"))) == {
+            ("E2", 10)
+        }
+        assert hurts.get_column("fails_forward_in_time").all()
+        assert f"{helps.height} de 12 celdas" in text
 
     def test_the_tuning_asymmetry_is_declared(self, text):
         from src.baselines.fitted import SEARCH_N_CONFIGS
